@@ -39,3 +39,18 @@ class PageResponse(BaseModel):
     preprocessing_config: dict | None
 
     model_config = {"from_attributes": True}
+
+
+class OcrPageStatus(BaseModel):
+    page_number: int
+    page_id: uuid.UUID
+    has_ocr: bool
+    confidence: float | None
+
+
+class OcrStatusResponse(BaseModel):
+    total_pages: int
+    ocr_complete_count: int
+    ocr_pending_count: int
+    avg_confidence: float | None
+    pages: list[OcrPageStatus]
