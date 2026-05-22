@@ -86,6 +86,21 @@ export interface JobResponse {
   error_log: string | null;
 }
 
+export interface OcrPageStatus {
+  page_number: number;
+  page_id: string;
+  has_ocr: boolean;
+  confidence: number | null;
+}
+
+export interface OcrStatusResponse {
+  total_pages: number;
+  ocr_complete_count: number;
+  ocr_pending_count: number;
+  avg_confidence: number | null;
+  pages: OcrPageStatus[];
+}
+
 export const DEFAULT_PREPROCESSING_CONFIG: PreprocessingConfig = {
   grayscale: true,
   brightness: 0,
@@ -184,4 +199,14 @@ export const runOcr = async (bookId: string): Promise<JobResponse> => {
 export const getBookJobs = async (bookId: string): Promise<JobResponse[]> => {
   const response = await api.get<JobResponse[]>(`/books/${bookId}/jobs`);
   return response.data;
+};
+
+export const getOcrStatus = async (bookId: string): Promise<OcrStatusResponse> => {
+  const response = await api.get<OcrStatusResponse>(`/books/${bookId}/ocr-status`);
+  return response.data;
+};
+
+export const getJob = async (bookId: string, jobId: string): Promise<JobResponse | undefined> => {
+  const jobs = await getBookJobs(bookId);
+  return jobs.find((j) => j.id === jobId);
 };
