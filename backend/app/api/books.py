@@ -15,12 +15,15 @@ from app.models.page import Page
 from app.schemas.book import (
     BookDetail,
     BookUploadResponse,
+    OcrStatusResponse,
+    OcrPageStatus,
     PageResponse,
     PageSelectionRequest,
     PageSelectionResponse,
 )
 from app.schemas.job import JobResponse
 from app.services import pdf_service, storage
+from app.models.ocr_result import OcrResult
 
 router = APIRouter()
 
@@ -210,6 +213,54 @@ async def run_ocr(
     run_ocr_for_book.delay(str(job.id), str(book_id), book.language)
 
     return JobResponse.model_validate(job)
+
+
+@router.get("/{book_id}/ocr-status", response_model=OcrStatusResponse)
+async def get_ocr_status(
+    book_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> OcrStatusResponse:
+    book = await _get_book(book_id, db)
+
+    pages_result = await db.execute(
+        select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
+    )
+    pages = pages_result.scalars().all()
+
+    page_statuses: list[OcrPageStatus] = []
+    confidences: list[float] = []
+
+    page_ids = [p.id for p in pages]
+    ocr_results_raw = await db.execute(
+        select(OcrResult).where(OcrResult.page_id.in_(page_ids))
+    )
+    ocr_by_page = {r.page_id: r for r in ocr_results_raw.scalars().all()}
+
+    for page in pages:
+        ocr = ocr_by_page.get(page.id)
+        has_ocr = ocr is not None and ocr.raw_text is not None
+        conf = ocr.confidence if ocr else None
+        if conf is not None:
+            confidences.append(conf)
+        page_statuses.append(
+            OcrPageStatus(
+                page_number=page.page_number,
+                page_id=page.id,
+                has_ocr=has_ocr,
+                confidence=conf,
+            )
+        )
+
+    ocr_complete = sum(1 for ps in page_statuses if ps.has_ocr)
+    avg_conf = sum(confidences) / len(confidences) if confidences else None
+
+    return OcrStatusResponse(
+        total_pages=len(pages),
+        ocr_complete_count=ocr_complete,
+        ocr_pending_count=len(pages) - ocr_complete,
+        avg_confidence=avg_conf,
+        pages=page_statuses,
+    )
 
 
 @router.get("/{book_id}/jobs", response_model=list[JobResponse])
