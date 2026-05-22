@@ -273,13 +273,12 @@ export default function OcrReviewPage() {
             >
               Back to Preprocessing
             </a>
-            <button
-              disabled
-              className="px-4 py-2 text-sm bg-gray-300 text-gray-500 rounded cursor-not-allowed"
-              title="Coming in Week 5"
+            <a
+              href={`/books/${bookId}/llm-config`}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               Proceed to LLM Config
-            </button>
+            </a>
           </div>
         </div>
       </div>
