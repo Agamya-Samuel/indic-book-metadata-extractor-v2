@@ -1,0 +1,46 @@
+[project]
+name = "indic-book-metadata-extractor"
+version = "0.1.0"
+description = "OCR-powered metadata extraction from Indic language books"
+requires-python = ">=3.11"
+dependencies = [
+    # Web framework
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    # Database
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "pgvector>=0.3",
+    # Task queue
+    "celery[redis]>=5.4",
+    "redis>=5.0",
+    # Data validation
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    # PDF processing
+    "pymupdf>=1.24",
+    # Image processing
+    "pillow>=10.3",
+    "opencv-python-headless>=4.9",
+    "numpy>=1.26",
+    # OCR
+    "pytesseract>=0.3.10",
+    # LLM
+    "instructor>=1.3",
+    "httpx>=0.27",
+    # Utilities
+    "python-dotenv>=1.0",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "black>=24.4",
+]
