@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,6 +12,8 @@ import {
   DEFAULT_PREPROCESSING_CONFIG,
   type PreprocessingConfig,
 } from "@/lib/api";
+import { useJobPolling } from "@/hooks/use-job-polling";
+import { getErrorMessage } from "@/lib/error-handler";
 
 export default function PreprocessingPage() {
   const params = useParams();
@@ -59,13 +61,27 @@ export default function PreprocessingPage() {
     },
   });
 
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
   const runOcrMutation = useMutation({
     mutationFn: () => runOcr(bookId),
     onSuccess: (job) => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-      router.push(`/books/${bookId}/ocr-review?jobId=${job.id}`);
+      setActiveJobId(job.id);
     },
   });
+
+  const { isComplete, isFailed, progress, isPolling, errorLog } = useJobPolling({
+    bookId,
+    jobId: activeJobId ?? undefined,
+    enabled: !!activeJobId,
+  });
+
+  useEffect(() => {
+    if (activeJobId && isComplete) {
+      router.push(`/books/${bookId}/ocr-review?jobId=${activeJobId}`);
+    }
+  }, [activeJobId, isComplete, bookId, router]);
 
   if (isLoadingBook || isLoadingPages) {
     return (
@@ -306,19 +322,30 @@ export default function PreprocessingPage() {
 
                 <button
                   onClick={() => runOcrMutation.mutate()}
-                  disabled={runOcrMutation.isPending}
+                  disabled={runOcrMutation.isPending || !!activeJobId}
                   className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   {runOcrMutation.isPending
                     ? "Starting OCR..."
-                    : "Run OCR on All Pages"}
+                    : isPolling
+                      ? `Running OCR... ${Math.round(progress)}%`
+                      : "Run OCR on All Pages"}
                 </button>
 
-                {runOcrMutation.isError && (
+                {isPolling && (
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.round(progress)}%` }}
+                    />
+                  </div>
+                )}
+
+                {(runOcrMutation.isError || (isFailed && errorLog)) && (
                   <p className="text-sm text-red-600">
-                    {runOcrMutation.error instanceof Error
-                      ? runOcrMutation.error.message
-                      : "Failed to start OCR"}
+                    {runOcrMutation.isError
+                      ? getErrorMessage(runOcrMutation.error)
+                      : `OCR failed: ${errorLog}`}
                   </p>
                 )}
               </div>
