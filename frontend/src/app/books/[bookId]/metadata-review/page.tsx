@@ -318,7 +318,7 @@ export default function MetadataReviewPage() {
             Re-run Extraction
           </a>
           <Link
-            href="/"
+            href="/library"
             className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
           >
             Go to Library
