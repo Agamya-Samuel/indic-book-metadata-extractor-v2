@@ -1,9 +1,6 @@
 from pathlib import Path
 from uuid import UUID
 
-from pathlib import Path
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -13,6 +10,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.base import uuid
 from app.models.book import Book, BookStatus
+from app.models.job import Job, JobType, JobStatus
 from app.models.page import Page
 from app.schemas.book import (
     BookDetail,
@@ -21,6 +19,7 @@ from app.schemas.book import (
     PageSelectionRequest,
     PageSelectionResponse,
 )
+from app.schemas.job import JobResponse
 from app.services import pdf_service, storage
 
 router = APIRouter()
@@ -172,3 +171,57 @@ async def list_pages(book_id: UUID, db: AsyncSession = Depends(get_db)) -> list[
     )
     pages = result.scalars().all()
     return [PageResponse.model_validate(p) for p in pages]
+
+
+@router.post("/{book_id}/run-ocr", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
+async def run_ocr(
+    book_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> JobResponse:
+    book = await _get_book(book_id, db)
+
+    if book.status not in (BookStatus.PAGES_SELECTED, BookStatus.OCR_COMPLETE):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Book status must be 'pages_selected' or 'ocr_complete', got '{book.status}'",
+        )
+
+    pages_result = await db.execute(
+        select(Page).where(Page.book_id == book_id)
+    )
+    pages = pages_result.scalars().all()
+    if not pages:
+        raise HTTPException(status_code=400, detail="No pages selected for this book")
+
+    job = Job(
+        book_id=book_id,
+        job_type=JobType.OCR,
+        status=JobStatus.QUEUED,
+        progress=0.0,
+    )
+    db.add(job)
+
+    book.status = BookStatus.OCR_RUNNING
+    await db.commit()
+    await db.refresh(job)
+
+    from app.tasks.ocr_tasks import run_ocr_for_book
+
+    run_ocr_for_book.delay(str(job.id), str(book_id), book.language)
+
+    return JobResponse.model_validate(job)
+
+
+@router.get("/{book_id}/jobs", response_model=list[JobResponse])
+async def list_jobs(
+    book_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> list[JobResponse]:
+    await _get_book(book_id, db)
+    result = await db.execute(
+        select(Job)
+        .where(Job.book_id == book_id)
+        .order_by(Job.created_at.desc())
+    )
+    jobs = result.scalars().all()
+    return [JobResponse.model_validate(j) for j in jobs]
