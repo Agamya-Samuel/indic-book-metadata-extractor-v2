@@ -37,6 +37,16 @@ def full_page_path(book_id: str, page_number: int) -> Path:
     return pages_dir(book_id) / f"p{page_number:04d}.png"
 
 
+def processed_dir(book_id: str) -> Path:
+    p = _base() / "processed" / book_id
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def processed_image_path(book_id: str, page_number: int) -> Path:
+    return processed_dir(book_id) / f"p{page_number:04d}_processed.png"
+
+
 def relative(path: Path) -> str:
     try:
         return str(path.relative_to(_base()))
