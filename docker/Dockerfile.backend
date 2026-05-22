@@ -28,7 +28,7 @@ COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
 
 # Create storage directories
-RUN mkdir -p /app/storage/uploads /app/storage/thumbnails /app/storage/pages
+RUN mkdir -p /app/storage/uploads /app/storage/thumbnails /app/storage/pages /app/storage/processed
 
 EXPOSE 8000
 
