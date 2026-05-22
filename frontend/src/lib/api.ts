@@ -323,3 +323,102 @@ export const getLlmRuns = async (bookId: string): Promise<LlmRunResponse[]> => {
   const response = await api.get<LlmRunResponse[]>(`/books/${bookId}/llm-runs`);
   return response.data;
 };
+
+export interface BookSearchResult {
+  id: string;
+  title: string | null;
+  filename: string;
+  language: string;
+  status: string;
+  total_pages: number | null;
+  created_at: string | null;
+  metadata_fields: Record<string, string> | null;
+  thumbnail_url: string | null;
+}
+
+export interface BookListResponse {
+  items: BookSearchResult[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface BookDetailPage {
+  id: string;
+  page_number: number;
+  image_url: string;
+  ocr_text: string | null;
+  ocr_confidence: number | null;
+}
+
+export interface BookDetailResponse {
+  book: BookDetail;
+  metadata: Record<string, string> | null;
+  metadata_updated_at: string | null;
+  pages: BookDetailPage[];
+  llm_runs: LlmRunResponse[];
+  jobs: JobResponse[];
+}
+
+export interface FilterOptions {
+  languages: string[];
+  statuses: string[];
+  genres: string[];
+  publishers: string[];
+}
+
+export interface LibrarySearchParams {
+  query?: string;
+  language?: string;
+  status?: string;
+  genre?: string;
+  publisher?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export const getLibraryBooks = async (
+  params?: LibrarySearchParams
+): Promise<BookListResponse> => {
+  const searchParams = new URLSearchParams();
+  if (params?.query) searchParams.set("query", params.query);
+  if (params?.language) searchParams.set("language", params.language);
+  if (params?.status) searchParams.set("status", params.status);
+  if (params?.genre) searchParams.set("genre", params.genre);
+  if (params?.publisher) searchParams.set("publisher", params.publisher);
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+
+  const qs = searchParams.toString();
+  const url = `/library/books${qs ? `?${qs}` : ""}`;
+  const response = await api.get<BookListResponse>(url);
+  return response.data;
+};
+
+export const searchLibrary = async (
+  q: string,
+  language?: string,
+  limit: number = 20
+): Promise<BookSearchResult[]> => {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  if (language) params.set("language", language);
+  const response = await api.get<BookSearchResult[]>(
+    `/library/search?${params.toString()}`
+  );
+  return response.data;
+};
+
+export const getBookDetail = async (
+  bookId: string
+): Promise<BookDetailResponse> => {
+  const response = await api.get<BookDetailResponse>(
+    `/library/books/${bookId}/detail`
+  );
+  return response.data;
+};
+
+export const getFilterOptions = async (): Promise<FilterOptions> => {
+  const response = await api.get<FilterOptions>("/library/filters");
+  return response.data;
+};
