@@ -54,3 +54,47 @@ class OcrStatusResponse(BaseModel):
     ocr_pending_count: int
     avg_confidence: float | None
     pages: list[OcrPageStatus]
+
+
+class BookSearchResult(BaseModel):
+    id: uuid.UUID
+    title: str | None
+    filename: str
+    language: str
+    status: str
+    total_pages: int | None
+    created_at: datetime.datetime | None
+    metadata_fields: dict | None = None
+    thumbnail_url: str | None = None
+
+
+class BookListResponse(BaseModel):
+    items: list[BookSearchResult]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class BookDetailPage(BaseModel):
+    id: uuid.UUID
+    page_number: int
+    image_url: str
+    ocr_text: str | None
+    ocr_confidence: float | None
+
+
+class BookDetailResponse(BaseModel):
+    book: BookDetail
+    metadata: dict | None = None
+    metadata_updated_at: datetime.datetime | None = None
+    pages: list[BookDetailPage]
+    llm_runs: list[dict]
+    jobs: list[dict]
+
+
+class FilterOptionsResponse(BaseModel):
+    languages: list[str]
+    statuses: list[str]
+    genres: list[str]
+    publishers: list[str]
