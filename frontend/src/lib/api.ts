@@ -210,3 +210,116 @@ export const getJob = async (bookId: string, jobId: string): Promise<JobResponse
   const jobs = await getBookJobs(bookId);
   return jobs.find((j) => j.id === jobId);
 };
+
+export interface ModelInfo {
+  name: string;
+  size_gb: number | null;
+  parameter_count: string | null;
+}
+
+export interface ExtractionRequest {
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  fields_per_batch: number;
+  custom_system_prompt?: string | null;
+  custom_extraction_prompt?: string | null;
+}
+
+export interface ExtractionResponse {
+  job_id: string;
+  book_id: string;
+  status: string;
+  total_batches: number;
+}
+
+export interface MetadataFieldDefinition {
+  field_name: string;
+  display_name: string;
+  wikidata_property: string | null;
+  batch_group: string;
+}
+
+export interface MetadataResponse {
+  book_id: string;
+  fields: Record<string, string>;
+  updated_at: string | null;
+}
+
+export interface MetadataUpdateRequest {
+  fields: Record<string, string>;
+}
+
+export interface LlmRunResponse {
+  id: string;
+  job_id: string;
+  model: string;
+  prompt_template: string | null;
+  batch_config: Record<string, unknown> | null;
+  raw_response: string | null;
+  parsed_fields: Record<string, string> | null;
+  created_at: string | null;
+}
+
+export const DEFAULT_EXTRACTION_CONFIG: ExtractionRequest = {
+  model: "airavata",
+  temperature: 0.3,
+  max_tokens: 2048,
+  fields_per_batch: 10,
+};
+
+export const getAvailableModels = async (): Promise<ModelInfo[]> => {
+  const response = await api.get<ModelInfo[]>("/books/models");
+  return response.data;
+};
+
+export const runExtraction = async (
+  bookId: string,
+  config: ExtractionRequest
+): Promise<ExtractionResponse> => {
+  const response = await api.post<ExtractionResponse>(
+    `/books/${bookId}/run-extraction`,
+    config
+  );
+  return response.data;
+};
+
+export const retryExtraction = async (
+  bookId: string,
+  config: ExtractionRequest
+): Promise<ExtractionResponse> => {
+  const response = await api.post<ExtractionResponse>(
+    `/books/${bookId}/retry-extraction`,
+    config
+  );
+  return response.data;
+};
+
+export const getMetadata = async (bookId: string): Promise<MetadataResponse> => {
+  const response = await api.get<MetadataResponse>(`/books/${bookId}/metadata`);
+  return response.data;
+};
+
+export const updateMetadata = async (
+  bookId: string,
+  fields: Record<string, string>
+): Promise<MetadataResponse> => {
+  const response = await api.put<MetadataResponse>(`/books/${bookId}/metadata`, {
+    fields,
+  });
+  return response.data;
+};
+
+export const getMetadataFieldDefinitions = async (
+  bookId: string
+): Promise<MetadataFieldDefinition[]> => {
+  const response = await api.get<MetadataFieldDefinition[]>(
+    `/books/${bookId}/metadata/fields`
+  );
+  return response.data;
+};
+
+export const getLlmRuns = async (bookId: string): Promise<LlmRunResponse[]> => {
+  const response = await api.get<LlmRunResponse[]>(`/books/${bookId}/llm-runs`);
+  return response.data;
+};
