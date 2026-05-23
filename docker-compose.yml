@@ -38,6 +38,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
+      - ./docker/Modelfile.airavata:/models/Modelfile.airavata
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     environment:
       - OLLAMA_PRELOAD_MODEL=airavata
