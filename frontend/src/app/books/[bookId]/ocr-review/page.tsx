@@ -11,6 +11,7 @@ import {
   getPageImageUrl,
   type OcrResultResponse,
 } from "@/lib/api";
+import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import OcrTextEditor from "@/components/ocr/text-editor";
@@ -142,7 +143,7 @@ export default function OcrReviewPage() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">OCR Review</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {book.title || book.filename} &bull;{" "}
-              {book.language === "tel" ? "Telugu" : "Hindi"}
+              {getLanguageName(book.language)}
             </p>
           </div>
 

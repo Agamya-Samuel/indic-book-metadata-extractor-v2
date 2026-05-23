@@ -7,6 +7,7 @@ import {
   getFilterOptions,
   type LibrarySearchParams,
 } from "@/lib/api";
+import { getLanguageName } from "@/lib/utils";
 import { createBookFuse, fuseSearch } from "@/lib/fuse-config";
 import BookCard from "@/components/library/book-card";
 import { LibrarySkeleton } from "@/components/shared/skeleton";
@@ -175,7 +176,7 @@ export default function LibraryPage() {
               <option value="">All Languages</option>
               {(filterOptions?.languages ?? ["tel", "hin"]).map((l) => (
                 <option key={l} value={l}>
-                  {l === "tel" ? "Telugu" : l === "hin" ? "Hindi" : l}
+                  {getLanguageName(l)}
                 </option>
               ))}
             </select>

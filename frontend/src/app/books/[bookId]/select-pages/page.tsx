@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
+import { getLanguageName } from "@/lib/utils";
 import { useBookStore } from "@/stores/book-store";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
@@ -182,7 +183,7 @@ export default function SelectPagesPage() {
             {book.title || book.filename}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Language: {book.language === "tel" ? "Telugu" : "Hindi"} • Total pages: {totalPages}
+            Language: {getLanguageName(book.language)} • Total pages: {totalPages}
           </p>
         </div>
 
