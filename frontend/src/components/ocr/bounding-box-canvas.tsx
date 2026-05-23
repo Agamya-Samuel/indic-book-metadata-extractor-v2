@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { Stage, Layer, Image as KonvaImage, Rect, Group } from "react-konva";
 import type Konva from "konva";
 import type { OcrWord } from "@/lib/api";
@@ -45,7 +45,37 @@ function getConfidenceColor(
   return "#ef4444";
 }
 
-export default function BoundingBoxCanvas({
+interface BBoxRectProps {
+  scaled: { x: number; y: number; w: number; h: number };
+  isSelected: boolean;
+  isLowConf: boolean;
+  strokeColor: string;
+  onClick: () => void;
+}
+
+const BBoxRect = memo(function BBoxRect({
+  scaled,
+  isSelected,
+  isLowConf,
+  strokeColor,
+  onClick,
+}: BBoxRectProps) {
+  return (
+    <Rect
+      x={scaled.x}
+      y={scaled.y}
+      width={scaled.w}
+      height={scaled.h}
+      fill={isSelected ? "rgba(59,130,246,0.25)" : isLowConf ? "rgba(239,68,68,0.1)" : "transparent"}
+      stroke={isSelected ? "#3b82f6" : strokeColor}
+      strokeWidth={isSelected ? 2.5 : 1}
+      onClick={onClick}
+      onTap={onClick}
+    />
+  );
+});
+
+function BoundingBoxCanvas({
   imageUrl,
   boxes,
   selectedIndex,
@@ -150,7 +180,9 @@ export default function BoundingBoxCanvas({
         onDragEnd={(e) => {
           setPosition({ x: e.target.x(), y: e.target.y() });
         }}
-        className="bg-gray-100 border rounded"
+        className="bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 rounded"
+        role="img"
+        aria-label={`Page image with ${boxes.length} detected text regions. Zoom: ${Math.round(zoom * 100)}%`}
       >
         <Layer>
           {loadedImage && (
@@ -169,20 +201,12 @@ export default function BoundingBoxCanvas({
 
             return (
               <Group key={`box-${i}-${box.word_num}-${box.line_num}`}>
-                <Rect
-                  x={scaled.x}
-                  y={scaled.y}
-                  width={scaled.w}
-                  height={scaled.h}
-                  fill={isSelected ? "rgba(59,130,246,0.25)" : isLowConf ? "rgba(239,68,68,0.1)" : "transparent"}
-                  stroke={
-                    isSelected
-                      ? "#3b82f6"
-                      : getConfidenceColor(box.confidence, lowConfidenceThreshold)
-                  }
-                  strokeWidth={isSelected ? 2.5 : 1}
+                <BBoxRect
+                  scaled={scaled}
+                  isSelected={isSelected}
+                  isLowConf={isLowConf}
+                  strokeColor={getConfidenceColor(box.confidence, lowConfidenceThreshold)}
                   onClick={() => handleBoxClick(i)}
-                  onTap={() => handleBoxClick(i)}
                 />
               </Group>
             );
@@ -190,24 +214,24 @@ export default function BoundingBoxCanvas({
         </Layer>
       </Stage>
 
-      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+      <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
         <span>
           {boxes.length} words &bull; Zoom: {Math.round(zoom * 100)}%
         </span>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 rounded bg-green-500" /> High
+            <span className="inline-block w-3 h-1 rounded bg-green-500" aria-hidden="true" /> High
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 rounded bg-yellow-500" /> Medium
+            <span className="inline-block w-3 h-1 rounded bg-yellow-500" aria-hidden="true" /> Medium
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 rounded bg-red-500" /> Low
+            <span className="inline-block w-3 h-1 rounded bg-red-500" aria-hidden="true" /> Low
           </span>
         </div>
         <button
           onClick={handleResetView}
-          className="px-2 py-1 text-xs border rounded hover:bg-gray-100"
+          className="px-2 py-1 text-xs border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
         >
           Reset View
         </button>
@@ -215,3 +239,5 @@ export default function BoundingBoxCanvas({
     </div>
   );
 }
+
+export default BoundingBoxCanvas;

@@ -53,17 +53,17 @@ function getFieldConfidence(
 const CONFIDENCE_STYLES = {
   high: {
     dot: "bg-green-500",
-    border: "border-green-200",
+    border: "border-green-200 dark:border-green-800",
     bg: "",
   },
   medium: {
     dot: "bg-yellow-500",
-    border: "border-yellow-200",
-    bg: "bg-yellow-25",
+    border: "border-yellow-200 dark:border-yellow-800",
+    bg: "bg-yellow-25 dark:bg-yellow-900/10",
   },
   empty: {
     dot: "bg-red-400",
-    border: "border-red-200",
+    border: "border-red-200 dark:border-red-800",
     bg: "",
   },
 };
@@ -182,9 +182,9 @@ export default function MetadataForm({
                 return (
                   <div
                     key={field.field_name}
-                    className={`flex items-start gap-3 px-3 py-2 rounded border ${style.border} ${style.bg}`}
+                    className={`flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 px-3 py-2 rounded border ${style.border} ${style.bg}`}
                   >
-                    <div className="w-44 shrink-0 pt-1.5">
+                    <div className="sm:w-44 shrink-0 pt-1.5">
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`inline-block w-2 h-2 rounded-full ${style.dot}`}
@@ -196,12 +196,15 @@ export default function MetadataForm({
                                 : "Missing"
                           }
                         />
-                        <span className="text-xs font-medium text-gray-700">
+                        <label
+                          htmlFor={`field-${field.field_name}`}
+                          className="text-xs font-medium text-gray-700 dark:text-gray-300"
+                        >
                           {field.display_name}
-                        </span>
+                        </label>
                       </div>
                       {field.wikidata_property && (
-                        <span className="text-[10px] px-1 py-0.5 bg-purple-50 text-purple-600 rounded ml-3.5">
+                        <span className="text-[10px] px-1 py-0.5 bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 rounded ml-3.5">
                           {field.wikidata_property}
                         </span>
                       )}
@@ -209,22 +212,24 @@ export default function MetadataForm({
                     <div className="flex-1">
                       {isLong ? (
                         <textarea
+                          id={`field-${field.field_name}`}
                           value={value}
                           onChange={(e) =>
                             handleChange(field.field_name, e.target.value)
                           }
                           rows={2}
-                          className="w-full border rounded px-2 py-1 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full border rounded px-2 py-1 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                           dir="auto"
                         />
                       ) : (
                         <input
+                          id={`field-${field.field_name}`}
                           type="text"
                           value={value}
                           onChange={(e) =>
                             handleChange(field.field_name, e.target.value)
                           }
-                          className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                           dir="auto"
                           placeholder={
                             confidence === "empty" ? "Not extracted" : ""
@@ -240,8 +245,8 @@ export default function MetadataForm({
         ))}
       </div>
 
-      <div className="mt-4 border rounded-lg p-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">
+      <div className="mt-4 border rounded-lg p-4 dark:border-gray-600">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Custom Fields
         </h4>
         <div className="flex gap-2 mb-3">
@@ -250,7 +255,8 @@ export default function MetadataForm({
             value={customFieldName}
             onChange={(e) => setCustomFieldName(e.target.value)}
             placeholder="Field name"
-            className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            aria-label="New custom field name"
+            className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddCustomField();
             }}
@@ -258,7 +264,7 @@ export default function MetadataForm({
           <button
             onClick={handleAddCustomField}
             disabled={!customFieldName.trim()}
-            className="px-3 py-1 text-sm bg-gray-100 border rounded hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Add
           </button>
@@ -269,19 +275,19 @@ export default function MetadataForm({
               const displayName = key.replace("custom_", "");
               return (
                 <div key={key} className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-500 w-32 truncate">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-32 truncate">
                     {displayName}
                   </span>
                   <input
                     type="text"
                     value={editedValues[key] ?? val}
                     onChange={(e) => handleChange(key, e.target.value)}
-                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     dir="auto"
                   />
                   <button
                     onClick={() => handleRemoveCustomField(key)}
-                    className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
+                    className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
                   >
                     Remove
                   </button>
@@ -301,7 +307,7 @@ export default function MetadataForm({
           {isSaving ? "Saving..." : "Save Metadata"}
         </button>
         {dirtyKeys.size > 0 && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {dirtyKeys.size} unsaved change{dirtyKeys.size !== 1 ? "s" : ""}
           </span>
         )}
