@@ -6,6 +6,7 @@ from typing import Callable
 
 import httpx
 import instructor
+from instructor.core import InstructorRetryException
 import openai
 from pydantic import BaseModel
 
@@ -91,7 +92,7 @@ class LlmService:
             raw_response_text = result.model_dump_json()
             usage_stats = {"status": "success"}
 
-        except instructor.exceptions.InstructorRetryException as e:
+        except InstructorRetryException as e:
             logger.warning("Instructor retry exhausted for batch '%s': %s", batch_name, e)
             last_response = e.last_completion
             if last_response and hasattr(last_response, "choices") and last_response.choices:
