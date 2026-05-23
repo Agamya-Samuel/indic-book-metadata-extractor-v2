@@ -6,6 +6,7 @@ import { useDropzone } from "react-dropzone";
 import { useMutation } from "@tanstack/react-query";
 import { uploadBook } from "@/lib/api";
 import { useBookStore } from "@/stores/book-store";
+import { toast } from "sonner";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -49,10 +50,13 @@ export default function UploadPage() {
     },
     onSuccess: (data) => {
       setStoreLanguage(language);
+      toast.success("Book uploaded successfully");
       router.push(`/books/${data.id}/select-pages`);
     },
     onError: (error: Error) => {
-      setError(error.message || "Failed to upload file");
+      const msg = error.message || "Failed to upload file";
+      setError(msg);
+      toast.error(msg);
     },
   });
 

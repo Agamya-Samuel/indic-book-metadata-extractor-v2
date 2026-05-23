@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
 import { useBookStore } from "@/stores/book-store";
+import { toast } from "sonner";
+import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 
 export default function SelectPagesPage() {
   const params = useParams();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+
+  useWorkflowHydration(bookId);
+  const { currentStep, completedStep, setBookId: setWorkflowBookId, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const {
     data: book,
@@ -26,7 +31,6 @@ export default function SelectPagesPage() {
     selectedPages,
     togglePageSelection,
     selectPages: selectPagesInStore,
-    deselectPages,
     clearSelection,
     selectAllPages,
   } = useBookStore();
@@ -36,6 +40,9 @@ export default function SelectPagesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       setShowSuccessBanner(true);
+      toast.success(`${selectedCount} pages selected successfully`);
+      setWorkflowStep(3);
+      setCompletedStep(3);
     },
   });
 
@@ -106,8 +113,14 @@ export default function SelectPagesPage() {
     setImagesLoaded((prev) => new Set([...prev, pageNumber]));
   };
 
+  if (book && !useWorkflowStore.getState().bookId) {
+    setWorkflowBookId(bookId);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <WorkflowStepper bookId={bookId} currentStep={currentStep < 2 ? 2 : currentStep} completedStep={completedStep} />
+
       {showSuccessBanner && (
         <div className="bg-green-50 border-b border-green-200">
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">

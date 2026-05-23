@@ -14,6 +14,9 @@ import {
 import { useJobPolling } from "@/hooks/use-job-polling";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import OcrTextEditor from "@/components/ocr/text-editor";
+import { toast } from "sonner";
+import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 
 export default function OcrReviewPage() {
   const params = useParams();
@@ -21,6 +24,9 @@ export default function OcrReviewPage() {
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
   const jobId = searchParams.get("jobId");
+
+  useWorkflowHydration(bookId);
+  const { currentStep, completedStep } = useWorkflowStore();
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | undefined>(undefined);
@@ -57,6 +63,7 @@ export default function OcrReviewPage() {
     },
     onSuccess: (result: OcrResultResponse) => {
       queryClient.setQueryData(["ocr", currentPage?.id], result);
+      toast.success("OCR correction saved");
     },
   });
 
@@ -124,6 +131,8 @@ export default function OcrReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <WorkflowStepper bookId={bookId} currentStep={currentStep < 4 ? 4 : currentStep} completedStep={completedStep} />
+
       <div className="bg-white border-b px-6 py-4">
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
           <div>

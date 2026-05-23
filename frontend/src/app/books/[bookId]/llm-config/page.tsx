@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,6 +17,9 @@ import { useJobPolling } from "@/hooks/use-job-polling";
 import { getErrorMessage } from "@/lib/error-handler";
 import SliderControl from "@/components/shared/slider-control";
 import CollapsibleSection from "@/components/shared/collapsible-section";
+import { toast } from "sonner";
+import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 
 const DEFAULT_SYSTEM_PROMPT = `You are an expert bibliographic metadata extractor specializing in {{language}} language books.
 You will be given OCR-extracted text from scanned book pages. The text may contain OCR errors — use your knowledge of {{language}} to interpret corrupted words.
@@ -53,6 +56,9 @@ export default function LlmConfigPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+
+  useWorkflowHydration(bookId);
+  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const [config, setConfig] = useState<ExtractionRequest>({
     ...DEFAULT_EXTRACTION_CONFIG,
@@ -122,11 +128,27 @@ export default function LlmConfigPage() {
       setActiveJobId(result.job_id);
       setError(null);
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      toast.info("LLM extraction started");
+      setWorkflowStep(5);
+      setCompletedStep(5);
     },
     onError: (err) => {
-      setError(getErrorMessage(err));
+      const msg = getErrorMessage(err);
+      setError(msg);
+      toast.error(msg);
     },
   });
+
+  useEffect(() => {
+    if (isComplete && activeJobId) {
+      toast.success("LLM extraction completed successfully");
+      setWorkflowStep(6);
+      setCompletedStep(6);
+    }
+    if (isFailed && activeJobId && errorLog) {
+      toast.error("LLM extraction failed");
+    }
+  }, [isComplete, isFailed, activeJobId, errorLog, setWorkflowStep, setCompletedStep]);
 
   if (isLoadingBook || isLoadingModels || isLoadingFields) {
     return (
@@ -205,6 +227,8 @@ export default function LlmConfigPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <WorkflowStepper bookId={bookId} currentStep={currentStep < 5 ? 5 : currentStep} completedStep={completedStep} />
+
       <div className="bg-white border-b px-6 py-4">
         <div className="max-w-screen-2xl mx-auto">
           <h1 className="text-xl font-bold text-gray-900">

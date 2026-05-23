@@ -20,11 +20,17 @@ import { getErrorMessage } from "@/lib/error-handler";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import MetadataForm from "@/components/metadata/metadata-form";
 import CollapsibleSection from "@/components/shared/collapsible-section";
+import { toast } from "sonner";
+import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 
 export default function MetadataReviewPage() {
   const params = useParams();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+
+  useWorkflowHydration(bookId);
+  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selectedBoxIndex, setSelectedBoxIndex] = useState<
@@ -88,6 +94,12 @@ export default function MetadataReviewPage() {
     },
     onSuccess: (result: MetadataResponse) => {
       queryClient.setQueryData(["metadata", bookId], result);
+      toast.success("Metadata saved successfully");
+      setWorkflowStep(7);
+      setCompletedStep(7);
+    },
+    onError: (err) => {
+      toast.error(`Failed to save metadata: ${getErrorMessage(err)}`);
     },
   });
 
@@ -150,6 +162,8 @@ export default function MetadataReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <WorkflowStepper bookId={bookId} currentStep={currentStep < 6 ? 6 : currentStep} completedStep={completedStep} />
+
       <div className="bg-white border-b px-6 py-4">
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
           <div>
