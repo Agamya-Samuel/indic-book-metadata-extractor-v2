@@ -20,9 +20,15 @@ done
 if [ -n "$OLLAMA_PRELOAD_MODEL" ]; then
     echo "[Ollama Entrypoint] Checking if model '$OLLAMA_PRELOAD_MODEL' is available..."
     if ! ollama list 2>/dev/null | grep -q "$OLLAMA_PRELOAD_MODEL"; then
-        echo "[Ollama Entrypoint] Pulling model '$OLLAMA_PRELOAD_MODEL'..."
-        ollama pull "$OLLAMA_PRELOAD_MODEL"
-        echo "[Ollama Entrypoint] Model '$OLLAMA_PRELOAD_MODEL' pulled successfully."
+        MODELFILE="/models/Modelfile.${OLLAMA_PRELOAD_MODEL}"
+        if [ -f "$MODELFILE" ]; then
+            echo "[Ollama Entrypoint] Creating model '$OLLAMA_PRELOAD_MODEL' from Modelfile..."
+            ollama create "$OLLAMA_PRELOAD_MODEL" -f "$MODELFILE"
+        else
+            echo "[Ollama Entrypoint] Pulling model '$OLLAMA_PRELOAD_MODEL' from registry..."
+            ollama pull "$OLLAMA_PRELOAD_MODEL"
+        fi
+        echo "[Ollama Entrypoint] Model '$OLLAMA_PRELOAD_MODEL' ready."
     else
         echo "[Ollama Entrypoint] Model '$OLLAMA_PRELOAD_MODEL' already available."
     fi
