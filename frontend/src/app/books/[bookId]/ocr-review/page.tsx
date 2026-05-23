@@ -17,6 +17,7 @@ import OcrTextEditor from "@/components/ocr/text-editor";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import { OcrReviewSkeleton } from "@/components/shared/skeleton";
 
 export default function OcrReviewPage() {
   const params = useParams();
@@ -34,12 +35,16 @@ export default function OcrReviewPage() {
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: pages, isLoading: isLoadingPages } = useQuery({
     queryKey: ["book", bookId, "pages"],
     queryFn: () => getBookPages(bookId),
     enabled: !!bookId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { isComplete, isFailed, progress, isPolling, errorLog } = useJobPolling({
@@ -55,6 +60,8 @@ export default function OcrReviewPage() {
     queryFn: () => getOcrResult(currentPage!.id),
     enabled: !!currentPage?.id && (!jobId || isComplete || isFailed || !isPolling),
     retry: 1,
+    staleTime: 0,
+    gcTime: 2 * 60 * 1000,
   });
 
   const saveMutation = useMutation({
@@ -104,21 +111,17 @@ export default function OcrReviewPage() {
   };
 
   if (isLoadingBook || isLoadingPages) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
+    return <OcrReviewSkeleton />;
   }
 
   if (!book || !pages || pages.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">No pages found for this book.</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">No pages found for this book.</p>
           <a
             href={`/books/${bookId}/select-pages`}
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
           >
             Go to Page Selection
           </a>
@@ -130,14 +133,14 @@ export default function OcrReviewPage() {
   const showPollingOverlay = isPolling && !ocrResult;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 4 ? 4 : currentStep} completedStep={completedStep} />
 
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">OCR Review</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">OCR Review</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {book.title || book.filename} &bull;{" "}
               {book.language === "tel" ? "Telugu" : "Hindi"}
             </p>
@@ -149,16 +152,16 @@ export default function OcrReviewPage() {
                 <span
                   className={`px-2 py-1 text-xs rounded font-medium ${
                     (ocrResult.confidence ?? 0) >= 80
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                       : (ocrResult.confidence ?? 0) >= 60
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
+                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                   }`}
                 >
                   Avg: {Math.round(ocrResult.confidence ?? 0)}%
                 </span>
                 {ocrResult.language_detected && (
-                  <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
                     {ocrResult.language_detected}
                   </span>
                 )}
@@ -169,17 +172,17 @@ export default function OcrReviewPage() {
               <button
                 onClick={handlePrevPage}
                 disabled={currentPageIndex === 0}
-                className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-600 min-w-[80px] text-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[80px] text-center">
                 Page {currentPageIndex + 1} of {pages.length}
               </span>
               <button
                 onClick={handleNextPage}
                 disabled={currentPageIndex === pages.length - 1}
-                className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -188,23 +191,23 @@ export default function OcrReviewPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex">
+      <div className="flex-1 flex flex-col lg:flex-row">
         {showPollingOverlay ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-              <p className="text-gray-700 font-medium">Running OCR...</p>
-              <p className="text-gray-500 text-sm mt-1">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4" />
+              <p className="text-gray-700 dark:text-gray-300 font-medium">Running OCR...</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                 {Math.round(progress)}% complete
               </p>
-              <div className="w-64 bg-gray-200 rounded-full h-2 mt-3 mx-auto">
+              <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-3 mx-auto">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${Math.round(progress)}%` }}
                 />
               </div>
               {isFailed && errorLog && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700 max-w-md">
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-400 max-w-md">
                   <p className="font-medium">OCR Failed</p>
                   <p className="mt-1">{errorLog}</p>
                 </div>
@@ -214,13 +217,13 @@ export default function OcrReviewPage() {
         ) : isLoadingOcr ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">Loading OCR results...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Loading OCR results...</p>
             </div>
           </div>
         ) : ocrResult ? (
           <>
-            <div className="w-[60%] p-4 overflow-hidden">
+            <div className="w-full lg:w-[60%] p-4 overflow-hidden">
               <BoundingBoxCanvas
                 imageUrl={getPageImageUrl(currentPage!.id)}
                 boxes={ocrResult.bounding_boxes ?? []}
@@ -231,7 +234,7 @@ export default function OcrReviewPage() {
               />
             </div>
 
-            <div className="w-[40%] border-l bg-white flex flex-col">
+            <div className="w-full lg:w-[40%] border-l dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
               <OcrTextEditor
                 words={ocrResult.bounding_boxes ?? []}
                 rawText={ocrResult.raw_text}
@@ -246,10 +249,10 @@ export default function OcrReviewPage() {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-gray-600 mb-2">No OCR results for this page.</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-2">No OCR results for this page.</p>
               <a
                 href={`/books/${bookId}/preprocessing`}
-                className="text-blue-600 hover:underline text-sm"
+                className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
               >
                 Run OCR from Preprocessing
               </a>
@@ -258,7 +261,7 @@ export default function OcrReviewPage() {
         )}
       </div>
 
-      <div className="bg-white border-t px-6 py-3">
+      <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-6 py-3">
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             {pages.map((page, idx) => {
@@ -278,13 +281,13 @@ export default function OcrReviewPage() {
           <div className="flex items-center gap-3">
             <a
               href={`/books/${bookId}/preprocessing`}
-              className="px-4 py-2 text-sm border rounded hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
             >
               Back to Preprocessing
             </a>
             <a
               href={`/books/${bookId}/llm-config`}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors"
             >
               Proceed to LLM Config
             </a>
@@ -311,10 +314,10 @@ function PageButton({
       onClick={onSelect}
       className={`w-8 h-8 text-xs rounded border transition-colors ${
         isActive
-          ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
+          ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium"
           : hasOcr
-            ? "border-green-300 bg-green-50 text-green-700"
-            : "border-gray-200 text-gray-500 hover:bg-gray-100"
+            ? "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400"
+            : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
       }`}
       title={`Page ${pageNumber}${hasOcr ? " (OCR loaded)" : ""}`}
     >

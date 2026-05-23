@@ -9,6 +9,7 @@ import { useBookStore } from "@/stores/book-store";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import { SelectPagesSkeleton } from "@/components/shared/skeleton";
 
 export default function SelectPagesPage() {
   const params = useParams();
@@ -25,6 +26,8 @@ export default function SelectPagesPage() {
   } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const {
@@ -54,17 +57,13 @@ export default function SelectPagesPage() {
   }, [clearSelection]);
 
   if (isLoadingBook) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <SelectPagesSkeleton />;
   }
 
   if (bookError || !book) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-600">Error loading book</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-red-600 dark:text-red-400">Error loading book</div>
       </div>
     );
   }
@@ -72,7 +71,7 @@ export default function SelectPagesPage() {
   if (!book.total_pages) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Book has no pages</div>
+        <div className="text-gray-600 dark:text-gray-400">Book has no pages</div>
       </div>
     );
   }
@@ -118,11 +117,11 @@ export default function SelectPagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 2 ? 2 : currentStep} completedStep={completedStep} />
 
       {showSuccessBanner && (
-        <div className="bg-green-50 border-b border-green-200">
+        <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -139,21 +138,21 @@ export default function SelectPagesPage() {
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <p className="ml-3 text-sm font-medium text-green-800">
+                <p className="ml-3 text-sm font-medium text-green-800 dark:text-green-300">
                   Successfully selected {selectedCount} pages
                 </p>
               </div>
               <div className="flex items-center">
                 <Link
                   href={`/books/${bookId}/preprocessing`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 >
                   Continue to Preprocessing
                 </Link>
                 <button
                   type="button"
                   onClick={() => setShowSuccessBanner(false)}
-                  className="ml-4 bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-md text-sm font-medium"
+                  className="ml-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Close
                 </button>
@@ -165,49 +164,49 @@ export default function SelectPagesPage() {
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {book.title || book.filename}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Language: {book.language === "tel" ? "Telugu" : "Hindi"} • Total pages: {totalPages}
           </p>
         </div>
 
-        <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center space-x-4">
               <button
                 type="button"
                 onClick={handleSelectAll}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Select All
               </button>
               <button
                 type="button"
                 onClick={handleDeselectAll}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Deselect All
               </button>
               <button
                 type="button"
                 onClick={handleSelectFront10}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Select Front 10
               </button>
               <button
                 type="button"
                 onClick={handleSelectBack5}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Select Back 5
               </button>
             </div>
 
             <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Selected {selectedCount} / {totalPages} pages
               </span>
               <button
@@ -230,12 +229,12 @@ export default function SelectPagesPage() {
             return (
               <div
                 key={pageNumber}
-                className={`relative bg-white border-2 rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg ${
-                  isSelected ? "border-blue-500 shadow-lg" : "border-gray-200"
+                className={`relative bg-white dark:bg-gray-800 border-2 rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg ${
+                  isSelected ? "border-blue-500 shadow-lg" : "border-gray-200 dark:border-gray-600"
                 }`}
                 onClick={() => togglePageSelection(pageNumber)}
               >
-                <div className="aspect-[3/4] relative bg-gray-100">
+                <div className="aspect-[3/4] relative bg-gray-100 dark:bg-gray-700">
                   <img
                     src={getThumbnailUrl(bookId, pageNumber)}
                     alt={`Page ${pageNumber}`}
@@ -243,9 +242,10 @@ export default function SelectPagesPage() {
                     onLoad={() => handleImageLoad(pageNumber)}
                     onError={() => handleImageError(pageNumber)}
                     loading="lazy"
+                    decoding="async"
                   />
                   {!isLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
                     </div>
                   )}
@@ -256,7 +256,7 @@ export default function SelectPagesPage() {
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                       isSelected
                         ? "bg-blue-500 border-blue-500"
-                        : "bg-white border-gray-300"
+                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                     }`}
                   >
                     {isSelected && (

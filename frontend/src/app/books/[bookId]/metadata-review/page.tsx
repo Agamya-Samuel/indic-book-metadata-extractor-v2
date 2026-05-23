@@ -20,6 +20,7 @@ import { getErrorMessage } from "@/lib/error-handler";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import MetadataForm from "@/components/metadata/metadata-form";
 import CollapsibleSection from "@/components/shared/collapsible-section";
+import { MetadataReviewSkeleton } from "@/components/shared/skeleton";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
@@ -41,24 +42,32 @@ export default function MetadataReviewPage() {
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: pages, isLoading: isLoadingPages } = useQuery({
     queryKey: ["book", bookId, "pages"],
     queryFn: () => getBookPages(bookId),
     enabled: !!bookId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: metadata, isLoading: isLoadingMetadata } = useQuery({
     queryKey: ["metadata", bookId],
     queryFn: () => getMetadata(bookId),
     enabled: !!bookId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: fieldDefs, isLoading: isLoadingFields } = useQuery({
     queryKey: ["metadata-fields", bookId],
     queryFn: () => getMetadataFieldDefinitions(bookId),
     enabled: !!bookId,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const { data: llmRuns } = useQuery({
@@ -115,40 +124,36 @@ export default function MetadataReviewPage() {
   }, []);
 
   if (isLoadingBook || isLoadingPages || isLoadingMetadata || isLoadingFields) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
+    return <MetadataReviewSkeleton />;
   }
 
   if (!book) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Book not found.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-600 dark:text-gray-400">Book not found.</p>
       </div>
     );
   }
 
   if (isPolling) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center max-w-md mx-auto">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
             LLM Extraction in Progress
           </h2>
-          <p className="text-gray-600 text-sm mb-4">
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
             {Math.round(progress)}% complete
           </p>
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${Math.round(progress)}%` }}
             />
           </div>
           {isFailed && errorLog && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-400">
               <p className="font-medium">Extraction Failed</p>
               <p className="mt-1">{errorLog}</p>
             </div>
@@ -161,16 +166,16 @@ export default function MetadataReviewPage() {
   const metadataValues = metadata?.fields ?? {};
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 6 ? 6 : currentStep} completedStep={completedStep} />
 
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 sm:px-6 py-4">
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
               Metadata Review
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {book.title || book.filename} &bull;{" "}
               {book.language === "tel" ? "Telugu" : "Hindi"} &bull;{" "}
               {Object.keys(metadataValues).length} fields extracted
@@ -179,13 +184,13 @@ export default function MetadataReviewPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowLlmHistory(!showLlmHistory)}
-              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
             >
               {showLlmHistory ? "Hide" : "Show"} LLM History
             </button>
             <a
               href={`/books/${bookId}/llm-config`}
-              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
             >
               Back to LLM Config
             </a>
@@ -193,7 +198,7 @@ export default function MetadataReviewPage() {
         </div>
       </div>
 
-      <div className="flex-1 max-w-screen-2xl mx-auto w-full p-6">
+      <div className="flex-1 max-w-screen-2xl mx-auto w-full p-4 sm:p-6">
         {showLlmHistory && llmRuns && llmRuns.length > 0 && (
           <div className="mb-6">
             <CollapsibleSection
@@ -205,15 +210,15 @@ export default function MetadataReviewPage() {
                 {llmRuns.map((run) => (
                   <div
                     key={run.id}
-                    className="border rounded p-3 text-sm"
+                    className="border rounded p-3 text-sm dark:border-gray-700"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
                           {run.model}
                         </span>
                         {run.created_at && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
                             {new Date(run.created_at).toLocaleString()}
                           </span>
                         )}
@@ -221,17 +226,17 @@ export default function MetadataReviewPage() {
                     </div>
                     {run.prompt_template && (
                       <details className="mt-1">
-                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
                           View prompt
                         </summary>
-                        <pre className="mt-1 text-xs bg-gray-50 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                        <pre className="mt-1 text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto whitespace-pre-wrap">
                           {run.prompt_template}
                         </pre>
                       </details>
                     )}
                     {run.parsed_fields && (
                       <details className="mt-1">
-                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
                           View extracted fields ({
                             Object.keys(run.parsed_fields).length
                           })
@@ -240,8 +245,8 @@ export default function MetadataReviewPage() {
                           {Object.entries(run.parsed_fields).map(
                             ([k, v]) => (
                               <div key={k} className="text-xs">
-                                <span className="text-gray-500">{k}:</span>{" "}
-                                <span className="text-gray-700">{v ?? "null"}</span>
+                                <span className="text-gray-500 dark:text-gray-400">{k}:</span>{" "}
+                                <span className="text-gray-700 dark:text-gray-300">{v ?? "null"}</span>
                               </div>
                             )
                           )}
@@ -256,9 +261,9 @@ export default function MetadataReviewPage() {
         )}
 
         {pages && pages.length > 0 && ocrResult && (
-          <div className="mb-6 bg-white shadow rounded-lg p-4">
+          <div className="mb-6 bg-white dark:bg-gray-800 shadow rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Page Image Viewer
               </h3>
               <div className="flex items-center gap-2">
@@ -268,11 +273,11 @@ export default function MetadataReviewPage() {
                     setSelectedBoxIndex(undefined);
                   }}
                   disabled={currentPageIndex === 0}
-                  className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
-                <span className="text-sm text-gray-600 min-w-[80px] text-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[80px] text-center">
                   Page {currentPageIndex + 1} of {pages.length}
                 </span>
                 <button
@@ -283,7 +288,7 @@ export default function MetadataReviewPage() {
                     setSelectedBoxIndex(undefined);
                   }}
                   disabled={currentPageIndex === pages.length - 1}
-                  className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -303,7 +308,7 @@ export default function MetadataReviewPage() {
               highlightLowConfidence={true}
               lowConfidenceThreshold={60}
             />
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
               Click a bounding box to copy its text to clipboard
             </p>
           </div>
@@ -319,21 +324,21 @@ export default function MetadataReviewPage() {
         )}
 
         {saveMutation.isError && (
-          <p className="mt-2 text-sm text-red-600">
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
             {getErrorMessage(saveMutation.error)}
           </p>
         )}
 
-        <div className="mt-6 flex items-center gap-3 border-t pt-4">
+        <div className="mt-6 flex items-center gap-3 border-t dark:border-gray-700 pt-4">
           <a
             href={`/books/${bookId}/llm-config`}
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+            className="px-4 py-2 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
           >
             Re-run Extraction
           </a>
           <Link
             href="/library"
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+            className="px-4 py-2 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
           >
             Go to Library
           </Link>
