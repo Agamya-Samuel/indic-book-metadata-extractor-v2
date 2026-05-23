@@ -43,23 +43,23 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Next.js Frontend (:3000)            │
-│     Upload → Page Select → Preprocessing →       │
-│     OCR Review → LLM Config → Metadata Review    │
+│              Next.js Frontend (:3000)           │
+│     Upload → Page Select → Preprocessing →      │
+│     OCR Review → LLM Config → Metadata Review   │
 └──────────────────────┬──────────────────────────┘
                        │ REST API
 ┌──────────────────────▼──────────────────────────┐
-│             FastAPI Backend (:8000)               │
-│     File handling, Job management, API            │
-└──────┬──────────────────────────────┬────────────┘
+│             FastAPI Backend (:8000)             │
+│     File handling, Job management, API          │
+└──────┬──────────────────────────────┬───────────┘
        │                              │
 ┌──────▼──────┐              ┌────────▼─────────┐
 │ Celery +    │              │  Ollama (:11434) │
 │ Redis Queue │              │  Airavata 7B LLM │
 └──────┬──────┘              └──────────────────┘
        │
-┌──────▼──────────────────────────────────────────┐
-│          PostgreSQL + pgvector (:5432)            │
+┌──────▼───────────────────────────────────────────┐
+│          PostgreSQL + pgvector (:5432)           │
 │   Books, Pages, OCR Text, Metadata, Jobs         │
 └──────────────────────────────────────────────────┘
 ```
