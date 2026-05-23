@@ -26,23 +26,25 @@ export default function BookCard({ book }: BookCardProps) {
   return (
     <Link
       href={`/library/${book.id}`}
-      className="block bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      className="block bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
     >
-      <div className="aspect-[3/4] bg-gray-100 relative">
+      <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-700 relative">
         {book.thumbnail_url ? (
           <img
             src={book.thumbnail_url}
             alt={displayTitle}
             className="w-full h-full object-cover"
             loading="lazy"
+            decoding="async"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
             <svg
               className="w-12 h-12"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -58,18 +60,18 @@ export default function BookCard({ book }: BookCardProps) {
         </div>
       </div>
       <div className="p-3">
-        <h3 className="text-sm font-medium text-gray-900 truncate">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
           {displayTitle}
         </h3>
         {author && (
-          <p className="text-xs text-gray-600 truncate mt-0.5">{author}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{author}</p>
         )}
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded">
+          <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded">
             {language}
           </span>
           {pubDate && (
-            <span className="text-xs text-gray-500">{pubDate}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{pubDate}</span>
           )}
         </div>
       </div>

@@ -98,14 +98,14 @@ export default function OcrTextEditor({
   };
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-gray-700">OCR Text</h3>
-          <span className="text-xs text-gray-500">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">OCR Text</h3>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             ({words.length} words)
           </span>
           {hasCorrections && (
-            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+            <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded">
               Edited
             </span>
           )}
@@ -116,7 +116,7 @@ export default function OcrTextEditor({
             className={`px-3 py-1 text-xs rounded border transition-colors ${
               editMode
                 ? "bg-blue-600 text-white border-blue-600"
-                : "border-gray-300 hover:bg-gray-100 text-gray-700"
+                : "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
             }`}
           >
             {editMode ? "Cancel Edit" : "Edit Text"}
@@ -134,13 +134,16 @@ export default function OcrTextEditor({
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto p-4 text-sm leading-relaxed"
+        role="region"
+        aria-label="OCR text editor"
       >
         {editMode ? (
           <textarea
             value={effectiveEditedText}
             onChange={(e) => setEditedText(e.target.value)}
-            className="w-full h-full min-h-[400px] p-2 border rounded font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-full min-h-[400px] p-2 border rounded font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             dir="auto"
+            aria-label="Edit OCR text"
           />
         ) : (
           <div className="whitespace-pre-wrap" dir="auto">
@@ -159,10 +162,10 @@ export default function OcrTextEditor({
                       onClick={() => handleWordClick(index)}
                       className={`cursor-pointer px-0.5 rounded-sm transition-colors ${
                         isSelected
-                          ? "bg-blue-200 ring-1 ring-blue-400"
+                          ? "bg-blue-200 ring-1 ring-blue-400 dark:bg-blue-800 dark:ring-blue-500"
                           : isLowConf
-                            ? "underline decoration-red-400 decoration-2 underline-offset-2 hover:bg-red-50"
-                            : "hover:bg-gray-200"
+                            ? "underline decoration-red-400 decoration-2 underline-offset-2 hover:bg-red-50 dark:hover:bg-red-900/30"
+                            : "hover:bg-gray-200 dark:hover:bg-gray-600"
                       }`}
                       title={`Confidence: ${word.confidence}%`}
                     >
