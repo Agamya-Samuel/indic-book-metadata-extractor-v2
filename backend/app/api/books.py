@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -183,11 +184,24 @@ async def run_ocr(
 ) -> JobResponse:
     book = await _get_book(book_id, db)
 
-    if book.status not in (BookStatus.PAGES_SELECTED, BookStatus.OCR_COMPLETE):
+    if book.status not in (BookStatus.PAGES_SELECTED, BookStatus.OCR_RUNNING, BookStatus.OCR_COMPLETE):
         raise HTTPException(
             status_code=400,
-            detail=f"Book status must be 'pages_selected' or 'ocr_complete', got '{book.status}'",
+            detail=f"Cannot run OCR from status '{book.status}'",
         )
+
+    active_jobs = await db.execute(
+        select(Job).where(
+            Job.book_id == book_id,
+            Job.job_type == JobType.OCR,
+            Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+        )
+    )
+    for j in active_jobs.scalars().all():
+        j.status = JobStatus.CANCELLED
+        j.completed_at = datetime.now(timezone.utc)
+        j.error_log = "Cancelled: new OCR job submitted"
+    await db.flush()
 
     pages_result = await db.execute(
         select(Page).where(Page.book_id == book_id)
