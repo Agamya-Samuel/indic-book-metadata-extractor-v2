@@ -128,7 +128,7 @@ def make_book(client, sample_pdf, test_storage):
         response = await client.post(
             "/api/books/upload",
             files={"file": ("test.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
-            params={"language": language},
+            data={"language": language},
         )
         assert response.status_code == 201
         return response.json()
