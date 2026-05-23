@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { BookSearchResult } from "@/lib/api";
+import { getThumbnailUrl, type BookSearchResult } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -29,9 +29,9 @@ export default function BookCard({ book }: BookCardProps) {
       className="block bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-700 relative">
-        {book.thumbnail_url ? (
+        {book.total_pages ? (
           <img
-            src={book.thumbnail_url}
+            src={getThumbnailUrl(book.id, 1)}
             alt={displayTitle}
             className="w-full h-full object-cover"
             loading="lazy"
