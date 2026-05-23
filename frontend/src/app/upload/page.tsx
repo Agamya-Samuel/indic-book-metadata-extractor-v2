@@ -70,22 +70,22 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Upload Book</h1>
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 sm:p-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Upload Book</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 PDF File <span className="text-red-500">*</span>
               </label>
               <div
                 {...getRootProps()}
                 className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
                   isDragActive
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-300 hover:border-gray-400"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
                 <input {...getInputProps()} />
@@ -104,15 +104,15 @@ export default function UploadPage() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                  <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                    <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
                       <span>Upload a file</span>
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">PDF up to 200 MB</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF up to 200 MB</p>
                   {file && (
-                    <p className="text-sm text-blue-600 font-medium mt-2">
+                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-2">
                       Selected: {file.name}
                     </p>
                   )}
@@ -123,7 +123,7 @@ export default function UploadPage() {
             <div>
               <label
                 htmlFor="title"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Title (optional)
               </label>
@@ -132,7 +132,7 @@ export default function UploadPage() {
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200"
                 placeholder="Enter book title"
               />
             </div>
@@ -140,7 +140,7 @@ export default function UploadPage() {
             <div>
               <label
                 htmlFor="language"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Language <span className="text-red-500">*</span>
               </label>
@@ -148,7 +148,7 @@ export default function UploadPage() {
                 id="language"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200"
                 required
               >
                 <option value="tel">Telugu</option>
@@ -157,13 +157,14 @@ export default function UploadPage() {
             </div>
 
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4" role="alert">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg
                       className="h-5 w-5 text-red-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
+                      aria-hidden="true"
                     >
                       <path
                         fillRule="evenodd"
@@ -173,7 +174,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-800">{error}</p>
+                    <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
                   </div>
                 </div>
               </div>
