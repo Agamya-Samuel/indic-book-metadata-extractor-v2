@@ -8,6 +8,7 @@ import {
   getBookPages,
   updatePreprocessing,
   getPageImageUrl,
+  getThumbnailUrl,
   runOcr,
   DEFAULT_PREPROCESSING_CONFIG,
   type PreprocessingConfig,
@@ -16,6 +17,7 @@ import { useJobPolling } from "@/hooks/use-job-polling";
 import { getErrorMessage } from "@/lib/error-handler";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { getLanguageName } from "@/lib/utils";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 
@@ -158,7 +160,7 @@ export default function PreprocessingPage() {
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             {book.title || book.filename} &bull; Language:{" "}
-            {book.language === "tel" ? "Telugu" : "Hindi"} &bull;{" "}
+            {getLanguageName(book.language)} &bull;{" "}
             {pages.length} pages
           </p>
         </div>
@@ -181,9 +183,13 @@ export default function PreprocessingPage() {
                         : "border-gray-200 dark:border-gray-600 hover:border-gray-400"
                     }`}
                   >
-                    <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-600 dark:text-gray-300">
-                      {page.page_number}
-                    </div>
+                    <img
+                      src={getThumbnailUrl(bookId, page.page_number)}
+                      alt={`Page ${page.page_number}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </button>
                 ))}
               </div>

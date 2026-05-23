@@ -13,6 +13,7 @@ import {
   type ExtractionRequest,
   type MetadataFieldDefinition,
 } from "@/lib/api";
+import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { getErrorMessage } from "@/lib/error-handler";
 import SliderControl from "@/components/shared/slider-control";
@@ -239,7 +240,7 @@ export default function LlmConfigPage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {book.title || book.filename} &bull;{" "}
-            {book.language === "tel" ? "Telugu" : "Hindi"} &bull; Configure
+            {getLanguageName(book.language)} &bull; Configure
             extraction parameters
           </p>
         </div>

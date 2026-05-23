@@ -15,6 +15,7 @@ import {
   getLlmRuns,
   type MetadataResponse,
 } from "@/lib/api";
+import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { getErrorMessage } from "@/lib/error-handler";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
@@ -177,7 +178,7 @@ export default function MetadataReviewPage() {
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {book.title || book.filename} &bull;{" "}
-              {book.language === "tel" ? "Telugu" : "Hindi"} &bull;{" "}
+              {getLanguageName(book.language)} &bull;{" "}
               {Object.keys(metadataValues).length} fields extracted
             </p>
           </div>
