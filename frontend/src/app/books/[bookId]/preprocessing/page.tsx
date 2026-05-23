@@ -14,12 +14,18 @@ import {
 } from "@/lib/api";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { getErrorMessage } from "@/lib/error-handler";
+import { toast } from "sonner";
+import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 
 export default function PreprocessingPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+
+  useWorkflowHydration(bookId);
+  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -45,6 +51,7 @@ export default function PreprocessingPage() {
     onSuccess: () => {
       setPreviewKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
+      toast.success("Preprocessing applied to page");
     },
   });
 
@@ -58,6 +65,7 @@ export default function PreprocessingPage() {
     onSuccess: () => {
       setPreviewKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
+      toast.success("Preprocessing applied to all pages");
     },
   });
 
@@ -68,6 +76,12 @@ export default function PreprocessingPage() {
     onSuccess: (job) => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       setActiveJobId(job.id);
+      toast.info("OCR job started");
+      setWorkflowStep(3);
+      setCompletedStep(3);
+    },
+    onError: (err) => {
+      toast.error(`OCR failed to start: ${getErrorMessage(err)}`);
     },
   });
 
@@ -79,9 +93,12 @@ export default function PreprocessingPage() {
 
   useEffect(() => {
     if (activeJobId && isComplete) {
+      toast.success("OCR completed successfully");
+      setWorkflowStep(4);
+      setCompletedStep(4);
       router.push(`/books/${bookId}/ocr-review?jobId=${activeJobId}`);
     }
-  }, [activeJobId, isComplete, bookId, router]);
+  }, [activeJobId, isComplete, bookId, router, setWorkflowStep, setCompletedStep]);
 
   if (isLoadingBook || isLoadingPages) {
     return (
@@ -125,6 +142,8 @@ export default function PreprocessingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <WorkflowStepper bookId={bookId} currentStep={currentStep < 3 ? 3 : currentStep} completedStep={completedStep} />
+
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
