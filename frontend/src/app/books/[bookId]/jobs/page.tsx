@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error-handler";
 import StatusBadge from "@/components/shared/status-badge";
+import { SkeletonTable, SkeletonPageHeader } from "@/components/shared/skeleton";
 
 export default function JobsPage() {
   const params = useParams();
@@ -19,11 +20,15 @@ export default function JobsPage() {
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: jobs, isLoading: isLoadingJobs } = useQuery({
     queryKey: ["book", bookId, "jobs"],
     queryFn: () => getBookJobs(bookId),
+    staleTime: 0,
+    gcTime: 60 * 1000,
     refetchInterval: (query) => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible")
         return false;
@@ -46,8 +51,15 @@ export default function JobsPage() {
 
   if (isLoadingBook || isLoadingJobs) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
+          <div className="max-w-5xl mx-auto">
+            <SkeletonPageHeader />
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto p-6">
+          <SkeletonTable rows={4} />
+        </div>
       </div>
     );
   }
@@ -63,19 +75,19 @@ export default function JobsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b px-6 py-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Job Queue</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Job Queue</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {book?.title || book?.filename || "Book"} &bull;{" "}
               {sortedJobs.length} job{sortedJobs.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {anyRunning && (
-              <div className="flex items-center gap-2 text-sm text-blue-600">
+              <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400" aria-live="polite">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
@@ -85,7 +97,7 @@ export default function JobsPage() {
             )}
             <a
               href={`/books/${bookId}/llm-config`}
-              className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+              className="px-4 py-2 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
             >
               LLM Config
             </a>
@@ -96,10 +108,10 @@ export default function JobsPage() {
       <div className="max-w-5xl mx-auto p-6">
         {sortedJobs.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">No jobs found for this book.</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No jobs found for this book.</p>
             <a
               href={`/books/${bookId}/llm-config`}
-              className="text-blue-600 hover:underline text-sm"
+              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
             >
               Go to LLM Config to start extraction
             </a>
@@ -109,7 +121,7 @@ export default function JobsPage() {
             {sortedJobs.map((job) => (
               <div
                 key={job.id}
-                className="bg-white shadow rounded-lg border-l-4 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-800 shadow rounded-lg border-l-4 hover:shadow-md transition-shadow"
                 style={{
                   borderLeftColor:
                     job.status === "completed"
@@ -127,10 +139,10 @@ export default function JobsPage() {
                       <span
                         className={`px-2 py-0.5 text-xs font-medium rounded ${
                           job.job_type === "ocr"
-                            ? "bg-indigo-100 text-indigo-700"
+                            ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
                             : job.job_type === "llm"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                         }`}
                       >
                         {job.job_type === "llm"
@@ -145,7 +157,8 @@ export default function JobsPage() {
                       {job.status === "failed" && job.job_type === "llm" && (
                         <button
                           onClick={() => handleRetry(job.id)}
-                          className="px-3 py-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100"
+                          className="px-3 py-1 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                          aria-label="Retry extraction"
                         >
                           Retry
                         </button>
@@ -153,7 +166,8 @@ export default function JobsPage() {
                       {job.status === "completed" && job.job_type === "llm" && (
                         <a
                           href={`/books/${bookId}/metadata-review`}
-                          className="px-3 py-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100"
+                          className="px-3 py-1 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                          aria-label="View extraction results"
                         >
                           View Results
                         </a>
@@ -161,7 +175,7 @@ export default function JobsPage() {
                       {job.status === "completed" && job.job_type === "ocr" && (
                         <a
                           href={`/books/${bookId}/ocr-review`}
-                          className="px-3 py-1 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100"
+                          className="px-3 py-1 text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
                         >
                           View OCR
                         </a>
@@ -169,11 +183,11 @@ export default function JobsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex-1">
                       {(job.status === "running" || job.status === "queued") && (
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                             <div
                               className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
                               style={{
@@ -181,7 +195,7 @@ export default function JobsPage() {
                               }}
                             />
                           </div>
-                          <span className="text-xs text-gray-500 w-10">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 w-10">
                             {Math.round(job.progress)}%
                           </span>
                         </div>
@@ -189,7 +203,7 @@ export default function JobsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-500">
                     {job.created_at && (
                       <span>
                         Created: {new Date(job.created_at).toLocaleString()}
@@ -208,7 +222,7 @@ export default function JobsPage() {
                   </div>
 
                   {job.error_log && (
-                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                    <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-400">
                       <p className="font-medium">Error:</p>
                       <p className="mt-0.5 whitespace-pre-wrap">
                         {job.error_log}

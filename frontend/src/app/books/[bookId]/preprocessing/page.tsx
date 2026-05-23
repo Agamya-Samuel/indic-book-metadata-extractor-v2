@@ -17,6 +17,7 @@ import { getErrorMessage } from "@/lib/error-handler";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 
 export default function PreprocessingPage() {
   const params = useParams();
@@ -30,12 +31,16 @@ export default function PreprocessingPage() {
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: pages, isLoading: isLoadingPages } = useQuery({
     queryKey: ["book", bookId, "pages"],
     queryFn: () => getBookPages(bookId),
     enabled: !!bookId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
@@ -101,17 +106,13 @@ export default function PreprocessingPage() {
   }, [activeJobId, isComplete, bookId, router, setWorkflowStep, setCompletedStep]);
 
   if (isLoadingBook || isLoadingPages) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
+    return <WorkflowPageSkeleton />;
   }
 
   if (!book || !pages || pages.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">No pages found. Please select pages first.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-600 dark:text-gray-400">No pages found. Please select pages first.</p>
       </div>
     );
   }
@@ -141,15 +142,15 @@ export default function PreprocessingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 3 ? 3 : currentStep} completedStep={completedStep} />
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Image Preprocessing
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             {book.title || book.filename} &bull; Language:{" "}
             {book.language === "tel" ? "Telugu" : "Hindi"} &bull;{" "}
             {pages.length} pages
@@ -158,8 +159,8 @@ export default function PreprocessingPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-2">
-            <div className="bg-white shadow rounded-lg p-3">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Pages</h3>
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-3">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pages</h3>
               <div className="grid grid-cols-3 lg:grid-cols-2 gap-2 max-h-[600px] overflow-y-auto">
                 {pages.map((page, idx) => (
                   <button
@@ -171,10 +172,10 @@ export default function PreprocessingPage() {
                     className={`aspect-[3/4] rounded border-2 overflow-hidden ${
                       idx === selectedPageIndex
                         ? "border-blue-500 ring-2 ring-blue-200"
-                        : "border-gray-200 hover:border-gray-400"
+                        : "border-gray-200 dark:border-gray-600 hover:border-gray-400"
                     }`}
                   >
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-600">
+                    <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-600 dark:text-gray-300">
                       {page.page_number}
                     </div>
                   </button>
@@ -184,38 +185,39 @@ export default function PreprocessingPage() {
           </div>
 
           <div className="lg:col-span-6">
-            <div className="bg-white shadow rounded-lg p-4">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-700">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Page {currentPage.page_number} &mdash; Preview
                 </h3>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handlePrevPage}
                     disabled={selectedPageIndex === 0}
-                    className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed dark:text-gray-200 dark:border-gray-600 dark:bg-gray-700"
                   >
                     Previous
                   </button>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {selectedPageIndex + 1} / {pages.length}
                   </span>
                   <button
                     onClick={handleNextPage}
                     disabled={selectedPageIndex === pages.length - 1}
-                    className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed dark:text-gray-200 dark:border-gray-600 dark:bg-gray-700"
                   >
                     Next
                   </button>
                 </div>
               </div>
 
-              <div className="border rounded bg-gray-100 flex items-center justify-center min-h-[400px]">
+              <div className="border rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600 flex items-center justify-center min-h-[400px]">
                 <img
                   key={previewKey}
                   src={getPageImageUrl(currentPage.id)}
                   alt={`Page ${currentPage.page_number}`}
                   className="max-w-full max-h-[600px] object-contain"
+                  decoding="async"
                 />
               </div>
 
@@ -228,8 +230,8 @@ export default function PreprocessingPage() {
           </div>
 
           <div className="lg:col-span-4">
-            <div className="bg-white shadow rounded-lg p-4 space-y-4">
-              <h3 className="text-sm font-medium text-gray-700">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 space-y-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Preprocessing Settings
               </h3>
 
@@ -256,7 +258,7 @@ export default function PreprocessingPage() {
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Binarization
                 </label>
                 <select
@@ -269,7 +271,7 @@ export default function PreprocessingPage() {
                         : (e.target.value as "otsu" | "adaptive")
                     )
                   }
-                  className="w-full border rounded px-3 py-2 text-sm"
+                  className="w-full border rounded px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                 >
                   <option value="none">None</option>
                   <option value="otsu">Otsu</option>
@@ -318,7 +320,7 @@ export default function PreprocessingPage() {
                 />
               )}
 
-              <div className="pt-3 border-t space-y-3">
+              <div className="pt-3 border-t dark:border-gray-700 space-y-3">
                 <button
                   onClick={handlePreview}
                   disabled={preprocessingMutation.isPending}
@@ -332,7 +334,7 @@ export default function PreprocessingPage() {
                 <button
                   onClick={() => applyToAllMutation.mutate()}
                   disabled={applyToAllMutation.isPending}
-                  className="w-full px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {applyToAllMutation.isPending
                     ? "Applying..."
@@ -352,7 +354,7 @@ export default function PreprocessingPage() {
                 </button>
 
                 {isPolling && (
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                     <div
                       className="bg-green-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${Math.round(progress)}%` }}
@@ -392,8 +394,8 @@ function SliderControl({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-        <span className="text-sm text-gray-500">{value}</span>
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{value}</span>
       </div>
       <input
         type="range"
@@ -401,6 +403,7 @@ function SliderControl({
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value))}
+        aria-label={label}
         className="w-full"
       />
     </div>
@@ -418,12 +421,15 @@ function ToggleControl({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
       <button
         type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          checked ? "bg-blue-600" : "bg-gray-300"
+          checked ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
         }`}
       >
         <span
