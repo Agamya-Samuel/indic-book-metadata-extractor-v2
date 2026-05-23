@@ -63,9 +63,12 @@ export default function WorkflowStepper({
   completedStep,
 }: WorkflowStepperProps) {
   return (
-    <nav className="bg-white border-b px-4 py-3">
+    <nav
+      className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-3"
+      aria-label="Workflow progress"
+    >
       <div className="max-w-screen-2xl mx-auto">
-        <ol className="flex items-center gap-1 overflow-x-auto">
+        <ol className="flex items-center gap-1 overflow-x-auto" role="list">
           {WORKFLOW_STEPS.map((def, idx) => {
             const isCompleted = def.step < currentStep && def.step <= completedStep;
             const isCurrent = def.step === currentStep;
@@ -76,11 +79,12 @@ export default function WorkflowStepper({
                 {idx > 0 && (
                   <svg
                     className={`w-4 h-4 mx-1 flex-shrink-0 ${
-                      isCompleted || isCurrent ? "text-blue-500" : "text-gray-300"
+                      isCompleted || isCurrent ? "text-blue-500 dark:text-blue-400" : "text-gray-300 dark:text-gray-600"
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"
@@ -94,21 +98,22 @@ export default function WorkflowStepper({
                 {isClickable ? (
                   <Link
                     href={def.getPath(bookId)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                       isCurrent
-                        ? "bg-blue-100 text-blue-700"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                         : isCompleted
-                          ? "text-green-700 hover:bg-green-50"
-                          : "text-gray-600 hover:bg-gray-50"
+                          ? "text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                     }`}
                   >
                     <span
                       className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
                         isCurrent
-                          ? "bg-blue-600 text-white"
+                          ? "bg-blue-600 text-white dark:bg-blue-500"
                           : isCompleted
                             ? "bg-green-500 text-white"
-                            : "bg-gray-200 text-gray-500"
+                            : "bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400"
                       }`}
                     >
                       {isCompleted ? (
@@ -116,6 +121,7 @@ export default function WorkflowStepper({
                           className="w-3 h-3"
                           fill="currentColor"
                           viewBox="0 0 20 20"
+                          aria-hidden="true"
                         >
                           <path
                             fillRule="evenodd"
@@ -127,28 +133,29 @@ export default function WorkflowStepper({
                         def.step
                       )}
                     </span>
-                    <span className="hidden sm:inline">{def.label}</span>
-                    <span className="sm:hidden">{def.shortLabel}</span>
+                    <span className="hidden md:inline">{def.label}</span>
+                    <span className="md:hidden">{def.shortLabel}</span>
                   </Link>
                 ) : (
                   <span
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${
                       isCurrent
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-400 cursor-not-allowed"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                        : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
                     }`}
                   >
                     <span
                       className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
                         isCurrent
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-400"
+                          ? "bg-blue-600 text-white dark:bg-blue-500"
+                          : "bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500"
                       }`}
                     >
                       {def.step}
                     </span>
-                    <span className="hidden sm:inline">{def.label}</span>
-                    <span className="sm:hidden">{def.shortLabel}</span>
+                    <span className="hidden md:inline">{def.label}</span>
+                    <span className="md:hidden">{def.shortLabel}</span>
                   </span>
                 )}
               </li>
