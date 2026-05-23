@@ -67,14 +67,14 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     const { src, alt, ...rest } = props;
-    return React.createElement("img", { src, alt, ...rest });
+    return React.createElement("img", { src, alt, ...(rest as any) });
   },
 }));
 
 vi.mock("next/link", () => ({
   default: (props: Record<string, unknown>) => {
     const { href, children, ...rest } = props;
-    return React.createElement("a", { href, ...rest }, children);
+    return React.createElement("a", { href, ...(rest as any) }, children as any);
   },
 }));
 
