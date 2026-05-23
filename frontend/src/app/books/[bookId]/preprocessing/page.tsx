@@ -58,6 +58,9 @@ export default function PreprocessingPage() {
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
       toast.success("Preprocessing applied to page");
     },
+    onError: (err) => {
+      toast.error(`Preprocessing failed: ${getErrorMessage(err)}`);
+    },
   });
 
   const applyToAllMutation = useMutation({
@@ -71,6 +74,9 @@ export default function PreprocessingPage() {
       setPreviewKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
       toast.success("Preprocessing applied to all pages");
+    },
+    onError: (err) => {
+      toast.error(`Preprocessing failed: ${getErrorMessage(err)}`);
     },
   });
 
@@ -214,7 +220,7 @@ export default function PreprocessingPage() {
               <div className="border rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600 flex items-center justify-center min-h-[400px]">
                 <img
                   key={previewKey}
-                  src={getPageImageUrl(currentPage.id)}
+                  src={`${getPageImageUrl(currentPage.id)}?v=${previewKey}`}
                   alt={`Page ${currentPage.page_number}`}
                   className="max-w-full max-h-[600px] object-contain"
                   decoding="async"
