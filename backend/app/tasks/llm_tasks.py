@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from app.core.database import async_session_factory
+from app.core.database import async_session_factory, engine
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
@@ -21,9 +21,11 @@ logger = logging.getLogger(__name__)
 
 def _run_async(coro):
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(coro)
     finally:
+        loop.run_until_complete(engine.dispose())
         loop.close()
 
 
