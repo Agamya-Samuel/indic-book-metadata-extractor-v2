@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import instructor
-import instructor.exceptions
+from instructor.core import InstructorRetryException
 import pytest
 
 from app.schemas.metadata import (
@@ -111,8 +111,8 @@ class TestLlmServiceExtractBatch:
         last_completion.choices = [MagicMock(message=MagicMock(content='{"title": "Fallback"}'))]
 
         mock_client = AsyncMock()
-        mock_client.chat.completions.create.side_effect = instructor.exceptions.InstructorRetryException(
-            "retry exhausted", last_completion=last_completion, messages=[], n_attempts=3, total_usage=[]
+        mock_client.chat.completions.create.side_effect = InstructorRetryException(
+          "retry exhausted", last_completion=last_completion, messages=[], n_attempts=3, total_usage=[]
         )
         _setup_service_with_mock_client(service, mock_client)
 
