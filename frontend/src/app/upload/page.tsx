@@ -70,8 +70,8 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 sm:p-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Upload Book</h1>
 
@@ -153,6 +153,7 @@ export default function UploadPage() {
               >
                 <option value="tel">Telugu</option>
                 <option value="hin">Hindi</option>
+                <option value="eng">English</option>
               </select>
             </div>
 
