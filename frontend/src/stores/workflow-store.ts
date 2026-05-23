@@ -55,7 +55,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
           const next = Math.min(state.currentStep + 1, 7) as WorkflowStep;
           return {
             currentStep: next,
-            completedStep: Math.max(state.completedStep, next),
+            completedStep: Math.max(state.completedStep, next) as WorkflowStep,
           };
         }),
 
