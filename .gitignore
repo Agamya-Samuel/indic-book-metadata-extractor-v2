@@ -14,6 +14,7 @@ out/
 backend/storage/uploads/*
 backend/storage/thumbnails/*
 backend/storage/pages/*
+backend/storage/processed/*
 !backend/storage/**/.gitkeep
 
 # Environment
@@ -34,6 +35,11 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+coverage/
 
 # Docker
 docker-compose.override.yml
+
+# Build
+dist/
+build/
