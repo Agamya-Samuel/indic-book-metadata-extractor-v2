@@ -125,11 +125,17 @@ export const uploadBook = async (
   }
   formData.append("language", language);
 
-  const response = await api.post<BookUploadResponse>("/books/upload", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  const params = new URLSearchParams({ language });
+
+  const response = await api.post<BookUploadResponse>(
+    `/books/upload?${params.toString()}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": undefined,
+      },
+    }
+  );
 
   return response.data;
 };
