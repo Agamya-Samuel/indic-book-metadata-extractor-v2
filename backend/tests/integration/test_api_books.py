@@ -12,7 +12,7 @@ class TestUploadBook:
         response = await client.post(
             "/api/books/upload",
             files={"file": ("test.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
-            params={"language": "tel"},
+            data={"language": "tel"},
         )
         assert response.status_code == 201
         data = response.json()
@@ -27,7 +27,7 @@ class TestUploadBook:
         response = await client.post(
             "/api/books/upload",
             files={"file": ("hindi.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
-            params={"language": "hin"},
+            data={"language": "hin"},
         )
         assert response.status_code == 201
         assert response.json()["language"] == "hin"
@@ -44,7 +44,7 @@ class TestUploadBook:
         response = await client.post(
             "/api/books/upload",
             files={"file": ("test.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
-            params={"language": "fra"},
+            data={"language": "fra"},
         )
         assert response.status_code == 422
 
