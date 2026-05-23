@@ -168,7 +168,9 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 
                 progress = round(((i + 1) / total) * 100, 1)
                 job.progress = progress
-                await db.flush()
+                await db.commit()
+                job_result = await db.execute(select(Job).where(Job.id == job_id))
+                job = job_result.scalar_one()
 
             book_result = await db.execute(select(Book).where(Book.id == book_id))
             book = book_result.scalar_one_or_none()
