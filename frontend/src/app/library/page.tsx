@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   getLibraryBooks,
   getFilterOptions,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/api";
 import { createBookFuse, fuseSearch } from "@/lib/fuse-config";
 import BookCard from "@/components/library/book-card";
+import { LibrarySkeleton } from "@/components/shared/skeleton";
 
 export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,11 +42,15 @@ export default function LibraryPage() {
   const { data: booksData, isLoading } = useQuery({
     queryKey: ["library", apiParams],
     queryFn: () => getLibraryBooks(apiParams),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: filterOptions } = useQuery({
     queryKey: ["library-filters"],
     queryFn: getFilterOptions,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const allBooks = useMemo(
@@ -107,13 +113,13 @@ export default function LibraryPage() {
   const total = booksData?.total ?? 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b px-6 py-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Library</h1>
-              <p className="text-sm text-gray-500">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Library</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {total} book{total !== 1 ? "s" : ""}{" "}
                 {useServerSearch && debouncedQuery
                   ? `matching "${debouncedQuery}"`
@@ -128,8 +134,8 @@ export default function LibraryPage() {
             </a>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[240px] relative">
+          <div className="mt-4 flex flex-col sm:flex-row flex-wrap gap-3">
+            <div className="flex-1 min-w-[200px] relative">
               <input
                 type="text"
                 placeholder="Search by title, author, publisher..."
@@ -139,13 +145,14 @@ export default function LibraryPage() {
                   if (useServerSearch) setUseServerSearch(false);
                 }}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full px-4 py-2 pr-16 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Search library"
+                className="w-full px-4 py-2 pr-16 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
               />
               <div className="absolute right-1 top-1 flex gap-1">
                 {searchQuery && (
                   <button
                     onClick={handleClearSearch}
-                    className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+                    className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     Clear
                   </button>
@@ -162,7 +169,8 @@ export default function LibraryPage() {
             <select
               value={filters.language}
               onChange={(e) => handleFilterChange("language", e.target.value)}
-              className="px-3 py-2 border rounded-lg text-sm bg-white"
+              aria-label="Filter by language"
+              className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             >
               <option value="">All Languages</option>
               {(filterOptions?.languages ?? ["tel", "hin"]).map((l) => (
@@ -175,7 +183,8 @@ export default function LibraryPage() {
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="px-3 py-2 border rounded-lg text-sm bg-white"
+              aria-label="Filter by status"
+              className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             >
               <option value="">All Statuses</option>
               {(filterOptions?.statuses ?? [
@@ -196,7 +205,8 @@ export default function LibraryPage() {
               <select
                 value={filters.genre}
                 onChange={(e) => handleFilterChange("genre", e.target.value)}
-                className="px-3 py-2 border rounded-lg text-sm bg-white"
+                aria-label="Filter by genre"
+                className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
               >
                 <option value="">All Genres</option>
                 {filterOptions.genres.map((g) => (
@@ -213,7 +223,8 @@ export default function LibraryPage() {
                 onChange={(e) =>
                   handleFilterChange("publisher", e.target.value)
                 }
-                className="px-3 py-2 border rounded-lg text-sm bg-white"
+                aria-label="Filter by publisher"
+                className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
               >
                 <option value="">All Publishers</option>
                 {filterOptions.publishers.map((p) => (
@@ -227,14 +238,12 @@ export default function LibraryPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-          </div>
+          <LibrarySkeleton />
         ) : displayBooks.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {debouncedQuery
                 ? `No books found matching "${debouncedQuery}"`
                 : "No books in the library yet."}
@@ -242,7 +251,7 @@ export default function LibraryPage() {
             {!debouncedQuery && (
               <a
                 href="/upload"
-                className="mt-4 inline-block text-blue-600 hover:underline text-sm"
+                className="mt-4 inline-block text-blue-600 dark:text-blue-400 hover:underline text-sm"
               >
                 Upload your first book
               </a>
@@ -251,7 +260,7 @@ export default function LibraryPage() {
         ) : (
           <>
             {fuseResults && (
-              <p className="text-xs text-gray-400 mb-3">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
                 Showing {fuseResults.length} instant result
                 {fuseResults.length !== 1 ? "s" : ""} from local index. Press
                 Enter for full server search.
@@ -264,13 +273,13 @@ export default function LibraryPage() {
             </div>
 
             {!fuseResults && totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-2">
+              <nav className="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
                 <button
                   onClick={() =>
                     setCurrentPage((p) => Math.max(1, p - 1))
                   }
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
@@ -284,14 +293,15 @@ export default function LibraryPage() {
                   .map((p, i, arr) => (
                     <span key={p}>
                       {i > 0 && arr[i - 1] !== p - 1 && (
-                        <span className="px-1 text-gray-400">...</span>
+                        <span className="px-1 text-gray-400 dark:text-gray-500">...</span>
                       )}
                       <button
                         onClick={() => setCurrentPage(p)}
+                        aria-label={`Page ${p}`}
                         className={`px-3 py-1.5 text-sm border rounded ${
                           p === currentPage
                             ? "bg-blue-600 text-white border-blue-600"
-                            : "hover:bg-gray-50"
+                            : "hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
                         }`}
                       >
                         {p}
@@ -303,11 +313,11 @@ export default function LibraryPage() {
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
-              </div>
+              </nav>
             )}
           </>
         )}
