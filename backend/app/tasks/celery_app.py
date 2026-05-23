@@ -6,6 +6,7 @@ celery_app = Celery(
     "indic_books",
     broker=settings.redis_url,
     backend=settings.redis_url,
+    include=["app.tasks.ocr_tasks", "app.tasks.llm_tasks"],
 )
 
 celery_app.conf.update(
@@ -20,5 +21,3 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
 )
-
-celery_app.autodiscover_tasks(["app.tasks"])
