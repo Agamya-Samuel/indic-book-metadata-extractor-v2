@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
@@ -13,8 +13,10 @@ import { SelectPagesSkeleton } from "@/components/shared/skeleton";
 
 export default function SelectPagesPage() {
   const params = useParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useWorkflowHydration(bookId);
   const { currentStep, completedStep, setBookId: setWorkflowBookId, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
@@ -46,6 +48,10 @@ export default function SelectPagesPage() {
       toast.success(`${selectedCount} pages selected successfully`);
       setWorkflowStep(3);
       setCompletedStep(3);
+      clearSelection();
+      redirectTimeoutRef.current = setTimeout(() => {
+        router.push(`/books/${bookId}/preprocessing`);
+      }, 1500);
     },
   });
 
@@ -55,6 +61,14 @@ export default function SelectPagesPage() {
   useEffect(() => {
     clearSelection();
   }, [clearSelection]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoadingBook) {
     return <SelectPagesSkeleton />;
