@@ -5,10 +5,14 @@ import { type ReactNode } from "react";
 import LibraryPage from "@/app/library/page";
 import type { BookSearchResult, BookListResponse } from "@/lib/api";
 
-vi.mock("@/lib/api", () => ({
-  getLibraryBooks: vi.fn(),
-  getFilterOptions: vi.fn(),
-}));
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>;
+  return {
+    ...actual,
+    getLibraryBooks: vi.fn(),
+    getFilterOptions: vi.fn(),
+  };
+});
 
 import { getLibraryBooks, getFilterOptions } from "@/lib/api";
 const mockGetLibraryBooks = vi.mocked(getLibraryBooks);
