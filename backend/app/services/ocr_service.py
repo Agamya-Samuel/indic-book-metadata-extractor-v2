@@ -8,6 +8,7 @@ from app.core.config import settings
 LANGUAGE_MAP = {
     "tel": "tel+eng",
     "hin": "hin+eng",
+    "eng": "eng",
 }
 
 

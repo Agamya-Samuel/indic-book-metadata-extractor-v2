@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,8 +40,8 @@ async def _get_book(book_id: UUID, db: AsyncSession) -> Book:
 @router.post("/upload", response_model=BookUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_book(
     file: UploadFile,
-    title: str | None = None,
-    language: str = "tel",
+    title: str | None = Form(None),
+    language: str = Form("tel"),
     db: AsyncSession = Depends(get_db),
 ) -> BookUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -57,8 +57,8 @@ async def upload_book(
             detail=f"File exceeds {settings.max_upload_size_mb} MB limit",
         )
 
-    if language not in ("tel", "hin"):
-        raise HTTPException(status_code=422, detail="language must be 'tel' or 'hin'")
+    if language not in ("tel", "hin", "eng"):
+        raise HTTPException(status_code=422, detail="language must be 'tel', 'hin', or 'eng'")
 
     book_id = uuid.uuid4()
     pdf_path = storage.original_pdf_path(str(book_id))
