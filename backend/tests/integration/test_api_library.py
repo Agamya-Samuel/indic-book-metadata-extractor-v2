@@ -53,7 +53,7 @@ class TestListLibraryBooks:
 
 
 class TestGetFilterOptions:
-    @pytest.mark.skip(reason="Requires PostgreSQL JSONB .astext support")
+    @pytest.mark.skip(reason="Requires PostgreSQL JSONB .astext support (SQLite incompatible). Run against Docker stack for full validation.")
     async def test_get_filter_options(self, client, make_book):
         await make_book(language="tel")
         await make_book(language="hin")

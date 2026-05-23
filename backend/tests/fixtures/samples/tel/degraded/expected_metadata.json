@@ -1,0 +1,27 @@
+{
+  "description": "Sample Telugu book with degraded scan quality. OCR accuracy may be lower.",
+  "language": "tel",
+  "quality": "degraded",
+  "total_pages": 10,
+  "recommended_pages": [1, 2, 9, 10],
+  "recommended_preprocessing": {
+    "grayscale": true,
+    "brightness": 15,
+    "contrast": 30,
+    "binarization": "adaptive",
+    "adaptive_block_size": 11,
+    "adaptive_c": 2,
+    "deskew": true,
+    "denoise": true,
+    "denoise_strength": 15
+  },
+  "expected_metadata": {
+    "title": "",
+    "author": "",
+    "publisher": "",
+    "publication_date": "",
+    "language": "Telugu",
+    "pages": "10"
+  },
+  "notes": "Place a degraded Telugu PDF in this directory named 'sample.pdf'. Fill in expected_metadata with the actual values from the PDF."
+}
