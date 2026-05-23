@@ -1,0 +1,17 @@
+{
+  "description": "Sample bilingual book (Telugu + English). Tests multi-language OCR mode.",
+  "language": "tel",
+  "quality": "bilingual",
+  "total_pages": 10,
+  "recommended_pages": [1, 2, 3, 9, 10],
+  "expected_metadata": {
+    "title": "",
+    "author": "",
+    "publisher": "",
+    "publication_date": "",
+    "language": "Telugu",
+    "original_language": "English",
+    "pages": "10"
+  },
+  "notes": "Place a bilingual Telugu+English PDF in this directory named 'sample.pdf'. Fill in expected_metadata with the actual values from the PDF. This tests the tel+eng OCR mode."
+}

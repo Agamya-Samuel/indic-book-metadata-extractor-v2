@@ -1,0 +1,17 @@
+{
+  "description": "Sample Telugu book with clean, modern printing. Good OCR quality expected.",
+  "language": "tel",
+  "quality": "clean",
+  "total_pages": 10,
+  "recommended_pages": [1, 2, 3, 9, 10],
+  "expected_metadata": {
+    "title": "",
+    "author": "",
+    "publisher": "",
+    "publication_date": "",
+    "language": "Telugu",
+    "genre": "",
+    "pages": "10"
+  },
+  "notes": "Place a Telugu PDF in this directory named 'sample.pdf'. Fill in expected_metadata with the actual values from the PDF."
+}
