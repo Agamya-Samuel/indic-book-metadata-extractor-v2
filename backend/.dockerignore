@@ -1,0 +1,27 @@
+# Virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Testing
+tests/
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Storage (mounted as volume)
+storage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Scripts (not needed in container)
+scripts/
+
+# OS
+.DS_Store
+Thumbs.db
