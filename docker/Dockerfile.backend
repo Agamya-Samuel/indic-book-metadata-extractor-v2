@@ -26,10 +26,11 @@ RUN uv sync --no-dev
 COPY app/ app/
 COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
+COPY newrelic.ini newrelic.ini
 
 # Create storage directories
 RUN mkdir -p /app/storage/uploads /app/storage/thumbnails /app/storage/pages /app/storage/processed
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "newrelic-admin", "run-program", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
