@@ -1,8 +1,10 @@
 import asyncio
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 
+import newrelic.agent
 from sqlalchemy import select
 
 from app.core.database import async_session_factory
@@ -13,6 +15,7 @@ from app.models.metadata import BookMetadata
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services.llm_service import llm_service as llm_service_singleton
+from app.services.metrics import record_llm_extraction
 from app.services.prompts import render_extraction_prompt
 from app.tasks.async_utils import run_async
 from app.tasks.celery_app import celery_app
@@ -27,6 +30,7 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,
     acks_late=True,
 )
+@newrelic.agent.background_task(name="LLM: Metadata Extraction", group="CeleryTask")
 def run_llm_extraction(
     self,
     job_id_str: str,
@@ -37,6 +41,11 @@ def run_llm_extraction(
     system_prompt_override: str | None = None,
     extraction_prompt_override: str | None = None,
 ):
+    newrelic.agent.add_custom_parameter("book_id", book_id_str)
+    newrelic.agent.add_custom_parameter("job_id", job_id_str)
+    newrelic.agent.add_custom_parameter("model", model)
+
+    _start_time = time.monotonic()
     async def _process():
         async with async_session_factory() as db:
             job_id = uuid.UUID(job_id_str)
