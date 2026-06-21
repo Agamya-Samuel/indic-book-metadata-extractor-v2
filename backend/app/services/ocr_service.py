@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import newrelic.agent
 import pytesseract
 from PIL import Image
 
@@ -16,7 +17,10 @@ def _get_tesseract_lang(language: str) -> str:
     return LANGUAGE_MAP.get(language, language)
 
 
+@newrelic.agent.function_trace(name="OCR: Run Tesseract", group="Custom")
 def run_ocr(image_path: Path, language: str = "tel") -> dict:
+    newrelic.agent.add_custom_parameter("language", language)
+    newrelic.agent.add_custom_parameter("page_filename", image_path.name)
     if settings.tesseract_cmd:
         pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
 
@@ -73,6 +77,7 @@ def run_ocr(image_path: Path, language: str = "tel") -> dict:
     }
 
 
+@newrelic.agent.function_trace(name="OCR: Detect Language", group="Custom")
 def detect_language(image_path: Path) -> str:
     candidates = {"tel": 0.0, "hin": 0.0}
 
