@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker reset-db download-model migrate test-e2e status shell-backend clean restart
+.PHONY: help up down build rebuild logs logs-backend logs-worker reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -18,6 +18,10 @@ help:
 	@echo "  make download-model  Download Airavata model to Ollama"
 	@echo "  make test-e2e        Run end-to-end smoke test"
 	@echo "  make shell-backend   Open shell in backend container"
+	@echo "  make backup-db       Create a manual database backup"
+	@echo "  make backup-storage  Create a manual storage backup"
+	@echo "  make backup          Backup both database and storage"
+	@echo "  make restore-db      Restore database from backup (BACKUP=file.dump)"
 	@echo "  make clean           Remove all containers, volumes, and images"
 
 up:
@@ -84,3 +88,19 @@ clean:
 	@echo "Cleaning up containers, volumes, and local images..."
 	docker compose down -v --rmi local
 	@echo "Clean complete."
+
+backup-db:
+	@echo "Creating database backup..."
+	docker compose exec backup /backup-db.sh
+
+backup-storage:
+	@echo "Creating storage backup..."
+	bash docker/scripts/backup-storage.sh
+
+backup:
+	$(MAKE) backup-db
+	$(MAKE) backup-storage
+
+restore-db:
+	@echo "Restoring database from backup..."
+	bash docker/scripts/restore-db.sh $(or $(BACKUP),$(error BACKUP is required: make restore-db BACKUP=./backups/indic_books_20240101_120000.dump))
