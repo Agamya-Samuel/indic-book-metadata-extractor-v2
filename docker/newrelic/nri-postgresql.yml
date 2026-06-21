@@ -1,0 +1,9 @@
+integrations:
+  - name: nri-postgresql
+    env:
+      HOST: postgres
+      PORT: 5432
+      USERNAME: postgres
+      PASSWORD: postgres
+      DATABASE: indic_books
+    interval: 30s

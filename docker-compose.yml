@@ -73,6 +73,10 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
     volumes:
       - ./backend/storage:/app/storage
       - ./backend/app:/app/app
@@ -94,7 +98,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
     mem_limit: 2g
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
     env_file:
       - .env
     environment:
@@ -103,6 +107,10 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
     volumes:
       - ./backend/storage:/app/storage
       - ./backend/app:/app/app
@@ -163,6 +171,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  newrelic-infra:
+    image: newrelic/infrastructure-bundle:latest
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      NRIA_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NRIA_DISPLAY_NAME: indic-books-host
+      NRIA_DOCKER: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host:ro
+      - ./docker/newrelic/nri-postgresql.yml:/etc/newrelic-infra/integrations.d/nri-postgresql.yml
+    pid: host
+    profiles:
+      - monitoring
 
 volumes:
   pgdata:
