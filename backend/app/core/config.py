@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     tesseract_cmd: str = "tesseract"
     default_ocr_language: str = "tel"
 
+    # New Relic
+    new_relic_license_key: str = ""
+    new_relic_app_name: str = "Indic Book Metadata Extractor"
+    new_relic_enabled: bool = False
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

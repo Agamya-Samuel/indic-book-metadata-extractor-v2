@@ -33,6 +33,8 @@ dependencies = [
     # Utilities
     "python-dotenv>=1.0",
     "jinja2>=3.1",
+    # Monitoring
+    "newrelic>=10.0",
 ]
 
 [project.optional-dependencies]
