@@ -4,13 +4,17 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Application
     app_name: str = "Indic Book Metadata Extractor"
-    debug: bool = True
+    debug: bool = False
+
+    # CORS (comma-separated origins)
+    cors_origins: str = "http://localhost:3000"
 
     # Database
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/indic_books"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/1"
 
     # Ollama
     ollama_url: str = "http://localhost:11434"
