@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import uuid as _uuid
 from contextlib import asynccontextmanager
@@ -15,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    setup_logging()
+
     global _redis_pool
     from app.core.database import engine
     from app.services.llm_service import llm_service
@@ -100,6 +104,28 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Initialise the New Relic agent if enabled.
+# When running under `newrelic-admin run-program` (Docker), the agent is already
+# bootstrapped via sitecustomize and auto-instruments FastAPI/Starlette — so we
+# must NOT apply ASGIApplicationWrapper here (that would double-wrap and produce
+# duplicate traces). We still call initialize() as a safe, idempotent fallback
+# for local development where `newrelic-admin` is not used.
+if settings.new_relic_enabled:
+    try:
+        import newrelic.agent  # noqa: F401
+
+        _nr_config = os.environ.get("NEW_RELIC_CONFIG_FILE", "newrelic.ini")
+        newrelic.agent.initialize(_nr_config)
+        logger.info("New Relic agent initialised (config=%s).", _nr_config)
+    except ImportError:
+        logger.warning("newrelic package not installed; skipping APM.")
+    except Exception as exc:
+        logger.critical(
+            "New Relic is ENABLED but initialisation failed — "
+            "APM data will NOT be reported. Error: %s",
+            exc,
+        )
 
 # Rate limiting middleware (must be added BEFORE CORS — runs after CORS in the stack)
 app.add_middleware(RateLimitMiddleware)
