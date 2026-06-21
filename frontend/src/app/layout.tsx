@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "@/lib/newrelic";
 import "./globals.css";
 import { Providers } from "./providers";
 import AppNavbar from "@/components/shared/app-navbar";
