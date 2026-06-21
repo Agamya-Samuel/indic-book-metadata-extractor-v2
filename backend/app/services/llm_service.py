@@ -7,6 +7,7 @@ from typing import Callable
 
 import httpx
 import instructor
+import newrelic.agent
 from instructor.core import InstructorRetryException
 import openai
 from pydantic import BaseModel
@@ -63,6 +64,7 @@ class LlmService:
             )
         return self._http_client
 
+    @newrelic.agent.function_trace(name="LLM: Extract Batch", group="Custom")
     async def extract_batch(
         self,
         ocr_text: str,
@@ -78,6 +80,10 @@ class LlmService:
     ) -> tuple[BaseModel, str, dict]:
         # Check circuit breaker before attempting LLM call
         self._check_circuit_breaker()
+
+        newrelic.agent.add_custom_parameter("batch_name", batch_name)
+        newrelic.agent.add_custom_parameter("model", model)
+        newrelic.agent.add_custom_parameter("language", language)
 
         system_prompt = render_system_prompt(language, override=system_prompt_override)
         extraction_prompt = render_extraction_prompt(
@@ -133,6 +139,7 @@ class LlmService:
 
         return result, raw_response_text, usage_stats
 
+    @newrelic.agent.function_trace(name="LLM: Run Full Extraction", group="Custom")
     async def run_full_extraction(
         self,
         ocr_text: str,
