@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
@@ -109,7 +110,8 @@ async def get_thumbnail(
         if not pdf_path.exists():
             raise HTTPException(status_code=404, detail="Original PDF not found")
         try:
-            pdf_service.render_thumbnail(pdf_path, page_number, thumb_path)
+            # Run blocking I/O in a thread to avoid blocking the async event loop
+            await asyncio.to_thread(pdf_service.render_thumbnail, pdf_path, page_number, thumb_path)
         except Exception:
             raise HTTPException(status_code=500, detail="Failed to render thumbnail")
 

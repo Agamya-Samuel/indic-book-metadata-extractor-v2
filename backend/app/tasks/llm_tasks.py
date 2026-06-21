@@ -5,31 +5,28 @@ from datetime import datetime, timezone
 
 from sqlalchemy import select
 
-from app.core.database import async_session_factory, engine
+from app.core.database import async_session_factory
 from app.models.book import Book, BookStatus
-from app.models.job import Job, JobStatus, JobType
+from app.models.job import Job, JobStatus
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
-from app.services.llm_service import LlmService
-from app.services.prompts import render_system_prompt, render_extraction_prompt
+from app.services.llm_service import llm_service as llm_service_singleton
+from app.services.prompts import render_extraction_prompt
+from app.tasks.async_utils import run_async
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-def _run_async(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.run_until_complete(engine.dispose())
-        loop.close()
-
-
-@celery_app.task(bind=True, name="run_llm_extraction")
+@celery_app.task(
+    bind=True,
+    name="run_llm_extraction",
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+)
 def run_llm_extraction(
     self,
     job_id_str: str,
@@ -112,10 +109,25 @@ def run_llm_extraction(
             book.status = BookStatus.LLM_RUNNING
             await db.commit()
 
-            llm = LlmService()
+            llm = llm_service_singleton
+
+            # Progress callback that updates DB inline within the same async context
+            async def on_progress_async(current: int, total: int, batch_name: str):
+                async with async_session_factory() as progress_db:
+                    result = await progress_db.execute(
+                        select(Job).where(Job.id == job_id)
+                    )
+                    progress_job = result.scalar_one_or_none()
+                    if progress_job:
+                        progress_job.progress = round((current / total) * 100, 1)
+                        await progress_db.commit()
+
+            pending_futures: list = []
 
             def on_progress(current: int, total: int, batch_name: str):
-                _run_async(_update_job_progress(job_id, current, total))
+                # Schedule the async update within the running loop.
+                fut = asyncio.ensure_future(on_progress_async(current, total, batch_name))
+                pending_futures.append(fut)
 
             metadata, batch_results = await llm.run_full_extraction(
                 ocr_text=ocr_text,
@@ -129,7 +141,9 @@ def run_llm_extraction(
                 progress_callback=on_progress,
             )
 
-            await llm.close()
+            # Await any pending progress updates before closing the loop
+            if pending_futures:
+                await asyncio.gather(*pending_futures, return_exceptions=True)
 
             metadata_result = await db.execute(
                 select(BookMetadata).where(BookMetadata.book_id == book_id)
@@ -194,7 +208,11 @@ def run_llm_extraction(
             await db.commit()
 
     try:
-        return _run_async(_process())
+        return run_async(_process())
+    except (ConnectionError, TimeoutError, OSError) as exc:
+        # Transient errors (Ollama down, network issues) — retry
+        logger.warning("Transient error for LLM job %s, retrying: %s", job_id_str, exc)
+        raise self.retry(exc=exc)
     except Exception as e:
         logger.error("LLM extraction job %s failed: %s", job_id_str, e)
 
@@ -220,14 +238,5 @@ def run_llm_extraction(
 
                 await db.commit()
 
-        _run_async(_mark_failed())
+        run_async(_mark_failed())
         raise
-
-
-async def _update_job_progress(job_id: uuid.UUID, current: int, total: int):
-    async with async_session_factory() as db:
-        result = await db.execute(select(Job).where(Job.id == job_id))
-        job = result.scalar_one_or_none()
-        if job:
-            job.progress = round((current / total) * 100, 1)
-            await db.commit()
