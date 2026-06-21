@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Callable
 
 import httpx
@@ -24,11 +25,23 @@ from app.services.prompts import (
 logger = logging.getLogger(__name__)
 
 
+class CircuitBreakerOpen(Exception):
+    """Raised when the LLM circuit breaker is open (service unavailable)."""
+    pass
+
+
 class LlmService:
+    # Circuit breaker configuration
+    FAILURE_THRESHOLD: int = 3
+    COOLDOWN_SECONDS: float = 60.0
+
     def __init__(self, ollama_url: str | None = None):
         self._ollama_url = ollama_url or settings.ollama_url
         self._client: instructor.AsyncInstructor | None = None
         self._http_client: httpx.AsyncClient | None = None
+        # Circuit breaker state
+        self._consecutive_failures: int = 0
+        self._circuit_opened_at: float | None = None
 
     @property
     def client(self) -> instructor.AsyncInstructor:
@@ -63,6 +76,9 @@ class LlmService:
         system_prompt_override: str | None = None,
         extraction_prompt_override: str | None = None,
     ) -> tuple[BaseModel, str, dict]:
+        # Check circuit breaker before attempting LLM call
+        self._check_circuit_breaker()
+
         system_prompt = render_system_prompt(language, override=system_prompt_override)
         extraction_prompt = render_extraction_prompt(
             batch_name=batch_name,
@@ -91,6 +107,7 @@ class LlmService:
 
             raw_response_text = result.model_dump_json()
             usage_stats = {"status": "success"}
+            self._record_success()
 
         except InstructorRetryException as e:
             logger.warning("Instructor retry exhausted for batch '%s': %s", batch_name, e)
@@ -99,17 +116,20 @@ class LlmService:
                 raw_response_text = last_response.choices[0].message.content or ""
             result = _fallback_parse(raw_response_text, batch_schema)
             usage_stats = {"status": "fallback", "error": str(e)}
+            self._record_success()  # fallback is still a response
 
         except (httpx.TimeoutException, openai.APITimeoutError) as e:
             logger.error("Timeout for batch '%s': %s", batch_name, e)
             result = _empty_batch(batch_schema)
             usage_stats = {"status": "timeout", "error": str(e)}
+            self._record_failure()
 
         except Exception as e:
             logger.error("LLM call failed for batch '%s': %s", batch_name, e)
             raw_response_text = str(e)
             result = _empty_batch(batch_schema)
             usage_stats = {"status": "error", "error": str(e)}
+            self._record_failure()
 
         return result, raw_response_text, usage_stats
 
@@ -212,6 +232,44 @@ class LlmService:
         if self._http_client:
             await self._http_client.aclose()
             self._http_client = None
+        if self._client:
+            self._client = None
+
+    # ------------------------------------------------------------------
+    # Circuit breaker methods
+    # ------------------------------------------------------------------
+    def _check_circuit_breaker(self) -> None:
+        """Raise CircuitBreakerOpen if the circuit is open and cooldown hasn't elapsed."""
+        if self._consecutive_failures >= self.FAILURE_THRESHOLD:
+            if self._circuit_opened_at is not None:
+                elapsed = time.monotonic() - self._circuit_opened_at
+                if elapsed < self.COOLDOWN_SECONDS:
+                    raise CircuitBreakerOpen(
+                        f"LLM service circuit breaker open. "
+                        f"{self.COOLDOWN_SECONDS - elapsed:.0f}s until retry."
+                    )
+                else:
+                    # Cooldown elapsed — allow a half-open attempt
+                    logger.info("Circuit breaker cooldown elapsed, allowing half-open attempt.")
+                    self._consecutive_failures = 0
+                    self._circuit_opened_at = None
+
+    def _record_success(self) -> None:
+        """Reset failure counter on successful call."""
+        self._consecutive_failures = 0
+        self._circuit_opened_at = None
+
+    def _record_failure(self) -> None:
+        """Increment failure counter; open circuit if threshold exceeded."""
+        self._consecutive_failures += 1
+        if self._consecutive_failures >= self.FAILURE_THRESHOLD:
+            self._circuit_opened_at = time.monotonic()
+            logger.warning(
+                "Circuit breaker OPEN after %d consecutive failures. "
+                "Cooldown: %.0fs.",
+                self._consecutive_failures,
+                self.COOLDOWN_SECONDS,
+            )
 
 
 def _empty_batch(batch_schema: type[BaseModel]) -> BaseModel:
