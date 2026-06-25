@@ -194,7 +194,37 @@ services:
 
 ---
 
-## 10. Developer Tooling
+## 10. Monitoring & Observability
+
+| Technology | Role | Why |
+|---|---|---|
+| **New Relic APM** | Application performance monitoring | End-to-end distributed tracing across FastAPI, Celery, and Next.js |
+| **New Relic Browser** | Real user monitoring (RUM) | Page load timing, Core Web Vitals, JS errors, session traces |
+| **New Relic Infrastructure** | Host and container metrics | CPU, memory, disk, Docker events for all containers |
+| **Flower** | Celery queue monitoring UI | Real-time dashboard for task queues and worker health |
+
+**New Relic Architecture — 3 Agents:**
+
+```
+┌───────────────────────┐  ┌────────────────────────┐  ┌───────────────────────┐
+│    APM Agent          │  │    Browser Agent       │  │    Infra Agent        │
+│    (in Python/JS code)│  │    (JS snippet in HTML)│  │    (Docker sidecar)   │
+│                       │  │                        │  │                       │
+│    → App performance  │  │    → Page loads, AJAX  │  │    → Host/container   │
+│    → DB queries       │  │    → JS errors         │  │    → CPU/mem/disk     │
+│    → External calls   │  │    → Session traces    │  │    → Docker events    │
+└──────────┬────────────┘  └──────────┬─────────────┘  └──────────┬────────────┘
+           │                          │                           │
+           └──────────────────────────┼───────────────────────────┘
+                                      ▼
+                          New Relic Cloud (SaaS)
+```
+
+All telemetry is sent to **New Relic Cloud (SaaS)** — nothing is self-hosted. The `newrelic-infra` Docker container is a lightweight sidecar collector, not a self-hosted New Relic server. See [monitoring.md](monitoring.md) for the full setup guide.
+
+---
+
+## 11. Developer Tooling
 
 | Technology | Role |
 |---|---|
