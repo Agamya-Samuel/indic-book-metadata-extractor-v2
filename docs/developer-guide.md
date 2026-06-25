@@ -463,6 +463,9 @@ docker compose exec backend uv run python scripts/test_resumable_workflow.py
 | `worker` | Custom (backend/) | — | Celery worker (shares backend image) |
 | `frontend` | Custom (frontend/) | 3000 | Next.js application |
 | `flower` | mher/flower:latest | 5555 | Celery monitoring dashboard |
+| `newrelic-infra` | newrelic/newrelic-infra:latest | — | Host/container metrics sidecar (New Relic Cloud) |
+
+> **Note**: The `newrelic-infra` container is **not** a self-hosted New Relic instance. It's a lightweight sidecar that collects host and container metrics and sends them to New Relic Cloud (SaaS). See [monitoring.md](monitoring.md) for the full architecture.
 
 ### Health Checks
 
