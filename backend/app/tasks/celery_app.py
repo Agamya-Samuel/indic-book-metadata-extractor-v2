@@ -49,6 +49,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
     task_routes={
+        "run_ocr_for_page_batch": {"queue": "ocr"},
         "run_ocr_for_page": {"queue": "ocr"},
         "run_ocr_for_book": {"queue": "ocr"},
         "_ocr_book_complete": {"queue": "ocr"},

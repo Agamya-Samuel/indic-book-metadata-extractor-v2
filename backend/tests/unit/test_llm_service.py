@@ -14,7 +14,7 @@ from app.schemas.metadata import (
     CoreIdentityBatch,
     FullMetadata,
 )
-from app.services.llm_service import LlmService, _empty_batch, _fallback_parse
+from app.services.llm_service import LLMService, _empty_batch, _fallback_parse
 
 
 class TestEmptyBatch:
@@ -55,10 +55,10 @@ def _setup_service_with_mock_client(service, mock_client):
     service._client = mock_client
 
 
-class TestLlmServiceExtractBatch:
+class TestLLMServiceExtractBatch:
     @pytest.fixture
     def service(self):
-        return LlmService(ollama_url="http://fake-ollama:11434")
+        return LLMService(ollama_url="http://fake-ollama:11434")
 
     async def test_extract_batch_success(self, service):
         mock_result = CoreIdentityBatch(title="Test Title", author="Test Author")
@@ -126,10 +126,10 @@ class TestLlmServiceExtractBatch:
         assert usage["status"] == "fallback"
 
 
-class TestLlmServiceFullExtraction:
+class TestLLMServiceFullExtraction:
     @pytest.fixture
     def service(self):
-        return LlmService(ollama_url="http://fake-ollama:11434")
+        return LLMService(ollama_url="http://fake-ollama:11434")
 
     async def test_merges_all_batches(self, service):
         async def mock_extract(ocr_text, batch_name, batch_schema, **kwargs):
@@ -151,7 +151,7 @@ class TestLlmServiceFullExtraction:
         async def mock_extract(ocr_text, batch_name, batch_schema, **kwargs):
             return batch_schema(), '{}', {"status": "success"}
 
-        def on_progress(current, total, batch_name):
+        async def on_progress(current, total, batch_name):
             calls.append((current, total, batch_name))
 
         with patch.object(service, "extract_batch", side_effect=mock_extract):
@@ -166,9 +166,9 @@ class TestLlmServiceFullExtraction:
         assert calls[-1][1] == len(BATCH_FIELD_ORDER)
 
 
-class TestLlmServiceListModels:
+class TestLLMServiceListModels:
     async def test_success(self):
-        service = LlmService(ollama_url="http://fake-ollama:11434")
+        service = LLMService(ollama_url="http://fake-ollama:11434")
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "models": [
@@ -190,7 +190,7 @@ class TestLlmServiceListModels:
         assert models[1]["size_gb"] is None
 
     async def test_error_returns_empty(self):
-        service = LlmService(ollama_url="http://fake-ollama:11434")
+        service = LLMService(ollama_url="http://fake-ollama:11434")
         mock_http = AsyncMock()
         mock_http.get.side_effect = Exception("connection failed")
         service._http_client = mock_http
@@ -199,9 +199,9 @@ class TestLlmServiceListModels:
         assert models == []
 
 
-class TestLlmServiceClose:
+class TestLLMServiceClose:
     async def test_close_cleans_up(self):
-        service = LlmService()
+        service = LLMService()
         mock_http = AsyncMock()
         service._http_client = mock_http
 
@@ -210,6 +210,6 @@ class TestLlmServiceClose:
         assert service._http_client is None
 
     async def test_close_no_client(self):
-        service = LlmService()
+        service = LLMService()
         await service.close()
         assert service._http_client is None
