@@ -51,11 +51,11 @@ services:
     environment:
       - OLLAMA_PRELOAD_MODEL=airavata
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 60s
+      start_period: 120s
 
   backend:
     build:
@@ -73,6 +73,15 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
+      - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
+      - NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      - NEW_RELIC_LOG=${NEW_RELIC_LOG:-error}
+      - NEW_RELIC_MONITOR_MODE=${NEW_RELIC_MONITOR_MODE:-true}
+      - NEW_RELIC_DEVELOPER_MODE=${NEW_RELIC_DEVELOPER_MODE:-false}
     volumes:
       - ./backend/storage:/app/storage
       - ./backend/app:/app/app
@@ -80,6 +89,7 @@ services:
       - ./backend/alembic.ini:/app/alembic.ini
       - ./docker/scripts/backend-entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,7 +104,7 @@ services:
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
     mem_limit: 2g
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
     env_file:
       - .env
     environment:
@@ -103,6 +113,15 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
+      - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
+      - NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      - NEW_RELIC_LOG=${NEW_RELIC_LOG:-error}
+      - NEW_RELIC_MONITOR_MODE=${NEW_RELIC_MONITOR_MODE:-true}
+      - NEW_RELIC_DEVELOPER_MODE=${NEW_RELIC_DEVELOPER_MODE:-false}
     volumes:
       - ./backend/storage:/app/storage
       - ./backend/app:/app/app
@@ -120,9 +139,21 @@ services:
     build:
       context: ./frontend
       dockerfile: ../docker/Dockerfile.frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000/api}
+        - NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY=${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
+        - NEXT_PUBLIC_NEW_RELIC_APP_ID=${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
+        - NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID=${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
+        - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+        - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
+        - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
     restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
     depends_on:
       - backend
 
@@ -163,6 +194,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  newrelic-infra:
+    image: newrelic/infrastructure-bundle:latest
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      NRIA_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NRIA_DISPLAY_NAME: indic-books-host
+      NRIA_DOCKER: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host:ro
+      - ./docker/newrelic/nri-postgresql.yml:/etc/newrelic-infra/integrations.d/nri-postgresql.yml
+    pid: host
+    profiles:
+      - monitoring
 
 volumes:
   pgdata:

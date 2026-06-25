@@ -1,6 +1,34 @@
 from celery import Celery
+from celery.signals import worker_init
 
 from app.core.config import settings
+
+
+@worker_init.connect
+def _init_newrelic(**kwargs):
+    """Safety-net: ensure the New Relic agent is initialised in each worker process.
+
+    When launched via `newrelic-admin run-program` the sitecustomize hook normally
+    handles this, but calling initialize() again is idempotent and protects against
+    environments where the hook is not injected (e.g. bare `celery worker` invocations).
+    """
+    if not settings.new_relic_enabled:
+        return
+    try:
+        import newrelic.agent
+        import os
+
+        _nr_config = os.environ.get("NEW_RELIC_CONFIG_FILE", "newrelic.ini")
+        newrelic.agent.initialize(_nr_config)
+    except ImportError:
+        pass  # newrelic not installed — expected in dev
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).error(
+            "New Relic worker init failed — Celery tasks will not be traced: %s", exc,
+        )
+
 
 celery_app = Celery(
     "indic_books",
@@ -21,6 +49,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
     task_routes={
+        "run_ocr_for_page_batch": {"queue": "ocr"},
         "run_ocr_for_page": {"queue": "ocr"},
         "run_ocr_for_book": {"queue": "ocr"},
         "_ocr_book_complete": {"queue": "ocr"},
