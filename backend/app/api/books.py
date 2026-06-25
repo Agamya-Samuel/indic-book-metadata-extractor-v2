@@ -25,17 +25,13 @@ from app.schemas.book import (
 )
 from app.schemas.job import JobResponse
 from app.services import pdf_service, storage
+from app.services.ocr_service import LANGUAGE_MAP
 from app.models.ocr_result import OcrResult
+from app.api.deps import get_book_or_404
+
+VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
 
 router = APIRouter()
-
-
-async def _get_book(book_id: UUID, db: AsyncSession) -> Book:
-    result = await db.execute(select(Book).where(Book.id == book_id))
-    book = result.scalar_one_or_none()
-    if book is None:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return book
 
 
 @router.post("/upload", response_model=BookUploadResponse, status_code=status.HTTP_201_CREATED)
@@ -58,8 +54,11 @@ async def upload_book(
             detail=f"File exceeds {settings.max_upload_size_mb} MB limit",
         )
 
-    if language not in ("tel", "hin", "eng"):
-        raise HTTPException(status_code=422, detail="language must be 'tel', 'hin', or 'eng'")
+    if language not in VALID_LANGUAGES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported language '{language}'. Valid options: {sorted(VALID_LANGUAGES)}",
+        )
 
     book_id = uuid.uuid4()
     pdf_path = storage.original_pdf_path(str(book_id))
@@ -90,7 +89,7 @@ async def upload_book(
 
 @router.get("/{book_id}", response_model=BookDetail)
 async def get_book(book_id: UUID, db: AsyncSession = Depends(get_db)) -> BookDetail:
-    book = await _get_book(book_id, db)
+    book = await get_book_or_404(book_id, db)
     return BookDetail.model_validate(book)
 
 
@@ -100,7 +99,7 @@ async def get_thumbnail(
     page_number: int,
     db: AsyncSession = Depends(get_db),
 ) -> FileResponse:
-    book = await _get_book(book_id, db)
+    book = await get_book_or_404(book_id, db)
     if page_number < 1 or (book.total_pages and page_number > book.total_pages):
         raise HTTPException(status_code=404, detail="Page number out of range")
 
@@ -124,7 +123,7 @@ async def select_pages(
     body: PageSelectionRequest,
     db: AsyncSession = Depends(get_db),
 ) -> PageSelectionResponse:
-    book = await _get_book(book_id, db)
+    book = await get_book_or_404(book_id, db)
     if not book.total_pages:
         raise HTTPException(status_code=400, detail="Book has no pages")
 
@@ -136,8 +135,8 @@ async def select_pages(
                 detail=f"Page {pn} out of range (1-{book.total_pages})",
             )
 
-    result = await db.execute(select(Page).where(Page.book_id == book_id))
-    existing = result.scalars().all()
+    results = await db.execute(select(Page).where(Page.book_id == book_id))
+    existing = results.scalars().all()
     for p in existing:
         if p.image_path:
             fp = Path(settings.storage_path) / p.image_path
@@ -149,9 +148,13 @@ async def select_pages(
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="Original PDF not found")
 
+    rendered_paths = {}
     for pn in unique_pages:
         out = storage.full_page_path(str(book_id), pn)
         pdf_service.render_full_page(pdf_path, pn, out)
+        rendered_paths[pn] = out
+
+    for pn, out in rendered_paths.items():
         page = Page(
             book_id=book_id,
             page_number=pn,
@@ -171,7 +174,7 @@ async def select_pages(
 
 @router.get("/{book_id}/pages", response_model=list[PageResponse])
 async def list_pages(book_id: UUID, db: AsyncSession = Depends(get_db)) -> list[PageResponse]:
-    await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
     result = await db.execute(
         select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
     )
@@ -184,12 +187,12 @@ async def run_ocr(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> JobResponse:
-    book = await _get_book(book_id, db)
+    book = await get_book_or_404(book_id, db)
 
-    if book.status not in (BookStatus.PAGES_SELECTED, BookStatus.OCR_RUNNING, BookStatus.OCR_COMPLETE):
+    if book.status not in (BookStatus.PAGES_SELECTED,):
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot run OCR from status '{book.status}'",
+            detail=f"Cannot run OCR from status '{book.status}'. Re-select pages first.",
         )
 
     active_jobs = await db.execute(
@@ -236,7 +239,7 @@ async def get_ocr_status(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> OcrStatusResponse:
-    book = await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
 
     pages_result = await db.execute(
         select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
@@ -284,7 +287,7 @@ async def list_jobs(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> list[JobResponse]:
-    await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
     result = await db.execute(
         select(Job)
         .where(Job.book_id == book_id)

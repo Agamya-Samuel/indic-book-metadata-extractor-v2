@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.books import _get_book
+from app.api.deps import get_book_or_404
 from app.core.database import get_db
-from app.models.book import Book, BookStatus
+from app.models.book import BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
@@ -36,7 +36,7 @@ async def run_extraction(
     body: ExtractionRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ExtractionResponse:
-    book = await _get_book(book_id, db)
+    book = await get_book_or_404(book_id, db)
 
     if book.status not in (BookStatus.OCR_COMPLETE,):
         raise HTTPException(
@@ -120,7 +120,7 @@ async def retry_extraction(
     body: ExtractionRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ExtractionResponse:
-    book = await _get_book(book_id, db)
+    book = await get_book_or_404(book_id, db)
 
     if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
         raise HTTPException(
