@@ -645,7 +645,7 @@ Subsequent starts are fast.
 | `NEW_RELIC_ENABLED=false` | Set `NEW_RELIC_ENABLED=true` in `.env` |
 | Missing license key | Set `NEW_RELIC_LICENSE_KEY` in `.env` (get from [one.newrelic.com](https://one.newrelic.com)) |
 | Infra agent crash loop | Ensure `/var/run/docker.sock` is mounted — check `docker compose logs newrelic-infra` |
-| Browser agent not injecting | Set `NEW_RELIC_BROWSER_AGENT_ENABLED=true` and restart frontend |
+| Browser agent not injecting | Set `NEW_RELIC_ENABLED=true` and `NEW_RELIC_LICENSE_KEY` in `.env`, restart frontend |
 
 For local development, New Relic is **disabled by default** to avoid sending test data. Set `NEW_RELIC_ENVIRONMENT=local` to use a separate "dev" application in NR dashboard. See [monitoring.md](monitoring.md) for the full setup.
 
