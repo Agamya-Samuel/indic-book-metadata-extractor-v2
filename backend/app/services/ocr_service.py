@@ -19,8 +19,8 @@ def _get_tesseract_lang(language: str) -> str:
 
 @newrelic.agent.function_trace(name="OCR: Run Tesseract", group="Custom")
 def run_ocr(image_path: Path, language: str = "tel") -> dict:
-    newrelic.agent.add_custom_parameter("language", language)
-    newrelic.agent.add_custom_parameter("page_filename", image_path.name)
+    newrelic.agent.add_custom_attribute("language", language)
+    newrelic.agent.add_custom_attribute("page_filename", image_path.name)
     if settings.tesseract_cmd:
         pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
 
@@ -43,7 +43,10 @@ def run_ocr(image_path: Path, language: str = "tel") -> dict:
     n_entries = len(data["text"])
     for i in range(n_entries):
         text = data["text"][i].strip()
-        conf = int(data["conf"][i])
+        conf_str = str(data["conf"][i]).strip()
+        if conf_str in ("", "-1") or not conf_str.lstrip("-").isdigit():
+            continue
+        conf = int(conf_str)
 
         if conf < 0 or not text:
             continue
@@ -75,24 +78,3 @@ def run_ocr(image_path: Path, language: str = "tel") -> dict:
         "avg_confidence": avg_confidence,
         "word_count": len(words),
     }
-
-
-@newrelic.agent.function_trace(name="OCR: Detect Language", group="Custom")
-def detect_language(image_path: Path) -> str:
-    candidates = {"tel": 0.0, "hin": 0.0}
-
-    for lang in candidates:
-        try:
-            tesseract_lang = _get_tesseract_lang(lang)
-            data = pytesseract.image_to_data(
-                Image.open(str(image_path)),
-                lang=tesseract_lang,
-                output_type=pytesseract.Output.DICT,
-                config="--psm 6 --oem 3",
-            )
-            confs = [int(c) for c in data["conf"] if int(c) >= 0]
-            candidates[lang] = sum(confs) / len(confs) if confs else 0.0
-        except Exception:
-            candidates[lang] = 0.0
-
-    return max(candidates, key=candidates.get)

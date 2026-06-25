@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Callable
+from typing import Awaitable, Callable
 
 import httpx
 import instructor
@@ -31,7 +31,7 @@ class CircuitBreakerOpen(Exception):
     pass
 
 
-class LlmService:
+class LLMService:
     # Circuit breaker configuration
     FAILURE_THRESHOLD: int = 3
     COOLDOWN_SECONDS: float = 60.0
@@ -81,9 +81,9 @@ class LlmService:
         # Check circuit breaker before attempting LLM call
         self._check_circuit_breaker()
 
-        newrelic.agent.add_custom_parameter("batch_name", batch_name)
-        newrelic.agent.add_custom_parameter("model", model)
-        newrelic.agent.add_custom_parameter("language", language)
+        newrelic.agent.add_custom_attribute("batch_name", batch_name)
+        newrelic.agent.add_custom_attribute("model", model)
+        newrelic.agent.add_custom_attribute("language", language)
 
         system_prompt = render_system_prompt(language, override=system_prompt_override)
         extraction_prompt = render_extraction_prompt(
@@ -150,7 +150,7 @@ class LlmService:
         page_count: int = 1,
         system_prompt_override: str | None = None,
         extraction_prompt_override: str | None = None,
-        progress_callback: Callable[[int, int, str], None] | None = None,
+        progress_callback: Callable[[int, int, str], Awaitable[None]] | None = None,
     ) -> tuple[FullMetadata, list[dict]]:
         merged_data: dict = {}
         batch_results: list[dict] = []
@@ -191,7 +191,7 @@ class LlmService:
                 errors.append(f"Batch '{batch_name}': {usage.get('status')} - {usage.get('error', 'unknown')}")
 
             if progress_callback:
-                progress_callback(i + 1, total_batches, batch_name)
+                await progress_callback(i + 1, total_batches, batch_name)
 
         if errors:
             logger.warning("LLM extraction completed with errors: %s", errors)
@@ -300,4 +300,4 @@ def _fallback_parse(raw_text: str, batch_schema: type[BaseModel]) -> BaseModel:
     return _empty_batch(batch_schema)
 
 
-llm_service = LlmService()
+llm_service = LLMService()
