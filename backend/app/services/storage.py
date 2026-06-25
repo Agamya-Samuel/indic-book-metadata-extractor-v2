@@ -1,25 +1,37 @@
 from pathlib import Path
+import uuid as _uuid
 
 from app.core.config import settings
 
 
+def _validate_book_id(book_id: str) -> str:
+    try:
+        _uuid.UUID(book_id)
+    except (ValueError, AttributeError) as exc:
+        raise ValueError(f"Invalid book_id: {book_id}") from exc
+    return book_id
+
+
 def _base() -> Path:
-    return Path(settings.storage_path)
+    return Path(settings.storage_path).resolve()
 
 
 def uploads_dir(book_id: str) -> Path:
+    book_id = _validate_book_id(book_id)
     p = _base() / "uploads" / book_id
     p.mkdir(parents=True, exist_ok=True)
     return p
 
 
 def thumbnails_dir(book_id: str) -> Path:
+    book_id = _validate_book_id(book_id)
     p = _base() / "thumbnails" / book_id
     p.mkdir(parents=True, exist_ok=True)
     return p
 
 
 def pages_dir(book_id: str) -> Path:
+    book_id = _validate_book_id(book_id)
     p = _base() / "pages" / book_id
     p.mkdir(parents=True, exist_ok=True)
     return p
@@ -38,6 +50,7 @@ def full_page_path(book_id: str, page_number: int) -> Path:
 
 
 def processed_dir(book_id: str) -> Path:
+    book_id = _validate_book_id(book_id)
     p = _base() / "processed" / book_id
     p.mkdir(parents=True, exist_ok=True)
     return p
@@ -48,7 +61,11 @@ def processed_image_path(book_id: str, page_number: int) -> Path:
 
 
 def relative(path: Path) -> str:
+    base = _base()
+    resolved = path.resolve()
     try:
-        return str(path.relative_to(_base()))
+        return str(resolved.relative_to(base))
     except ValueError:
-        return str(path)
+        raise ValueError(
+            f"Path {path} escapes storage root — refusing to process"
+        ) from None
