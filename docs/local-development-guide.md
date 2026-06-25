@@ -638,6 +638,17 @@ On first startup (Docker or native), Ollama downloads the Airavata 7B model (~4 
 
 Subsequent starts are fast.
 
+### New Relic — No Data in Dashboard
+
+| Cause | Fix |
+|-------|-----|
+| `NEW_RELIC_ENABLED=false` | Set `NEW_RELIC_ENABLED=true` in `.env` |
+| Missing license key | Set `NEW_RELIC_LICENSE_KEY` in `.env` (get from [one.newrelic.com](https://one.newrelic.com)) |
+| Infra agent crash loop | Ensure `/var/run/docker.sock` is mounted — check `docker compose logs newrelic-infra` |
+| Browser agent not injecting | Set `NEW_RELIC_ENABLED=true` and `NEW_RELIC_LICENSE_KEY` in `.env`, restart frontend |
+
+For local development, New Relic is **disabled by default** to avoid sending test data. Set `NEW_RELIC_ENVIRONMENT=local` to use a separate "dev" application in NR dashboard. See [monitoring.md](monitoring.md) for the full setup.
+
 ### SQLAlchemy / asyncpg Connection Errors
 
 ```
@@ -686,6 +697,7 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 | **Redis** | Celery message broker and result backend |
 | **Ollama** | Local LLM inference server running Airavata 7B for structured metadata extraction |
 | **Flower** | Web dashboard for monitoring Celery task queues and worker status |
+| **New Relic** | APM + Browser + Infrastructure monitoring (SaaS). See [monitoring.md](monitoring.md) |
 
 ### Tech Stack Summary
 
@@ -700,3 +712,4 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 | LLM Inference | Ollama, Instructor (structured output) |
 | Database | PostgreSQL 16, pgvector, pg_trgm |
 | Search | pg_trgm (server) + Fuse.js (client) |
+| Monitoring | New Relic (APM + Browser + Infrastructure), Flower |

@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # CORS (comma-separated origins)
     cors_origins: str = "http://localhost:3000"
 
-    # Database
+    # Database — set via DATABASE_URL env var in production
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/indic_books"
 
     # Redis
@@ -28,6 +28,17 @@ class Settings(BaseSettings):
     # OCR
     tesseract_cmd: str = "tesseract"
     default_ocr_language: str = "tel"
+
+    # New Relic
+    new_relic_enabled: bool = False
+    new_relic_license_key: str = ""
+    new_relic_app_name: str = "Indic Book Metadata Extractor"
+    new_relic_environment: str = "production"
+    new_relic_distributed_tracing_enabled: bool = True
+    new_relic_log: str = "error"
+    new_relic_config_file: str = "newrelic.ini"
+    new_relic_monitor_mode: bool = True
+    new_relic_developer_mode: bool = False
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
