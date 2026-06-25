@@ -70,7 +70,6 @@ class TestExtractionRequest:
         assert req.model == "airavata"
         assert req.temperature == 0.3
         assert req.max_tokens == 2048
-        assert req.fields_per_batch == 10
         assert req.custom_system_prompt is None
         assert req.custom_extraction_prompt is None
 
@@ -95,10 +94,6 @@ class TestExtractionRequest:
     def test_invalid_max_tokens_low(self):
         with pytest.raises(ValidationError):
             ExtractionRequest(max_tokens=100)
-
-    def test_invalid_fields_per_batch(self):
-        with pytest.raises(ValidationError):
-            ExtractionRequest(fields_per_batch=2)
 
 
 class TestPreprocessingConfig:

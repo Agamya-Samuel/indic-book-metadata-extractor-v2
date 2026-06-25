@@ -1,8 +1,6 @@
-import uuid
-from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin

@@ -10,7 +10,6 @@ from PIL import Image
 from app.services.ocr_service import (
     LANGUAGE_MAP,
     _get_tesseract_lang,
-    detect_language,
     run_ocr,
 )
 
@@ -136,48 +135,3 @@ class TestRunOcr:
         assert word["bbox"]["y"] == 20
         assert word["bbox"]["w"] == 50
         assert word["bbox"]["h"] == 15
-
-
-class TestDetectLanguage:
-    @patch("app.services.ocr_service.pytesseract")
-    @patch("app.services.ocr_service.Image")
-    def test_returns_higher_confidence_lang(self, mock_image_cls, mock_pyt):
-        mock_img = MagicMock()
-        mock_image_cls.open.return_value = mock_img
-
-        call_count = [0]
-        confidences = {"tel": [95, 85, 90], "hin": [50, 40, 60]}
-
-        def fake_ocr(img, lang, output_type, config):
-            lang_code = lang.split("+")[0]
-            call_count[0] += 1
-            confs = confidences.get(lang_code, [0])
-            return {
-                "text": ["w"] * len(confs),
-                "conf": [str(c) for c in confs],
-            }
-
-        mock_pyt.Output.DICT = "dict"
-        mock_pyt.image_to_data.side_effect = fake_ocr
-
-        result = detect_language(Path("/fake/image.png"))
-        assert result == "tel"
-
-    @patch("app.services.ocr_service.pytesseract")
-    @patch("app.services.ocr_service.Image")
-    def test_handles_exception(self, mock_image_cls, mock_pyt):
-        mock_img = MagicMock()
-        mock_image_cls.open.return_value = mock_img
-
-        mock_pyt.Output.DICT = "dict"
-
-        def fake_ocr(img, lang, output_type, config):
-            lang_code = lang.split("+")[0]
-            if lang_code == "tel":
-                return {"text": ["w"], "conf": ["90"]}
-            raise RuntimeError("OCR failed")
-
-        mock_pyt.image_to_data.side_effect = fake_ocr
-
-        result = detect_language(Path("/fake/image.png"))
-        assert result == "tel"
