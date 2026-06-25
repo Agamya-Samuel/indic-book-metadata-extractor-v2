@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.api.books import _get_book
+from app.api.deps import get_book_or_404
 from app.core.database import get_db
 from app.models.job import Job, JobType
 from app.models.llm_run import LlmRun
@@ -26,7 +26,7 @@ async def get_metadata(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> MetadataResponse:
-    await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
 
     result = await db.execute(
         select(BookMetadata).where(BookMetadata.book_id == book_id)
@@ -49,7 +49,7 @@ async def update_metadata(
     body: MetadataUpdateRequest,
     db: AsyncSession = Depends(get_db),
 ) -> MetadataResponse:
-    await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
 
     result = await db.execute(
         select(BookMetadata).where(BookMetadata.book_id == book_id)
@@ -83,7 +83,7 @@ async def get_field_definitions(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> list[MetadataFieldDefinition]:
-    await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
     return ALL_METADATA_FIELDS
 
 
@@ -92,7 +92,7 @@ async def get_llm_runs(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
 ) -> list[LlmRunResponse]:
-    await _get_book(book_id, db)
+    await get_book_or_404(book_id, db)
 
     jobs_result = await db.execute(
         select(Job.id).where(Job.book_id == book_id, Job.job_type == JobType.LLM)
