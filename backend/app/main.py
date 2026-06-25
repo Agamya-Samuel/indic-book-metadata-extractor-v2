@@ -40,10 +40,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"
-        # Respect X-Forwarded-For when behind a reverse proxy
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            client_ip = forwarded.split(",")[0].strip()
 
         key = f"rate_limit:{client_ip}"
         now = time.time()
