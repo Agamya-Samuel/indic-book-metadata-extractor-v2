@@ -29,7 +29,7 @@ from app.schemas.metadata import (
     METADATA_BATCHES,
     FullMetadata,
 )
-from app.services.llm_service import LlmService
+from app.services.llm_service import LLMService
 from app.services.prompts import (
     get_batch_field_names,
     render_extraction_prompt,
@@ -110,7 +110,7 @@ async def run_single_batch(
     field_names = get_batch_field_names(batch_name)
     print(f"Fields to extract: {', '.join(field_names)}\n")
 
-    llm = LlmService()
+    llm = LLMService()
     start = time.time()
 
     result, raw_response, usage = await llm.extract_batch(
@@ -157,7 +157,7 @@ async def run_full_extraction(
     print(f"OCR text length: {len(ocr_text)} chars")
     print(f"{'='*60}\n")
 
-    llm = LlmService()
+    llm = LLMService()
     start = time.time()
 
     def on_progress(current: int, total: int, batch_name: str):
@@ -272,10 +272,10 @@ def main():
         asyncio.run(run_dry_run(args.language))
         sys.exit(0)
 
-    from app.services.llm_service import LlmService as _LlmService
+    from app.services.llm_service import LLMService as _LLMService
     import app.services.llm_service as _mod
 
-    _mod.llm_service = _LlmService(ollama_url=args.ollama_url)
+    _mod.llm_service = _LLMService(ollama_url=args.ollama_url)
 
     if args.batch_only:
         success = asyncio.run(
