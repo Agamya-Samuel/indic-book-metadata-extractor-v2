@@ -10,14 +10,6 @@ from app.schemas.metadata import (
 LANGUAGE_NAMES: dict[str, str] = {
     "tel": "Telugu",
     "hin": "Hindi",
-    "tam": "Tamil",
-    "kan": "Kannada",
-    "mal": "Malayalam",
-    "mar": "Marathi",
-    "ben": "Bengali",
-    "guj": "Gujarati",
-    "pan": "Punjabi",
-    "ori": "Odia",
     "eng": "English",
 }
 

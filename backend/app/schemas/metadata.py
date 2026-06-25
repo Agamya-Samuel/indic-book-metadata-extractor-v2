@@ -295,7 +295,6 @@ class ExtractionRequest(BaseModel):
     model: str = "airavata"
     temperature: float = Field(default=0.3, ge=0.0, le=2.0)
     max_tokens: int = Field(default=2048, ge=256, le=8192)
-    fields_per_batch: int = Field(default=10, ge=3, le=52)
     custom_system_prompt: str | None = None
     custom_extraction_prompt: str | None = None
 
