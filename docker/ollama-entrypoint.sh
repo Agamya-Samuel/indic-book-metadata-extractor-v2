@@ -6,13 +6,13 @@ echo "[Ollama Entrypoint] Starting Ollama server in background..."
 OLLAMA_PID=$!
 
 echo "[Ollama Entrypoint] Waiting for Ollama to be ready..."
-for i in $(seq 1 30); do
-    if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+for i in $(seq 1 60); do
+    if ollama list > /dev/null 2>&1; then
         echo "[Ollama Entrypoint] Ollama is ready."
         break
     fi
-    if [ $i -eq 30 ]; then
-        echo "[Ollama Entrypoint] WARNING: Ollama did not become ready in 30 seconds."
+    if [ $i -eq 60 ]; then
+        echo "[Ollama Entrypoint] WARNING: Ollama did not become ready in 60 seconds."
     fi
     sleep 1
 done
