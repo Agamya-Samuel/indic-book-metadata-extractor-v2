@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 import uuid as _uuid
 from contextlib import asynccontextmanager
@@ -27,12 +28,19 @@ RATE_LIMIT_WINDOW = 60  # seconds
 _redis_pool: aioredis.Redis | None = None
 
 
+_THUMBNAIL_PATH_RE = re.compile(r"^/api/books/[^/]+/pages/\d+/thumbnail$")
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple Redis-based sliding window rate limiter per client IP."""
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks and static assets
         if request.url.path in ("/health", "/docs", "/openapi.json", "/redoc"):
+            return await call_next(request)
+
+        # Skip rate limiting for thumbnail GETs — they serve cached static files
+        if request.method == "GET" and _THUMBNAIL_PATH_RE.match(request.url.path):
             return await call_next(request)
 
         if _redis_pool is None:
