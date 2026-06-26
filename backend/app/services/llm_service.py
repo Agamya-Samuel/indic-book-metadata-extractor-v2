@@ -36,6 +36,10 @@ class LLMService:
     FAILURE_THRESHOLD: int = 3
     COOLDOWN_SECONDS: float = 60.0
 
+    # Context window management for Ollama models (1024 tokens)
+    # Reserve tokens for: system prompt (~200), extraction template (~400), output (~256)
+    MAX_OCR_CHARS: int = 1500  # ~375 tokens, safe for 1024 context window
+
     def __init__(self, ollama_url: str | None = None):
         self._ollama_url = ollama_url or settings.ollama_url
         self._client: instructor.AsyncInstructor | None = None
@@ -52,6 +56,7 @@ class LLMService:
                     base_url=f"{self._ollama_url}/v1",
                     api_key="ollama",
                 ),
+                mode=instructor.Mode.MD_JSON,
             )
         return self._client
 
@@ -72,7 +77,7 @@ class LLMService:
         batch_schema: type[BaseModel],
         model: str = "airavata",
         temperature: float = 0.3,
-        max_tokens: int = 2048,
+        max_tokens: int = 256,
         language: str = "tel",
         page_count: int = 1,
         system_prompt_override: str | None = None,
@@ -85,10 +90,20 @@ class LLMService:
         newrelic.agent.add_custom_attribute("model", model)
         newrelic.agent.add_custom_attribute("language", language)
 
+        # Truncate OCR text to fit within context window
+        truncated_text = ocr_text[: self.MAX_OCR_CHARS]
+        if len(ocr_text) > self.MAX_OCR_CHARS:
+            logger.info(
+                "Truncated OCR text from %d to %d chars for batch '%s'",
+                len(ocr_text),
+                len(truncated_text),
+                batch_name,
+            )
+
         system_prompt = render_system_prompt(language, override=system_prompt_override)
         extraction_prompt = render_extraction_prompt(
             batch_name=batch_name,
-            ocr_text=ocr_text,
+            ocr_text=truncated_text,
             language=language,
             page_count=page_count,
             override=extraction_prompt_override,
@@ -108,7 +123,7 @@ class LLMService:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 max_retries=2,
-                timeout=httpx.Timeout(300.0, connect=30.0),
+                timeout=1200.0,
             )
 
             raw_response_text = result.model_dump_json()
@@ -145,7 +160,7 @@ class LLMService:
         ocr_text: str,
         model: str = "airavata",
         temperature: float = 0.3,
-        max_tokens: int = 2048,
+        max_tokens: int = 256,
         language: str = "tel",
         page_count: int = 1,
         system_prompt_override: str | None = None,
