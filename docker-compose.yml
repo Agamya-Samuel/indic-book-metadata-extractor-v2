@@ -50,6 +50,7 @@ services:
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     environment:
       - OLLAMA_PRELOAD_MODEL=airavata
+      - OLLAMA_KEEP_ALIVE=30m
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
       interval: 10s
