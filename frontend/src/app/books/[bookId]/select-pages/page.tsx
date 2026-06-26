@@ -56,8 +56,10 @@ export default function SelectPagesPage() {
     },
   });
 
+  const ITEMS_PER_PAGE = 24;
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     clearSelection();
@@ -93,6 +95,13 @@ export default function SelectPagesPage() {
 
   const totalPages = book.total_pages;
   const selectedCount = selectedPages.size;
+  const totalPaginationPages = Math.ceil(totalPages / ITEMS_PER_PAGE);
+  const startPage = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+  const endPage = Math.min(currentPage * ITEMS_PER_PAGE, totalPages);
+  const visiblePageNumbers = Array.from(
+    { length: endPage - startPage + 1 },
+    (_, i) => startPage + i
+  );
 
   const handleSelectAll = () => {
     selectAllPages(totalPages);
@@ -237,7 +246,7 @@ export default function SelectPagesPage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => {
+          {visiblePageNumbers.map((pageNumber) => {
             const isSelected = selectedPages.has(pageNumber);
             const isLoaded = imagesLoaded.has(pageNumber);
 
@@ -256,7 +265,6 @@ export default function SelectPagesPage() {
                     className="w-full h-full object-cover"
                     onLoad={() => handleImageLoad(pageNumber)}
                     onError={() => handleImageError(pageNumber)}
-                    loading="lazy"
                     decoding="async"
                   />
                   {!isLoaded && (
@@ -295,6 +303,72 @@ export default function SelectPagesPage() {
             );
           })}
         </div>
+
+        {totalPaginationPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ««
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              «
+            </button>
+            {Array.from({ length: totalPaginationPages }, (_, i) => i + 1)
+              .filter((p) => {
+                if (totalPaginationPages <= 7) return true;
+                if (p === 1 || p === totalPaginationPages) return true;
+                return Math.abs(p - currentPage) <= 1;
+              })
+              .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, i) =>
+                item === "..." ? (
+                  <span key={`ellipsis-${i}`} className="px-2 text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      currentPage === item
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPaginationPages, p + 1))}
+              disabled={currentPage === totalPaginationPages}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              »
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(totalPaginationPages)}
+              disabled={currentPage === totalPaginationPages}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              »»
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
