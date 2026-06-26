@@ -83,7 +83,7 @@ async def lifespan(app: FastAPI):
     setup_logging()
 
     global _redis_pool
-    from app.core.database import engine
+    from app.core.database import get_engine
     from app.services.llm_service import llm_service
 
     logger.info("Application starting up...")
@@ -99,7 +99,9 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutting down...")
     if _redis_pool:
         await _redis_pool.aclose()
-    await engine.dispose()
+    engine = get_engine()
+    if engine is not None:
+        await engine.dispose()
     await llm_service.close()
 
 

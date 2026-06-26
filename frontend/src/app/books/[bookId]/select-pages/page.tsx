@@ -56,7 +56,7 @@ export default function SelectPagesPage() {
     },
   });
 
-  const ITEMS_PER_PAGE = 24;
+  const ITEMS_PER_PAGE = 12;
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
