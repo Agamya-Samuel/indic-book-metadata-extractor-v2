@@ -1,9 +1,10 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,17 @@ from app.models.ocr_result import OcrResult
 from app.api.deps import get_book_or_404
 
 VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
+logger = logging.getLogger(__name__)
+
+
+def _pre_render_thumbnails(book_id: str, pdf_path: Path, total_pages: int) -> None:
+    """Background task: render all thumbnails so the page selector loads instantly."""
+    try:
+        thumb_dir = storage.thumbnails_dir(book_id)
+        pdf_service.render_all_thumbnails(pdf_path, thumb_dir, total_pages)
+        logger.info("Pre-rendered %d thumbnails for book %s", total_pages, book_id)
+    except Exception:
+        logger.exception("Failed to pre-render thumbnails for book %s", book_id)
 
 router = APIRouter()
 
@@ -37,6 +49,7 @@ router = APIRouter()
 @router.post("/upload", response_model=BookUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_book(
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     title: str | None = Form(None),
     language: str = Form("tel"),
     db: AsyncSession = Depends(get_db),
@@ -84,6 +97,10 @@ async def upload_book(
     db.add(book)
     await db.commit()
     await db.refresh(book)
+
+    # Pre-render all thumbnails in the background so the page selector loads instantly
+    background_tasks.add_task(_pre_render_thumbnails, str(book_id), pdf_path, page_count)
+
     return BookUploadResponse.model_validate(book)
 
 
