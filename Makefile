@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db
+.PHONY: help up down build rebuild logs logs-backend logs-worker reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -23,6 +23,11 @@ help:
 	@echo "  make backup          Backup both database and storage"
 	@echo "  make restore-db      Restore database from backup (BACKUP=file.dump)"
 	@echo "  make clean           Remove all containers, volumes, and images"
+	@echo ""
+	@echo "  Dokploy Deployment:"
+	@echo "  make deploy          Push to main + trigger Dokploy deploy"
+	@echo "  make deploy-status   Check Dokploy deployment status"
+	@echo "  make deploy-env      Show required env vars for Dokploy"
 
 up:
 	@echo "Starting services..."
@@ -104,3 +109,14 @@ backup:
 restore-db:
 	@echo "Restoring database from backup..."
 	bash docker/scripts/restore-db.sh $(or $(BACKUP),$(error BACKUP is required: make restore-db BACKUP=./backups/indic_books_20240101_120000.dump))
+
+# ── Dokploy Deployment ─────────────────────────────────────────────────────────
+
+deploy:
+	@bash scripts/dokploy-deploy.sh
+
+deploy-status:
+	@bash scripts/dokploy-deploy.sh --status
+
+deploy-env:
+	@bash scripts/dokploy-deploy.sh --env-setup
