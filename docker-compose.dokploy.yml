@@ -1,0 +1,240 @@
+# =============================================================================
+# Dokploy Production Compose — Indic Book Metadata Extractor
+# =============================================================================
+# How to use:
+#   1. In Dokploy → Docker Compose service → set "Compose Path" to this file
+#   2. Set env vars in Dokploy's "Environment" tab (see .env.production.example)
+#   3. Click Deploy — everything else is automatic
+# =============================================================================
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Database
+  # ─────────────────────────────────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: indic_books
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init_extensions.sql:/docker-entrypoint-initdb.d/init_extensions.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Cache + Message Broker
+  # ─────────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LLM Inference (Airavata 7B)
+  # ─────────────────────────────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./docker/ollama-entrypoint.sh:/entrypoint.sh
+      - ./docker/Modelfile.airavata:/models/Modelfile.airavata
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    environment:
+      OLLAMA_PRELOAD_MODEL: airavata
+      OLLAMA_KEEP_ALIVE: "30m"
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # FastAPI Backend
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    environment:
+      # App
+      APP_NAME: ${APP_NAME:-Indic Book Metadata Extractor}
+      DEBUG: ${DEBUG:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-200}
+      # Internal services (fixed — never change in Docker)
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
+      REDIS_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      OLLAMA_URL: http://ollama:11434
+      STORAGE_PATH: /app/storage
+      TESSERACT_CMD: tesseract
+      DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
+      # New Relic (disabled by default — set NEW_RELIC_ENABLED=true + key to enable)
+      NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      NEW_RELIC_ENVIRONMENT: ${NEW_RELIC_ENVIRONMENT:-production}
+      NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
+      NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
+      NEW_RELIC_MONITOR_MODE: ${NEW_RELIC_MONITOR_MODE:-true}
+      NEW_RELIC_DEVELOPER_MODE: ${NEW_RELIC_DEVELOPER_MODE:-false}
+    volumes:
+      - storage_data:/app/storage
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+      - ./docker/scripts/backend-entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Celery Worker (OCR + LLM tasks)
+  # ─────────────────────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    environment:
+      # Internal services (fixed)
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
+      REDIS_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      OLLAMA_URL: http://ollama:11434
+      STORAGE_PATH: /app/storage
+      TESSERACT_CMD: tesseract
+      DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
+      # New Relic
+      NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      NEW_RELIC_ENVIRONMENT: ${NEW_RELIC_ENVIRONMENT:-production}
+      NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
+      NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
+      NEW_RELIC_MONITOR_MODE: ${NEW_RELIC_MONITOR_MODE:-true}
+      NEW_RELIC_DEVELOPER_MODE: ${NEW_RELIC_DEVELOPER_MODE:-false}
+    volumes:
+      - storage_data:/app/storage
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Next.js Frontend
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+        NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY: ${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
+        NEXT_PUBLIC_NEW_RELIC_APP_ID: ${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
+        NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID: ${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
+        NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
+        NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+        NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+    restart: unless-stopped
+    environment:
+      NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+    depends_on:
+      - backend
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Celery Flower (task monitor)
+  # ─────────────────────────────────────────────────────────────────────────────
+  flower:
+    image: mher/flower:latest
+    restart: unless-stopped
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      FLOWER_PORT: "5555"
+      FLOWER_BASIC_AUTH: ${FLOWER_BASIC_AUTH:-admin:changeme}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Daily DB Backup (retains last 7)
+  # ─────────────────────────────────────────────────────────────────────────────
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - ./docker/scripts/backup-db.sh:/backup-db.sh:ro
+      - backup_data:/backups
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: indic_books
+    entrypoint: >
+      /bin/sh -c "
+      apk add --no-cache bash &&
+      chmod +x /backup-db.sh &&
+      while true; do
+        /backup-db.sh
+        sleep 86400
+      done
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redis_data:
+  ollama_data:
+  storage_data:
+  backup_data:
