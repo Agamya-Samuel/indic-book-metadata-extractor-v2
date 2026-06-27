@@ -258,19 +258,21 @@ class SearchService:
         )
         statuses = [row[0] for row in statuses_result.all()]
 
+        genre_col = BookMetadata.fields["genre"].astext.label("genre_val")
         genres_result = await db.execute(
-            select(BookMetadata.fields["genre"].astext)
+            select(genre_col)
             .distinct()
-            .where(BookMetadata.fields["genre"].astext.isnot(None))
-            .order_by(BookMetadata.fields["genre"].astext)
+            .where(genre_col.isnot(None))
+            .order_by(genre_col)
         )
         genres = [row[0] for row in genres_result.all() if row[0]]
 
+        publisher_col = BookMetadata.fields["publisher"].astext.label("publisher_val")
         publishers_result = await db.execute(
-            select(BookMetadata.fields["publisher"].astext)
+            select(publisher_col)
             .distinct()
-            .where(BookMetadata.fields["publisher"].astext.isnot(None))
-            .order_by(BookMetadata.fields["publisher"].astext)
+            .where(publisher_col.isnot(None))
+            .order_by(publisher_col)
         )
         publishers = [row[0] for row in publishers_result.all() if row[0]]
 
