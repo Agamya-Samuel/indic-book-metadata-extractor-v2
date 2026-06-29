@@ -142,6 +142,7 @@ services:
       dockerfile: ../docker/Dockerfile.frontend
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000/api}
+        - NEXT_PUBLIC_OPENREFINE_URL=${NEXT_PUBLIC_OPENREFINE_URL:-http://localhost:3333}
         - NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY=${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
         - NEXT_PUBLIC_NEW_RELIC_APP_ID=${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
         - NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID=${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
@@ -152,6 +153,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - NEXT_PUBLIC_OPENREFINE_URL=${NEXT_PUBLIC_OPENREFINE_URL:-http://localhost:3333}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
