@@ -237,9 +237,89 @@ services:
       postgres:
         condition: service_healthy
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Wikibase (structured data store)
+  # ─────────────────────────────────────────────────────────────────────────────
+  wikibase:
+    image: wikibase/wikibase:7
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      DB_SERVER: mysql:3306
+      DB_USER: wikibase
+      DB_PASS: ${MYSQL_PASSWORD:-wikibase}
+      DB_NAME: wikibase
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS:-admin}
+      MW_ADMIN_EMAIL: admin@localhost
+      MW_WG_SERVER: "http://${WIKIBASE_HOST:-wikibase}"
+      MW_WG_SITENAME: IndicBooks
+      MW_WG_LANGUAGE_CODE: en
+      WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST:-wikibase}
+      WIKIBASE_PUBLIC_SCHEME: ${WIKIBASE_SCHEME:-http}
+      ELASTICSEARCH_HOST: elasticsearch
+      METADATA_CALLBACK: "false"
+    volumes:
+      - ./docker/wikibase/config:/config:z
+      - wikibase_data:/var/www/html/images
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  mysql:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wikibase
+      MYSQL_USER: wikibase
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wikibase}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-wikibase_root}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: wikibase/elasticsearch:1
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # OpenRefine (bulk data cleaning GUI)
+  # ─────────────────────────────────────────────────────────────────────────────
+  openrefine:
+    build:
+      context: ./docker/openrefine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "3333"
+    volumes:
+      - openrefine_data:/refine
+
 volumes:
   pgdata:
   redis_data:
   ollama_data:
   storage_data:
   backup_data:
+  wikibase_data:
+  mediawiki_data:
+  mysql_data:
+  elasticsearch_data:
+  openrefine_data:
