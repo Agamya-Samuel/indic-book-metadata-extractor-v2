@@ -317,14 +317,13 @@ export default function BulkOperationsPage() {
             <li>
               <strong>Open in OpenRefine</strong> — Import the CSV into{" "}
               <a
-                href="http://localhost:3333"
+                href={process.env.NEXT_PUBLIC_OPENREFINE_URL || "http://localhost:3333"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:underline"
               >
                 OpenRefine
-              </a>{" "}
-              at <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">localhost:3333</code>.
+              </a>.
             </li>
             <li>
               <strong>Clean & standardize</strong> — Use clustering to fix
