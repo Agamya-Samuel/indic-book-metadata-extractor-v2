@@ -428,3 +428,80 @@ export const getFilterOptions = async (): Promise<FilterOptions> => {
   const response = await api.get<FilterOptions>("/library/filters");
   return response.data;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bulk Operations
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface BulkStatsResponse {
+  total_books: number;
+  books_with_metadata: number;
+  languages: Record<string, number>;
+  statuses: Record<string, number>;
+}
+
+export interface BulkExportParams {
+  language?: string;
+  status?: string;
+}
+
+export interface BulkImportResult {
+  total_rows: number;
+  books_updated: number;
+  books_not_found: number;
+  fields_changed: number;
+  errors: string[];
+}
+
+export const getBulkStats = async (): Promise<BulkStatsResponse> => {
+  const response = await api.get<BulkStatsResponse>("/bulk/stats");
+  return response.data;
+};
+
+export const bulkExport = async (params?: BulkExportParams): Promise<Blob> => {
+  const searchParams = new URLSearchParams();
+  if (params?.language) searchParams.set("language", params.language);
+  if (params?.status) searchParams.set("status", params.status);
+
+  const qs = searchParams.toString();
+  const response = await api.post(`/bulk/export${qs ? `?${qs}` : ""}`, null, {
+    responseType: "blob",
+  });
+  return response.data;
+};
+
+export const bulkImport = async (
+  file: File,
+  mode: string = "merge"
+): Promise<BulkImportResult> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post<BulkImportResult>(
+    `/bulk/import?mode=${mode}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response.data;
+};
+
+export const bulkExportWikibase = async (params?: {
+  language?: string;
+}): Promise<Blob> => {
+  const searchParams = new URLSearchParams();
+  if (params?.language) searchParams.set("language", params.language);
+
+  const qs = searchParams.toString();
+  const response = await api.post(
+    `/bulk/export-wikibase${qs ? `?${qs}` : ""}`,
+    null,
+    {
+      responseType: "blob",
+    }
+  );
+  return response.data;
+};
