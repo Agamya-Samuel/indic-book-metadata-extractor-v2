@@ -30,7 +30,7 @@ The Indic Book Metadata Extractor is a full-stack web application that extracts 
 6. **Metadata Review** — Review and edit 52 extracted bibliographic fields
 7. **Library** — Browse, search, and filter all processed books
 
-The stack consists of **7 services**: PostgreSQL (pgvector), Redis, Ollama, FastAPI backend, Celery worker, Next.js frontend, and Flower (Celery monitoring).
+The stack consists of **10+ services**: PostgreSQL (pgvector), Redis, Ollama, FastAPI backend, Celery worker, Next.js frontend, Flower (Celery monitoring), Wikibase (structured data store), MariaDB, Elasticsearch, and OpenRefine (bulk data cleaning).
 
 ---
 
@@ -84,7 +84,7 @@ The default `.env` values are configured for Docker Compose and work out of the 
 make up
 ```
 
-This starts 7 Docker containers: `postgres`, `redis`, `ollama`, `backend`, `worker`, `frontend`, and `flower`.
+This starts all Docker containers: `postgres`, `redis`, `ollama`, `backend`, `worker`, `frontend`, `flower`, `wikibase`, `mysql`, `elasticsearch`, and `openrefine`.
 
 ### Step 5: Wait for Services to Be Healthy
 
@@ -514,6 +514,10 @@ docker compose up -d --scale worker=3
 | Redis | 6379 | `redis://localhost:6379/0` |
 | Ollama | 11434 | http://localhost:11434 |
 | Flower | 5555 | http://localhost:5555 |
+| Wikibase | 8181 | http://localhost:8181 (MediaWiki + Wikibase extension) |
+| OpenRefine | 3333 | http://localhost:3333 (bulk data cleaning GUI) |
+| MySQL (MariaDB) | (internal) | Wikibase database — not exposed to host |
+| Elasticsearch | (internal) | Wikibase search index — not exposed to host |
 
 ---
 
@@ -668,10 +672,11 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 │              Next.js Frontend (:3000)           │
 │     Upload → Page Select → Preprocessing →      │
 │     OCR Review → LLM Config → Metadata Review   │
+│     Bulk Operations (OpenRefine + Wikibase)     │
 └──────────────────────┬──────────────────────────┘
                        │ REST API
 ┌──────────────────────▼──────────────────────────┐
-│             FastAPI Backend (:8000)              │
+│             FastAPI Backend (:8000)             │
 │     File handling, Job management, API          │
 └──────┬──────────────────────────────┬───────────┘
        │                              │
@@ -684,6 +689,12 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 │          PostgreSQL + pgvector (:5432)           │
 │   Books, Pages, OCR Text, Metadata, Jobs         │
 └──────────────────────────────────────────────────┘
+
+┌─────────────────────┐     ┌──────────────────────┐
+│  OpenRefine (:3333) │────→│  Wikibase (:8181)    │
+│  Bulk data cleaning │     │  MediaWiki + WB ext  │
+│  CSV → reconcile    │     │  MariaDB + Elastic   │
+└─────────────────────┘     └──────────────────────┘
 ```
 
 ### Service Descriptions
@@ -697,6 +708,8 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 | **Redis** | Celery message broker and result backend |
 | **Ollama** | Local LLM inference server running Airavata 7B for structured metadata extraction |
 | **Flower** | Web dashboard for monitoring Celery task queues and worker status |
+| **Wikibase** | Structured data store — MediaWiki + Wikibase extension bundled in a single Docker image (`wikibase/wikibase:mw1.44.0`). Stores bibliographic metadata as linked entities. Backed by MariaDB and Elasticsearch. See [bulk-operations.md](bulk-operations.md) |
+| **OpenRefine** | Web-based bulk data cleaning tool. Export metadata from the backend, clean/normalise it, reconcile against Wikibase, then upload via QuickStatements. See [bulk-operations.md](bulk-operations.md) |
 | **New Relic** | APM + Browser + Infrastructure monitoring (SaaS). See [monitoring.md](monitoring.md) |
 
 ### Tech Stack Summary
@@ -712,4 +725,6 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 | LLM Inference | Ollama, Instructor (structured output) |
 | Database | PostgreSQL 16, pgvector, pg_trgm |
 | Search | pg_trgm (server) + Fuse.js (client) |
+| Structured Data | Wikibase (MediaWiki + Wikibase extension), MariaDB, Elasticsearch |
+| Bulk Operations | OpenRefine (data cleaning), QuickStatements (Wikibase upload) |
 | Monitoring | New Relic (APM + Browser + Infrastructure), Flower |
