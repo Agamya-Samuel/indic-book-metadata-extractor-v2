@@ -262,6 +262,8 @@ services:
       WIKIBASE_PUBLIC_SCHEME: ${WIKIBASE_SCHEME:-http}
       ELASTICSEARCH_HOST: elasticsearch
       METADATA_CALLBACK: "false"
+      MW_SECRET_KEY: ${MW_SECRET_KEY:-}
+      MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
     volumes:
       - ./docker/wikibase/config:/config:z
       - wikibase_data:/var/www/html/images
