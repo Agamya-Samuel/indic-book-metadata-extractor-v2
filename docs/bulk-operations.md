@@ -11,6 +11,20 @@ After processing thousands of books through the extraction pipeline, librarians 
 
 **Wikibase** is a structured data store (the software behind Wikidata) that holds bibliographic metadata as linked entities with properties.
 
+### What is Wikibase?
+
+Wikibase is a **MediaWiki extension** — it adds structured data capabilities (items, properties, statements) on top of the MediaWiki wiki engine. The Docker image `wikibase/wikibase:mw1.44.0` bundles both pre-installed and pre-configured:
+
+| Component | Role |
+|---|---|
+| **MediaWiki 1.44.0** | Wiki engine — provides the web interface, API, user management, and extension framework |
+| **Wikibase Extension** | Structured data — adds items (e.g. a book), properties (e.g. author, ISBN), and statements (e.g. "author = విశ్వనాథ సత్యనారాయణ") |
+| **CirrusSearch** | Full-text search via Elasticsearch |
+| **MariaDB 10.11** | MySQL-compatible database for all MediaWiki/Wikibase tables |
+| **Elasticsearch 7.x** | Search index backing CirrusSearch |
+
+On container startup, the Docker entrypoint generates extension configuration files into `LocalSettings.d/` which are loaded by the glob in `LocalSettings.php`. No manual extension installation is needed.
+
 This document explains how to use the Bulk Operations page to clean metadata in OpenRefine and export it to Wikibase.
 
 ---
@@ -40,9 +54,9 @@ This document explains how to use the Bulk Operations page to clean metadata in 
 | Service | Port | Purpose |
 |---------|------|---------|
 | OpenRefine | 3333 | Bulk data cleaning GUI |
-| Wikibase | 8181 | Structured data store |
-| MySQL | (internal) | Wikibase database |
-| Elasticsearch | (internal) | Wikibase search index |
+| Wikibase | 8181 | Structured data store (MediaWiki + Wikibase extension) |
+| MariaDB | (internal) | MySQL-compatible database for Wikibase |
+| Elasticsearch | (internal) | CirrusSearch index for Wikibase full-text search |
 
 ---
 
