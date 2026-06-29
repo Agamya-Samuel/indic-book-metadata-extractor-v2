@@ -322,7 +322,6 @@ volumes:
   storage_data:
   backup_data:
   wikibase_data:
-  mediawiki_data:
   mysql_data:
   elasticsearch_data:
   openrefine_data:
