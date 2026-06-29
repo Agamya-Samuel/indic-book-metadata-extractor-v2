@@ -243,7 +243,7 @@ services:
   # Wikibase (structured data store)
   # ─────────────────────────────────────────────────────────────────────────────
   wikibase:
-    image: wikibase/wikibase:7
+    image: wikibase/wikibase:mw1.44.0
     restart: unless-stopped
     expose:
       - "80"
@@ -296,10 +296,11 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\"' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   # ─────────────────────────────────────────────────────────────────────────────
   # OpenRefine (bulk data cleaning GUI)
