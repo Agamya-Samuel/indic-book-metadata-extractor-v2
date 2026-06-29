@@ -142,6 +142,20 @@ You can safely leave the page and return — all jobs persist in the database.
 
 ---
 
+## Bulk Operations (OpenRefine & Wikibase)
+
+After processing many books, you can use **Bulk Operations** to clean metadata across the entire collection and export it to Wikibase.
+
+1. Click **Bulk Operations** in the top navbar
+2. **Export** — Download all metadata as a CSV file (filter by language/status if needed)
+3. **Open in OpenRefine** — Import the CSV into OpenRefine at `http://localhost:3333` for bulk cleaning (clustering publisher names, fixing typos, standardizing values)
+4. **Import** — Upload the cleaned CSV back to update all metadata records
+5. **Wikibase Export** — Generate QuickStatements TSV for uploading to Wikibase
+
+For detailed instructions, see the [Bulk Operations Guide](bulk-operations.md).
+
+---
+
 ## Troubleshooting
 
 ### Ollama model not loading
