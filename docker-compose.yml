@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: indic_books
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -225,10 +225,10 @@ services:
     environment:
       DB_SERVER: mysql:3306
       DB_USER: wikibase
-      DB_PASS: wikibase
+      DB_PASS: ${MYSQL_PASSWORD:-wikibase}
       DB_NAME: wikibase
       MW_ADMIN_NAME: admin
-      MW_ADMIN_PASS: wikibase_admin_pass
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS:-admin}
       MW_ADMIN_EMAIL: admin@localhost
       MW_WG_SERVER: "http://localhost:8181"
       MW_WG_SITENAME: IndicBooks
@@ -256,8 +256,8 @@ services:
     environment:
       MYSQL_DATABASE: wikibase
       MYSQL_USER: wikibase
-      MYSQL_PASSWORD: wikibase
-      MYSQL_ROOT_PASSWORD: wikibase_root
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wikibase}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-wikibase_root}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
