@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: indic_books
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -69,7 +69,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/indic_books
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       - REDIS_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
@@ -109,7 +109,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/indic_books
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       - REDIS_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
@@ -169,7 +169,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - FLOWER_PORT=5555
-      - FLOWER_BASIC_AUTH=admin:admin
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
     depends_on:
       redis:
         condition: service_healthy
@@ -183,7 +183,7 @@ services:
     environment:
       - PGHOST=postgres
       - PGUSER=postgres
-      - PGPASSWORD=postgres
+      - PGPASSWORD=${POSTGRES_PASSWORD}
       - PGDATABASE=indic_books
     entrypoint: >
       /bin/sh -c "
@@ -225,10 +225,10 @@ services:
     environment:
       DB_SERVER: mysql:3306
       DB_USER: wikibase
-      DB_PASS: wikibase
+      DB_PASS: ${MYSQL_PASSWORD}
       DB_NAME: wikibase
       MW_ADMIN_NAME: admin
-      MW_ADMIN_PASS: wikibase_admin_pass
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
       MW_ADMIN_EMAIL: admin@localhost
       MW_WG_SERVER: "http://localhost:8181"
       MW_WG_SITENAME: IndicBooks
@@ -241,6 +241,8 @@ services:
       MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
     volumes:
       - ./docker/wikibase/config:/config:z
+      - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
+      - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
       - wikibase_data:/var/www/html/images
     depends_on:
       mysql:
@@ -254,8 +256,8 @@ services:
     environment:
       MYSQL_DATABASE: wikibase
       MYSQL_USER: wikibase
-      MYSQL_PASSWORD: wikibase
-      MYSQL_ROOT_PASSWORD: wikibase_root
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
