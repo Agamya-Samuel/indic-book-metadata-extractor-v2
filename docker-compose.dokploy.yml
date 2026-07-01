@@ -283,10 +283,8 @@ services:
       MYSQL_USER: wikibase
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    entrypoint: ["sh", "/fix-stale-schema.sh"]
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/fix-stale-schema.sh:/fix-stale-schema.sh:ro
+      - mysql_data_v2:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -328,6 +326,6 @@ volumes:
   storage_data:
   backup_data:
   wikibase_data:
-  mysql_data:
+  mysql_data_v2:
   elasticsearch_data:
   openrefine_data:
