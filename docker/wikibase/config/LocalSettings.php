@@ -60,7 +60,7 @@ $wgDBtype = "mysql";
 $wgDBserver = "mysql:3306";
 $wgDBname = "wikibase";
 $wgDBuser = "wikibase";
-$wgDBpassword = getenv('DB_PASS') ?: 'wikibase';
+$wgDBpassword = getenv('DB_PASS') ?: '';
 
 # MySQL specific settings
 $wgDBprefix = "";
