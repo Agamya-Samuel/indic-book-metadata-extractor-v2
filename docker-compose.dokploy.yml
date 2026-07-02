@@ -265,7 +265,6 @@ services:
       MW_SECRET_KEY: ${MW_SECRET_KEY:-}
       MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
     volumes:
-      - ./docker/wikibase/config:/config:z
       - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
       - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
       - wikibase_data:/var/www/html/images
@@ -284,7 +283,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data_v2:/var/lib/mysql
+      - mysql_data_fresh:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -326,6 +325,6 @@ volumes:
   storage_data:
   backup_data:
   wikibase_data:
-  mysql_data_v2:
+  mysql_data_fresh:
   elasticsearch_data:
   openrefine_data:
