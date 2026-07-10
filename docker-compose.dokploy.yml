@@ -284,7 +284,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data_fresh:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -327,6 +327,6 @@ volumes:
   backup_data:
   wikibase_config:
   wikibase_data:
-  mysql_data_fresh:
+  mysql_data:
   elasticsearch_data:
   openrefine_data:
