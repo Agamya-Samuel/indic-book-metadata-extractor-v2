@@ -240,7 +240,7 @@ services:
       MW_SECRET_KEY: ${MW_SECRET_KEY:-}
       MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
     volumes:
-      - ./docker/wikibase/config:/config:z
+      - wikibase_config:/config
       - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
       - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
       - wikibase_data:/var/www/html/images
@@ -299,6 +299,7 @@ volumes:
   redis_data:
   ollama_data:
   backup_data:
+  wikibase_config:
   wikibase_data:
   mysql_data:
   elasticsearch_data:
