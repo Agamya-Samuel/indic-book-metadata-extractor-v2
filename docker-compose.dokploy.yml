@@ -126,15 +126,15 @@ services:
         condition: service_healthy
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Celery OCR Worker (CPU-bound OCR tasks)
+  # Celery Worker (OCR + LLM tasks, optimized with thread-based parallelism)
   # ─────────────────────────────────────────────────────────────────────────────
-  worker-ocr:
-    image: app-jb5tjz-worker-ocr
+  worker:
+    image: app-jb5tjz-worker
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "--hostname=ocr@%h", "-Q", "ocr,default"]
+    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "-Q", "ocr,llm,default"]
     environment:
       # Internal services (fixed)
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
@@ -150,7 +150,7 @@ services:
       # New Relic
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker OCR}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
       NEW_RELIC_ENVIRONMENT: ${NEW_RELIC_ENVIRONMENT:-production}
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
       NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
@@ -166,52 +166,6 @@ services:
       resources:
         limits:
           memory: 4G
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Celery LLM Worker (I/O-bound LLM inference tasks)
-  # ─────────────────────────────────────────────────────────────────────────────
-  worker-llm:
-    image: app-jb5tjz-worker-llm
-    build:
-      context: ./backend
-      dockerfile: ../docker/Dockerfile.backend
-    restart: unless-stopped
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--hostname=llm@%h", "-Q", "llm"]
-    environment:
-      # Internal services (fixed)
-      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
-      REDIS_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      OLLAMA_URL: http://ollama:11434
-      STORAGE_PATH: /app/storage
-      TESSERACT_CMD: tesseract
-      DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
-      # New Relic
-      NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker LLM}
-      NEW_RELIC_ENVIRONMENT: ${NEW_RELIC_ENVIRONMENT:-production}
-      NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
-      NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
-      NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
-      NEW_RELIC_MONITOR_MODE: ${NEW_RELIC_MONITOR_MODE:-true}
-      NEW_RELIC_DEVELOPER_MODE: ${NEW_RELIC_DEVELOPER_MODE:-false}
-    volumes:
-      - storage_data:/app/storage
-      - ./backend/app:/app/app
-      - ./backend/alembic:/app/alembic
-      - ./backend/alembic.ini:/app/alembic.ini
-    deploy:
-      resources:
-        limits:
-          memory: 2G
     depends_on:
       postgres:
         condition: service_healthy
