@@ -275,7 +275,7 @@ services:
       - wikibase_config_v2:/config
       - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
       - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
-      - wikibase_data:/var/www/html/images
+      - wikibase_data_v2:/var/www/html/images
     depends_on:
       mysql:
         condition: service_healthy
@@ -291,7 +291,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data_v2:/var/lib/mysql
+      - mysql_data_v3:/var/lib/mysql
       - ./docker/mysql/init_wikibase.sql:/docker-entrypoint-initdb.d/01-init-wikibase.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
@@ -337,7 +337,9 @@ volumes:
   wikibase_config:
   wikibase_config_v2:
   wikibase_data:
+  wikibase_data_v2:
   mysql_data:
   mysql_data_v2:
+  mysql_data_v3:
   elasticsearch_data:
   openrefine_data:
