@@ -61,6 +61,26 @@ def run_async(coro):
     asyncio hooks stay bound to a single, long-lived loop.  The database
     engine uses NullPool, so each session creates a fresh connection and no
     stale futures leak between calls.
+
+    NOT thread-safe — use :func:`run_async_threadsafe` from threads.
     """
     loop = _get_or_create_loop()
     return loop.run_until_complete(coro)
+
+
+def run_async_threadsafe(coro):
+    """Run an async coroutine from a background thread.
+
+    Creates a fresh event loop for each call so that multiple threads can
+    run concurrent async code without corrupting a shared loop.  Each call
+    also ensures the database engine is initialised inside its own loop.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        # Lazy-init the DB engine inside this thread's loop
+        import app.core.database as _db
+        _db._ensure_engine()
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
