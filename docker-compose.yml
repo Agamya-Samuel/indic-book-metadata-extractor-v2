@@ -99,13 +99,53 @@ services:
       ollama:
         condition: service_healthy
 
-  worker:
+  worker-ocr:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    mem_limit: 4g
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "--hostname=ocr@%h", "-Q", "ocr,default"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/indic_books
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - OLLAMA_URL=http://ollama:11434
+      - STORAGE_PATH=/app/storage
+      - OCR_BATCH_SIZE=${OCR_BATCH_SIZE:-10}
+      - OCR_THREAD_WORKERS=${OCR_THREAD_WORKERS:-4}
+      - OCR_RENDER_DPI=${OCR_RENDER_DPI:-300}
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
+      - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
+      - NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      - NEW_RELIC_LOG=${NEW_RELIC_LOG:-error}
+      - NEW_RELIC_MONITOR_MODE=${NEW_RELIC_MONITOR_MODE:-true}
+      - NEW_RELIC_DEVELOPER_MODE=${NEW_RELIC_DEVELOPER_MODE:-false}
+    volumes:
+      - ./backend/storage:/app/storage
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  worker-llm:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
     mem_limit: 2g
-    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--hostname=llm@%h", "-Q", "llm"]
     env_file:
       - .env
     environment:
@@ -115,7 +155,7 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker LLM}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
       - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}

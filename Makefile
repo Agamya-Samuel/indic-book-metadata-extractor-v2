@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env
+.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -12,7 +12,8 @@ help:
 	@echo "  make status          Show status of all services"
 	@echo "  make logs            Tail logs for all services"
 	@echo "  make logs-backend    Tail backend logs"
-	@echo "  make logs-worker     Tail worker logs"
+	@echo "  make logs-worker-ocr  Tail OCR worker logs"
+	@echo "  make logs-worker-llm  Tail LLM worker logs"
 	@echo "  make migrate         Run database migrations"
 	@echo "  make reset-db        Reset database (destroys data!)"
 	@echo "  make download-model  Download Airavata model to Ollama"
@@ -59,8 +60,11 @@ logs:
 logs-backend:
 	docker compose logs -f backend
 
-logs-worker:
-	docker compose logs -f worker
+logs-worker-ocr:
+	docker compose logs -f worker-ocr
+
+logs-worker-llm:
+	docker compose logs -f worker-llm
 
 migrate:
 	@echo "Running database migrations..."
@@ -74,7 +78,7 @@ reset-db:
 	docker compose up -d postgres redis
 	@echo "Waiting for postgres to be ready..."
 	@sleep 5
-	docker compose up -d backend worker
+	docker compose up -d backend worker-ocr worker-llm
 	@echo "Database reset complete. Run 'make up' to start all services."
 
 download-model:
