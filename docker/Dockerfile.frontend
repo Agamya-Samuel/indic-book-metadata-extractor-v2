@@ -49,5 +49,6 @@ RUN touch /app/newrelic_agent.log && chown nextjs:nodejs /app/newrelic_agent.log
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "server.js"]
