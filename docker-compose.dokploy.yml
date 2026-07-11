@@ -78,6 +78,7 @@ services:
   # FastAPI Backend
   # ─────────────────────────────────────────────────────────────────────────────
   backend:
+    image: app-jb5tjz-backend
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
@@ -128,6 +129,7 @@ services:
   # Celery OCR Worker (CPU-bound OCR tasks)
   # ─────────────────────────────────────────────────────────────────────────────
   worker-ocr:
+    image: app-jb5tjz-worker-ocr
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
@@ -176,6 +178,7 @@ services:
   # Celery LLM Worker (I/O-bound LLM inference tasks)
   # ─────────────────────────────────────────────────────────────────────────────
   worker-llm:
+    image: app-jb5tjz-worker-llm
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
@@ -221,6 +224,7 @@ services:
   # Next.js Frontend
   # ─────────────────────────────────────────────────────────────────────────────
   frontend:
+    image: app-jb5tjz-frontend
     build:
       context: ./frontend
       dockerfile: ../docker/Dockerfile.frontend
@@ -358,6 +362,7 @@ services:
   # OpenRefine (bulk data cleaning GUI)
   # ─────────────────────────────────────────────────────────────────────────────
   openrefine:
+    image: app-jb5tjz-openrefine
     build:
       context: ./docker/openrefine
       dockerfile: Dockerfile
