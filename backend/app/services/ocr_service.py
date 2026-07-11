@@ -28,11 +28,13 @@ def run_ocr(image_path: Path, language: str = "tel") -> dict:
 
     tesseract_lang = _get_tesseract_lang(language)
 
+    config = f"--psm 6 --oem 1 --dpi {settings.ocr_render_dpi}"
+
     data = pytesseract.image_to_data(
         img,
         lang=tesseract_lang,
         output_type=pytesseract.Output.DICT,
-        config="--psm 6 --oem 3",
+        config=config,
     )
 
     words = []
