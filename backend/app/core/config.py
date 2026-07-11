@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # OCR
     tesseract_cmd: str = "tesseract"
     default_ocr_language: str = "tel"
+    ocr_batch_size: int = 10
+    ocr_thread_workers: int = 4
+    ocr_render_dpi: int = 300
 
     # New Relic
     new_relic_enabled: bool = False
