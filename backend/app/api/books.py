@@ -244,9 +244,9 @@ async def run_ocr(
     await db.commit()
     await db.refresh(job)
 
-    from app.tasks.ocr_tasks import run_ocr_for_book
+    from app.tasks.ocr_tasks import preprocess_pages_for_book
 
-    run_ocr_for_book.delay(str(job.id), str(book_id), book.language)
+    preprocess_pages_for_book.delay(str(job.id), str(book_id), book.language)
 
     return JobResponse.model_validate(job)
 
