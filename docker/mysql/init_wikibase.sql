@@ -1,6 +1,4 @@
--- Create wikibase database and user if they don't exist
--- This runs on first MariaDB container start (docker-entrypoint-initdb.d)
+-- Ensure wikibase database exists (backup for first-init)
+-- MariaDB docker-entrypoint creates MYSQL_DATABASE automatically,
+-- but this script runs as a safety net.
 CREATE DATABASE IF NOT EXISTS `wikibase`;
-CREATE USER IF NOT EXISTS 'wikibase'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-GRANT ALL PRIVILEGES ON `wikibase`.* TO 'wikibase'@'%';
-FLUSH PRIVILEGES;
