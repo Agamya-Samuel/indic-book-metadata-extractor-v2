@@ -2,9 +2,11 @@
 
 import csv
 import io
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
@@ -12,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.book import Book
 from app.models.metadata import BookMetadata
@@ -29,6 +32,28 @@ router = APIRouter()
 METADATA_COLUMNS = ["book_id", "title", "language", "filename"] + [
     f for f in FullMetadata.model_fields if f != "custom_fields"
 ]
+
+
+def _load_property_mapping() -> dict[str, str]:
+    """Load Wikibase property mapping (Wikidata P-ID → local P-ID).
+
+    Falls back to hardcoded FIELD_WIKIDATA values if mapping file not found.
+    """
+    mapping_path = Path(settings.property_mapping_path)
+    if mapping_path.exists():
+        try:
+            with open(mapping_path) as f:
+                mapping = json.load(f)
+            logger.info("Loaded property mapping from %s (%d entries)", mapping_path, len(mapping))
+            return mapping
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("Failed to load property mapping from %s: %s", mapping_path, e)
+
+    logger.info("No property mapping file found, using hardcoded Wikidata P-IDs")
+    return {}
+
+
+PROPERTY_MAPPING: dict[str, str] = {}
 
 
 @router.get("/stats", response_model=BulkStatsResponse)
@@ -229,9 +254,12 @@ async def bulk_export_wikibase(
 ):
     """Generate QuickStatements TSV for Wikibase upload.
 
-    Each book becomes a new item. Properties are mapped using FIELD_WIKIDATA.
-    Returns a .tsv file compatible with https://quickstatements.toolforge.org/
+    Each book becomes a new item. Properties are mapped using FIELD_WIKIDATA,
+    resolved to local Wikibase P-IDs via property-mapping.json if available.
+    Returns a .tsv file compatible with QuickStatements.
     """
+    prop_map = _load_property_mapping()
+
     query = (
         select(Book, BookMetadata)
         .outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
@@ -247,25 +275,21 @@ async def bulk_export_wikibase(
     if not rows:
         raise HTTPException(status_code=404, detail="No books found")
 
-    output = io.StringIO()
-
-    # QuickStatements header: CREATE followed by property assignments
-    # Format per line: Q<item_id>\tP<property_id>\t"<value>"
-    # For new items: CREATE then LAST\tP<property_id>\t"<value>"
-
     lines: list[str] = []
+
+    # Resolve P31 and Q571 from mapping, fall back to Wikidata IDs
+    p31_id = prop_map.get("P31", "P31")
+    q571_id = prop_map.get("Q571", "Q571")
+    p407_id = prop_map.get("P407", "P407")
 
     for book, metadata in rows:
         fields = metadata.fields if metadata and metadata.fields else {}
 
-        # CREATE a new item
         lines.append("CREATE")
 
-        # Add labels (sitelinks aren't needed for a custom Wikibase)
         title = fields.get("title") or book.title or "Untitled"
         lines.append(f'LAST\tLen\t"{_escape_qs(title)}"')
 
-        # Map fields to Wikidata properties
         for field_name, wikidata_prop in FIELD_WIKIDATA.items():
             if wikidata_prop is None:
                 continue
@@ -274,13 +298,13 @@ async def bulk_export_wikibase(
             if not value:
                 continue
 
-            # For now, treat all values as string statements
-            # In future, entity references (Q-ids) can be added via reconciliation
+            # Resolve local property ID from mapping
+            local_prop = prop_map.get(wikidata_prop, wikidata_prop)
             escaped = _escape_qs(value)
-            lines.append(f'LAST\t{wikidata_prop}\t"{escaped}"')
+            lines.append(f'LAST\t{local_prop}\t"{escaped}"')
 
-        # Add instance of = book (Q571)
-        lines.append("LAST\tP31\tQ571")
+        # instance of = book
+        lines.append(f"LAST\t{p31_id}\t{q571_id}")
 
         # Add source language if available
         lang = fields.get("language") or book.language
@@ -288,7 +312,8 @@ async def bulk_export_wikibase(
             lang_map = {"tel": "Q809", "hin": "Q1568"}
             lang_qid = lang_map.get(lang)
             if lang_qid:
-                lines.append(f"LAST\tP407\t{lang_qid}")
+                local_lang_qid = prop_map.get(lang_qid, lang_qid)
+                lines.append(f"LAST\t{p407_id}\t{local_lang_qid}")
 
     tsv_content = "\n".join(lines) + "\n"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
