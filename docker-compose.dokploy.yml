@@ -250,7 +250,10 @@ services:
   # Wikibase (structured data store)
   # ─────────────────────────────────────────────────────────────────────────────
   wikibase:
-    image: wikibase/wikibase:7
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase
     restart: unless-stopped
     expose:
       - "80"
@@ -266,20 +269,65 @@ services:
       MW_WG_SITENAME: IndicBooks
       MW_WG_LANGUAGE_CODE: en
       WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST:-wikibase}
-      WIKIBASE_PUBLIC_SCHEME: ${WIKIBASE_SCHEME:-http}
       ELASTICSEARCH_HOST: elasticsearch
       METADATA_CALLBACK: "false"
-      MW_SECRET_KEY: ${MW_SECRET_KEY:-}
-      MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
     volumes:
       - wikibase_config_v3:/config
-      - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
-      - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
       - wikibase_data_v2:/var/www/html/images
+      - quickstatements_data_v2:/quickstatements/data
     depends_on:
       mysql:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+
+  wikibase-jobrunner:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase-jobrunner
+    command: /jobrunner-entrypoint.sh
+    restart: unless-stopped
+    depends_on:
+      wikibase:
+        condition: service_healthy
+    volumes:
+      - wikibase_config_v3:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data_v2:/var/www/html/images
+      - quickstatements_data_v2:/quickstatements/data
+
+  wikibase-init:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase-init
+    command: /create-properties.sh
+    restart: "no"
+    environment:
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_WG_SERVER: "http://${WIKIBASE_HOST:-wikibase}"
+    volumes:
+      - wikibase_config_v3:/config
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  quickstatements:
+    image: wikibase/quickstatements:1
+    restart: unless-stopped
+    ports:
+      - "9191:80"
+    environment:
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
+      WIKIBASE_PUBLIC_URL: "http://${WIKIBASE_HOST:-wikibase}"
+    volumes:
+      - quickstatements_data_v2:/quickstatements/data
+    depends_on:
+      wikibase:
         condition: service_healthy
 
   mysql:
@@ -344,3 +392,4 @@ volumes:
   mysql_data_v3:
   elasticsearch_data:
   openrefine_data:
+  quickstatements_data_v2:
