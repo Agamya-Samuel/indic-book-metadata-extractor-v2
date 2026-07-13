@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env
+.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env, wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -24,6 +24,13 @@ help:
 	@echo "  make backup          Backup both database and storage"
 	@echo "  make restore-db      Restore database from backup (BACKUP=file.dump)"
 	@echo "  make clean           Remove all containers, volumes, and images"
+	@echo ""
+	@echo "  Wikibase:"
+	@echo "  make wikibase-shell  Open shell in wikibase container"
+	@echo "  make wikibase-logs   Tail wikibase logs"
+	@echo "  make wikibase-update Rebuild custom wikibase image and restart"
+	@echo "  make wikibase-init   Run property creation (first boot only)"
+	@echo "  make install-gadgets Install curated Wikidata gadgets"
 	@echo ""
 	@echo "  Dokploy Deployment:"
 	@echo "  make deploy          Push to main + trigger Dokploy deploy"
@@ -113,6 +120,27 @@ backup:
 restore-db:
 	@echo "Restoring database from backup..."
 	bash docker/scripts/restore-db.sh $(or $(BACKUP),$(error BACKUP is required: make restore-db BACKUP=./backups/indic_books_20240101_120000.dump))
+
+# ── Wikibase ──────────────────────────────────────────────────────────────────
+
+wikibase-shell:
+	docker compose exec wikibase bash
+
+wikibase-logs:
+	docker compose logs -f wikibase
+
+wikibase-update:
+	@echo "Rebuilding custom Wikibase image..."
+	docker compose build wikibase
+	docker compose up -d wikibase wikibase-jobrunner
+
+wikibase-init:
+	@echo "Running property creation..."
+	docker compose run --rm wikibase-init
+
+install-gadgets:
+	@echo "Installing curated Wikidata gadgets..."
+	docker compose exec wikibase bash /install-gadgets.sh
 
 # ── Dokploy Deployment ─────────────────────────────────────────────────────────
 

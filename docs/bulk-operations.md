@@ -242,8 +242,8 @@ The file contains one `CREATE` block per book, with:
 
 **Option A: Via QuickStatements Tool (recommended)**
 
-1. Open https://quickstatements.toolforge.org/
-2. Log in with your Wikibase credentials
+1. Open **http://localhost:9191** (QuickStatements running in Docker)
+2. Log in with your Wikibase credentials (admin/admin by default)
 3. Paste the TSV content or upload the file
 4. Review the preview — verify items look correct
 5. Click **Run** to create the items
