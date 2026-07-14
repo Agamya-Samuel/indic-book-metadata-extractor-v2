@@ -39,6 +39,15 @@ htmlcov/
 .pytest_cache/
 coverage/
 
+# Secrets / keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Linter cache
+.ruff_cache/
+
 # Docker
 docker-compose.override.yml
 
