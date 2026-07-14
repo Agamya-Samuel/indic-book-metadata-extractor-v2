@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # Database — set via DATABASE_URL env var in production
+    # Local dev default only.
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/indic_books"
 
     # Redis
