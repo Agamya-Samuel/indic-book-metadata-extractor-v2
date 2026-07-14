@@ -60,3 +60,6 @@ backend/tests/fixtures/samples/**/*.pdf
 
 # Documentation
 project-update.html
+
+# AI agent workspace (internal planning artifacts)
+.kilo/
