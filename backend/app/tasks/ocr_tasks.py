@@ -1,5 +1,7 @@
 import logging
+import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,77 +15,154 @@ from app.models.job import Job, JobStatus
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services import ocr_service, preprocessing, storage
-from app.tasks.async_utils import run_async
+from app.tasks.async_utils import run_async, run_async_threadsafe
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
-#: Pages per batch to reduce task-queue overhead for large books.
-OCR_BATCH_SIZE: int = 5
+
+# ---------------------------------------------------------------------------
+# Core page processing (async)
+# ---------------------------------------------------------------------------
+async def _process_page_async(page_id_str: str, book_id_str: str, language: str) -> dict:
+    """Process a single page: run preprocessing (if needed), OCR, and persist results."""
+    async with async_session_factory() as db:
+        result = await db.execute(select(Page).where(Page.id == uuid.UUID(page_id_str)))
+        page = result.scalar_one_or_none()
+        if page is None:
+            raise ValueError(f"Page {page_id_str} not found")
+
+        image_rel = page.processed_image_path or page.image_path
+        if not image_rel:
+            raise ValueError(f"Page {page_id_str} has no image")
+
+        image_path = Path(settings.storage_path) / image_rel
+        if not image_path.exists():
+            raise ValueError(f"Image file not found: {image_path}")
+
+        config = page.preprocessing_config
+        if config and not page.processed_image_path:
+            output_path = storage.processed_image_path(book_id_str, page.page_number)
+            preprocessing.run_pipeline(image_path, config, output_path)
+            page.processed_image_path = storage.relative(output_path)
+            await db.flush()
+            image_path = output_path
+
+        ocr_data = ocr_service.run_ocr(image_path, language)
+
+        ocr_result = await db.execute(
+            select(OcrResult).where(OcrResult.page_id == page.id)
+        )
+        existing = ocr_result.scalar_one_or_none()
+
+        if existing:
+            existing.raw_text = ocr_data["full_text"]
+            existing.bounding_boxes = {"words": ocr_data["words"]}
+            existing.confidence = ocr_data["avg_confidence"]
+            existing.language_detected = language
+        else:
+            new_result = OcrResult(
+                page_id=page.id,
+                raw_text=ocr_data["full_text"],
+                bounding_boxes={"words": ocr_data["words"]},
+                confidence=ocr_data["avg_confidence"],
+                language_detected=language,
+            )
+            db.add(new_result)
+
+        await db.commit()
+        return {
+            "page_id": page_id_str,
+            "page_number": page.page_number,
+            "success": True,
+        }
 
 
 def _process_page(page_id_str: str, book_id_str: str, language: str) -> dict:
-    """Process a single page: run OCR and persist results. No retry."""
-    async def _run():
-        async with async_session_factory() as db:
-            result = await db.execute(select(Page).where(Page.id == uuid.UUID(page_id_str)))
-            page = result.scalar_one_or_none()
-            if page is None:
-                raise ValueError(f"Page {page_id_str} not found")
+    """Synchronous wrapper for single-page task (uses the persistent worker loop)."""
+    return run_async(_process_page_async(page_id_str, book_id_str, language))
 
-            image_rel = page.processed_image_path or page.image_path
-            if not image_rel:
-                raise ValueError(f"Page {page_id_str} has no image")
 
-            image_path = Path(settings.storage_path) / image_rel
-            if not image_path.exists():
-                raise ValueError(f"Image file not found: {image_path}")
-
-            # Run preprocessing if configured but not yet applied
-            config = page.preprocessing_config
-            if config and not page.processed_image_path:
-                output_path = storage.processed_image_path(
-                    book_id_str, page.page_number
-                )
-                preprocessing.run_pipeline(image_path, config, output_path)
-                page.processed_image_path = storage.relative(output_path)
-                await db.flush()
-                image_path = output_path
-
-            ocr_data = ocr_service.run_ocr(image_path, language)
-
-            ocr_result = await db.execute(
-                select(OcrResult).where(OcrResult.page_id == page.id)
-            )
-            existing = ocr_result.scalar_one_or_none()
-
-            if existing:
-                existing.raw_text = ocr_data["full_text"]
-                existing.bounding_boxes = {"words": ocr_data["words"]}
-                existing.confidence = ocr_data["avg_confidence"]
-                existing.language_detected = language
-            else:
-                new_result = OcrResult(
-                    page_id=page.id,
-                    raw_text=ocr_data["full_text"],
-                    bounding_boxes={"words": ocr_data["words"]},
-                    confidence=ocr_data["avg_confidence"],
-                    language_detected=language,
-                )
-                db.add(new_result)
-
-            await db.commit()
-            return {
-                "page_id": page_id_str,
-                "page_number": page.page_number,
-                "success": True,
-            }
-
-    return run_async(_run())
+def _process_page_threadsafe(page_id_str: str, book_id_str: str, language: str) -> dict:
+    """Thread-safe wrapper: creates a fresh event loop for each call."""
+    return run_async_threadsafe(_process_page_async(page_id_str, book_id_str, language))
 
 
 # ---------------------------------------------------------------------------
-# Single-page OCR task (reusable building block)
+# Progress tracking
+# ---------------------------------------------------------------------------
+def _update_job_progress(job_id_str: str, completed: int, total: int) -> None:
+    """Update job progress percentage in the database.
+
+    Uses a thread-safe async wrapper since this may be called from
+    :class:`~concurrent.futures.ThreadPoolExecutor` threads.
+    """
+    async def _do():
+        async with async_session_factory() as db:
+            job_result = await db.execute(
+                select(Job).where(Job.id == uuid.UUID(job_id_str))
+            )
+            job = job_result.scalar_one_or_none()
+            if job:
+                job.progress = round((completed / total) * 100, 1)
+                await db.commit()
+
+    run_async_threadsafe(_do())
+
+
+# ---------------------------------------------------------------------------
+# Preprocessing phase task
+# ---------------------------------------------------------------------------
+@celery_app.task(
+    bind=True,
+    name="preprocess_pages_for_book",
+    max_retries=1,
+    acks_late=True,
+)
+@newrelic.agent.background_task(name="OCR: Preprocessing Phase", group="CeleryTask")
+def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language: str):
+    """Preprocess all pages that need it, then chain into OCR."""
+    newrelic.agent.add_custom_attribute("book_id", book_id_str)
+    newrelic.agent.add_custom_attribute("job_id", job_id_str)
+
+    async def _run():
+        async with async_session_factory() as db:
+            book_id = uuid.UUID(book_id_str)
+            pages_result = await db.execute(
+                select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
+            )
+            pages = pages_result.scalars().all()
+
+            preprocessed = 0
+            for page in pages:
+                config = page.preprocessing_config
+                if config and not page.processed_image_path:
+                    image_rel = page.image_path
+                    if not image_rel:
+                        continue
+                    image_path = Path(settings.storage_path) / image_rel
+                    if not image_path.exists():
+                        continue
+                    output_path = storage.processed_image_path(book_id_str, page.page_number)
+                    preprocessing.run_pipeline(image_path, config, output_path)
+                    page.processed_image_path = storage.relative(output_path)
+                    preprocessed += 1
+
+            if preprocessed > 0:
+                await db.commit()
+            return preprocessed
+
+    try:
+        count = run_async(_run())
+        logger.info("Preprocessed %d pages for book %s, chaining to OCR", count, book_id_str)
+    except Exception as e:
+        logger.error("Preprocessing failed for book %s: %s", book_id_str, e)
+
+    run_ocr_for_book.delay(job_id_str, book_id_str, language)
+
+
+# ---------------------------------------------------------------------------
+# Single-page OCR task
 # ---------------------------------------------------------------------------
 @celery_app.task(
     bind=True,
@@ -95,7 +174,6 @@ def _process_page(page_id_str: str, book_id_str: str, language: str) -> dict:
 @newrelic.agent.background_task(name="OCR: Single Page", group="CeleryTask")
 def run_ocr_for_page(self, page_id_str: str, book_id_str: str, language: str):
     """Run OCR on a single page. Retries up to 3 times on transient errors."""
-
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("page_id", page_id_str)
     newrelic.agent.add_custom_attribute("language", language)
@@ -115,7 +193,7 @@ def run_ocr_for_page(self, page_id_str: str, book_id_str: str, language: str):
 
 
 # ---------------------------------------------------------------------------
-# Batched-page OCR task (reduces task-queue overhead)
+# Batched-page OCR task with thread-based parallelism
 # ---------------------------------------------------------------------------
 @celery_app.task(
     bind=True,
@@ -125,36 +203,68 @@ def run_ocr_for_page(self, page_id_str: str, book_id_str: str, language: str):
     acks_late=True,
 )
 @newrelic.agent.background_task(name="OCR: Page Batch", group="CeleryTask")
-def run_ocr_for_page_batch(self, page_id_strs: list, book_id_str: str, language: str):
-    """Run OCR on a batch of up to :data:`OCR_BATCH_SIZE` pages in one task.
+def run_ocr_for_page_batch(
+    self,
+    page_id_strs: list,
+    book_id_str: str,
+    language: str,
+    job_id_str: str | None = None,
+    total_pages: int | None = None,
+):
+    """Run OCR on a batch of pages using thread-based parallelism.
+
+    Uses :class:`~concurrent.futures.ThreadPoolExecutor` to process multiple
+    pages concurrently within a single Celery worker process.  Since
+    ``pytesseract`` spawns a subprocess for each call (releasing the GIL),
+    threads achieve true CPU-level parallelism.
+
     Individual page failures are captured and returned without failing the batch.
     """
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("page_count", len(page_id_strs))
     newrelic.agent.add_custom_attribute("language", language)
 
-    results = []
-    for page_id_str in page_id_strs:
+    num_workers = min(settings.ocr_thread_workers, len(page_id_strs))
+    results = [None] * len(page_id_strs)
+
+    progress_counter = 0
+    progress_lock = threading.Lock()
+
+    def _process_idx(idx: int) -> tuple[int, dict]:
+        page_id = page_id_strs[idx]
         try:
-            results.append(_process_page(page_id_str, book_id_str, language))
+            return idx, _process_page_threadsafe(page_id, book_id_str, language)
         except Exception as e:
-            results.append({
-                "page_id": page_id_str,
-                "success": False,
-                "error": str(e),
-            })
+            return idx, {"page_id": page_id, "success": False, "error": str(e)}
+
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        futures = {
+            executor.submit(_process_idx, i): i
+            for i in range(len(page_id_strs))
+        }
+        for future in as_completed(futures):
+            idx, result = future.result()
+            results[idx] = result
+
+            if job_id_str and total_pages:
+                with progress_lock:
+                    progress_counter += 1
+                    current = progress_counter
+                try:
+                    _update_job_progress(job_id_str, current, total_pages)
+                except Exception:
+                    logger.debug("Progress update failed for page %d", idx)
+
     return results
 
 
 # ---------------------------------------------------------------------------
 # Book-level OCR: orchestrates parallel page tasks via chord
 # ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 @celery_app.task(bind=True, name="run_ocr_for_book")
 @newrelic.agent.background_task(name="OCR: Book Orchestration", group="CeleryTask")
 def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
     """Kick off parallel OCR for all pages of a book using Celery chord."""
-
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
     newrelic.agent.add_custom_attribute("language", language)
@@ -192,11 +302,15 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
         if page_ids is None:
             return
 
-        batches = [page_ids[i : i + OCR_BATCH_SIZE] for i in range(0, len(page_ids), OCR_BATCH_SIZE)]
+        batch_size = settings.ocr_batch_size
+        batches = [page_ids[i : i + batch_size] for i in range(0, len(page_ids), batch_size)]
+        total_pages = len(page_ids)
+
         page_tasks = group(
-            run_ocr_for_page_batch.s(batch, book_id_str, language) for batch in batches
+            run_ocr_for_page_batch.s(batch, book_id_str, language, job_id_str, total_pages)
+            for batch in batches
         )
-        callback = _ocr_book_complete.s(job_id_str, book_id_str, len(page_ids), len(batches))
+        callback = _ocr_book_complete.s(job_id_str, book_id_str, total_pages, len(batches))
 
         chord(page_tasks, callback).apply_async()
 

@@ -99,13 +99,53 @@ services:
       ollama:
         condition: service_healthy
 
-  worker:
+  worker-ocr:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    mem_limit: 4g
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "--hostname=ocr@%h", "-Q", "ocr,default"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/indic_books
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - OLLAMA_URL=http://ollama:11434
+      - STORAGE_PATH=/app/storage
+      - OCR_BATCH_SIZE=${OCR_BATCH_SIZE:-10}
+      - OCR_THREAD_WORKERS=${OCR_THREAD_WORKERS:-4}
+      - OCR_RENDER_DPI=${OCR_RENDER_DPI:-300}
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
+      - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
+      - NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      - NEW_RELIC_LOG=${NEW_RELIC_LOG:-error}
+      - NEW_RELIC_MONITOR_MODE=${NEW_RELIC_MONITOR_MODE:-true}
+      - NEW_RELIC_DEVELOPER_MODE=${NEW_RELIC_DEVELOPER_MODE:-false}
+    volumes:
+      - ./backend/storage:/app/storage
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  worker-llm:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
     mem_limit: 2g
-    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--hostname=llm@%h", "-Q", "llm"]
     env_file:
       - .env
     environment:
@@ -115,7 +155,7 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker LLM}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
       - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
@@ -143,6 +183,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000/api}
         - NEXT_PUBLIC_OPENREFINE_URL=${NEXT_PUBLIC_OPENREFINE_URL:-http://localhost:3333}
+        - NEXT_PUBLIC_WIKIBASE_URL=${NEXT_PUBLIC_WIKIBASE_URL:-http://localhost:8080}
         - NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY=${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
         - NEXT_PUBLIC_NEW_RELIC_APP_ID=${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
         - NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID=${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
@@ -218,7 +259,9 @@ services:
   # Wikibase (structured data store)
   # ─────────────────────────────────────────────────────────────────────────────
   wikibase:
-    image: wikibase/wikibase:7
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "8181:80"
@@ -234,20 +277,63 @@ services:
       MW_WG_SITENAME: IndicBooks
       MW_WG_LANGUAGE_CODE: en
       WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST:-localhost:8181}
-      WIKIBASE_PUBLIC_SCHEME: ${WIKIBASE_SCHEME:-http}
       ELASTICSEARCH_HOST: elasticsearch
       METADATA_CALLBACK: "false"
-      MW_SECRET_KEY: ${MW_SECRET_KEY:-}
-      MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
     volumes:
-      - ./docker/wikibase/config:/config:z
-      - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
-      - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
+      - wikibase_config:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
       - wikibase_data:/var/www/html/images
+      - quickstatements_data:/quickstatements/data
     depends_on:
       mysql:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+
+  wikibase-jobrunner:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    command: /jobrunner-entrypoint.sh
+    restart: unless-stopped
+    depends_on:
+      wikibase:
+        condition: service_healthy
+    volumes:
+      - wikibase_config:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data:/var/www/html/images
+      - quickstatements_data:/quickstatements/data
+
+  wikibase-init:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    command: /create-properties.sh
+    restart: "no"
+    environment:
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_WG_SERVER: "http://localhost:8181"
+    volumes:
+      - wikibase_config:/config
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  quickstatements:
+    image: wikibase/quickstatements:1
+    restart: unless-stopped
+    ports:
+      - "9191:80"
+    environment:
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
+      WIKIBASE_PUBLIC_URL: "http://localhost:8181"
+    volumes:
+      - quickstatements_data:/quickstatements/data
+    depends_on:
+      wikibase:
         condition: service_healthy
 
   mysql:
@@ -299,7 +385,9 @@ volumes:
   redis_data:
   ollama_data:
   backup_data:
+  wikibase_config:
   wikibase_data:
   mysql_data:
   elasticsearch_data:
   openrefine_data:
+  quickstatements_data:

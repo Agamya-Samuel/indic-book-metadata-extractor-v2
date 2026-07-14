@@ -78,6 +78,7 @@ services:
   # FastAPI Backend
   # ─────────────────────────────────────────────────────────────────────────────
   backend:
+    image: app-jb5tjz-backend
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
@@ -125,14 +126,15 @@ services:
         condition: service_healthy
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Celery Worker (OCR + LLM tasks)
+  # Celery Worker (OCR + LLM tasks, optimized with thread-based parallelism)
   # ─────────────────────────────────────────────────────────────────────────────
   worker:
+    image: app-jb5tjz-worker
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "-Q", "ocr,llm,default"]
     environment:
       # Internal services (fixed)
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
@@ -142,6 +144,9 @@ services:
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
       DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
+      OCR_BATCH_SIZE: ${OCR_BATCH_SIZE:-10}
+      OCR_THREAD_WORKERS: ${OCR_THREAD_WORKERS:-4}
+      OCR_RENDER_DPI: ${OCR_RENDER_DPI:-300}
       # New Relic
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
@@ -160,7 +165,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 4G
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,12 +178,14 @@ services:
   # Next.js Frontend
   # ─────────────────────────────────────────────────────────────────────────────
   frontend:
+    image: app-jb5tjz-frontend
     build:
       context: ./frontend
       dockerfile: ../docker/Dockerfile.frontend
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
         NEXT_PUBLIC_OPENREFINE_URL: ${NEXT_PUBLIC_OPENREFINE_URL:-}
+        NEXT_PUBLIC_WIKIBASE_URL: ${NEXT_PUBLIC_WIKIBASE_URL:-}
         NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY: ${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
         NEXT_PUBLIC_NEW_RELIC_APP_ID: ${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
         NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID: ${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
@@ -243,7 +250,10 @@ services:
   # Wikibase (structured data store)
   # ─────────────────────────────────────────────────────────────────────────────
   wikibase:
-    image: wikibase/wikibase:7
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase
     restart: unless-stopped
     expose:
       - "80"
@@ -259,20 +269,71 @@ services:
       MW_WG_SITENAME: IndicBooks
       MW_WG_LANGUAGE_CODE: en
       WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST:-wikibase}
-      WIKIBASE_PUBLIC_SCHEME: ${WIKIBASE_SCHEME:-http}
       ELASTICSEARCH_HOST: elasticsearch
       METADATA_CALLBACK: "false"
-      MW_SECRET_KEY: ${MW_SECRET_KEY:-}
-      MW_UPGRADE_KEY: ${MW_UPGRADE_KEY:-}
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
     volumes:
-      - ./docker/wikibase/config:/config:z
-      - ./docker/wikibase/config/LocalSettings.MediaWiki.php:/LocalSettings.MediaWiki.php
-      - ./docker/wikibase/config/LocalSettings.Extensions.php:/LocalSettings.Extensions.php
-      - wikibase_data:/var/www/html/images
+      - wikibase_config_v3:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data_v2:/var/www/html/images
+      - quickstatements_data_v2:/quickstatements/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost/w/api.php | grep -q '200'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     depends_on:
       mysql:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+
+  wikibase-jobrunner:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase-jobrunner
+    command: /jobrunner-entrypoint.sh
+    restart: unless-stopped
+    depends_on:
+      wikibase:
+        condition: service_healthy
+    volumes:
+      - wikibase_config_v3:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data_v2:/var/www/html/images
+      - quickstatements_data_v2:/quickstatements/data
+
+  wikibase-init:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase-init
+    command: /create-properties.sh
+    restart: "no"
+    environment:
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_WG_SERVER: "http://${WIKIBASE_HOST:-wikibase}"
+    volumes:
+      - wikibase_config_v3:/config
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  quickstatements:
+    image: wikibase/quickstatements:1
+    restart: unless-stopped
+    ports:
+      - "9191:80"
+    environment:
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
+      WIKIBASE_PUBLIC_URL: "http://${WIKIBASE_HOST:-wikibase}"
+    volumes:
+      - quickstatements_data_v2:/quickstatements/data
+    depends_on:
+      wikibase:
         condition: service_healthy
 
   mysql:
@@ -284,7 +345,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_data_v3:/var/lib/mysql
+      - ./docker/mysql/init_wikibase.sql:/docker-entrypoint-initdb.d/01-init-wikibase.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -310,6 +372,7 @@ services:
   # OpenRefine (bulk data cleaning GUI)
   # ─────────────────────────────────────────────────────────────────────────────
   openrefine:
+    image: app-jb5tjz-openrefine
     build:
       context: ./docker/openrefine
       dockerfile: Dockerfile
@@ -325,7 +388,14 @@ volumes:
   ollama_data:
   storage_data:
   backup_data:
+  wikibase_config:
+  wikibase_config_v2:
+  wikibase_config_v3:
   wikibase_data:
+  wikibase_data_v2:
   mysql_data:
+  mysql_data_v2:
+  mysql_data_v3:
   elasticsearch_data:
   openrefine_data:
+  quickstatements_data_v2:

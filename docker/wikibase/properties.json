@@ -1,0 +1,140 @@
+[
+  {
+    "wikidata_id": "P31",
+    "label": "instance of",
+    "datatype": "wikibase-item",
+    "description": "that class of which this subject is a particular example and member"
+  },
+  {
+    "wikidata_id": "P50",
+    "label": "author",
+    "datatype": "wikibase-item",
+    "description": "main creator of a written work"
+  },
+  {
+    "wikidata_id": "P98",
+    "label": "editor",
+    "datatype": "wikibase-item",
+    "description": "person who checks and corrects a text"
+  },
+  {
+    "wikidata_id": "P123",
+    "label": "publisher",
+    "datatype": "wikibase-item",
+    "description": "organization responsible for publishing the work"
+  },
+  {
+    "wikidata_id": "P136",
+    "label": "genre",
+    "datatype": "wikibase-item",
+    "description": "creative work's genre or artistic style"
+  },
+  {
+    "wikidata_id": "P144",
+    "label": "based on",
+    "datatype": "wikibase-item",
+    "description": "the work this work is based on"
+  },
+  {
+    "wikidata_id": "P291",
+    "label": "place of publication",
+    "datatype": "wikibase-item",
+    "description": "geographical place of publication of the edition"
+  },
+  {
+    "wikidata_id": "P364",
+    "label": "original language",
+    "datatype": "wikibase-item",
+    "description": "language in which a work was originally created"
+  },
+  {
+    "wikidata_id": "P393",
+    "label": "edition number",
+    "datatype": "string",
+    "description": "number of an edition"
+  },
+  {
+    "wikidata_id": "P407",
+    "label": "language",
+    "datatype": "wikibase-item",
+    "description": "language associated with this work or name"
+  },
+  {
+    "wikidata_id": "P478",
+    "label": "volume",
+    "datatype": "string",
+    "description": "volume of a book or music release in a collection"
+  },
+  {
+    "wikidata_id": "P571",
+    "label": "inception",
+    "datatype": "time",
+    "description": "date or point in time when the entity was founded or created"
+  },
+  {
+    "wikidata_id": "P577",
+    "label": "publication date",
+    "datatype": "time",
+    "description": "date or point in time when the work was first published"
+  },
+  {
+    "wikidata_id": "P629",
+    "label": "edition or translation of",
+    "datatype": "wikibase-item",
+    "description": "link to the original work that this is an edition or translation of"
+  },
+  {
+    "wikidata_id": "P655",
+    "label": "translator",
+    "datatype": "wikibase-item",
+    "description": "person who translated this work"
+  },
+  {
+    "wikidata_id": "P736",
+    "label": "cover artist",
+    "datatype": "wikibase-item",
+    "description": "artist responsible for the cover artwork"
+  },
+  {
+    "wikidata_id": "P7937",
+    "label": "form of creative work",
+    "datatype": "wikibase-item",
+    "description": "form of a creative work"
+  },
+  {
+    "wikidata_id": "P859",
+    "label": "sponsor",
+    "datatype": "wikibase-item",
+    "description": "organization or individual that sponsored this work"
+  },
+  {
+    "wikidata_id": "P872",
+    "label": "printer",
+    "datatype": "wikibase-item",
+    "description": "person or organization that printed the work"
+  },
+  {
+    "wikidata_id": "P921",
+    "label": "subject",
+    "datatype": "wikibase-item",
+    "description": "primary topic of a work"
+  },
+  {
+    "wikidata_id": "P941",
+    "label": "inspired by",
+    "datatype": "wikibase-item",
+    "description": "work that inspired this creative work"
+  },
+  {
+    "wikidata_id": "P1104",
+    "label": "number of pages",
+    "datatype": "quantity",
+    "description": "number of pages of a book or publication"
+  },
+  {
+    "wikidata_id": "P2919",
+    "label": "place of printing",
+    "datatype": "wikibase-item",
+    "description": "place where the work was printed"
+  }
+]

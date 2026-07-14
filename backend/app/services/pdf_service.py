@@ -2,6 +2,8 @@ from pathlib import Path
 
 import fitz
 
+from app.core.config import settings
+
 
 def get_page_count(pdf_path: Path) -> int:
     doc = fitz.open(str(pdf_path))
@@ -30,8 +32,10 @@ def render_full_page(
     pdf_path: Path,
     page_number: int,
     output_path: Path,
-    dpi: int = 300,
+    dpi: int | None = None,
 ) -> None:
+    if dpi is None:
+        dpi = settings.ocr_render_dpi
     doc = fitz.open(str(pdf_path))
     page = doc.load_page(page_number - 1)
     zoom = dpi / 72
