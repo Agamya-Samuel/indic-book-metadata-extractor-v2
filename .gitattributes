@@ -1,2 +1,5 @@
+# Normalize all text files to LF in the repository (fixes cross-OS CRLF diffs)
+* text=auto
+
 # Ensure shell scripts always use LF line endings (required for Docker/Linux)
 *.sh text eol=lf
