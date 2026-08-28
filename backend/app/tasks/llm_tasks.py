@@ -10,8 +10,10 @@ from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
+from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
+from app.services.batch_routing import PageText
 from app.services.llm_service import llm_service as llm_service_singleton
 from app.services.prompts import render_extraction_prompt
 from app.tasks.async_utils import run_async
@@ -22,8 +24,13 @@ logger = logging.getLogger(__name__)
 
 async def _validate_book_context(
     job_id: uuid.UUID, book_id: uuid.UUID
-) -> tuple[Job, Book, str, int]:
-    """Load job/book, validate preconditions, and return (job, book, ocr_text, page_count).
+) -> tuple[Job, Book, str, int, list[PageText]]:
+    """Load job/book, validate preconditions, and return (job, book, ocr_text, page_count, pages).
+
+    ``pages`` is the per-page OCR text list used by the LLM service to route
+    each metadata batch to the most relevant page region. The legacy
+    ``ocr_text`` blob is also returned for backward compatibility and
+    logging.
 
     Raises on unrecoverable validation failure with the job already marked failed.
     """
@@ -74,12 +81,14 @@ async def _validate_book_context(
         ocr_by_page = {r.page_id: r for r in ocr_result_rows.scalars().all()}
 
         text_parts = []
+        page_texts: list[PageText] = []
         for page in pages:
             ocr = ocr_by_page.get(page.id)
             if ocr:
                 text = ocr.corrected_text or ocr.raw_text or ""
                 if text.strip():
                     text_parts.append(text.strip())
+                    page_texts.append(PageText(page_number=page.page_number, text=text))
 
         if not text_parts:
             job.status = JobStatus.FAILED
@@ -95,13 +104,15 @@ async def _validate_book_context(
         book.status = BookStatus.LLM_RUNNING
         await db.commit()
 
-        return job, book, ocr_text, language, page_count
+        return job, book, ocr_text, language, page_count, page_texts
 
 
 async def _persist_extraction_results(
-    metadata, batch_results, book_id, job_id, ocr_text, language, page_count
+    metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
+    evidence=None,
 ):
-    """Persist extracted metadata and LLM run records, finalize job status."""
+    """Persist extracted metadata, LLM run records, and per-field evidence."""
+    evidence = evidence or {}
     async with async_session_factory() as db:
         metadata_result = await db.execute(
             select(BookMetadata).where(BookMetadata.book_id == book_id)
@@ -121,6 +132,40 @@ async def _persist_extraction_results(
             db.add(new_metadata)
 
         await db.flush()
+
+        # Per-field evidence: one row per populated field.
+        if evidence:
+            existing_evidence_result = await db.execute(
+                select(MetadataFieldEvidence).where(
+                    MetadataFieldEvidence.book_id == book_id
+                )
+            )
+            existing_evidence = {
+                e.field_name: e
+                for e in existing_evidence_result.scalars().all()
+            }
+            for field_name, ef in evidence.items():
+                if ef.value is None:
+                    continue
+                ef_row = existing_evidence.get(field_name)
+                if ef_row is None:
+                    db.add(
+                        MetadataFieldEvidence(
+                            book_id=book_id,
+                            field_name=field_name,
+                            value=ef.value,
+                            confidence=ef.confidence,
+                            extraction_method=ef.method,
+                            source_page_number=ef.source_page_number,
+                            source_text_snippet=ef.source_text_snippet,
+                        )
+                    )
+                else:
+                    ef_row.value = ef.value
+                    ef_row.confidence = ef.confidence
+                    ef_row.extraction_method = ef.method
+                    ef_row.source_page_number = ef.source_page_number
+                    ef_row.source_text_snippet = ef.source_text_snippet
 
         for br in batch_results:
             llm_run = LlmRun(
@@ -197,7 +242,7 @@ def run_llm_extraction(
         job_id = uuid.UUID(job_id_str)
         book_id = uuid.UUID(book_id_str)
 
-        job, book, ocr_text, language, page_count = await _validate_book_context(
+        job, book, ocr_text, language, page_count, page_texts = await _validate_book_context(
             job_id, book_id
         )
 
@@ -213,7 +258,7 @@ def run_llm_extraction(
                     progress_job.progress = round((current / total) * 100, 1)
                     await progress_db.commit()
 
-        metadata, batch_results = await llm.run_full_extraction(
+        metadata, batch_results, evidence = await llm.run_hybrid_full_extraction(
             ocr_text=ocr_text,
             model=model,
             temperature=temperature,
@@ -223,10 +268,12 @@ def run_llm_extraction(
             system_prompt_override=system_prompt_override,
             extraction_prompt_override=extraction_prompt_override,
             progress_callback=on_progress,
+            pages=page_texts,
         )
 
         await _persist_extraction_results(
-            metadata, batch_results, book_id, job_id, ocr_text, language, page_count
+            metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
+            evidence=evidence,
         )
 
     try:

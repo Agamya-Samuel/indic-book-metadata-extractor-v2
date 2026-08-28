@@ -29,3 +29,8 @@ class Book(UUIDMixin, TimestampMixin, Base):
     metadata_record = relationship(
         "BookMetadata", back_populates="book", uselist=False, cascade="all, delete-orphan"
     )
+    metadata_evidence = relationship(
+        "MetadataFieldEvidence",
+        back_populates="book",
+        cascade="all, delete-orphan",
+    )

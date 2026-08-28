@@ -4,6 +4,7 @@ from app.models.embedding import Embedding
 from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
+from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 
@@ -17,6 +18,7 @@ __all__ = [
     "JobStatus",
     "JobType",
     "LlmRun",
+    "MetadataFieldEvidence",
     "OcrResult",
     "Page",
 ]

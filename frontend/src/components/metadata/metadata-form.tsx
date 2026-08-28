@@ -4,11 +4,22 @@ import { useState, useCallback, useMemo } from "react";
 import type { MetadataFieldDefinition } from "@/lib/api";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 
+interface FieldConfidence {
+  confidence: number | null;
+  extraction_method: string;
+  source_page_number: number | null;
+  source_text_snippet: string | null;
+}
+
 interface MetadataFormProps {
   fieldDefinitions: MetadataFieldDefinition[];
   values: Record<string, string>;
   onSave: (fields: Record<string, string | Record<string, string>>) => void;
   isSaving: boolean;
+  /** Optional per-field confidence map. When provided, the form uses
+   *  the real extraction confidence instead of the placeholder-string
+   *  heuristic in getFieldConfidence. */
+  confidenceByField?: Record<string, FieldConfidence>;
 }
 
 const BATCH_DISPLAY_NAMES: Record<string, string> = {
@@ -35,9 +46,17 @@ const LONG_TEXT_FIELDS = new Set([
 ]);
 
 function getFieldConfidence(
-  value: string | undefined | null
+  value: string | undefined | null,
+  realConfidence: number | null | undefined
 ): "high" | "medium" | "empty" {
   if (!value || value.trim() === "") return "empty";
+  // If the hybrid extractor recorded a real confidence, trust it.
+  if (typeof realConfidence === "number") {
+    if (realConfidence >= 0.85) return "high";
+    if (realConfidence >= 0.5) return "medium";
+    return "medium"; // below 0.5 but value present — flag as uncertain
+  }
+  // Fall back to the legacy placeholder-string heuristic.
   const lower = value.toLowerCase();
   if (
     lower === "n/a" ||
@@ -73,6 +92,7 @@ export default function MetadataForm({
   values,
   onSave,
   isSaving,
+  confidenceByField,
 }: MetadataFormProps) {
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [customFieldName, setCustomFieldName] = useState("");
@@ -175,9 +195,18 @@ export default function MetadataForm({
             <div className="space-y-2">
               {fields.map((field) => {
                 const value = currentValues[field.field_name] ?? "";
-                const confidence = getFieldConfidence(value);
+                const realConf = confidenceByField?.[field.field_name]?.confidence;
+                const confidence = getFieldConfidence(value, realConf);
                 const style = CONFIDENCE_STYLES[confidence];
                 const isLong = LONG_TEXT_FIELDS.has(field.field_name);
+                const tooltip =
+                  realConf != null
+                    ? `${confidence === "high" ? "Extracted" : confidence === "medium" ? "Uncertain" : "Missing"} (confidence ${(realConf * 100).toFixed(0)}%, ${confidenceByField?.[field.field_name]?.extraction_method ?? "unknown"})`
+                    : confidence === "high"
+                      ? "Extracted"
+                      : confidence === "medium"
+                        ? "Uncertain"
+                        : "Missing";
 
                 return (
                   <div
@@ -188,13 +217,7 @@ export default function MetadataForm({
                       <div className="flex items-center gap-1.5">
                         <span
                           className={`inline-block w-2 h-2 rounded-full ${style.dot}`}
-                          title={
-                            confidence === "high"
-                              ? "Extracted"
-                              : confidence === "medium"
-                                ? "Uncertain"
-                                : "Missing"
-                          }
+                          title={tooltip}
                         />
                         <label
                           htmlFor={`field-${field.field_name}`}
