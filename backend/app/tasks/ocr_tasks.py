@@ -48,7 +48,7 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
             await db.flush()
             image_path = output_path
 
-        ocr_data = ocr_service.run_ocr(image_path, language)
+        ocr_data = ocr_service.run_ocr(image_path, language, page_position=page.page_number - 1)
 
         ocr_result = await db.execute(
             select(OcrResult).where(OcrResult.page_id == page.id)

@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.models.job import Job, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
+from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.schemas.metadata import (
     ALL_METADATA_FIELDS,
     LlmRunResponse,
@@ -17,6 +18,18 @@ from app.schemas.metadata import (
     MetadataResponse,
     MetadataUpdateRequest,
 )
+from pydantic import BaseModel
+
+
+class FieldEvidenceResponse(BaseModel):
+    field_name: str
+    value: str | None
+    confidence: float | None
+    extraction_method: str
+    source_page_number: int | None
+    source_text_snippet: str | None
+
+    model_config = {"from_attributes": True}
 
 router = APIRouter()
 
@@ -85,6 +98,25 @@ async def get_field_definitions(
 ) -> list[MetadataFieldDefinition]:
     await get_book_or_404(book_id, db)
     return ALL_METADATA_FIELDS
+
+
+@router.get(
+    "/{book_id}/metadata/evidence",
+    response_model=list[FieldEvidenceResponse],
+)
+async def get_metadata_evidence(
+    book_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> list[FieldEvidenceResponse]:
+    """Return per-field provenance (confidence, source page, method)."""
+    await get_book_or_404(book_id, db)
+    result = await db.execute(
+        select(MetadataFieldEvidence)
+        .where(MetadataFieldEvidence.book_id == book_id)
+        .order_by(MetadataFieldEvidence.field_name)
+    )
+    rows = result.scalars().all()
+    return [FieldEvidenceResponse.model_validate(r) for r in rows]
 
 
 @router.get("/{book_id}/llm-runs", response_model=list[LlmRunResponse])

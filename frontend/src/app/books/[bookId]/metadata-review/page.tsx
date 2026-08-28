@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,8 +12,10 @@ import {
   getMetadata,
   updateMetadata,
   getMetadataFieldDefinitions,
+  getMetadataEvidence,
   getLlmRuns,
   type MetadataResponse,
+  type FieldEvidence,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
@@ -76,6 +78,33 @@ export default function MetadataReviewPage() {
     queryFn: () => getLlmRuns(bookId),
     enabled: !!bookId && showLlmHistory,
   });
+
+  const { data: fieldEvidence } = useQuery({
+    queryKey: ["metadata-evidence", bookId],
+    queryFn: () => getMetadataEvidence(bookId),
+    enabled: !!bookId,
+    staleTime: 30 * 1000,
+  });
+
+  const confidenceByField = useMemo(() => {
+    const map: Record<string, {
+      confidence: number | null;
+      extraction_method: string;
+      source_page_number: number | null;
+      source_text_snippet: string | null;
+    }> = {};
+    if (fieldEvidence) {
+      for (const ev of fieldEvidence) {
+        map[ev.field_name] = {
+          confidence: ev.confidence,
+          extraction_method: ev.extraction_method,
+          source_page_number: ev.source_page_number,
+          source_text_snippet: ev.source_text_snippet,
+        };
+      }
+    }
+    return map;
+  }, [fieldEvidence]);
 
   const { isFailed, progress, isPolling, errorLog } =
     useJobPolling({
@@ -321,6 +350,7 @@ export default function MetadataReviewPage() {
             values={metadataValues}
             onSave={handleSave}
             isSaving={saveMutation.isPending}
+            confidenceByField={confidenceByField}
           />
         )}
 

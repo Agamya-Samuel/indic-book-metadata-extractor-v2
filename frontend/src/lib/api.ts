@@ -325,6 +325,24 @@ export const getMetadataFieldDefinitions = async (
   return response.data;
 };
 
+export interface FieldEvidence {
+  field_name: string;
+  value: string | null;
+  confidence: number | null;
+  extraction_method: string;
+  source_page_number: number | null;
+  source_text_snippet: string | null;
+}
+
+export const getMetadataEvidence = async (
+  bookId: string
+): Promise<FieldEvidence[]> => {
+  const response = await api.get<FieldEvidence[]>(
+    `/books/${bookId}/metadata/evidence`
+  );
+  return response.data;
+};
+
 export const getLlmRuns = async (bookId: string): Promise<LlmRunResponse[]> => {
   const response = await api.get<LlmRunResponse[]>(`/books/${bookId}/llm-runs`);
   return response.data;
