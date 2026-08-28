@@ -63,3 +63,4 @@ project-update.html
 
 # AI agent workspace (internal planning artifacts)
 .kilo/
+.commandcode/
