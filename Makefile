@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env, wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init
+.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init check-compose-drift
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -36,6 +36,9 @@ help:
 	@echo "  make deploy          Push to main + trigger Dokploy deploy"
 	@echo "  make deploy-status   Check Dokploy deployment status"
 	@echo "  make deploy-env      Show required env vars for Dokploy"
+	@echo ""
+	@echo "  Multi-env safety:"
+	@echo "  make check-compose-drift  Diff prod vs staging compose, fail on unexpected drift"
 
 up:
 	@echo "Starting services..."
@@ -152,3 +155,37 @@ deploy-status:
 
 deploy-env:
 	@bash scripts/dokploy-deploy.sh --env-setup
+
+# ── Compose Drift Check ────────────────────────────────────────────────────────
+# Production and staging compose files share 95% of their content. When you
+# edit one, you almost always need to edit the other. This target diffs the
+# two files, ignoring the lines that are expected to differ (DEBUG, env labels,
+# memory limits, scheme). If a diff shows changes outside that allowlist, the
+# environments have likely drifted and need a manual sync.
+
+check-compose-drift:
+	@echo "Diffing docker-compose.production.yml vs docker-compose.staging.yml..."
+	@echo "(ignoring expected deltas: comments, DEBUG, NEW_RELIC_*, APP_NAME, memory limits,"
+	@echo " WIKIBASE_SCHEME, worker concurrency, URL schemes)"
+	@diff -u \
+		--label=docker-compose.production.yml \
+		--label=docker-compose.staging.yml \
+		docker-compose.production.yml docker-compose.staging.yml \
+	| grep -E '^[+-]' \
+	| grep -vE '^(---|\+\+\+)' \
+	| grep -vE '^[+-][[:space:]]*#' \
+	| grep -vE 'DEBUG: "?(true|false)"?' \
+	| grep -vE 'NEW_RELIC_(ENVIRONMENT|APP_NAME|LOG):' \
+	| grep -vE 'APP_NAME:' \
+	| grep -vE 'staging' \
+	| grep -vE 'memory: (128M|1G|2G|4G|6G|8G)' \
+	| grep -vF 'WIKIBASE_SCHEME:-http' \
+	| grep -vF 'WIKIBASE_SCHEME:-https' \
+	| grep -vF '"http://${WIKIBASE_HOST}"' \
+	| grep -vF '"https://${WIKIBASE_HOST}"' \
+	| grep -vF -- '--concurrency=4' \
+	| grep -vF -- '--concurrency=8' \
+	| grep -vF 'QUICKSTATEMENTS_PUBLIC_URL:-https://localhost' \
+	| grep -vF 'QUICKSTATEMENTS_PUBLIC_URL:-http://localhost' \
+	| grep -vE '^[+-][[:space:]]+(deploy:|resources:|limits:)' \
+	| { read -r LINE && { echo ""; echo "ERROR: Unexpected drift between production and staging compose files."; echo "Review the diff above and sync both files intentionally."; echo "If the change is intentional, update the allowlist in this Makefile."; echo ""; echo "$$LINE"; cat; exit 1; } || { echo "OK: no unexpected drift (only allowlisted differences)."; exit 0; }; }
