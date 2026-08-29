@@ -93,7 +93,7 @@
      button component — go through this token so future contrast
      tweaks happen in one place. */
   --btn-text:          var(--text);
-  --btn-text-inverse:  var(--text-inverse);
+  --btn-text-inverse:  #fff;
   /* On-color text: always white because both --accent (dark navy in light,
      mid blue in dark) and any full-saturation button background are dark
      enough to require a high-contrast foreground. Single source of truth
@@ -177,7 +177,7 @@
   /* Inherits from --text above; redeclared for clarity and so future
      dark-mode-only contrast tweaks land here, not on --text. */
   --btn-text:          var(--text);
-  --btn-text-inverse:  var(--text-inverse);
+  --btn-text-inverse:  #fff;
   /* Keep the accent dark in both modes so white on-color text stays
      legible (white on brand-400 = ~2.6:1, fails WCAG AA). The hover
      and active states still brighten toward brand-500/600 for feedback. */
