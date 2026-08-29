@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,7 +13,6 @@ import {
   DEFAULT_PREPROCESSING_CONFIG,
   type PreprocessingConfig,
 } from "@/lib/api";
-import { useJobPolling } from "@/hooks/use-job-polling";
 import { getErrorMessage } from "@/lib/error-handler";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
@@ -24,7 +23,7 @@ import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
-import { ErrorState, Progress } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 
@@ -90,36 +89,19 @@ export default function PreprocessingPage() {
     },
   });
 
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
-
   const runOcrMutation = useMutation({
     mutationFn: () => runOcr(bookId),
-    onSuccess: (job) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-      setActiveJobId(job.id);
       toast.info("OCR job started");
-      setWorkflowStep(3);
-      setCompletedStep(3);
+      setWorkflowStep(4);
+      setCompletedStep(4);
+      router.push(`/books/${bookId}/ocr-processing`);
     },
     onError: (err) => {
       toast.error(`OCR failed to start: ${getErrorMessage(err)}`);
     },
   });
-
-  const { isComplete, isFailed, progress, isPolling, errorLog } = useJobPolling({
-    bookId,
-    jobId: activeJobId ?? undefined,
-    enabled: !!activeJobId,
-  });
-
-  useEffect(() => {
-    if (activeJobId && isComplete) {
-      toast.success("OCR completed successfully");
-      setWorkflowStep(4);
-      setCompletedStep(4);
-      router.push(`/books/${bookId}/ocr-review?jobId=${activeJobId}`);
-    }
-  }, [activeJobId, isComplete, bookId, router, setWorkflowStep, setCompletedStep]);
 
   if (isLoadingBook || isLoadingPages) {
     return <WorkflowPageSkeleton />;
@@ -370,29 +352,19 @@ export default function PreprocessingPage() {
 
                   <Button
                     onClick={() => runOcrMutation.mutate()}
-                    disabled={runOcrMutation.isPending || !!activeJobId}
+                    disabled={runOcrMutation.isPending}
                     loading={runOcrMutation.isPending}
                     className="w-full"
                   >
                     {runOcrMutation.isPending
                       ? "Starting OCR..."
-                      : isPolling
-                        ? `Running OCR... ${Math.round(progress)}%`
-                        : "Run OCR on All Pages"}
+                      : "Run OCR on All Pages"}
                   </Button>
 
-                  {isPolling && (
-                    <Progress value={progress} />
-                  )}
-
-                  {(runOcrMutation.isError || (isFailed && errorLog)) && (
+                  {runOcrMutation.isError && (
                     <ErrorState
                       title="OCR failed"
-                      description={
-                        runOcrMutation.isError
-                          ? getErrorMessage(runOcrMutation.error)
-                          : errorLog || undefined
-                      }
+                      description={getErrorMessage(runOcrMutation.error)}
                     />
                   )}
                 </div>

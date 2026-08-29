@@ -50,6 +50,9 @@
     "@newrelic/native-metrics@13.0.0": true,
     "@newrelic/fn-inspect@5.0.0": true,
     "@datadog/pprof@5.15.0": true,
-    "msw@2.14.6": true
+    "msw@2.14.6": true,
+    "@tailwindcss/postcss@4.1.16": true,
+    "typescript@5.9.3": true,
+    "tailwindcss@4.1.16": true
   }
 }
