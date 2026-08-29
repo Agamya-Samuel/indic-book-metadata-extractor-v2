@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Indic Books">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="oklch(0.46 0.095 200)"/>
+      <stop offset="100%" stop-color="oklch(0.30 0.055 200)"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="11" ry="11" fill="url(#g)"/>
+  <rect x="2" y="2" width="60" height="60" rx="11" ry="11" fill="white" fill-opacity="0.08"/>
+  <text
+    x="32"
+    y="46"
+    font-family="'Noto Serif', 'Noto Sans', ui-serif, Georgia, serif"
+    font-size="42"
+    font-weight="600"
+    text-anchor="middle"
+    fill="white"
+    dominant-baseline="middle"
+  >ಇ</text>
+</svg>

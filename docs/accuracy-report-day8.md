@@ -1,8 +1,8 @@
 # Accuracy Report — Day 8 Close-Out
 
-**Date**: 2026-08-28
-**Sprint**: 8-day push to 52-field production quality
-**Scope**: Hybrid extraction pipeline (regex + dictionary + LLM) against 5 ground-truth Indic-script books
+**Date**: 2026-08-28  
+**Sprint**: 8-day push to 52-field production quality   
+**Scope**: Hybrid extraction pipeline (regex + dictionary + LLM) against 5 ground-truth Indic-script books  
 **Constraint envelope**: CPU-only / local-only, 4-bit Airavata 7B via Ollama, Tesseract 5 with tel+hin+eng packs
 
 ---
