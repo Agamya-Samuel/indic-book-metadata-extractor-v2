@@ -144,6 +144,9 @@ export default function BookDetailPage() {
     gcTime: 5 * 60 * 1000,
   });
 
+  const bookTitle = detail?.book.title;
+  useDocumentTitle(bookTitle ? `${bookTitle} · Library` : "Book");
+
   if (isLoading) {
     return <BookDetailSkeleton />;
   }
@@ -158,9 +161,6 @@ export default function BookDetailPage() {
 
   const { book, metadata, pages, llm_runs, jobs } = detail;
   const language = LANGUAGE_LABELS[book.language] || book.language;
-  useDocumentTitle(
-    book.title ? `${book.title} · Library` : "Book"
-  );
   const metadataFields = metadata ?? {};
   const nonEmptyFieldCount = Object.values(metadataFields).filter(
     (v) => v != null && v !== ""
