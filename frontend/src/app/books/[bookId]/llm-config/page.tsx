@@ -22,6 +22,11 @@ import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
+import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { Field, Select, Textarea } from "@/components/shared/input";
+import { Button, LinkButton } from "@/components/shared/button";
+import { ErrorState, Progress } from "@/components/shared/empty-state";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 const DEFAULT_SYSTEM_PROMPT = `You are an expert bibliographic metadata extractor specializing in {{language}} language books.
 You will be given OCR-extracted text from scanned book pages. The text may contain OCR errors — use your knowledge of {{language}} to interpret corrupted words.
@@ -54,6 +59,7 @@ const BATCH_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export default function LlmConfigPage() {
+  useDocumentTitle("LLM configuration");
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -164,64 +170,59 @@ export default function LlmConfigPage() {
 
   if (!book) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-600 dark:text-gray-400">Book not found.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <ErrorState title="Book not found" />
       </div>
     );
   }
 
   if (isPolling || isComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center max-w-md mx-auto">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mx-auto mb-4" />
+          <h2 className="text-[var(--text-lg)] font-semibold text-[var(--text)] mb-2">
             {isComplete
-              ? "Extraction Complete!"
+              ? "Extraction complete"
               : isFailed
-                ? "Extraction Failed"
-                : "Running LLM Extraction..."}
+                ? "Extraction failed"
+                : "Running LLM extraction"}
           </h2>
           {!isComplete && !isFailed && (
             <>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+              <p className="text-[var(--text-muted)] text-[var(--text-sm)] mb-4">
                 {Math.round(progress)}% complete
               </p>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.round(progress)}%` }}
-                />
+              <div className="mb-4">
+                <Progress value={progress} />
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
                 Processing {totalBatches} batch groups of metadata fields
               </p>
             </>
           )}
           {isFailed && errorLog && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded text-sm text-red-700 dark:text-red-400 mb-4">
-              <p className="font-medium">Error</p>
-              <p className="mt-1">{errorLog}</p>
+            <div className="mb-4 text-left">
+              <ErrorState title="Error" description={errorLog} />
             </div>
           )}
           <div className="flex gap-3 justify-center mt-4">
             {isComplete && (
-              <button
+              <Button
                 onClick={() =>
                   router.push(`/books/${bookId}/metadata-review`)
                 }
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Review Metadata
-              </button>
+              </Button>
             )}
             {(isComplete || isFailed) && (
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setActiveJobId(null)}
-                className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200"
               >
                 Back to Config
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -230,171 +231,164 @@ export default function LlmConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--background)]">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 5 ? 5 : currentStep} completedStep={completedStep} />
 
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
-        <div className="max-w-screen-2xl mx-auto">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            LLM Configuration
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {book.title || book.filename} &bull;{" "}
-            {getLanguageName(book.language)} &bull; Configure
-            extraction parameters
-          </p>
-        </div>
-      </div>
+      <PageContainer>
+        <PageHeader
+          title="LLM Configuration"
+          description={
+            <>
+              {book.title || book.filename} &bull;{" "}
+              {getLanguageName(book.language)} &bull; Configure
+              extraction parameters
+            </>
+          }
+        />
 
-      <div className="max-w-screen-2xl mx-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3 space-y-4">
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 space-y-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 border-b dark:border-gray-700 pb-2">
-                Model Selection
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  LLM Model
-                </label>
-                <select
-                  value={config.model}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, model: e.target.value }))
-                  }
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200"
-                >
-                  <option value="airavata">airavata (default)</option>
-                  {models
-                    ?.filter((m) => m.name !== "airavata")
-                    .map((m) => (
-                      <option key={m.name} value={m.name}>
-                        {m.name}
-                        {m.size_gb ? ` (${m.size_gb.toFixed(1)} GB)` : ""}
-                      </option>
-                    ))}
-                </select>
-                {models && models.length === 0 && (
-                  <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
-                    No models detected. Ensure Ollama is running with a model
-                    pulled.
+          <div className="lg:col-span-3">
+            <Stack gap={4}>
+              <Card title="Model Selection" description="Pick the LLM and tune sampling.">
+                <Stack gap={4}>
+                  <Field label="LLM Model">
+                    <Select
+                      value={config.model}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, model: e.target.value }))
+                      }
+                    >
+                      <option value="airavata">airavata (default)</option>
+                      {models
+                        ?.filter((m) => m.name !== "airavata")
+                        .map((m) => (
+                          <option key={m.name} value={m.name}>
+                            {m.name}
+                            {m.size_gb ? ` (${m.size_gb.toFixed(1)} GB)` : ""}
+                          </option>
+                        ))}
+                    </Select>
+                  </Field>
+                  {models && models.length === 0 && (
+                    <p className="text-[var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                      No models detected. Ensure Ollama is running with a model
+                      pulled.
+                    </p>
+                  )}
+
+                  <SliderControl
+                    label="Temperature"
+                    value={config.temperature}
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    onChange={(v) =>
+                      setConfig((prev) => ({ ...prev, temperature: v }))
+                    }
+                    formatValue={(v) => v.toFixed(1)}
+                  />
+
+                  <SliderControl
+                    label="Max Tokens"
+                    value={config.max_tokens}
+                    min={100}
+                    max={4096}
+                    step={100}
+                    onChange={(v) =>
+                      setConfig((prev) => ({ ...prev, max_tokens: v }))
+                    }
+                  />
+                </Stack>
+              </Card>
+
+              <Card title="Batching" description="How many fields per LLM call.">
+                <Stack gap={3}>
+                  <SliderControl
+                    label="Fields per Batch"
+                    value={config.fields_per_batch}
+                    min={3}
+                    max={20}
+                    onChange={(v) =>
+                      setConfig((prev) => ({ ...prev, fields_per_batch: v }))
+                    }
+                  />
+                  <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                    {totalBatches} LLM call{totalBatches !== 1 ? "s" : ""} will be
+                    made ({fieldDefs?.length ?? 0} fields ÷ {config.fields_per_batch}{" "}
+                    per batch)
                   </p>
-                )}
-              </div>
 
-              <SliderControl
-                label="Temperature"
-                value={config.temperature}
-                min={0}
-                max={2}
-                step={0.1}
-                onChange={(v) =>
-                  setConfig((prev) => ({ ...prev, temperature: v }))
-                }
-                formatValue={(v) => v.toFixed(1)}
-              />
+                  <div className="pt-3 border-t border-[var(--border)] space-y-2">
+                    <Button
+                      onClick={() => runMutation.mutate()}
+                      disabled={
+                        runMutation.isPending || book.status === "llm_running"
+                      }
+                      loading={runMutation.isPending}
+                      className="w-full"
+                    >
+                      {runMutation.isPending
+                        ? "Starting..."
+                        : "Run Extraction"}
+                    </Button>
 
-              <SliderControl
-                label="Max Tokens"
-                value={config.max_tokens}
-                min={100}
-                max={4096}
-                step={100}
-                onChange={(v) =>
-                  setConfig((prev) => ({ ...prev, max_tokens: v }))
-                }
-              />
-            </div>
+                    {error && (
+                      <ErrorState title="Could not start extraction" description={error} />
+                    )}
+                  </div>
+                </Stack>
+              </Card>
 
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 space-y-3">
-              <SliderControl
-                label="Fields per Batch"
-                value={config.fields_per_batch}
-                min={3}
-                max={20}
-                onChange={(v) =>
-                  setConfig((prev) => ({ ...prev, fields_per_batch: v }))
-                }
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {totalBatches} LLM call{totalBatches !== 1 ? "s" : ""} will be
-                made ({fieldDefs?.length ?? 0} fields ÷ {config.fields_per_batch}{" "}
-                per batch)
-              </p>
-
-              <div className="pt-3 border-t dark:border-gray-700 space-y-2">
-                <button
-                  onClick={() => runMutation.mutate()}
-                  disabled={
-                    runMutation.isPending || book.status === "llm_running"
-                  }
-                  className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+              <div className="flex gap-2">
+                <LinkButton
+                  href={`/books/${bookId}/ocr-review`}
+                  variant="outline"
+                  className="flex-1"
                 >
-                  {runMutation.isPending
-                    ? "Starting..."
-                    : "Run Extraction"}
-                </button>
-
-                {error && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                )}
+                  Back to OCR Review
+                </LinkButton>
+                <LinkButton
+                  href={`/books/${bookId}/jobs`}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  View Jobs
+                </LinkButton>
               </div>
-            </div>
-
-            <div className="flex gap-2">
-              <a
-                href={`/books/${bookId}/ocr-review`}
-                className="flex-1 text-center px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200"
-              >
-                Back to OCR Review
-              </a>
-              <a
-                href={`/books/${bookId}/jobs`}
-                className="flex-1 text-center px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200"
-              >
-                View Jobs
-              </a>
-            </div>
+            </Stack>
           </div>
 
-          <div className="lg:col-span-5 space-y-4">
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                System Prompt
-              </h3>
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                rows={8}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              />
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                Available variables: {"{{language}}"}
-              </p>
-            </div>
+          <div className="lg:col-span-5">
+            <Stack gap={4}>
+              <Card title="System Prompt" description="Instructs the model on its role and output format.">
+                <Textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  rows={8}
+                  className="font-mono"
+                />
+                <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
+                  Available variables: {"{{language}}"}
+                </p>
+              </Card>
 
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Extraction Prompt
-              </h3>
-              <textarea
-                value={extractionPrompt}
-                onChange={(e) => setExtractionPrompt(e.target.value)}
-                rows={12}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
-              />
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                Variables: {"{{language}}"}, {"{{field_descriptions}}"},{" "}
-                {"{{ocr_text}}"}, {"{{page_count}}"}
-              </p>
-            </div>
+              <Card title="Extraction Prompt" description="The user-turn prompt that requests field extraction.">
+                <Textarea
+                  value={extractionPrompt}
+                  onChange={(e) => setExtractionPrompt(e.target.value)}
+                  rows={12}
+                  className="font-mono"
+                />
+                <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
+                  Variables: {"{{language}}"}, {"{{field_descriptions}}"},{" "}
+                  {"{{ocr_text}}"}, {"{{page_count}}"}
+                </p>
+              </Card>
+            </Stack>
           </div>
 
           <div className="lg:col-span-4">
-            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 border-b dark:border-gray-700 pb-2">
-                Metadata Fields by Batch
-              </h3>
+            <Card title="Metadata Fields by Batch" description="Grouped by batch_group, ready to send to the LLM.">
               <div className="space-y-2 max-h-[700px] overflow-y-auto">
                 {Object.entries(fieldsByBatch).map(([batch, fields]) => (
                   <CollapsibleSection
@@ -407,13 +401,13 @@ export default function LlmConfigPage() {
                       {fields.map((field) => (
                         <div
                           key={field.field_name}
-                          className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                          className="flex items-center justify-between px-2 py-1.5 rounded-[var(--radius)] hover:bg-[var(--surface-sunken)]"
                         >
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                          <span className="text-[var(--text-sm)] text-[var(--text)]">
                             {field.display_name}
                           </span>
                           {field.wikidata_property && (
-                            <span className="text-xs px-1.5 py-0.5 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded">
+                            <span className="text-[var(--text-xs)] px-1.5 py-0.5 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] rounded-[var(--radius-xs)]">
                               {field.wikidata_property}
                             </span>
                           )}
@@ -423,10 +417,10 @@ export default function LlmConfigPage() {
                   </CollapsibleSection>
                 ))}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
 }

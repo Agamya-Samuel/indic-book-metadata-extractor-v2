@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
@@ -15,7 +14,6 @@ import {
   getMetadataEvidence,
   getLlmRuns,
   type MetadataResponse,
-  type FieldEvidence,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
@@ -27,8 +25,13 @@ import { MetadataReviewSkeleton } from "@/components/shared/skeleton";
 import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { Button, LinkButton } from "@/components/shared/button";
+import { ErrorState, Progress, EmptyState } from "@/components/shared/empty-state";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export default function MetadataReviewPage() {
+  useDocumentTitle("Metadata review");
   const params = useParams();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
@@ -159,34 +162,28 @@ export default function MetadataReviewPage() {
 
   if (!book) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-600 dark:text-gray-400">Book not found.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <ErrorState title="Book not found" />
       </div>
     );
   }
 
   if (isPolling) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center max-w-md mx-auto">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mx-auto mb-4" />
+          <h2 className="text-[var(--text-lg)] font-semibold text-[var(--text)] mb-2">
             LLM Extraction in Progress
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+          <p className="text-[var(--text-muted)] text-[var(--text-sm)] mb-4">
             {Math.round(progress)}% complete
           </p>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.round(progress)}%` }}
-            />
+          <div className="mb-4">
+            <Progress value={progress} />
           </div>
           {isFailed && errorLog && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-400">
-              <p className="font-medium">Extraction Failed</p>
-              <p className="mt-1">{errorLog}</p>
-            </div>
+            <ErrorState title="Extraction Failed" description={errorLog} />
           )}
         </div>
       </div>
@@ -196,185 +193,188 @@ export default function MetadataReviewPage() {
   const metadataValues = metadata?.fields ?? {};
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 6 ? 6 : currentStep} completedStep={completedStep} />
 
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 sm:px-6 py-4">
-        <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Metadata Review
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+      <PageContainer className="flex-1 flex flex-col">
+        <PageHeader
+          title="Metadata Review"
+          description={
+            <>
               {book.title || book.filename} &bull;{" "}
               {getLanguageName(book.language)} &bull;{" "}
               {Object.keys(metadataValues).length} fields extracted
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowLlmHistory(!showLlmHistory)}
-              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-            >
-              {showLlmHistory ? "Hide" : "Show"} LLM History
-            </button>
-            <a
-              href={`/books/${bookId}/llm-config`}
-              className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-            >
-              Back to LLM Config
-            </a>
-          </div>
-        </div>
-      </div>
+            </>
+          }
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowLlmHistory(!showLlmHistory)}
+              >
+                {showLlmHistory ? "Hide" : "Show"} LLM History
+              </Button>
+              <LinkButton
+                href={`/books/${bookId}/llm-config`}
+                variant="outline"
+              >
+                Back to LLM Config
+              </LinkButton>
+            </div>
+          }
+        />
 
-      <div className="flex-1 max-w-screen-2xl mx-auto w-full p-4 sm:p-6">
-        {showLlmHistory && llmRuns && llmRuns.length > 0 && (
-          <div className="mb-6">
-            <CollapsibleSection
-              title="LLM Run History"
-              count={llmRuns.length}
-              defaultOpen={true}
-            >
-              <div className="space-y-3">
-                {llmRuns.map((run) => (
-                  <div
-                    key={run.id}
-                    className="border rounded p-3 text-sm dark:border-gray-700"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                          {run.model}
-                        </span>
-                        {run.created_at && (
-                          <span className="text-xs text-gray-400 dark:text-gray-500">
-                            {new Date(run.created_at).toLocaleString()}
-                          </span>
+        <Stack gap={6}>
+          {showLlmHistory && (
+            <Card title="LLM Run History" description="Past LLM extraction runs and their outputs.">
+              {llmRuns && llmRuns.length > 0 ? (
+                <CollapsibleSection
+                  title="All Runs"
+                  count={llmRuns.length}
+                  defaultOpen={true}
+                >
+                  <Stack gap={3}>
+                    {llmRuns.map((run) => (
+                      <div
+                        key={run.id}
+                        className="border border-[var(--border)] rounded-[var(--radius)] p-3 text-[var(--text-sm)]"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-[var(--text)]">
+                              {run.model}
+                            </span>
+                            {run.created_at && (
+                              <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+                                {new Date(run.created_at).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {run.prompt_template && (
+                          <details className="mt-1">
+                            <summary className="text-[var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
+                              View prompt
+                            </summary>
+                            <pre className="mt-1 text-[var(--text-xs)] bg-[var(--surface-sunken)] p-2 rounded-[var(--radius)] overflow-x-auto whitespace-pre-wrap text-[var(--text)]">
+                              {run.prompt_template}
+                            </pre>
+                          </details>
+                        )}
+                        {run.parsed_fields && (
+                          <details className="mt-1">
+                            <summary className="text-[var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
+                              View extracted fields (
+                              {Object.keys(run.parsed_fields).length})
+                            </summary>
+                            <div className="mt-1 grid grid-cols-2 gap-1">
+                              {Object.entries(run.parsed_fields).map(
+                                ([k, v]) => (
+                                  <div key={k} className="text-[var(--text-xs)]">
+                                    <span className="text-[var(--text-muted)]">{k}:</span>{" "}
+                                    <span className="text-[var(--text)]">{v ?? "null"}</span>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </details>
                         )}
                       </div>
-                    </div>
-                    {run.prompt_template && (
-                      <details className="mt-1">
-                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-                          View prompt
-                        </summary>
-                        <pre className="mt-1 text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto whitespace-pre-wrap">
-                          {run.prompt_template}
-                        </pre>
-                      </details>
-                    )}
-                    {run.parsed_fields && (
-                      <details className="mt-1">
-                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-                          View extracted fields ({
-                            Object.keys(run.parsed_fields).length
-                          })
-                        </summary>
-                        <div className="mt-1 grid grid-cols-2 gap-1">
-                          {Object.entries(run.parsed_fields).map(
-                            ([k, v]) => (
-                              <div key={k} className="text-xs">
-                                <span className="text-gray-500 dark:text-gray-400">{k}:</span>{" "}
-                                <span className="text-gray-700 dark:text-gray-300">{v ?? "null"}</span>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          </div>
-        )}
+                    ))}
+                  </Stack>
+                </CollapsibleSection>
+              ) : (
+                <EmptyState
+                  title="No LLM runs yet"
+                  description="Past LLM extraction runs will appear here."
+                />
+              )}
+            </Card>
+          )}
 
-        {pages && pages.length > 0 && ocrResult && (
-          <div className="mb-6 bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Page Image Viewer
-              </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setCurrentPageIndex((prev) => Math.max(0, prev - 1));
-                    setSelectedBoxIndex(undefined);
-                  }}
-                  disabled={currentPageIndex === 0}
-                  className="px-3 py-1 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Prev
-                </button>
-                <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[80px] text-center">
-                  Page {currentPageIndex + 1} of {pages.length}
-                </span>
-                <button
-                  onClick={() => {
-                    setCurrentPageIndex((prev) =>
-                      Math.min(pages.length - 1, prev + 1)
-                    );
-                    setSelectedBoxIndex(undefined);
-                  }}
-                  disabled={currentPageIndex === pages.length - 1}
-                  className="px-3 py-1 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-            <BoundingBoxCanvas
-              imageUrl={getPageImageUrl(currentPage!.id)}
-              boxes={ocrResult.bounding_boxes ?? []}
-              selectedIndex={selectedBoxIndex}
-              onBoxClick={(idx) => {
-                setSelectedBoxIndex(idx);
-                const word = ocrResult.bounding_boxes?.[idx];
-                if (word?.text) {
-                  handleCopyText(word.text);
-                }
-              }}
-              highlightLowConfidence={true}
-              lowConfidenceThreshold={60}
+          {pages && pages.length > 0 && ocrResult && currentPage && (
+            <Card
+              title="Page Image Viewer"
+              description="Click a bounding box to copy its text to clipboard."
+              headerAction={
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentPageIndex((prev) => Math.max(0, prev - 1));
+                      setSelectedBoxIndex(undefined);
+                    }}
+                    disabled={currentPageIndex === 0}
+                  >
+                    Prev
+                  </Button>
+                  <span className="text-[var(--text-sm)] text-[var(--text-muted)] min-w-[80px] text-center tabular-nums">
+                    Page {currentPageIndex + 1} of {pages.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentPageIndex((prev) =>
+                        Math.min(pages.length - 1, prev + 1)
+                      );
+                      setSelectedBoxIndex(undefined);
+                    }}
+                    disabled={currentPageIndex === pages.length - 1}
+                  >
+                    Next
+                  </Button>
+                </div>
+              }
+            >
+              <BoundingBoxCanvas
+                imageUrl={getPageImageUrl(currentPage.id)}
+                boxes={ocrResult.bounding_boxes ?? []}
+                selectedIndex={selectedBoxIndex}
+                onBoxClick={(idx) => {
+                  setSelectedBoxIndex(idx);
+                  const word = ocrResult.bounding_boxes?.[idx];
+                  if (word?.text) {
+                    handleCopyText(word.text);
+                  }
+                }}
+                highlightLowConfidence={true}
+                lowConfidenceThreshold={60}
+              />
+            </Card>
+          )}
+
+          {fieldDefs && (
+            <MetadataForm
+              fieldDefinitions={fieldDefs}
+              values={metadataValues}
+              onSave={handleSave}
+              isSaving={saveMutation.isPending}
+              confidenceByField={confidenceByField}
             />
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Click a bounding box to copy its text to clipboard
-            </p>
+          )}
+
+          {saveMutation.isError && (
+            <ErrorState
+              title="Failed to save metadata"
+              description={getErrorMessage(saveMutation.error)}
+            />
+          )}
+
+          <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">
+            <LinkButton
+              href={`/books/${bookId}/llm-config`}
+              variant="outline"
+            >
+              Re-run Extraction
+            </LinkButton>
+            <LinkButton href="/library" variant="outline">
+              Go to Library
+            </LinkButton>
           </div>
-        )}
-
-        {fieldDefs && (
-          <MetadataForm
-            fieldDefinitions={fieldDefs}
-            values={metadataValues}
-            onSave={handleSave}
-            isSaving={saveMutation.isPending}
-            confidenceByField={confidenceByField}
-          />
-        )}
-
-        {saveMutation.isError && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-            {getErrorMessage(saveMutation.error)}
-          </p>
-        )}
-
-        <div className="mt-6 flex items-center gap-3 border-t dark:border-gray-700 pt-4">
-          <a
-            href={`/books/${bookId}/llm-config`}
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-          >
-            Re-run Extraction
-          </a>
-          <Link
-            href="/library"
-            className="px-4 py-2 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
-          >
-            Go to Library
-          </Link>
-        </div>
-      </div>
+        </Stack>
+      </PageContainer>
     </div>
   );
 }
