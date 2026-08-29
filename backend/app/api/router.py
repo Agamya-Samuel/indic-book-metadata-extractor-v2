@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.admin import router as admin_router
 from app.api.books import router as books_router
 from app.api.bulk import router as bulk_router
 from app.api.extraction import router as extraction_router
@@ -16,3 +17,4 @@ api_router.include_router(extraction_router, prefix="/books", tags=["extraction"
 api_router.include_router(metadata_router, prefix="/books", tags=["metadata"])
 api_router.include_router(bulk_router, prefix="/bulk", tags=["bulk"])
 api_router.include_router(sse_router, prefix="/sse", tags=["SSE"])
+api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
