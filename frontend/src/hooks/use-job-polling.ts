@@ -12,6 +12,7 @@ function isTerminalStatus(status: string): status is JobTerminalStatus {
 interface UseJobPollingOptions {
   bookId: string;
   jobId?: string;
+  jobType?: "ocr" | "llm" | "preprocessing";
   intervalMs?: number;
   enabled?: boolean;
 }
@@ -32,6 +33,7 @@ interface UseJobPollingReturn {
 export function useJobPolling({
   bookId,
   jobId,
+  jobType,
   intervalMs = 2000,
   enabled = true,
 }: UseJobPollingOptions): UseJobPollingReturn {
@@ -56,9 +58,14 @@ export function useJobPolling({
     enabled: !!bookId && enabled,
   });
 
+  // Filter jobs by type if specified
+  const filteredJobs = jobType
+    ? allJobs.filter((j) => j.job_type === jobType)
+    : allJobs;
+
   const job = jobId
-    ? allJobs.find((j) => j.id === jobId) ?? null
-    : allJobs[0] ?? null;
+    ? filteredJobs.find((j) => j.id === jobId) ?? null
+    : filteredJobs[0] ?? null;
 
   const isRunning = !isLoading && (job?.status === "running" || job?.status === "queued");
   const isComplete = job?.status === "completed";
