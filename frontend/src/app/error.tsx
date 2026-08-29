@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { Button, LinkButton } from "@/components/shared/button";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export default function GlobalError({
   error,
@@ -9,55 +10,56 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useDocumentTitle("Something went wrong");
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md mx-auto text-center p-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+    <main className="flex min-h-[calc(100dvh-var(--nav-height))] items-center justify-center px-4">
+      <div className="mx-auto w-full max-w-md text-center">
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-5 flex size-12 items-center justify-center rounded-full border border-[var(--danger-500)]/30 bg-[var(--danger-50)] text-[var(--danger-600)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-500)]"
+        >
           <svg
-            className="w-8 h-8 text-red-600"
-            fill="none"
             viewBox="0 0 24 24"
+            fill="none"
             stroke="currentColor"
+            strokeWidth={1.5}
+            className="size-6"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
             />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h1 className="text-[var(--text-2xl)] font-semibold tracking-tight text-[var(--text)]">
           Something went wrong
-        </h2>
-        <p className="text-gray-600 text-sm mb-6">
-          An unexpected error occurred. Please try again.
+        </h1>
+        <p className="mt-2 text-[var(--text-sm)] text-[var(--text-muted)]">
+          An unexpected error occurred while loading this page. You can try again
+          or return to the library.
         </p>
         {error.message && (
-          <details className="mb-6 text-left">
-            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-              Error details
+          <details className="mt-5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-left">
+            <summary className="cursor-pointer text-[var(--text-xs)] font-medium text-[var(--text-muted)] hover:text-[var(--text)]">
+              Show error details
             </summary>
-            <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-x-auto text-red-700">
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-[var(--text-xs)] font-mono text-[var(--danger-700)] dark:text-[var(--danger-300)]">
               {error.message}
             </pre>
           </details>
         )}
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={reset}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-          <Link
-            href="/"
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-          >
-            Go Home
-          </Link>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" onClick={reset}>
+            Try again
+          </Button>
+          <LinkButton href="/" variant="outline">
+            Go to library
+          </LinkButton>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

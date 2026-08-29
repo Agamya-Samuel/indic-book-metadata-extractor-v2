@@ -19,8 +19,14 @@ import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 import { OcrReviewSkeleton } from "@/components/shared/skeleton";
+import { PageContainer, Card } from "@/components/shared/card";
+import { Button, LinkButton } from "@/components/shared/button";
+import { ErrorState, Progress } from "@/components/shared/empty-state";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { cn } from "@/lib/utils";
 
 export default function OcrReviewPage() {
+  useDocumentTitle("OCR review");
   const params = useParams();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -117,16 +123,16 @@ export default function OcrReviewPage() {
 
   if (!book || !pages || pages.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">No pages found for this book.</p>
-          <a
-            href={`/books/${bookId}/select-pages`}
-            className="text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            Go to Page Selection
-          </a>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <ErrorState
+          title="No pages found for this book"
+          description="Select pages first before running OCR."
+          action={
+            <LinkButton href={`/books/${bookId}/select-pages`}>
+              Go to Page Selection
+            </LinkButton>
+          }
+        />
       </div>
     );
   }
@@ -134,108 +140,114 @@ export default function OcrReviewPage() {
   const showPollingOverlay = isPolling && !ocrResult;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 4 ? 4 : currentStep} completedStep={completedStep} />
 
-      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-6 py-4">
-        <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">OCR Review</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {book.title || book.filename} &bull;{" "}
-              {getLanguageName(book.language)}
-            </p>
-          </div>
+      <div className="border-b border-[var(--border)] bg-[var(--surface)]">
+        <PageContainer className="!py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-[var(--text-xl)] font-bold text-[var(--text)]">OCR Review</h1>
+              <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                {book.title || book.filename} &bull;{" "}
+                {getLanguageName(book.language)}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-4">
-            {ocrResult && (
-              <div className="flex items-center gap-3">
-                <span
-                  className={`px-2 py-1 text-xs rounded font-medium ${
-                    (ocrResult.confidence ?? 0) >= 80
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : (ocrResult.confidence ?? 0) >= 60
-                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                  }`}
-                >
-                  Avg: {Math.round(ocrResult.confidence ?? 0)}%
-                </span>
-                {ocrResult.language_detected && (
-                  <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-                    {ocrResult.language_detected}
+            <div className="flex items-center gap-4">
+              {ocrResult && (
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "px-2 py-1 text-[var(--text-xs)] rounded-[var(--radius)] font-medium",
+                      (ocrResult.confidence ?? 0) >= 80
+                        ? "bg-[var(--success-50)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]"
+                        : (ocrResult.confidence ?? 0) >= 60
+                          ? "bg-[var(--warning-50)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]"
+                          : "bg-[var(--danger-50)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
+                    )}
+                  >
+                    Avg: {Math.round(ocrResult.confidence ?? 0)}%
                   </span>
-                )}
-              </div>
-            )}
+                  {ocrResult.language_detected && (
+                    <span className="px-2 py-1 text-[var(--text-xs)] bg-[var(--surface-sunken)] text-[var(--text-muted)] rounded-[var(--radius)]">
+                      {ocrResult.language_detected}
+                    </span>
+                  )}
+                </div>
+              )}
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={currentPageIndex === 0}
-                className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[80px] text-center">
-                Page {currentPageIndex + 1} of {pages.length}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={currentPageIndex === pages.length - 1}
-                className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={currentPageIndex === 0}
+                >
+                  Previous
+                </Button>
+                <span className="text-[var(--text-sm)] text-[var(--text-muted)] min-w-[80px] text-center tabular-nums">
+                  Page {currentPageIndex + 1} of {pages.length}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPageIndex === pages.length - 1}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {showPollingOverlay ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4" />
-              <p className="text-gray-700 dark:text-gray-300 font-medium">Running OCR...</p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="text-center max-w-md">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mx-auto mb-4" />
+              <p className="text-[var(--text)] font-medium">Running OCR...</p>
+              <p className="text-[var(--text-muted)] text-[var(--text-sm)] mt-1">
                 {Math.round(progress)}% complete
               </p>
-              <div className="w-64 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-3 mx-auto">
-                <div
-                  className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.round(progress)}%` }}
-                />
+              <div className="w-64 mx-auto mt-3">
+                <Progress value={progress} />
               </div>
               {isFailed && errorLog && (
-                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-700 dark:text-red-400 max-w-md">
-                  <p className="font-medium">OCR Failed</p>
-                  <p className="mt-1">{errorLog}</p>
+                <div className="mt-4">
+                  <ErrorState
+                    title="OCR Failed"
+                    description={errorLog}
+                  />
                 </div>
               )}
             </div>
           </div>
         ) : isLoadingOcr ? (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400 text-sm">Loading OCR results...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)] mx-auto mb-3" />
+              <p className="text-[var(--text-muted)] text-[var(--text-sm)]">Loading OCR results...</p>
             </div>
           </div>
         ) : ocrResult ? (
           <>
             <div className="w-full lg:w-[60%] p-4 overflow-hidden">
-              <BoundingBoxCanvas
-                imageUrl={getPageImageUrl(currentPage!.id)}
-                boxes={ocrResult.bounding_boxes ?? []}
-                selectedIndex={selectedWordIndex}
-                onBoxClick={handleBoxClick}
-                highlightLowConfidence={true}
-                lowConfidenceThreshold={60}
-              />
+              <Card>
+                <BoundingBoxCanvas
+                  imageUrl={getPageImageUrl(currentPage!.id)}
+                  boxes={ocrResult.bounding_boxes ?? []}
+                  selectedIndex={selectedWordIndex}
+                  onBoxClick={handleBoxClick}
+                  highlightLowConfidence={true}
+                  lowConfidenceThreshold={60}
+                />
+              </Card>
             </div>
 
-            <div className="w-full lg:w-[40%] border-l dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
+            <div className="w-full lg:w-[40%] border-l border-[var(--border)] bg-[var(--surface)] flex flex-col">
               <OcrTextEditor
                 words={ocrResult.bounding_boxes ?? []}
                 rawText={ocrResult.raw_text}
@@ -248,81 +260,70 @@ export default function OcrReviewPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
-              <p className="text-gray-600 dark:text-gray-400 mb-2">No OCR results for this page.</p>
-              <a
-                href={`/books/${bookId}/preprocessing`}
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-              >
-                Run OCR from Preprocessing
-              </a>
+              <ErrorState
+                title="No OCR results for this page"
+                description="Run OCR from the Preprocessing step to generate text."
+                action={
+                  <LinkButton href={`/books/${bookId}/preprocessing`}>
+                    Run OCR from Preprocessing
+                  </LinkButton>
+                }
+              />
             </div>
           </div>
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 px-6 py-3">
-        <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {pages.map((page, idx) => {
-              const hasOcr = !!getCachedOcrForPage(page.id);
-              return (
-                <PageButton
-                  key={page.id}
-                  pageNumber={page.page_number}
-                  isActive={idx === currentPageIndex}
-                  hasOcr={hasOcr}
-                  onSelect={() => handlePageSelect(idx)}
-                />
-              );
-            })}
-          </div>
+      <div className="border-t border-[var(--border)] bg-[var(--surface)]">
+        <PageContainer className="!py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0">
+              {pages.map((page, idx) => {
+                const hasOcr = !!getCachedOcrForPage(page.id);
+                return (
+                  <Button
+                    key={page.id}
+                    size="sm"
+                    variant={idx === currentPageIndex ? "primary" : "ghost"}
+                    onClick={() => handlePageSelect(idx)}
+                    aria-label={`Go to page ${page.page_number}`}
+                    title={`Page ${page.page_number}${hasOcr ? " (OCR loaded)" : ""}`}
+                    className={cn(
+                      "shrink-0",
+                      idx === currentPageIndex
+                        ? ""
+                        : hasOcr
+                          ? "text-[var(--success-700)] dark:text-[var(--success-100)]"
+                          : ""
+                    )}
+                  >
+                    {page.page_number}
+                  </Button>
+                );
+              })}
+            </div>
 
-          <div className="flex items-center gap-3">
-            <a
-              href={`/books/${bookId}/preprocessing`}
-              className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
-            >
-              Back to Preprocessing
-            </a>
-            <a
-              href={`/books/${bookId}/llm-config`}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors"
-            >
-              Proceed to LLM Config
-            </a>
+            <div className="flex items-center gap-3 shrink-0">
+              <LinkButton
+                href={`/books/${bookId}/preprocessing`}
+                variant="outline"
+                size="sm"
+              >
+                Back to Preprocessing
+              </LinkButton>
+              <LinkButton
+                href={`/books/${bookId}/llm-config`}
+                variant="primary"
+                size="sm"
+              >
+                Proceed to LLM Config
+              </LinkButton>
+            </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
     </div>
-  );
-}
-
-function PageButton({
-  pageNumber,
-  isActive,
-  hasOcr,
-  onSelect,
-}: {
-  pageNumber: number;
-  isActive: boolean;
-  hasOcr: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className={`w-8 h-8 text-xs rounded border transition-colors ${
-        isActive
-          ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium"
-          : hasOcr
-            ? "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/30 dark:text-green-400"
-            : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-      }`}
-      title={`Page ${pageNumber}${hasOcr ? " (OCR loaded)" : ""}`}
-    >
-      {pageNumber}
-    </button>
   );
 }
