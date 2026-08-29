@@ -12,6 +12,7 @@ const navLinks = [
     label: "Bulk operations",
     shortLabel: "Bulk",
   },
+  { href: "/admin", label: "Admin", shortLabel: "Admin" },
 ];
 
 export default function AppNavbar() {
