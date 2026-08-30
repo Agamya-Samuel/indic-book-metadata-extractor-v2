@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
@@ -11,8 +10,15 @@ import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 import { SelectPagesSkeleton } from "@/components/shared/skeleton";
+import { PageContainer, PageHeader, Card } from "@/components/shared/card";
+import { Button, LinkButton } from "@/components/shared/button";
+import Image from "next/image";
+import { Banner, EmptyState, ErrorState } from "@/components/shared/empty-state";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { cn } from "@/lib/utils";
 
 export default function SelectPagesPage() {
+  useDocumentTitle("Select pages");
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -79,16 +85,16 @@ export default function SelectPagesPage() {
 
   if (bookError || !book) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-red-600 dark:text-red-400">Error loading book</div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <ErrorState title="Error loading book" />
       </div>
     );
   }
 
   if (!book.total_pages) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Book has no pages</div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <p className="text-[var(--text-muted)]">Book has no pages</p>
       </div>
     );
   }
@@ -141,187 +147,203 @@ export default function SelectPagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--background)]">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 2 ? 2 : currentStep} completedStep={completedStep} />
 
       {showSuccessBanner && (
-        <div className="bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
+        <div
+          className="border-b border-[var(--success-500)]/30 bg-[var(--success-50)] dark:bg-[var(--success-900)]/15 animate-fade-in"
+          role="status"
+          aria-live="polite"
+        >
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <svg
-                  className="h-6 w-6 text-green-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+            <Banner tone="success" className="flex items-center justify-between bg-transparent border-0 p-0">
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="flex size-7 items-center justify-center rounded-full bg-[var(--success-600)] text-[var(--text-inverse)] animate-success-glow"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="ml-3 text-sm font-medium text-green-800 dark:text-green-300">
-                  Successfully selected {selectedCount} pages
-                </p>
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="size-3.5 animate-step-check"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.704 5.296a1 1 0 010 1.408l-7.997 8a1 1 0 01-1.408 0l-3.999-4a1 1 0 011.408-1.408L8 12.59l7.296-7.294a1 1 0 011.408 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+                <div>
+                  <p className="text-[var(--text-sm)] font-semibold text-[var(--success-700)] dark:text-[var(--success-100)]">
+                    {selectedCount} pages selected
+                  </p>
+                  <p className="text-[var(--text-xs)] text-[var(--success-700)]/80 dark:text-[var(--success-100)]/80">
+                    Ready to preprocess. The next step runs image cleanup before OCR.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center">
-                <Link
+              <div className="flex items-center gap-2">
+                <LinkButton
                   href={`/books/${bookId}/preprocessing`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  variant="primary"
+                  size="sm"
                 >
-                  Continue to Preprocessing
-                </Link>
-                <button
-                  type="button"
+                  Continue to preprocessing
+                </LinkButton>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowSuccessBanner(false)}
-                  className="ml-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  Close
-                </button>
+                  Dismiss
+                </Button>
               </div>
-            </div>
+            </Banner>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {book.title || book.filename}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Language: {getLanguageName(book.language)} • Total pages: {totalPages}
-          </p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          eyebrow={getLanguageName(book.language)}
+          title={book.title || book.filename}
+          description={`Total pages: ${totalPages}`}
+        />
 
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <div className="flex items-center space-x-4">
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
+        <Card className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleSelectAll}>
                 Select All
-              </button>
-              <button
-                type="button"
-                onClick={handleDeselectAll}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDeselectAll}>
                 Deselect All
-              </button>
-              <button
-                type="button"
-                onClick={handleSelectFront10}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSelectFront10}>
                 Select Front 10
-              </button>
-              <button
-                type="button"
-                onClick={handleSelectBack5}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSelectBack5}>
                 Select Back 5
-              </button>
+              </Button>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-3">
+              <span className="text-[var(--text-sm)] font-medium text-[var(--text-muted)]">
                 Selected {selectedCount} / {totalPages} pages
               </span>
-              <button
-                type="button"
+              <Button
                 onClick={handleConfirm}
                 disabled={selectedCount === 0 || selectPagesMutation.isPending}
-                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                loading={selectPagesMutation.isPending}
               >
-                {selectPagesMutation.isPending ? "Processing..." : `Confirm ${selectedCount} pages`}
-              </button>
+                {selectPagesMutation.isPending
+                  ? "Processing..."
+                  : `Confirm ${selectedCount} pages`}
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {visiblePageNumbers.map((pageNumber) => {
-            const isSelected = selectedPages.has(pageNumber);
-            const isLoaded = imagesLoaded.has(pageNumber);
+        {visiblePageNumbers.length === 0 ? (
+          <EmptyState
+            title="No pages to select"
+            description="There are no pages in the visible range."
+          />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {visiblePageNumbers.map((pageNumber) => {
+              const isSelected = selectedPages.has(pageNumber);
+              const isLoaded = imagesLoaded.has(pageNumber);
 
-            return (
-              <div
-                key={pageNumber}
-                className={`relative bg-white dark:bg-gray-800 border-2 rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg ${
-                  isSelected ? "border-blue-500 shadow-lg" : "border-gray-200 dark:border-gray-600"
-                }`}
-                onClick={() => togglePageSelection(pageNumber)}
-              >
-                <div className="aspect-[3/4] relative bg-gray-100 dark:bg-gray-700">
-                  <img
-                    src={getThumbnailUrl(bookId, pageNumber)}
-                    alt={`Page ${pageNumber}`}
-                    className="w-full h-full object-cover"
-                    onLoad={() => handleImageLoad(pageNumber)}
-                    onError={() => handleImageError(pageNumber)}
-                    decoding="async"
-                  />
-                  {!isLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-                    </div>
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => togglePageSelection(pageNumber)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "relative bg-[var(--surface)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all hover:shadow-[var(--shadow-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                    isSelected
+                      ? "border-2 border-[var(--accent)] shadow-[var(--shadow-md)]"
+                      : "border-2 border-[var(--border)]"
                   )}
-                </div>
-
-                <div className="absolute top-2 right-2">
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      isSelected
-                        ? "bg-blue-500 border-blue-500"
-                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                    }`}
-                  >
-                    {isSelected && (
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                >
+                  <div className="aspect-[3/4] relative bg-[var(--surface-sunken)]">
+                    <Image
+                      src={getThumbnailUrl(bookId, pageNumber)}
+                      alt={`Page ${pageNumber}`}
+                      fill
+                      sizes="(min-width: 1280px) 16vw, (min-width: 768px) 25vw, 50vw"
+                      className="object-cover"
+                      onLoad={() => handleImageLoad(pageNumber)}
+                      onError={() => handleImageError(pageNumber)}
+                      unoptimized
+                    />
+                    {!isLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface-sunken)]">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-subtle)]"></div>
+                      </div>
                     )}
                   </div>
-                </div>
 
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                  <p className="text-white text-xs font-medium text-center">
-                    Page {pageNumber}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="absolute top-2 right-2">
+                    <div
+                      className={cn(
+                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                        isSelected
+                          ? "bg-[var(--accent)] border-[var(--accent)]"
+                          : "bg-[var(--surface)] border-[var(--border-strong)]"
+                      )}
+                    >
+                      {isSelected && (
+                        <svg className="w-4 h-4 text-[var(--text-inverse)]" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--neutral-1000)]/80 to-transparent p-2">
+                    <p className="text-[var(--text-inverse)] text-[var(--text-xs)] font-medium text-center">
+                      Page {pageNumber}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {totalPaginationPages > 1 && (
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <button
-              type="button"
+          <nav
+            aria-label="Pagination"
+            className="mt-6 flex items-center justify-center gap-2"
+          >
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="First page"
             >
               ««
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Previous page"
             >
               «
-            </button>
+            </Button>
             {Array.from({ length: totalPaginationPages }, (_, i) => i + 1)
               .filter((p) => {
                 if (totalPaginationPages <= 7) return true;
@@ -335,41 +357,47 @@ export default function SelectPagesPage() {
               }, [])
               .map((item, i) =>
                 item === "..." ? (
-                  <span key={`ellipsis-${i}`} className="px-2 text-gray-400">…</span>
+                  <span
+                    key={`ellipsis-${i}`}
+                    className="px-2 text-[var(--text-muted)]"
+                    aria-hidden="true"
+                  >
+                    …
+                  </span>
                 ) : (
-                  <button
+                  <Button
                     key={item}
-                    type="button"
+                    variant={currentPage === item ? "primary" : "outline"}
+                    size="sm"
                     onClick={() => setCurrentPage(item as number)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      currentPage === item
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
+                    aria-label={`Page ${item}`}
+                    aria-current={currentPage === item ? "page" : undefined}
                   >
                     {item}
-                  </button>
+                  </Button>
                 )
               )}
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage((p) => Math.min(totalPaginationPages, p + 1))}
               disabled={currentPage === totalPaginationPages}
-              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Next page"
             >
               »
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage(totalPaginationPages)}
               disabled={currentPage === totalPaginationPages}
-              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Last page"
             >
               »»
-            </button>
-          </div>
+            </Button>
+          </nav>
         )}
-      </div>
+      </PageContainer>
     </div>
   );
 }

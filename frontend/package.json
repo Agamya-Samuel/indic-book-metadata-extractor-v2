@@ -14,13 +14,13 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "dotenv": "^16.5.0",
-    "newrelic": "^14.1.0",
     "@tanstack/react-query": "^5.100.11",
     "axios": "^1.16.1",
+    "dotenv": "^16.5.0",
     "fuse.js": "^7.3.0",
     "konva": "^10.3.0",
-    "next": "16.2.6",
+    "newrelic": "^14.1.0",
+    "next": "^16.3.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-dropzone": "^15.0.0",
@@ -43,7 +43,16 @@
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "5.9.3",
     "vitest": "^4.1.7"
+  },
+  "allowScripts": {
+    "@newrelic/native-metrics@13.0.0": true,
+    "@newrelic/fn-inspect@5.0.0": true,
+    "@datadog/pprof@5.15.0": true,
+    "msw@2.14.6": true,
+    "@tailwindcss/postcss@4.1.16": true,
+    "typescript@5.9.3": true,
+    "tailwindcss@4.1.16": true
   }
 }

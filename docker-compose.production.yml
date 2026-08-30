@@ -1,10 +1,16 @@
 # =============================================================================
-# Dokploy Production Compose — Indic Book Metadata Extractor
+# Production Standalone Compose — Indic Book Metadata Extractor
 # =============================================================================
-# How to use:
-#   1. In Dokploy → Docker Compose service → set "Compose Path" to this file
-#   2. Set env vars in Dokploy's "Environment" tab (see .env.production.example)
-#   3. Click Deploy — everything else is automatic
+# Full self-contained compose file for the PRODUCTION environment on Dokploy.
+#
+# This is a copy of docker-compose.dokploy.yml with production-specific
+# settings baked in (DEBUG=false, HTTPS Wikibase, prod memory limits).
+# It is kept in sync with docker-compose.staging.yml — run
+#   make check-compose-drift
+# to verify they haven't diverged unexpectedly.
+#
+# Dokploy setup: Service → "Compose Path" = "docker-compose.production.yml"
+#                Environment → paste contents of .env.production
 # =============================================================================
 
 services:
@@ -63,10 +69,6 @@ services:
     environment:
       OLLAMA_PRELOAD_MODEL: airavata
       OLLAMA_KEEP_ALIVE: "30m"
-    deploy:
-      resources:
-        limits:
-          memory: 8G
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -78,6 +80,7 @@ services:
   # FastAPI Backend
   # ─────────────────────────────────────────────────────────────────────────────
   backend:
+    image: app-jb5tjz-backend
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
@@ -85,12 +88,10 @@ services:
     expose:
       - "8000"
     environment:
-      # App
       APP_NAME: ${APP_NAME:-Indic Book Metadata Extractor}
-      DEBUG: ${DEBUG:-false}
+      DEBUG: "false"
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-200}
-      # Internal services (fixed — never change in Docker)
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       REDIS_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -98,11 +99,10 @@ services:
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
       DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
-      # New Relic (disabled by default — set NEW_RELIC_ENABLED=true + key to enable)
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
-      NEW_RELIC_ENVIRONMENT: ${NEW_RELIC_ENVIRONMENT:-production}
+      NEW_RELIC_ENVIRONMENT: production
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
       NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
       NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
@@ -125,16 +125,16 @@ services:
         condition: service_healthy
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Celery Worker (OCR + LLM tasks)
+  # Celery Worker (OCR + LLM tasks, optimized with thread-based parallelism)
   # ─────────────────────────────────────────────────────────────────────────────
   worker:
+    image: app-jb5tjz-worker
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "-Q", "ocr,llm,default"]
     environment:
-      # Internal services (fixed)
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       REDIS_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -142,11 +142,13 @@ services:
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
       DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
-      # New Relic
+      OCR_BATCH_SIZE: ${OCR_BATCH_SIZE:-10}
+      OCR_THREAD_WORKERS: ${OCR_THREAD_WORKERS:-4}
+      OCR_RENDER_DPI: ${OCR_RENDER_DPI:-300}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
-      NEW_RELIC_ENVIRONMENT: ${NEW_RELIC_ENVIRONMENT:-production}
+      NEW_RELIC_ENVIRONMENT: production
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
       NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
       NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
@@ -157,10 +159,6 @@ services:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
       - ./backend/alembic.ini:/app/alembic.ini
-    deploy:
-      resources:
-        limits:
-          memory: 2G
     depends_on:
       postgres:
         condition: service_healthy
@@ -173,11 +171,14 @@ services:
   # Next.js Frontend
   # ─────────────────────────────────────────────────────────────────────────────
   frontend:
+    image: app-jb5tjz-frontend
     build:
       context: ./frontend
       dockerfile: ../docker/Dockerfile.frontend
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+        NEXT_PUBLIC_OPENREFINE_URL: ${NEXT_PUBLIC_OPENREFINE_URL:-}
+        NEXT_PUBLIC_WIKIBASE_URL: ${NEXT_PUBLIC_WIKIBASE_URL:-}
         NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY: ${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
         NEXT_PUBLIC_NEW_RELIC_APP_ID: ${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
         NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID: ${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
@@ -188,6 +189,7 @@ services:
     expose:
       - "3000"
     environment:
+      NEXT_PUBLIC_OPENREFINE_URL: ${NEXT_PUBLIC_OPENREFINE_URL:-}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
@@ -206,7 +208,7 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       FLOWER_PORT: "5555"
-      FLOWER_BASIC_AUTH: ${FLOWER_BASIC_AUTH:-admin:changeme}
+      FLOWER_BASIC_AUTH: ${FLOWER_BASIC_AUTH}
     depends_on:
       redis:
         condition: service_healthy
@@ -237,9 +239,156 @@ services:
       postgres:
         condition: service_healthy
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Wikibase (structured data store)
+  # ─────────────────────────────────────────────────────────────────────────────
+  wikibase:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      DB_SERVER: mysql:3306
+      DB_USER: wikibase
+      DB_PASS: ${MYSQL_PASSWORD}
+      DB_NAME: wikibase
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_ADMIN_EMAIL: admin@localhost
+      MW_WG_SERVER: "${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}"
+      MW_WG_SITENAME: IndicBooks
+      MW_WG_LANGUAGE_CODE: en
+      WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST}
+      ELASTICSEARCH_HOST: elasticsearch
+      METADATA_CALLBACK: "false"
+      QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-https://localhost}
+    volumes:
+      - wikibase_config_v3:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data_v2:/var/www/html/images
+      - quickstatements_data_v2:/quickstatements/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost/w/api.php | grep -q '200'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  wikibase-jobrunner:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase-jobrunner
+    command: /jobrunner-entrypoint.sh
+    restart: unless-stopped
+    depends_on:
+      wikibase:
+        condition: service_healthy
+    volumes:
+      - wikibase_config_v3:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data_v2:/var/www/html/images
+      - quickstatements_data_v2:/quickstatements/data
+
+  wikibase-init:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    image: app-jb5tjz-wikibase-init
+    command: /create-properties.sh
+    restart: "no"
+    environment:
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_WG_SERVER: "${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}"
+    volumes:
+      - wikibase_config_v3:/config
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  quickstatements:
+    image: wikibase/quickstatements:1
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-https://localhost}
+      WIKIBASE_PUBLIC_URL: ${WIKIBASE_PUBLIC_URL:-${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}}
+    volumes:
+      - quickstatements_data_v2:/quickstatements/data
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  mysql:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wikibase
+      MYSQL_USER: wikibase
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data_v3:/var/lib/mysql
+      - ./docker/mysql/init_wikibase.sql:/docker-entrypoint-initdb.d/01-init-wikibase.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: wikibase/elasticsearch:1
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\"' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # OpenRefine (bulk data cleaning GUI)
+  # ─────────────────────────────────────────────────────────────────────────────
+  openrefine:
+    image: app-jb5tjz-openrefine
+    build:
+      context: ./docker/openrefine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "3333"
+    volumes:
+      - openrefine_data:/refine
+
 volumes:
   pgdata:
   redis_data:
   ollama_data:
   storage_data:
   backup_data:
+  wikibase_config:
+  wikibase_config_v2:
+  wikibase_config_v3:
+  wikibase_data:
+  wikibase_data_v2:
+  mysql_data:
+  mysql_data_v2:
+  mysql_data_v3:
+  elasticsearch_data:
+  openrefine_data:
+  quickstatements_data_v2:

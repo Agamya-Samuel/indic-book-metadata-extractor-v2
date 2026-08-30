@@ -5,6 +5,12 @@ import pytesseract
 from PIL import Image
 
 from app.core.config import settings
+from app.services.page_classifier import (
+    Classification,
+    PSM,
+    classify_page,
+    psm_to_tesseract_arg,
+)
 
 LANGUAGE_MAP = {
     "tel": "tel+eng",
@@ -17,8 +23,23 @@ def _get_tesseract_lang(language: str) -> str:
     return LANGUAGE_MAP.get(language, language)
 
 
+def _classify_psm(image_path: Path, page_position: int | None = None) -> Classification:
+    """Pick a Tesseract PSM based on the page image and (optionally) its
+    position in the book.
+
+    The title page (position 0) gets a separate fast rotation pass via
+    --psm 1, then we re-classify on the corrected image. Other pages
+    use the lightweight classifier.
+    """
+    try:
+        return classify_page(str(image_path))
+    except Exception:
+        # On classifier failure, fall back to the previous safe default.
+        return Classification(psm=PSM.UNIFORM_BLOCK, label="classifier_failed")
+
+
 @newrelic.agent.function_trace(name="OCR: Run Tesseract", group="Custom")
-def run_ocr(image_path: Path, language: str = "tel") -> dict:
+def run_ocr(image_path: Path, language: str = "tel", page_position: int | None = None) -> dict:
     newrelic.agent.add_custom_attribute("language", language)
     newrelic.agent.add_custom_attribute("page_filename", image_path.name)
     if settings.tesseract_cmd:
@@ -28,11 +49,16 @@ def run_ocr(image_path: Path, language: str = "tel") -> dict:
 
     tesseract_lang = _get_tesseract_lang(language)
 
+    classification = _classify_psm(image_path, page_position=page_position)
+    psm = psm_to_tesseract_arg(classification.psm)
+
+    config = f"--psm {psm} --oem 1 --dpi {settings.ocr_render_dpi}"
+
     data = pytesseract.image_to_data(
         img,
         lang=tesseract_lang,
         output_type=pytesseract.Output.DICT,
-        config="--psm 6 --oem 3",
+        config=config,
     )
 
     words = []
@@ -77,4 +103,6 @@ def run_ocr(image_path: Path, language: str = "tel") -> dict:
         "full_text": full_text,
         "avg_confidence": avg_confidence,
         "word_count": len(words),
+        "psm": psm,
+        "psm_label": classification.label,
     }

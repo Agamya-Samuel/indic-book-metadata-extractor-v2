@@ -34,7 +34,7 @@ celery_app = Celery(
     "indic_books",
     broker=settings.redis_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.ocr_tasks", "app.tasks.llm_tasks"],
+    include=["app.tasks.ocr_tasks", "app.tasks.llm_tasks", "app.tasks.pipeline_tasks"],
 )
 
 celery_app.conf.update(
@@ -49,10 +49,12 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
     task_routes={
+        "preprocess_pages_for_book": {"queue": "ocr"},
         "run_ocr_for_page_batch": {"queue": "ocr"},
         "run_ocr_for_page": {"queue": "ocr"},
         "run_ocr_for_book": {"queue": "ocr"},
         "_ocr_book_complete": {"queue": "ocr"},
+        "process_book_pipeline": {"queue": "ocr"},
         "run_llm_extraction": {"queue": "llm"},
     },
 )

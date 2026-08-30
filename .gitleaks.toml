@@ -1,0 +1,19 @@
+# GitLeaks configuration for secret detection.
+# Adapted from English-Learners-VC with an improved allowlist — no overly
+# broad regex allowlist (the reference project suppressed real detections
+# by allowlisting the words "password", "secret", and "key").
+
+title = "GitLeaks Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global Allowlist — only build artifacts and example templates"
+paths = [
+    '''\.gitleaks\.toml$''',
+    '''(.*?)(node_modules|\.next|dist|build|\.venv|__pycache__|\.ruff_cache)(.*?)$''',
+    '''\.env\.example$''',
+    '''\.env\.production\.example$''',
+    '''frontend/\.env\.example$''',
+]

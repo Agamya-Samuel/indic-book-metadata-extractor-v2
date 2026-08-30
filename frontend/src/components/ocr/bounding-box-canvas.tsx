@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { Stage, Layer, Image as KonvaImage, Rect, Group } from "react-konva";
 import type Konva from "konva";
 import type { OcrWord } from "@/lib/api";
+import { Button } from "@/components/shared/button";
 
 interface BoundingBoxCanvasProps {
   imageUrl: string;
@@ -24,7 +25,7 @@ export function scaleBox(
   imageWidth: number,
   imageHeight: number,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
 ): { x: number; y: number; w: number; h: number } {
   const scaleX = canvasWidth / imageWidth;
   const scaleY = canvasHeight / imageHeight;
@@ -36,13 +37,15 @@ export function scaleBox(
   };
 }
 
-function getConfidenceColor(
-  confidence: number,
-  lowThreshold: number
-): string {
-  if (confidence >= 80) return "#22c55e";
-  if (confidence >= lowThreshold) return "#eab308";
-  return "#ef4444";
+/**
+ * Confidence color tokens — these render inside the Konva canvas, so we
+ * keep them as raw RGB. They map visually to the same success/warning/danger
+ * tokens used elsewhere in the system.
+ */
+function getConfidenceColor(confidence: number, lowThreshold: number): string {
+  if (confidence >= 80) return "rgb(34, 197, 94)"; // success-500
+  if (confidence >= lowThreshold) return "rgb(234, 179, 8)"; // warning-500
+  return "rgb(239, 68, 68)"; // danger-500
 }
 
 interface BBoxRectProps {
@@ -66,8 +69,14 @@ const BBoxRect = memo(function BBoxRect({
       y={scaled.y}
       width={scaled.w}
       height={scaled.h}
-      fill={isSelected ? "rgba(59,130,246,0.25)" : isLowConf ? "rgba(239,68,68,0.1)" : "transparent"}
-      stroke={isSelected ? "#3b82f6" : strokeColor}
+      fill={
+        isSelected
+          ? "rgba(56, 132, 230, 0.20)"
+          : isLowConf
+            ? "rgba(239, 68, 68, 0.08)"
+            : "transparent"
+      }
+      stroke={isSelected ? "rgb(56, 132, 230)" : strokeColor}
       strokeWidth={isSelected ? 2.5 : 1}
       onClick={onClick}
       onTap={onClick}
@@ -100,7 +109,10 @@ function BoundingBoxCanvas({
     img.crossOrigin = "anonymous";
     img.onload = () => {
       setLoadedImage(img);
-      setImgDims({ naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight });
+      setImgDims({
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+      });
     };
     img.src = imageUrl;
   }, [imageUrl]);
@@ -111,7 +123,8 @@ function BoundingBoxCanvas({
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width } = entry.contentRect;
-        const aspectRatio = imgDims.naturalWidth / imgDims.naturalHeight || 0.75;
+        const aspectRatio =
+          imgDims.naturalWidth / imgDims.naturalHeight || 0.75;
         const height = Math.min(width / aspectRatio, 700);
         setCanvasSize({ width: Math.floor(width), height: Math.floor(height) });
       }
@@ -149,7 +162,7 @@ function BoundingBoxCanvas({
       });
       setZoom(clampedZoom);
     },
-    [zoom, position]
+    [zoom, position],
   );
 
   const handleBoxClick = useCallback(
@@ -157,7 +170,7 @@ function BoundingBoxCanvas({
       if (!onBoxClick) return;
       onBoxClick(index);
     },
-    [onBoxClick]
+    [onBoxClick],
   );
 
   const handleResetView = useCallback(() => {
@@ -165,76 +178,110 @@ function BoundingBoxCanvas({
     setPosition({ x: 0, y: 0 });
   }, []);
 
+  const selectedWord =
+    typeof selectedIndex === "number" ? boxes[selectedIndex] : undefined;
+
   return (
     <div ref={containerRef} className="relative w-full">
-      <Stage
-        ref={stageRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        scaleX={zoom}
-        scaleY={zoom}
-        x={position.x}
-        y={position.y}
-        onWheel={handleWheel}
-        draggable
-        onDragEnd={(e) => {
-          setPosition({ x: e.target.x(), y: e.target.y() });
-        }}
-        className="bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 rounded"
-        role="img"
-        aria-label={`Page image with ${boxes.length} detected text regions. Zoom: ${Math.round(zoom * 100)}%`}
-      >
-        <Layer>
-          {loadedImage && (
-            <KonvaImage image={loadedImage} width={canvasSize.width} height={canvasSize.height} />
-          )}
-          {boxes.map((box, i) => {
-            const scaled = scaleBox(
-              box.bbox,
-              imgDims.naturalWidth,
-              imgDims.naturalHeight,
-              canvasSize.width,
-              canvasSize.height
-            );
-            const isSelected = i === selectedIndex;
-            const isLowConf = highlightLowConfidence && box.confidence < lowConfidenceThreshold;
+      {/* Live region for screen readers — the Konva canvas itself is one
+          big role="img" so we need to announce selection changes manually. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {selectedWord
+          ? `Selected: ${selectedWord.text}, confidence ${selectedWord.confidence} percent.`
+          : ""}
+      </p>
 
-            return (
-              <Group key={`box-${i}-${box.word_num}-${box.line_num}`}>
-                <BBoxRect
-                  scaled={scaled}
-                  isSelected={isSelected}
-                  isLowConf={isLowConf}
-                  strokeColor={getConfidenceColor(box.confidence, lowConfidenceThreshold)}
-                  onClick={() => handleBoxClick(i)}
-                />
-              </Group>
-            );
-          })}
-        </Layer>
-      </Stage>
+      <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-sunken)]">
+        <Stage
+          ref={stageRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          scaleX={zoom}
+          scaleY={zoom}
+          x={position.x}
+          y={position.y}
+          onWheel={handleWheel}
+          draggable
+          onDragEnd={(e) => {
+            setPosition({ x: e.target.x(), y: e.target.y() });
+          }}
+          role="img"
+          aria-label={`Page image with ${boxes.length} detected text regions. Zoom: ${Math.round(zoom * 100)}%`}
+        >
+          <Layer>
+            {loadedImage && (
+              <KonvaImage
+                image={loadedImage}
+                width={canvasSize.width}
+                height={canvasSize.height}
+              />
+            )}
+            {boxes.map((box, i) => {
+              const scaled = scaleBox(
+                box.bbox,
+                imgDims.naturalWidth,
+                imgDims.naturalHeight,
+                canvasSize.width,
+                canvasSize.height,
+              );
+              const isSelected = i === selectedIndex;
+              const isLowConf =
+                highlightLowConfidence && box.confidence < lowConfidenceThreshold;
 
-      <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-        <span>
-          {boxes.length} words &bull; Zoom: {Math.round(zoom * 100)}%
+              return (
+                <Group key={`box-${i}-${box.word_num}-${box.line_num}`}>
+                  <BBoxRect
+                    scaled={scaled}
+                    isSelected={isSelected}
+                    isLowConf={isLowConf}
+                    strokeColor={getConfidenceColor(
+                      box.confidence,
+                      lowConfidenceThreshold,
+                    )}
+                    onClick={() => handleBoxClick(i)}
+                  />
+                </Group>
+              );
+            })}
+          </Layer>
+        </Stage>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+        <span className="font-mono tabular-nums">
+          {boxes.length} words · zoom {Math.round(zoom * 100)}%
         </span>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 rounded bg-green-500" aria-hidden="true" /> High
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block h-1 w-3 rounded-full bg-[var(--success-500)]"
+            />
+            High
           </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 rounded bg-yellow-500" aria-hidden="true" /> Medium
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block h-1 w-3 rounded-full bg-[var(--warning-500)]"
+            />
+            Medium
           </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-1 rounded bg-red-500" aria-hidden="true" /> Low
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className="inline-block h-1 w-3 rounded-full bg-[var(--danger-500)]"
+            />
+            Low
           </span>
         </div>
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={handleResetView}
-          className="px-2 py-1 text-xs border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
         >
-          Reset View
-        </button>
+          Reset view
+        </Button>
       </div>
     </div>
   );

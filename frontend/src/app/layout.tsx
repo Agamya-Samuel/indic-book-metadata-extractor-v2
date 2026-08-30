@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Serif } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import AppNavbar from "@/components/shared/app-navbar";
+import { themeInitScript } from "@/components/shared/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,10 +16,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Display face for the scholarly register. Noto Serif (Latin) carries
+// the English display voice; the system font stack below already has
+// "Noto Serif Telugu / Devanagari / Tamil / Bengali" as fallbacks, so
+// any Indic-script text picks up the matching Noto Serif variant from
+// the OS without us shipping a second font.
+const notoSerif = Noto_Serif({
+  variable: "--font-noto-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Indic Book Metadata Extractor",
+  title: {
+    default: "Indic Book Metadata Extractor",
+    template: "%s · Indic Books",
+  },
   description:
     "OCR-powered metadata extraction from Indic language books",
+  applicationName: "Indic Books",
+  authors: [{ name: "OKI" }],
+  keywords: [
+    "OCR",
+    "Indic",
+    "Wikibase",
+    "OpenRefine",
+    "bibliography",
+    "digital humanities",
+  ],
+  robots: { index: true, follow: true },
 };
 
 /**
@@ -73,9 +101,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} h-full antialiased`}
     >
       <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         {browserScript && (
           <Script
             id="nr-browser-agent"
@@ -87,12 +124,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded focus:shadow-lg"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--accent)] focus:text-[var(--text-inverse)] focus:rounded-[var(--radius)] focus:shadow-[var(--shadow)]"
         >
           Skip to main content
         </a>
         <Providers>
-          <div id="main-content" className="flex-1 flex flex-col">
+          <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
             <AppNavbar />
             {children}
           </div>
