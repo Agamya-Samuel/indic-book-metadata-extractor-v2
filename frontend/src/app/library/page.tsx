@@ -200,6 +200,7 @@ export default function LibraryPage() {
                     "ocr_running",
                     "ocr_complete",
                     "llm_running",
+                    "awaiting_review",
                     "complete",
                   ]).map((s) => (
                     <option key={s} value={s}>

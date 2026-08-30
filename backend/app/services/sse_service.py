@@ -1,11 +1,25 @@
 """
-SSE (Server-Sent Events) service for real-time job progress updates.
+SSE (Server-Sent Events) service backed by Redis pub/sub.
 
-This module manages SSE connections per book, allowing the frontend to receive
-real-time updates when jobs start, make progress, or complete.
+Replaces the previous DB-polling implementation with a single long-lived
+Redis subscription that fans out to connected SSE clients per book.
 
-The service polls the database for job updates and streams events to connected clients.
+Publishers (Celery workers, the pipeline orchestrator, FastAPI request
+handlers) call :func:`publish` from either the sync `redis` client
+(workers) or `redis.asyncio` (FastAPI). Both connect to the same broker
+and write to channels of the form ``book:{book_id}:events``.
+
+The FastAPI process holds a single :class:`redis.asyncio.client` pubsub
+connection started during the application lifespan. When a message
+arrives, the broker pushes it into the per-book set of in-process
+``asyncio.Queue`` objects, one per connected SSE client.
+
+Postgres remains the source of truth — SSE is a notification, not the
+state itself. If Redis is unavailable the connection simply never
+delivers events and clients fall back to HTTP polling.
 """
+
+from __future__ import annotations
 
 import asyncio
 import json
@@ -15,170 +29,270 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
+import redis.asyncio as aioredis
+import redis as sync_redis
 from fastapi import Request
 from sqlalchemy import select
 from sse_starlette.sse import EventSourceResponse
 
+from app.core.config import settings
 from app.core.database import async_session_factory
-from app.models.job import Job, JobStatus
+from app.models.book import Book
+from app.models.job import Job
 
 logger = logging.getLogger(__name__)
 
+CHANNEL_PREFIX = "book:"
+CHANNEL_SUFFIX = ":events"
+KEEPALIVE_SECONDS = 15
+QUEUE_MAX_SIZE = 100
+
+
+def channel_for(book_id: str | UUID) -> str:
+    return f"{CHANNEL_PREFIX}{book_id}{CHANNEL_SUFFIX}"
+
+
+def book_id_from_channel(channel: str) -> str | None:
+    if not channel.startswith(CHANNEL_PREFIX) or not channel.endswith(CHANNEL_SUFFIX):
+        return None
+    return channel[len(CHANNEL_PREFIX) : -len(CHANNEL_SUFFIX)]
+
 
 class SSEService:
-    """
-    Manages SSE connections for book job updates.
-    
-    Each book can have multiple connected clients (e.g., multiple browser tabs).
-    The service polls the database for job updates and streams them to all
-    connected clients for each book.
-    """
-    
-    def __init__(self, poll_interval: float = 1.0):
-        # book_id -> set of queues for connected clients
+    """Fan-out hub: single Redis subscription -> per-book queue sets."""
+
+    def __init__(self) -> None:
         self._connections: dict[str, set[asyncio.Queue]] = defaultdict(set)
-        # book_id -> last known job state for comparison
-        self._last_job_states: dict[str, dict[str, Any]] = defaultdict(dict)
-        # Polling interval in seconds
-        self._poll_interval = poll_interval
         self._lock = asyncio.Lock()
-    
+        self._pubsub: aioredis.client.PubSub | None = None
+        self._dispatcher_task: asyncio.Task | None = None
+        self._redis: aioredis.Redis | None = None
+        self._started = asyncio.Event()
+
+    async def start(self, redis: aioredis.Redis) -> None:
+        """Attach to the supplied Redis client and begin the dispatcher loop.
+
+        Called from the FastAPI lifespan handler in :mod:`app.main`.
+        """
+        if self._started.is_set():
+            return
+        self._redis = redis
+        self._pubsub = redis.pubsub()
+        await self._pubsub.psubscribe(f"{CHANNEL_PREFIX}*{CHANNEL_SUFFIX}")
+        self._dispatcher_task = asyncio.create_task(self._dispatch_loop(), name="sse-dispatcher")
+        self._started.set()
+        logger.info("SSE service started (Redis pub/sub fanout)")
+
+    async def stop(self) -> None:
+        if not self._started.is_set():
+            return
+        self._started.clear()
+        if self._dispatcher_task is not None:
+            self._dispatcher_task.cancel()
+            try:
+                await self._dispatcher_task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
+            self._dispatcher_task = None
+        if self._pubsub is not None:
+            try:
+                await self._pubsub.aclose()
+            except Exception:  # noqa: BLE001
+                logger.debug("SSE pubsub aclose raised", exc_info=True)
+            self._pubsub = None
+        async with self._lock:
+            self._connections.clear()
+        logger.info("SSE service stopped")
+
+    async def _dispatch_loop(self) -> None:
+        """Read messages from the global pubsub and fan out to per-book queues."""
+        assert self._pubsub is not None
+        try:
+            while True:
+                message = await self._pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0
+                )
+                if message is None:
+                    await asyncio.sleep(0)
+                    continue
+                channel = message.get("channel")
+                if isinstance(channel, bytes):
+                    channel = channel.decode("utf-8", errors="replace")
+                data = message.get("data")
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8", errors="replace")
+                book_id = book_id_from_channel(channel or "")
+                if book_id is None or data is None:
+                    continue
+                await self._fanout(book_id, data)
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            logger.exception("SSE dispatcher loop crashed; exiting")
+
+    async def _fanout(self, book_id: str, data: str) -> None:
+        async with self._lock:
+            queues = list(self._connections.get(book_id, ()))
+        for q in queues:
+            try:
+                q.put_nowait(data)
+            except asyncio.QueueFull:
+                logger.warning("SSE queue full for book %s; dropping message", book_id)
+
     async def connect(self, book_id: str, request: Request) -> EventSourceResponse:
-        """
-        Connect a client to receive SSE updates for a book.
-        
-        Returns an EventSourceResponse that keeps the connection open and
-        polls the database for job updates, streaming them to the client.
-        """
-        queue: asyncio.Queue[str] = asyncio.Queue(maxsize=100)
-        
+        """Open an SSE stream for a single client."""
+        queue: asyncio.Queue[str] = asyncio.Queue(maxsize=QUEUE_MAX_SIZE)
         async with self._lock:
             self._connections[book_id].add(queue)
-        
-        logger.info(f"SSE client connected for book {book_id}")
-        
+
         async def event_generator():
-            # Send initial connection event
-            yield {
-                "event": "connected",
-                "data": json.dumps({"book_id": book_id, "status": "connected"}),
-            }
-            
             try:
+                snapshot = await self._build_snapshot(book_id)
+                yield {
+                    "event": "snapshot",
+                    "id": f"snapshot-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+                    "data": json.dumps(snapshot),
+                }
+                yield {
+                    "event": "connected",
+                    "data": json.dumps({"book_id": book_id, "status": "connected"}),
+                }
+
                 while True:
-                    # Poll for job updates
-                    await asyncio.sleep(self._poll_interval)
-                    
+                    if await request.is_disconnected():
+                        break
                     try:
-                        jobs_data = await self._get_book_jobs(book_id)
-                        
-                        # Check for job state changes
-                        for job_data in jobs_data:
-                            job_id = job_data["id"]
-                            last_state = self._last_job_states[book_id].get(job_id, {})
-                            
-                            if self._has_state_changed(last_state, job_data):
-                                event_type = self._get_event_type(last_state, job_data)
-                                if event_type:
-                                    message = json.dumps({
-                                        "type": event_type,
-                                        "book_id": book_id,
-                                        **job_data
-                                    })
-                                    try:
-                                        queue.put_nowait(message)
-                                    except asyncio.QueueFull:
-                                        logger.warning(f"SSE queue full for book {book_id}")
-                                    
-                                    # Update last known state
-                                    self._last_job_states[book_id][job_id] = job_data.copy()
-                                
-                        # Also send heartbeat
-                        yield {"event": "heartbeat", "data": json.dumps({"book_id": book_id, "timestamp": datetime.now(timezone.utc).isoformat()})}
-                        
-                    except Exception as e:
-                        logger.error(f"Error polling jobs for book {book_id}: {e}")
+                        data = await asyncio.wait_for(queue.get(), timeout=KEEPALIVE_SECONDS)
+                    except asyncio.TimeoutError:
                         yield {
-                            "event": "error",
-                            "data": json.dumps({"error": str(e)}),
+                            "event": "heartbeat",
+                            "data": json.dumps(
+                                {
+                                    "book_id": book_id,
+                                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                                }
+                            ),
                         }
-                        
+                        continue
+
+                    try:
+                        payload = json.loads(data)
+                    except (TypeError, ValueError):
+                        payload = {"raw": data}
+
+                    event_type = payload.get("type") if isinstance(payload, dict) else None
+                    yield {
+                        "event": event_type or "message",
+                        "id": payload.get("id") if isinstance(payload, dict) else None,
+                        "data": data,
+                    }
             except asyncio.CancelledError:
-                logger.info(f"SSE client disconnected for book {book_id}")
                 raise
+            except Exception:  # noqa: BLE001
+                logger.exception("SSE event generator error for book %s", book_id)
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"error": "internal_error"}),
+                }
             finally:
                 async with self._lock:
                     self._connections[book_id].discard(queue)
                     if not self._connections[book_id]:
-                        del self._connections[book_id]
-                        if book_id in self._last_job_states:
-                            del self._last_job_states[book_id]
-        
+                        self._connections.pop(book_id, None)
+                logger.info("SSE client disconnected for book %s", book_id)
+
         return EventSourceResponse(event_generator())
-    
-    async def _get_book_jobs(self, book_id: str) -> list[dict[str, Any]]:
-        """Get all jobs for a book from the database."""
+
+    async def _build_snapshot(self, book_id: str) -> dict[str, Any]:
+        """Initial state dump sent on connect — derived from Postgres."""
+        try:
+            book_uuid = UUID(book_id)
+        except (TypeError, ValueError):
+            return {"book": None, "jobs": []}
+
         try:
             async with async_session_factory() as db:
-                result = await db.execute(
-                    select(Job).where(Job.book_id == UUID(book_id))
+                book_result = await db.execute(select(Book).where(Book.id == book_uuid))
+                book = book_result.scalar_one_or_none()
+                jobs_result = await db.execute(
+                    select(Job).where(Job.book_id == book_uuid).order_by(Job.created_at.desc())
                 )
-                jobs = result.scalars().all()
-                
-                return [
-                    {
-                        "id": str(job.id),
-                        "job_type": job.job_type,
-                        "status": job.status,
-                        "progress": job.progress,
-                        "error_log": job.error_log,
-                        "created_at": job.created_at.isoformat() if job.created_at else None,
-                        "started_at": job.started_at.isoformat() if job.started_at else None,
-                        "completed_at": job.completed_at.isoformat() if job.completed_at else None,
-                    }
-                    for job in jobs
-                ]
-        except Exception as e:
-            logger.error(f"Error fetching jobs for book {book_id}: {e}")
-            return []
-    
-    def _has_state_changed(self, old_state: dict, new_state: dict) -> bool:
-        """Check if job state has changed."""
-        if not old_state:
-            return True
-        return (
-            old_state.get("status") != new_state.get("status") or
-            old_state.get("progress") != new_state.get("progress") or
-            old_state.get("error_log") != new_state.get("error_log")
-        )
-    
-    def _get_event_type(self, old_state: dict, new_state: dict) -> str | None:
-        """Determine the event type based on state change."""
-        new_status = new_state.get("status")
-        
-        if new_status == "running":
-            if old_state.get("status") in (None, "queued"):
-                return "job_started"
-            return "job_progress"
-        elif new_status == "completed":
-            return "job_complete"
-        elif new_status == "failed":
-            return "job_failed"
-        elif new_status == "cancelled":
-            return "job_cancelled"
-        
-        return None
-    
+                jobs = jobs_result.scalars().all()
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to build SSE snapshot for book %s", book_id)
+            return {"book": None, "jobs": []}
+
+        return {
+            "book": _serialise_book(book) if book else None,
+            "jobs": [_serialise_job(j) for j in jobs],
+        }
+
     def get_connection_count(self, book_id: str) -> int:
-        """Get the number of connected clients for a book."""
-        return len(self._connections.get(book_id, []))
-    
-    async def close_all(self) -> None:
-        """Close all connections (used during shutdown)."""
-        async with self._lock:
-            self._connections.clear()
-            self._last_job_states.clear()
+        return len(self._connections.get(book_id, ()))
 
 
-# Global SSE service instance
+def _serialise_book(book: Book) -> dict[str, Any]:
+    return {
+        "id": str(book.id),
+        "filename": book.filename,
+        "title": book.title,
+        "language": book.language,
+        "status": book.status,
+        "total_pages": book.total_pages,
+        "created_at": book.created_at.isoformat() if book.created_at else None,
+        "updated_at": book.updated_at.isoformat() if book.updated_at else None,
+    }
+
+
+def _serialise_job(job: Job) -> dict[str, Any]:
+    return {
+        "id": str(job.id),
+        "book_id": str(job.book_id) if job.book_id else None,
+        "job_type": job.job_type,
+        "status": job.status,
+        "progress": job.progress,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "started_at": job.started_at.isoformat() if job.started_at else None,
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        "error_log": job.error_log,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Publish helpers — used by Celery workers (sync) and FastAPI (async)
+# ---------------------------------------------------------------------------
+
+def _sync_redis() -> sync_redis.Redis:
+    return sync_redis.Redis.from_url(settings.redis_url, decode_responses=True)
+
+
+def publish_sync(book_id: str | UUID, event: dict[str, Any]) -> None:
+    """Publish an event from a Celery worker (no event loop available)."""
+    try:
+        client = _sync_redis()
+        try:
+            client.publish(channel_for(book_id), json.dumps(event, default=str))
+        finally:
+            client.close()
+    except Exception:  # noqa: BLE001
+        logger.exception("SSE publish_sync failed for book %s", book_id)
+
+
+async def publish_async(book_id: str | UUID, event: dict[str, Any]) -> None:
+    """Publish an event from the FastAPI process (uses the shared pool)."""
+    from app.main import _redis_pool  # local import to avoid circular
+
+    if _redis_pool is None:
+        return
+    try:
+        await _redis_pool.publish(channel_for(book_id), json.dumps(event, default=str))
+    except Exception:  # noqa: BLE001
+        logger.exception("SSE publish_async failed for book %s", book_id)
+
+
+def event_id(prefix: str) -> str:
+    return f"{prefix}-{int(datetime.now(timezone.utc).timestamp() * 1000)}"
+
+
+# Global instance — wired up in app.main lifespan
 sse_service = SSEService()

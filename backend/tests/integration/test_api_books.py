@@ -138,7 +138,9 @@ class TestRunOcr:
         data = response.json()
         assert data["status"] == "queued"
         assert data["job_type"] == "ocr"
-        mock_celery["ocr"].delay.assert_called_once()
+        # The endpoint dispatches preprocess_pages_for_book, which chains
+        # into run_ocr_for_book.
+        mock_celery["preprocess"].delay.assert_called_once()
 
     async def test_run_ocr_wrong_status(self, client, make_book, mock_celery):
         book = await make_book()

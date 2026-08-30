@@ -20,6 +20,8 @@ class BookUploadResponse(BaseModel):
 
 class BookDetail(BookUploadResponse):
     updated_at: datetime.datetime | None = None
+    needs_review: bool = False
+    low_confidence_count: int = 0
 
 
 class PageSelectionRequest(BaseModel):
