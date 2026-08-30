@@ -67,8 +67,35 @@ export default function BookCard({ book }: BookCardProps) {
           </div>
         )}
 
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
           <StatusBadge status={book.status} />
+          {book.status === "awaiting_review" && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5",
+                "text-[11px] font-medium uppercase tracking-wide",
+                "bg-[var(--warning-50)] text-[var(--warning-700)] ring-1 ring-inset ring-[var(--warning-500)]/30",
+                "dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]",
+              )}
+              aria-label="Awaiting review"
+            >
+              <svg
+                aria-hidden="true"
+                className="size-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                />
+              </svg>
+              Review
+            </span>
+          )}
         </div>
 
         {/* Subtle bottom gradient for legibility on light thumbnails */}

@@ -122,12 +122,25 @@ async def retry_extraction(
 ) -> ExtractionResponse:
     book = await get_book_or_404(book_id, db)
 
-    if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
+    if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):
         raise HTTPException(
             status_code=400,
-            detail=f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'",
+            detail=f"Book status must be one of ocr_complete, awaiting_review, complete; got '{book.status}'",
         )
 
+    # Re-arm the book at the LLM stage and let the orchestrator drive it.
     book.status = BookStatus.OCR_COMPLETE
+    await db.commit()
+    await db.refresh(book)
 
-    return await run_extraction(book_id, body, db)
+    from app.tasks.pipeline_tasks import process_book_pipeline
+    from app.schemas.metadata import BATCH_FIELD_ORDER
+
+    process_book_pipeline.delay(str(book_id), book.language or "tel")
+
+    return ExtractionResponse(
+        job_id=book_id,  # orchestrator will create a real Job
+        book_id=book_id,
+        status=BookStatus.OCR_COMPLETE,
+        total_batches=len(BATCH_FIELD_ORDER),
+    )

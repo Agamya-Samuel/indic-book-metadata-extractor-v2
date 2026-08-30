@@ -12,6 +12,7 @@ class BookStatus(StrEnum):
     OCR_RUNNING = "ocr_running"
     OCR_COMPLETE = "ocr_complete"
     LLM_RUNNING = "llm_running"
+    AWAITING_REVIEW = "awaiting_review"
     COMPLETE = "complete"
 
 

@@ -7,6 +7,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.deps import get_book_or_404
 from app.core.database import get_db
+from app.models.book import Book, BookStatus
 from app.models.job import Job, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
@@ -77,6 +78,13 @@ async def update_metadata(
         existing.update(body.fields)
         metadata.fields = existing
         flag_modified(metadata, "fields")
+
+    # Mark the book as fully complete the moment a human saves any edit
+    # after the auto-chain has finished. The previous state was AWAITING_REVIEW.
+    book_result = await db.execute(select(Book).where(Book.id == book_id))
+    book = book_result.scalar_one_or_none()
+    if book is not None and book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):
+        book.status = BookStatus.COMPLETE
 
     await db.commit()
     await db.refresh(metadata)

@@ -29,6 +29,7 @@ _redis_pool: aioredis.Redis | None = None
 
 
 _THUMBNAIL_PATH_RE = re.compile(r"^/api/books/[^/]+/pages/\d+/thumbnail$")
+_SSE_PATH_RE = re.compile(r"^/api/sse/books/[^/]+/events$")
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -41,6 +42,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Skip rate limiting for thumbnail GETs — they serve cached static files
         if request.method == "GET" and _THUMBNAIL_PATH_RE.match(request.url.path):
+            return await call_next(request)
+
+        # Skip rate limiting for SSE event streams — they are long-lived and
+        # would otherwise consume the per-IP quota in a single connection.
+        if request.method == "GET" and _SSE_PATH_RE.match(request.url.path):
             return await call_next(request)
 
         if _redis_pool is None:
@@ -85,6 +91,7 @@ async def lifespan(app: FastAPI):
     global _redis_pool
     from app.core.database import get_engine
     from app.services.llm_service import llm_service
+    from app.services.sse_service import sse_service
 
     logger.info("Application starting up...")
     try:
@@ -94,9 +101,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Redis not available for rate limiting: %s", e)
         _redis_pool = None
+    if _redis_pool is not None:
+        try:
+            await sse_service.start(_redis_pool)
+        except Exception:
+            logger.exception("Failed to start SSE service; clients will see no events")
     yield
     # Shutdown
     logger.info("Application shutting down...")
+    await sse_service.stop()
     if _redis_pool:
         await _redis_pool.aclose()
     engine = get_engine()

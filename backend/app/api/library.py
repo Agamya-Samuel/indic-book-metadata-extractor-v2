@@ -4,7 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
+from app.models.book import BookStatus
 from app.schemas.book import (
     BookDetailResponse,
     BookDetailPage,
@@ -144,8 +146,19 @@ async def get_book_detail(
         for p in pages
     ]
 
+    low_conf_count = await SearchService.count_low_confidence_fields(
+        db, book_id, settings.low_confidence_threshold
+    )
+    book_detail = BookDetail.model_validate(
+        {
+            **BookDetail.model_validate(book).model_dump(),
+            "needs_review": book.status == BookStatus.AWAITING_REVIEW and low_conf_count > 0,
+            "low_confidence_count": low_conf_count,
+        }
+    )
+
     return BookDetailResponse(
-        book=BookDetail.model_validate(book),
+        book=book_detail,
         metadata=metadata.fields if metadata else None,
         metadata_updated_at=metadata.updated_at if metadata else None,
         pages=page_responses,
