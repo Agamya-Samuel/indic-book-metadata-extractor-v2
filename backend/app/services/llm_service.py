@@ -355,19 +355,22 @@ class LLMService:
 
             async def _guarded(bn: str):
                 async with semaphore:
-                    return await self._run_one_batch_for_hybrid(
-                        batch_name=bn,
-                        ocr_text=ocr_text,
-                        pages=pages,
-                        model=model,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        language=language,
-                        page_count=page_count,
-                        system_prompt_override=system_prompt_override,
-                        extraction_prompt_override=extraction_prompt_override,
-                        gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
-                    )
+                    try:
+                        return await self._run_one_batch_for_hybrid(
+                            batch_name=bn,
+                            ocr_text=ocr_text,
+                            pages=pages,
+                            model=model,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            language=language,
+                            page_count=page_count,
+                            system_prompt_override=system_prompt_override,
+                            extraction_prompt_override=extraction_prompt_override,
+                            gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
+                        )
+                    except Exception as e:
+                        return e
 
             in_flight = [
                 asyncio.create_task(_guarded(bn)) for bn in needed_batches
@@ -378,6 +381,14 @@ class LLMService:
                 completed += 1
                 if isinstance(outcome, Exception):
                     logger.error("Hybrid LLM batch failed: %s", outcome)
+                    batch_results.append(
+                        {
+                            "batch_name": "<failed>",
+                            "raw_response": "",
+                            "parsed_fields": {},
+                            "usage": {"status": "error", "error": str(outcome)},
+                        }
+                    )
                     if progress_callback:
                         await progress_callback(completed, total_needed, "<failed>")
                     continue
