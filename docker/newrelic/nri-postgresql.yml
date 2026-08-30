@@ -4,6 +4,8 @@ integrations:
       HOST: postgres
       PORT: 5432
       USERNAME: postgres
+      # WARNING: Local dev default only. Override via environment variable
+      # or mounted secrets file before deploying. Never use in production.
       PASSWORD: postgres
       DATABASE: indic_books
     interval: 30s

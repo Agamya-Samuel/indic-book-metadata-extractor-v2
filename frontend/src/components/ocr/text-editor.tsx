@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import type { OcrWord } from "@/lib/api";
+import { Button } from "@/components/shared/button";
+import { Textarea } from "@/components/shared/input";
+import { cn } from "@/lib/utils";
 
 interface OcrTextEditorProps {
   words: OcrWord[];
@@ -35,8 +38,7 @@ function groupWordsByLine(words: OcrWord[]): WordGroup[] {
   });
 
   return Array.from(groups.values()).sort(
-    (a, b) =>
-      a.blockNum - b.blockNum || a.lineNum - b.lineNum
+    (a, b) => a.blockNum - b.blockNum || a.lineNum - b.lineNum,
   );
 }
 
@@ -75,17 +77,13 @@ export default function OcrTextEditor({
 
   const handleWordClick = useCallback(
     (index: number) => {
-      if (onWordClick) {
-        onWordClick(index);
-      }
+      if (onWordClick) onWordClick(index);
     },
-    [onWordClick]
+    [onWordClick],
   );
 
   const handleSave = () => {
-    if (onSave) {
-      onSave(editMode ? editedText : displayText);
-    }
+    if (onSave) onSave(editMode ? editedText : displayText);
   };
 
   const handleToggleEdit = () => {
@@ -96,81 +94,94 @@ export default function OcrTextEditor({
       setEditMode(true);
     }
   };
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">OCR Text</h3>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            ({words.length} words)
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
+            OCR text
+          </h3>
+          <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+            {words.length} words
           </span>
           {hasCorrections && (
-            <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--info-50)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--info-700)] ring-1 ring-inset ring-[var(--info-500)]/30 dark:bg-[var(--info-900)]/20 dark:text-[var(--info-100)]">
               Edited
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            type="button"
+            size="sm"
+            variant={editMode ? "secondary" : "outline"}
             onClick={handleToggleEdit}
-            className={`px-3 py-1 text-xs rounded border transition-colors ${
-              editMode
-                ? "bg-blue-600 text-white border-blue-600"
-                : "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-            }`}
           >
-            {editMode ? "Cancel Edit" : "Edit Text"}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-3 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSaving ? "Saving..." : "Save Corrections"}
-          </button>
+            {editMode ? "Cancel edit" : "Edit text"}
+          </Button>
+          {onSave && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSave}
+              loading={isSaving}
+            >
+              {isSaving ? "Saving" : "Save corrections"}
+            </Button>
+          )}
         </div>
       </div>
 
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto p-4 text-sm leading-relaxed"
+        className="flex-1 overflow-y-auto px-4 py-3 text-[var(--text-sm)] leading-relaxed text-[var(--text)]"
         role="region"
         aria-label="OCR text editor"
       >
         {editMode ? (
-          <textarea
+          <Textarea
             value={effectiveEditedText}
             onChange={(e) => setEditedText(e.target.value)}
-            className="w-full h-full min-h-[400px] p-2 border rounded font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            className="min-h-[400px] font-mono text-[var(--text-sm)] resize-none"
             dir="auto"
             aria-label="Edit OCR text"
           />
         ) : (
           <div className="whitespace-pre-wrap" dir="auto">
             {grouped.map((group) => (
-              <div key={`block-${group.blockNum}-line-${group.lineNum}`} className="mb-1">
+              <div
+                key={`block-${group.blockNum}-line-${group.lineNum}`}
+                className="mb-1"
+              >
                 {group.words.map(({ index, word }) => {
                   const isSelected = index === selectedIndex;
                   const isLowConf = word.confidence < 60;
 
                   return (
-                    <span
+                    <button
                       key={`word-${index}`}
+                      type="button"
                       ref={(el) => {
                         if (el) wordRefs.current.set(index, el);
                       }}
                       onClick={() => handleWordClick(index)}
-                      className={`cursor-pointer px-0.5 rounded-sm transition-colors ${
+                      aria-label={`${word.text}, confidence ${word.confidence} percent${isLowConf ? ", uncertain" : ""}`}
+                      aria-current={isSelected ? "true" : undefined}
+                      className={cn(
+                        "cursor-pointer rounded-[var(--radius-xs)] px-0.5",
+                        "min-h-0 leading-inherit",
+                        "transition-colors duration-[var(--duration-fast)]",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--background)]",
                         isSelected
-                          ? "bg-blue-200 ring-1 ring-blue-400 dark:bg-blue-800 dark:ring-blue-500"
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-1 ring-inset ring-[var(--accent-ring)]/40"
                           : isLowConf
-                            ? "underline decoration-red-400 decoration-2 underline-offset-2 hover:bg-red-50 dark:hover:bg-red-900/30"
-                            : "hover:bg-gray-200 dark:hover:bg-gray-600"
-                      }`}
-                      title={`Confidence: ${word.confidence}%`}
+                            ? "underline decoration-[var(--danger-500)] decoration-2 underline-offset-2 hover:bg-[var(--danger-50)] dark:hover:bg-[var(--danger-900)]/20"
+                            : "hover:bg-[var(--surface-sunken)]",
+                      )}
                     >
                       {word.text}
-                    </span>
+                    </button>
                   );
                 })}
               </div>

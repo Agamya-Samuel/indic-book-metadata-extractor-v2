@@ -64,7 +64,7 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
 └──────────────────────────────────────────────────┘
 ```
 
-**7 Docker services**: `postgres`, `redis`, `backend`, `worker`, `frontend`, `ollama`, `flower`
+**8 Docker services**: `postgres`, `redis`, `backend`, `worker-ocr`, `worker-llm`, `frontend`, `ollama`, `flower`
 
 ---
 
@@ -110,7 +110,8 @@ The application guides users through a 7-step pipeline:
 | `make status` | Show status of all services |
 | `make logs` | Tail logs for all services |
 | `make logs-backend` | Tail backend logs |
-| `make logs-worker` | Tail worker logs |
+| `make logs-worker-ocr` | Tail OCR worker logs |
+| `make logs-worker-llm` | Tail LLM worker logs |
 | `make migrate` | Run database migrations |
 | `make reset-db` | Reset database (destroys data!) |
 | `make download-model` | Download Airavata model to Ollama |

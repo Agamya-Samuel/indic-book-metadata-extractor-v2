@@ -95,15 +95,49 @@ async def client(test_app) -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
 
+def _make_celery_mocks():
+    """Return a list of (mock, target) tuples for all the Celery tasks the
+    API endpoints can dispatch."""
+    return [
+        ("ocr", "app.tasks.ocr_tasks.run_ocr_for_book"),
+        ("preprocess", "app.tasks.ocr_tasks.preprocess_pages_for_book"),
+        ("llm", "app.tasks.llm_tasks.run_llm_extraction"),
+        ("pipeline", "app.tasks.pipeline_tasks.process_book_pipeline"),
+    ]
+
+
 @pytest.fixture
 def mock_celery():
-    with (
-        patch("app.tasks.ocr_tasks.run_ocr_for_book") as mock_ocr_task,
-        patch("app.tasks.llm_tasks.run_llm_extraction") as mock_llm_task,
-    ):
-        mock_ocr_task.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
-        mock_llm_task.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
-        yield {"ocr": mock_ocr_task, "llm": mock_llm_task}
+    mocks = _make_celery_mocks()
+    handles = {name: patch(target).__enter__() for name, target in mocks}
+    for h in handles.values():
+        h.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
+    try:
+        yield handles
+    finally:
+        for _, target in mocks:
+            patch(target).__exit__(None, None, None)
+
+
+@pytest.fixture(autouse=True)
+def _auto_mock_celery(request):
+    """Auto-apply Celery task mocks to every test that does not explicitly
+    request ``mock_celery``. Prevents integration tests from trying to reach
+    a real broker when the upload handler dispatches the orchestrator.
+    """
+    if "mock_celery" in request.fixturenames:
+        yield
+        return
+
+    mocks = _make_celery_mocks()
+    handles = [(name, patch(target).__enter__()) for name, target in mocks]
+    for _, h in handles:
+        h.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
+    try:
+        yield
+    finally:
+        for _, target in mocks:
+            patch(target).__exit__(None, None, None)
 
 
 @pytest.fixture

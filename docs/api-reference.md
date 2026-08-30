@@ -654,3 +654,121 @@ Returns comprehensive book detail including pages, OCR text, metadata, jobs, and
   "jobs": []
 }
 ```
+
+---
+
+## Bulk Operations API
+
+### Get Bulk Statistics
+
+```
+GET /api/bulk/stats
+```
+
+Returns library-wide statistics: total books, books with metadata, breakdown by language and status.
+
+**Response** (`200 OK`):
+```json
+{
+  "total_books": 1234,
+  "books_with_metadata": 1100,
+  "languages": {"tel": 800, "hin": 434},
+  "statuses": {"complete": 1100, "ocr_complete": 134}
+}
+```
+
+---
+
+### Export Metadata as CSV
+
+```
+POST /api/bulk/export
+```
+
+Exports all book metadata as a CSV file. One row per book. The first column is `book_id` (UUID) for re-import matching.
+
+**Query Parameters**:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `language` | string | null | Filter by language code (e.g., `tel`, `hin`) |
+| `status` | string | null | Filter by book status (e.g., `complete`) |
+
+**Response**: CSV file download (`text/csv`)
+
+**CSV Columns**: `book_id, title, language, filename, label, author, description_work, ...` (all 52 metadata fields)
+
+**Example**:
+```bash
+curl -X POST "http://localhost:8000/api/bulk/export?language=tel" -o export.csv
+```
+
+---
+
+### Import Metadata from CSV
+
+```
+POST /api/bulk/import
+```
+
+Upload a cleaned CSV to update book metadata. The CSV must contain a `book_id` column.
+
+**Query Parameters**:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mode` | string | `merge` | `merge` — only update provided fields; `overwrite` — replace all fields |
+
+**Content-Type**: `multipart/form-data`
+
+**Body**: Form data with a `file` field containing the CSV.
+
+**Response** (`200 OK`):
+```json
+{
+  "total_rows": 500,
+  "books_updated": 498,
+  "books_not_found": 2,
+  "fields_changed": 1523,
+  "errors": ["Row 45: invalid book_id 'not-a-uuid'"]
+}
+```
+
+**Example**:
+```bash
+curl -X POST "http://localhost:8000/api/bulk/import?mode=merge" \
+  -F "file=@cleaned_metadata.csv"
+```
+
+---
+
+### Export QuickStatements for Wikibase
+
+```
+POST /api/bulk/export-wikibase
+```
+
+Generates a QuickStatements TSV file for uploading books to Wikibase. Each book becomes a new item with properties mapped from the `FIELD_WIKIDATA` mapping.
+
+**Query Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `language` | string | Filter by language code |
+
+**Response**: TSV file download (`text/tab-separated-values`)
+
+**Format** (one block per book):
+```
+CREATE
+LAST	Len	"Book Title"
+LAST	P50	"Author Name"
+LAST	P123	"Publisher Name"
+LAST	P31	Q571
+LAST	P407	Q809
+```
+
+**Example**:
+```bash
+curl -X POST "http://localhost:8000/api/bulk/export-wikibase" -o quickstatements.tsv
+```

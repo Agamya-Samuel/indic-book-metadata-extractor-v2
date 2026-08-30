@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export type WorkflowStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -9,46 +10,18 @@ interface WorkflowStepDef {
   label: string;
   shortLabel: string;
   getPath: (bookId: string) => string;
+  requiresHumanReview?: boolean;
+  isAutomaticProcessing?: boolean;
 }
 
 const WORKFLOW_STEPS: WorkflowStepDef[] = [
   { step: 1, label: "Upload", shortLabel: "Upload", getPath: () => "/upload" },
-  {
-    step: 2,
-    label: "Select Pages",
-    shortLabel: "Pages",
-    getPath: (id) => `/books/${id}/select-pages`,
-  },
-  {
-    step: 3,
-    label: "Preprocessing",
-    shortLabel: "Preprocess",
-    getPath: (id) => `/books/${id}/preprocessing`,
-  },
-  {
-    step: 4,
-    label: "OCR Review",
-    shortLabel: "OCR",
-    getPath: (id) => `/books/${id}/ocr-review`,
-  },
-  {
-    step: 5,
-    label: "LLM Config",
-    shortLabel: "LLM",
-    getPath: (id) => `/books/${id}/llm-config`,
-  },
-  {
-    step: 6,
-    label: "Metadata Review",
-    shortLabel: "Metadata",
-    getPath: (id) => `/books/${id}/metadata-review`,
-  },
-  {
-    step: 7,
-    label: "Complete",
-    shortLabel: "Done",
-    getPath: () => "/library",
-  },
+  { step: 2, label: "Select Pages", shortLabel: "Pages", getPath: (id) => `/books/${id}/select-pages`, requiresHumanReview: true },
+  { step: 3, label: "Preprocessing", shortLabel: "Preprocess", getPath: (id) => `/books/${id}/preprocessing` },
+  { step: 4, label: "OCR Review", shortLabel: "OCR", getPath: (id) => `/books/${id}/ocr-review`, requiresHumanReview: true },
+  { step: 5, label: "LLM Config", shortLabel: "LLM", getPath: (id) => `/books/${id}/llm-config`, requiresHumanReview: true },
+  { step: 6, label: "Metadata Review", shortLabel: "Metadata", getPath: (id) => `/books/${id}/metadata-review`, requiresHumanReview: true },
+  { step: 7, label: "Complete", shortLabel: "Done", getPath: () => "/library" },
 ];
 
 interface WorkflowStepperProps {
@@ -64,98 +37,90 @@ export default function WorkflowStepper({
 }: WorkflowStepperProps) {
   return (
     <nav
-      className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 px-4 py-3"
       aria-label="Workflow progress"
+      className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur"
     >
-      <div className="max-w-screen-2xl mx-auto">
-        <ol className="flex items-center gap-1 overflow-x-auto" role="list">
+      <div className="mx-auto max-w-[var(--content-max)] px-4 sm:px-6 lg:px-8">
+        <ol
+          className="flex items-center gap-0.5 overflow-x-auto py-3"
+          role="list"
+        >
           {WORKFLOW_STEPS.map((def, idx) => {
-            const isCompleted = def.step < currentStep && def.step <= completedStep;
+            const isCompleted =
+              def.step < currentStep && def.step <= completedStep;
             const isCurrent = def.step === currentStep;
-            const isClickable = isCompleted || (def.step <= completedStep && def.step !== currentStep);
+            const isClickable =
+              isCompleted ||
+              (def.step <= completedStep && def.step !== currentStep);
+            const showHumanBadge = def.requiresHumanReview && !isCompleted;
 
             return (
-              <li key={def.step} className="flex items-center">
+              <li key={def.step} className="flex items-center shrink-0">
                 {idx > 0 && (
-                  <svg
-                    className={`w-4 h-4 mx-1 flex-shrink-0 ${
-                      isCompleted || isCurrent ? "text-blue-500 dark:text-blue-400" : "text-gray-300 dark:text-gray-600"
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                  <span
                     aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                    className={cn(
+                      "mx-1 sm:mx-1.5 h-px w-4 sm:w-6",
+                      isCompleted || isCurrent
+                        ? "bg-[var(--accent)]"
+                        : "bg-[var(--border)]",
+                    )}
+                  />
                 )}
 
                 {isClickable ? (
                   <Link
                     href={def.getPath(bookId)}
                     aria-current={isCurrent ? "step" : undefined}
-                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                    aria-label={`${def.label}${isCurrent ? ", current step" : isCompleted ? ", completed" : ""}${def.requiresHumanReview ? ", requires human review" : ""}`}
+                    className={cn(
+                      "group inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-[var(--radius)] min-h-11",
+                      "text-[var(--text-sm)] font-medium whitespace-nowrap",
+                      "transition-colors duration-[var(--duration-fast)]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
                       isCurrent
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                        ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
                         : isCompleted
-                          ? "text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
+                          ? "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-sunken)]"
+                          : "text-[var(--text-subtle)] hover:bg-[var(--surface-sunken)]",
+                    )}
                   >
-                    <span
-                      className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                        isCurrent
-                          ? "bg-blue-600 text-white dark:bg-blue-500"
-                          : isCompleted
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400"
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <svg
-                          className="w-3 h-3"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      ) : (
-                        def.step
-                      )}
-                    </span>
+                    <StepCircle
+                      step={def.step}
+                      completed={isCompleted}
+                      current={isCurrent}
+                      requiresHumanReview={def.requiresHumanReview}
+                    />
                     <span className="hidden md:inline">{def.label}</span>
                     <span className="md:hidden">{def.shortLabel}</span>
+                    {showHumanBadge && (
+                      <HumanReviewBadge />
+                    )}
                   </Link>
                 ) : (
                   <span
                     aria-current={isCurrent ? "step" : undefined}
-                    className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${
+                    aria-label={`${def.label}, locked — complete the previous step first`}
+                    aria-disabled="true"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-[var(--radius)]",
+                      "text-[var(--text-sm)] font-medium whitespace-nowrap",
                       isCurrent
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                        : "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                    }`}
+                        ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
+                        : "text-[var(--text-subtle)] cursor-not-allowed",
+                    )}
                   >
-                    <span
-                      className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                        isCurrent
-                          ? "bg-blue-600 text-white dark:bg-blue-500"
-                          : "bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-500"
-                      }`}
-                    >
-                      {def.step}
-                    </span>
+                    <StepCircle
+                      step={def.step}
+                      completed={false}
+                      current={isCurrent}
+                      requiresHumanReview={def.requiresHumanReview}
+                    />
                     <span className="hidden md:inline">{def.label}</span>
                     <span className="md:hidden">{def.shortLabel}</span>
+                    {showHumanBadge && (
+                      <HumanReviewBadge />
+                    )}
                   </span>
                 )}
               </li>
@@ -164,5 +129,77 @@ export default function WorkflowStepper({
         </ol>
       </div>
     </nav>
+  );
+}
+
+function StepCircle({
+  step,
+  completed,
+  current,
+  requiresHumanReview,
+}: {
+  step: WorkflowStep;
+  completed: boolean;
+  current: boolean;
+  requiresHumanReview?: boolean;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-5 items-center justify-center rounded-full text-[10px] font-bold leading-none",
+        completed
+          ? "bg-[var(--success-600)] text-[var(--text-inverse)]"
+          : current
+            ? requiresHumanReview
+              ? "bg-[var(--warning-500)] text-[var(--text-inverse)] animate-current-step"
+              : "bg-[var(--accent)] text-[var(--text-inverse)] animate-current-step"
+            : "bg-[var(--surface-sunken)] text-[var(--text-subtle)] border border-[var(--border)]",
+      )}
+    >
+      {completed ? (
+        <svg
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="size-3 animate-step-check"
+        >
+          <path
+            fillRule="evenodd"
+            d="M16.704 5.296a1 1 0 010 1.408l-7.997 8a1 1 0 01-1.408 0l-3.999-4a1 1 0 011.408-1.408L8 12.59l7.296-7.294a1 1 0 011.408 0z"
+            clipRule="evenodd"
+          />
+        </svg>
+      ) : (
+        step
+      )}
+    </span>
+  );
+}
+
+function HumanReviewBadge() {
+  return (
+    <span
+      title="This step requires human review"
+      className={cn(
+        "hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full",
+        "bg-[var(--warning-100)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/30 dark:text-[var(--warning-100)]",
+        "text-[10px] font-medium"
+      )}
+    >
+      <svg
+        className="w-3 h-3"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+        />
+      </svg>
+      Review
+    </span>
   );
 }

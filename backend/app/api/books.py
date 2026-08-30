@@ -27,6 +27,7 @@ from app.schemas.book import (
 from app.schemas.job import JobResponse
 from app.services import pdf_service, storage
 from app.services.ocr_service import LANGUAGE_MAP
+from app.services.search_service import SearchService
 from app.models.ocr_result import OcrResult
 from app.api.deps import get_book_or_404
 
@@ -101,13 +102,28 @@ async def upload_book(
     # Pre-render all thumbnails in the background so the page selector loads instantly
     background_tasks.add_task(_pre_render_thumbnails, str(book_id), pdf_path, page_count)
 
+    # Kick off the auto-pipeline: page selection -> OCR -> LLM extraction.
+    # The orchestrator is idempotent and emits SSE events for each stage.
+    from app.tasks.pipeline_tasks import process_book_pipeline
+
+    process_book_pipeline.delay(str(book_id), language)
+
     return BookUploadResponse.model_validate(book)
 
 
 @router.get("/{book_id}", response_model=BookDetail)
 async def get_book(book_id: UUID, db: AsyncSession = Depends(get_db)) -> BookDetail:
     book = await get_book_or_404(book_id, db)
-    return BookDetail.model_validate(book)
+    low_conf_count = await SearchService.count_low_confidence_fields(
+        db, book_id, settings.low_confidence_threshold
+    )
+    return BookDetail.model_validate(
+        {
+            **BookDetail.model_validate(book).model_dump(),
+            "needs_review": book.status == BookStatus.AWAITING_REVIEW and low_conf_count > 0,
+            "low_confidence_count": low_conf_count,
+        }
+    )
 
 
 @router.get("/{book_id}/pages/{page_number}/thumbnail")
@@ -244,9 +260,9 @@ async def run_ocr(
     await db.commit()
     await db.refresh(job)
 
-    from app.tasks.ocr_tasks import run_ocr_for_book
+    from app.tasks.ocr_tasks import preprocess_pages_for_book
 
-    run_ocr_for_book.delay(str(job.id), str(book_id), book.language)
+    preprocess_pages_for_book.delay(str(job.id), str(book_id), book.language)
 
     return JobResponse.model_validate(job)
 
