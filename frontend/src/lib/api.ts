@@ -19,6 +19,8 @@ export interface BookUploadResponse {
 
 export interface BookDetail extends BookUploadResponse {
   updated_at: string | null;
+  needs_review?: boolean;
+  low_confidence_count?: number;
 }
 
 export interface PageSelectionRequest {

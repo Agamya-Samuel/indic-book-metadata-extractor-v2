@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
+import { useBookStatus } from "@/hooks/use-book-status";
 import { getErrorMessage } from "@/lib/error-handler";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import MetadataForm from "@/components/metadata/metadata-form";
@@ -114,6 +115,8 @@ export default function MetadataReviewPage() {
       bookId,
       enabled: book?.status === "llm_running",
     });
+
+  const bookStatus = useBookStatus({ bookId });
 
   const currentPage = pages?.[currentPageIndex];
 
@@ -223,6 +226,30 @@ export default function MetadataReviewPage() {
             </div>
           }
         />
+
+        {bookStatus.isRunning && (
+          <Card>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[var(--text-base)] font-semibold text-[var(--text)]">
+                  Auto-processing in progress
+                </h2>
+                <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                  {Math.round(bookStatus.progress)}%
+                </span>
+              </div>
+              <Progress value={bookStatus.progress} />
+              <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                Status: <span className="font-mono">{bookStatus.status}</span>
+                {bookStatus.connectionMode === "polling" && (
+                  <span className="ml-2 text-[var(--warning-700)]">
+                    (SSE disconnected — using polling fallback)
+                  </span>
+                )}
+              </p>
+            </div>
+          </Card>
+        )}
 
         <Stack gap={6}>
           {showLlmHistory && (

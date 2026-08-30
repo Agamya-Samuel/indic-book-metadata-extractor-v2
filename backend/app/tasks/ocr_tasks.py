@@ -14,6 +14,7 @@ from app.models.job import Job, JobStatus
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services import ocr_service, preprocessing, storage
+from app.services.sse_service import event_id, publish_sync
 from app.tasks.async_utils import run_async, run_async_threadsafe
 from app.tasks.celery_app import celery_app
 
@@ -90,23 +91,82 @@ def _process_page_threadsafe(page_id_str: str, book_id_str: str, language: str) 
 # ---------------------------------------------------------------------------
 # Progress tracking
 # ---------------------------------------------------------------------------
-def _update_job_progress(job_id_str: str, completed: int, total: int) -> None:
+def _update_job_progress(
+    job_id_str: str, completed: int, total: int, book_id_str: str | None = None
+) -> None:
     """Update job progress percentage in the database.
 
     Uses a thread-safe async wrapper since this may be called from
     :class:`~concurrent.futures.ThreadPoolExecutor` threads.
+    Also publishes a ``job.progress`` SSE event so connected clients see
+    live updates without polling.
     """
     async def _do():
+        book_id: uuid.UUID | None = None
+        if book_id_str:
+            try:
+                book_id = uuid.UUID(book_id_str)
+            except (TypeError, ValueError):
+                book_id = None
         async with async_session_factory() as db:
             job_result = await db.execute(
                 select(Job).where(Job.id == uuid.UUID(job_id_str))
             )
             job = job_result.scalar_one_or_none()
-            if job:
-                job.progress = round((completed / total) * 100, 1)
-                await db.commit()
+            if not job:
+                return
+            job.progress = round((completed / total) * 100, 1)
+            if book_id is None and job.book_id is not None:
+                book_id = job.book_id
+            await db.commit()
+            progress_pct = job.progress
+            jid = job.id
+            bkid = book_id
+            jtype = job.job_type
+
+        if bkid is not None:
+            publish_sync(
+                bkid,
+                {
+                    "id": event_id("job-progress"),
+                    "type": "job.progress",
+                    "book_id": str(bkid),
+                    "job_id": str(jid),
+                    "job_type": jtype,
+                    "progress": progress_pct,
+                },
+            )
 
     run_async_threadsafe(_do())
+
+
+def _publish_book_status(book_id: uuid.UUID, status: str, job_id: uuid.UUID | None = None) -> None:
+    publish_sync(
+        book_id,
+        {
+            "id": event_id("book-status"),
+            "type": "book.status_changed",
+            "book_id": str(book_id),
+            "status": status,
+            "job_id": str(job_id) if job_id else None,
+        },
+    )
+
+
+def _publish_job_terminal(
+    book_id: uuid.UUID, job_id: uuid.UUID, status: str, error_log: str | None = None
+) -> None:
+    publish_sync(
+        book_id,
+        {
+            "id": event_id(f"job-{status}"),
+            "type": "job.terminal",
+            "book_id": str(book_id),
+            "job_id": str(job_id),
+            "status": status,
+            "error_log": error_log,
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -250,7 +310,7 @@ def run_ocr_for_page_batch(
                     progress_counter += 1
                     current = progress_counter
                 try:
-                    _update_job_progress(job_id_str, current, total_pages)
+                    _update_job_progress(job_id_str, current, total_pages, book_id_str)
                 except Exception:
                     logger.debug("Progress update failed for page %d", idx)
 
@@ -314,7 +374,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 
             completed += 1
             try:
-                _update_job_progress(job_id_str, completed, total_pages)
+                _update_job_progress(job_id_str, completed, total_pages, book_id_str)
             except Exception:
                 logger.debug("Progress update failed for page %s", page_id)
 
@@ -386,7 +446,8 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
     """Finalize the job after the sequential OCR loop completes.
 
     Sets job status, progress, completion timestamp, and updates the book's
-    OCR status based on how many pages failed.
+    OCR status based on how many pages failed. Emits SSE events for the
+    terminal job status and the book status transition.
     """
 
     async def _do():
@@ -418,6 +479,13 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             job.progress = 100.0
             job.completed_at = datetime.now(timezone.utc)
             await db.commit()
+            terminal_status = job.status
+            error_log = job.error_log
+            new_book_status = book.status if book else None
+
+        _publish_job_terminal(book_id, job_id, terminal_status, error_log)
+        if new_book_status is not None:
+            _publish_book_status(book_id, new_book_status, job_id)
 
     try:
         run_async_threadsafe(_do())
@@ -427,7 +495,7 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
 
 
 def _mark_job_failed(job_id_str: str, error: str):
-    """Mark a job as failed in the database."""
+    """Mark a job as failed in the database and publish a terminal SSE event."""
 
     async def _do():
         async with async_session_factory() as db:
@@ -435,10 +503,15 @@ def _mark_job_failed(job_id_str: str, error: str):
                 select(Job).where(Job.id == uuid.UUID(job_id_str))
             )
             job = job_result.scalar_one_or_none()
-            if job:
-                job.status = JobStatus.FAILED
-                job.error_log = error
-                job.completed_at = datetime.now(timezone.utc)
-                await db.commit()
+            if not job:
+                return
+            job.status = JobStatus.FAILED
+            job.error_log = error
+            job.completed_at = datetime.now(timezone.utc)
+            book_id = job.book_id
+            await db.commit()
+
+        if book_id is not None:
+            _publish_job_terminal(book_id, uuid.UUID(job_id_str), JobStatus.FAILED, error)
 
     run_async(_do())

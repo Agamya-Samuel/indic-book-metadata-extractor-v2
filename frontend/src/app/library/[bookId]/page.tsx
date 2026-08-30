@@ -233,6 +233,15 @@ export default function BookDetailPage() {
           }
           actions={
             <div className="flex items-center gap-2">
+              {book.status === "awaiting_review" && (
+                <LinkButton
+                  href={`/books/${bookId}/metadata-review`}
+                  variant="primary"
+                  size="md"
+                >
+                  Review now
+                </LinkButton>
+              )}
               {book.status === "complete" && (
                 <LinkButton
                   href={`/books/${bookId}/metadata-review`}
@@ -250,6 +259,50 @@ export default function BookDetailPage() {
         />
 
         <WorkflowResumeBanner detail={detail.book} />
+
+        {book.status === "awaiting_review" && (
+          <Card>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+              <div
+                aria-hidden="true"
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--warning-50)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]"
+              >
+                <svg
+                  className="size-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.75}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1 space-y-2">
+                <h2 className="text-[var(--text-base)] font-semibold text-[var(--text)]">
+                  Review needed
+                </h2>
+                <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                  {book.low_confidence_count && book.low_confidence_count > 0
+                    ? `${book.low_confidence_count} metadata field${book.low_confidence_count === 1 ? "" : "s"} below the confidence threshold. Open the metadata review to inspect and correct them.`
+                    : "The auto-chain has finished. Open the metadata review to confirm the extracted values before exporting."}
+                </p>
+                <div>
+                  <LinkButton
+                    href={`/books/${bookId}/metadata-review`}
+                    variant="primary"
+                    size="sm"
+                  >
+                    Open metadata review
+                  </LinkButton>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         <Stack gap={6}>
           {Object.keys(metadataFields).length > 0 && (
