@@ -10,7 +10,7 @@ export const Stage = vi.fn((props: Record<string, unknown>) => {
       "data-width": String(width),
       "data-height": String(height),
     },
-    children
+    children as React.ReactNode
   );
 });
 
@@ -19,7 +19,7 @@ export const Layer = vi.fn((props: Record<string, unknown>) => {
   return React.createElement(
     "div",
     { "data-testid": "konva-layer" },
-    children
+    children as React.ReactNode
   );
 });
 
@@ -40,6 +40,6 @@ export const Group = vi.fn((props: Record<string, unknown>) => {
   return React.createElement(
     "div",
     { "data-testid": "konva-group" },
-    children
+    children as React.ReactNode
   );
 });

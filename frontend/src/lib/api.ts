@@ -19,6 +19,8 @@ export interface BookUploadResponse {
 
 export interface BookDetail extends BookUploadResponse {
   updated_at: string | null;
+  needs_review?: boolean;
+  low_confidence_count?: number;
 }
 
 export interface PageSelectionRequest {
@@ -325,6 +327,24 @@ export const getMetadataFieldDefinitions = async (
   return response.data;
 };
 
+export interface FieldEvidence {
+  field_name: string;
+  value: string | null;
+  confidence: number | null;
+  extraction_method: string;
+  source_page_number: number | null;
+  source_text_snippet: string | null;
+}
+
+export const getMetadataEvidence = async (
+  bookId: string
+): Promise<FieldEvidence[]> => {
+  const response = await api.get<FieldEvidence[]>(
+    `/books/${bookId}/metadata/evidence`
+  );
+  return response.data;
+};
+
 export const getLlmRuns = async (bookId: string): Promise<LlmRunResponse[]> => {
   const response = await api.get<LlmRunResponse[]>(`/books/${bookId}/llm-runs`);
   return response.data;
@@ -426,5 +446,221 @@ export const getBookDetail = async (
 
 export const getFilterOptions = async (): Promise<FilterOptions> => {
   const response = await api.get<FilterOptions>("/library/filters");
+  return response.data;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bulk Operations
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface BulkStatsResponse {
+  total_books: number;
+  books_with_metadata: number;
+  languages: Record<string, number>;
+  statuses: Record<string, number>;
+}
+
+export interface BulkExportParams {
+  language?: string;
+  status?: string;
+}
+
+export interface BulkImportResult {
+  total_rows: number;
+  books_updated: number;
+  books_not_found: number;
+  fields_changed: number;
+  errors: string[];
+}
+
+export const getBulkStats = async (): Promise<BulkStatsResponse> => {
+  const response = await api.get<BulkStatsResponse>("/bulk/stats");
+  return response.data;
+};
+
+export const bulkExport = async (params?: BulkExportParams): Promise<Blob> => {
+  const searchParams = new URLSearchParams();
+  if (params?.language) searchParams.set("language", params.language);
+  if (params?.status) searchParams.set("status", params.status);
+
+  const qs = searchParams.toString();
+  const response = await api.post(`/bulk/export${qs ? `?${qs}` : ""}`, null, {
+    responseType: "blob",
+  });
+  return response.data;
+};
+
+export const bulkImport = async (
+  file: File,
+  mode: string = "merge"
+): Promise<BulkImportResult> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post<BulkImportResult>(
+    `/bulk/import?mode=${mode}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response.data;
+};
+
+export const bulkExportWikibase = async (params?: {
+  language?: string;
+}): Promise<Blob> => {
+  const searchParams = new URLSearchParams();
+  if (params?.language) searchParams.set("language", params.language);
+
+  const qs = searchParams.toString();
+  const response = await api.post(
+    `/bulk/export-wikibase${qs ? `?${qs}` : ""}`,
+    null,
+    {
+      responseType: "blob",
+    }
+  );
+  return response.data;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface AdminStatsResponse {
+  total_books: number;
+  books_with_metadata: number;
+  languages: Record<string, number>;
+  statuses: Record<string, number>;
+  jobs: {
+    queued: number;
+    running: number;
+    failed_recent: number;
+    completed_recent: number;
+  };
+  disk_usage_mb: number;
+}
+
+export interface AdminBooksParams {
+  query?: string;
+  language?: string;
+  status?: string;
+  has_metadata?: boolean;
+  page?: number;
+  page_size?: number;
+}
+
+export interface AdminJobRow {
+  id: string;
+  book_id: string | null;
+  book_title: string | null;
+  book_filename: string;
+  job_type: "ocr" | "llm" | "preprocessing";
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  progress: number;
+  created_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  error_log: string | null;
+}
+
+export interface AdminJobsResponse {
+  items: AdminJobRow[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AdminJobsParams {
+  status?: string;
+  job_type?: "ocr" | "llm" | "preprocessing";
+  book_id?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export const getAdminStats = async (): Promise<AdminStatsResponse> => {
+  const response = await api.get<AdminStatsResponse>("/admin/stats");
+  return response.data;
+};
+
+export const getAdminBooks = async (
+  params?: AdminBooksParams
+): Promise<BookListResponse> => {
+  const searchParams = new URLSearchParams();
+  if (params?.query) searchParams.set("query", params.query);
+  if (params?.language) searchParams.set("language", params.language);
+  if (params?.status) searchParams.set("status", params.status);
+  if (typeof params?.has_metadata === "boolean") {
+    searchParams.set("has_metadata", String(params.has_metadata));
+  }
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+
+  const qs = searchParams.toString();
+  const response = await api.get<BookListResponse>(
+    `/admin/books${qs ? `?${qs}` : ""}`
+  );
+  return response.data;
+};
+
+export const deleteAdminBook = async (bookId: string): Promise<void> => {
+  await api.delete(`/admin/books/${bookId}`);
+};
+
+export const resetAdminBook = async (
+  bookId: string
+): Promise<{ id: string; status: string }> => {
+  const response = await api.post<{ id: string; status: string }>(
+    `/admin/books/${bookId}/reset`
+  );
+  return response.data;
+};
+
+export const rerunAdminOcr = async (
+  bookId: string
+): Promise<{ job_id: string; book_id: string; status: string }> => {
+  const response = await api.post<{ job_id: string; book_id: string; status: string }>(
+    `/admin/books/${bookId}/rerun-ocr`
+  );
+  return response.data;
+};
+
+export const rerunAdminExtraction = async (
+  bookId: string
+): Promise<{ job_id: string; book_id: string; status: string }> => {
+  const response = await api.post<{ job_id: string; book_id: string; status: string }>(
+    `/admin/books/${bookId}/rerun-extraction`
+  );
+  return response.data;
+};
+
+export const getAdminJobs = async (
+  params?: AdminJobsParams
+): Promise<AdminJobsResponse> => {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set("status", params.status);
+  if (params?.job_type) searchParams.set("job_type", params.job_type);
+  if (params?.book_id) searchParams.set("book_id", params.book_id);
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+
+  const qs = searchParams.toString();
+  const response = await api.get<AdminJobsResponse>(
+    `/admin/jobs${qs ? `?${qs}` : ""}`
+  );
+  return response.data;
+};
+
+export const cancelAdminJob = async (
+  jobId: string
+): Promise<{ id: string; status: string }> => {
+  const response = await api.post<{ id: string; status: string }>(
+    `/admin/jobs/${jobId}/cancel`
+  );
   return response.data;
 };

@@ -573,6 +573,133 @@ BOOKS: dict[str, dict] = {
             },
         ],
     },
+    # ── Hindi, modern (post-2000) fictional novel ───────────────────────────
+    "hin_modern": {
+        "filename": "sample_hin_modern.pdf",
+        "language": "hin",
+        "quality": "modern",
+        "metadata": {
+            "title": "नदी के दो किनारे",
+            "subtitle": "एक उपन्यास",
+            "author": "सुनीता शर्मा",
+            "publisher": "राजकमल प्रकाशन",
+            "publisher_telugu": None,
+            "place_of_publication": "नई दिल्ली",
+            "publication_date": "2018",
+            "isbn": "978-81-267-1234-5",
+            "language": "Hindi",
+            "original_language": "Hindi",
+            "genre": "उपन्यास",
+            "subject": "भारतीय सामाजिक जीवन",
+            "edition_number": "दूसरा संस्करण",
+            "pages": "320",
+            "printer": "कमल प्रिंटर्स",
+            "place_of_printing": "नोएडा",
+            "translator": None,
+            "editor": "अनिल कुमार",
+            "volume": "1",
+            "form_of_creative_work": "पुस्तक",
+            "dedication": "अपने गाँव को",
+            "forewords": "वरिष्ठ साहित्यकार श्री रमेश शर्मा जी की भूमिका",
+        },
+        "pages": [
+            {
+                "content": [
+                    {"text": "नदी के दो किनारे", "size": 24, "y": 100, "bold": True},
+                    {"text": "एक उपन्यास", "size": 16, "y": 145},
+                    {"text": "", "size": 10, "y": 200},
+                    {"text": "सुनीता शर्मा", "size": 18, "y": 250},
+                    {"text": "", "size": 10, "y": 320},
+                    {"text": "राजकमल प्रकाशन", "size": 14, "y": 380},
+                    {"text": "नई दिल्ली", "size": 12, "y": 410},
+                ],
+            },
+            {
+                "content": [
+                    {"text": "ISBN: 978-81-267-1234-5", "size": 11, "y": 100},
+                    {"text": "Sankshya: 320", "size": 11, "y": 130},
+                    {"text": "Mulya: Rs. 450", "size": 11, "y": 160},
+                    {"text": "", "size": 10, "y": 200},
+                    {"text": "Prakashak: राजकमल प्रकाशन", "size": 11, "y": 220},
+                    {"text": "Pratham Sanskaran: 2018", "size": 11, "y": 245},
+                ],
+            },
+            {
+                "content": [
+                    {"text": "अपने गाँव को", "size": 14, "y": 300, "italic": True},
+                ],
+            },
+            {
+                "content": [
+                    {"text": "अध्याय 1", "size": 16, "y": 100, "bold": True},
+                    {"text": "नदी के दो किनारे पर बसे दो गाँवों की कहानी...", "size": 12, "y": 140},
+                ],
+            },
+        ],
+    },
+    # ── Telugu, degraded (low-quality scan simulation) ───────────────────────
+    "tel_degraded": {
+        "filename": "sample_tel_degraded.pdf",
+        "language": "tel",
+        "quality": "degraded",
+        "metadata": {
+            "title": "ఆంధ్ర సాహిత్య చరిత్ర",
+            "subtitle": "ప్రాచీన యుగం నుండి ఆధునిక యుగం వరకు",
+            "author": "ప్రొ. కాళీపట్నం రామారావు",
+            "publisher": "విశాలాంధ్ర పబ్లిషింగ్ హౌస్",
+            "publisher_telugu": "విశాలాంధ్ర పబ్లిషింగ్ హౌస్",
+            "place_of_publication": "హైదరాబాద్",
+            "publication_date": "2015",
+            "isbn": "978-81-7894-234-1",
+            "language": "Telugu",
+            "original_language": "Telugu",
+            "genre": "విద్యా సాహిత్యం",
+            "subject": "తెలుగు సాహిత్య చరిత్ర",
+            "edition_number": "మూడవ ముద్రణ",
+            "pages": "456",
+            "printer": "శ్రీ గణపతి ప్రింటర్స్",
+            "place_of_printing": "సికింద్రాబాద్",
+            "translator": None,
+            "editor": "డా. విశ్వనాథ సత్యనారాయణ",
+            "volume": "2",
+            "form_of_creative_work": "గ్రంథం",
+            "dedication": "ఆంధ్ర మాతృభాషా భక్తులకు",
+            "forewords": "ప్రముఖ సాహిత్య విమర్శకులు ప్రొ. జి. నాగేశ్వరరావు గారి ముందుమాట",
+        },
+        "pages": [
+            {
+                "content": [
+                    {"text": "ఆంధ్ర సాహిత్య చరిత్ర", "size": 22, "y": 100, "bold": True},
+                    {"text": "ప్రాచీన యుగం నుండి ఆధునిక యుగం వరకు", "size": 14, "y": 140},
+                    {"text": "", "size": 10, "y": 200},
+                    {"text": "ప్రొ. కాళీపట్నం రామారావు", "size": 16, "y": 250},
+                    {"text": "", "size": 10, "y": 320},
+                    {"text": "విశాలాంధ్ర పబ్లిషింగ్ హౌస్", "size": 14, "y": 380},
+                    {"text": "హైదరాబాద్", "size": 12, "y": 410},
+                ],
+            },
+            {
+                "content": [
+                    {"text": "ISBN: 978-81-7894-234-1", "size": 10, "y": 100},
+                    {"text": "Pustaka Sankhya: 456", "size": 10, "y": 130},
+                    {"text": "Mulya: Rs. 595", "size": 10, "y": 160},
+                    {"text": "", "size": 8, "y": 200},
+                    {"text": "Prakashak: విశాలాంధ్ర పబ్లిషింగ్ హౌస్", "size": 10, "y": 220},
+                    {"text": "Mooduta Muddran: 2015", "size": 10, "y": 245},
+                ],
+            },
+            {
+                "content": [
+                    {"text": "సంపాదకులు: డా. విశ్వనాథ సత్యనారాయణ", "size": 10, "y": 100},
+                ],
+            },
+            {
+                "content": [
+                    {"text": "ఆంధ్ర మాతృభాషా భక్తులకు", "size": 12, "y": 300, "italic": True},
+                ],
+            },
+        ],
+    },
 }
 
 
@@ -685,7 +812,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--quality",
-        choices=["clean", "degraded"],
+        choices=["clean", "degraded", "modern"],
         default="clean",
         help="Quality variant (default: clean)",
     )

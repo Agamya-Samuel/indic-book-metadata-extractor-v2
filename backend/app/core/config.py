@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # Database — set via DATABASE_URL env var in production
+    # Local dev default only.
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/indic_books"
 
     # Redis
@@ -28,6 +29,9 @@ class Settings(BaseSettings):
     # OCR
     tesseract_cmd: str = "tesseract"
     default_ocr_language: str = "tel"
+    ocr_batch_size: int = 10
+    ocr_thread_workers: int = 4
+    ocr_render_dpi: int = 300
 
     # New Relic
     new_relic_enabled: bool = False
@@ -39,6 +43,13 @@ class Settings(BaseSettings):
     new_relic_config_file: str = "newrelic.ini"
     new_relic_monitor_mode: bool = True
     new_relic_developer_mode: bool = False
+
+    # Wikibase property mapping (JSON file mapping Wikidata P-IDs to local P-IDs)
+    property_mapping_path: str = "/app/storage/property-mapping.json"
+
+    # Threshold below which a metadata field is considered "low confidence" and
+    # surfaces a "Review needed" hint in the UI.
+    low_confidence_threshold: float = 0.70
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

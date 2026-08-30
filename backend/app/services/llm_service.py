@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -18,6 +19,17 @@ from app.schemas.metadata import (
     BATCH_FIELD_ORDER,
     FullMetadata,
 )
+from app.services.batch_routing import (
+    PageText,
+    assemble_ocr_text,
+    select_pages_for_batch,
+)
+from app.services.extractors import ExtractedField
+from app.services.extractors.hybrid import (
+    NON_LLM_FIELDS,
+    run_hybrid_extraction,
+)
+from app.schemas.metadata import FIELD_TO_BATCH
 from app.services.prompts import (
     render_system_prompt,
     render_extraction_prompt,
@@ -36,9 +48,13 @@ class LLMService:
     FAILURE_THRESHOLD: int = 3
     COOLDOWN_SECONDS: float = 60.0
 
-    # Context window management for Ollama models (1024 tokens)
-    # Reserve tokens for: system prompt (~200), extraction template (~400), output (~256)
-    MAX_OCR_CHARS: int = 1500  # ~375 tokens, safe for 1024 context window
+    # Context window management for Ollama models (num_ctx=4096 in Modelfile).
+    # Reserve tokens for: system prompt (~200), extraction template (~400), output (~256).
+    # That leaves ~3240 tokens for OCR input. At ~4 chars/token that's ~12960 chars,
+    # but we use a conservative 8000-char cap and route per-batch to keep
+    # each batch focused on its likely page region.
+    MAX_OCR_CHARS: int = 8000  # per-batch budget under num_ctx=4096
+    MAX_PARALLEL_BATCHES: int = 2  # safe for CPU Ollama; raise if GPU
 
     def __init__(self, ollama_url: str | None = None):
         self._ollama_url = ollama_url or settings.ollama_url
@@ -166,53 +182,292 @@ class LLMService:
         system_prompt_override: str | None = None,
         extraction_prompt_override: str | None = None,
         progress_callback: Callable[[int, int, str], Awaitable[None]] | None = None,
+        pages: list[PageText] | None = None,
     ) -> tuple[FullMetadata, list[dict]]:
+        """Run all 8 metadata extraction batches and merge the results.
+
+        When ``pages`` is provided, each batch sees the page subset most
+        likely to contain its fields (see ``batch_routing.BATCH_PAGE_SLICES``)
+        instead of the first 1500 chars of the full OCR blob. Batches run
+        in parallel via ``asyncio.gather`` with a concurrency cap to keep
+        CPU Ollama from thrashing.
+
+        ``ocr_text`` is retained as a fallback so callers that pass a
+        pre-joined string (e.g. tests) still work.
+        """
         merged_data: dict = {}
         batch_results: list[dict] = []
         total_batches = len(BATCH_FIELD_ORDER)
         errors: list[str] = []
 
-        for i, batch_name in enumerate(BATCH_FIELD_ORDER):
+        async def _run_one(batch_name: str) -> tuple[str, BaseModel, str, dict]:
             batch_schema = METADATA_BATCHES[batch_name]
+            if pages:
+                selected = select_pages_for_batch(pages, batch_name)
+                batch_text = assemble_ocr_text(selected, self.MAX_OCR_CHARS)
+                batch_page_count = len(selected)
+            else:
+                batch_text = ocr_text
+                batch_page_count = page_count
 
             result, raw_response, usage = await self.extract_batch(
-                ocr_text=ocr_text,
+                ocr_text=batch_text,
                 batch_name=batch_name,
                 batch_schema=batch_schema,
                 model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 language=language,
-                page_count=page_count,
+                page_count=batch_page_count,
                 system_prompt_override=system_prompt_override,
                 extraction_prompt_override=extraction_prompt_override,
             )
+            return batch_name, result, raw_response, usage
 
-            batch_data = result.model_dump(exclude_none=False)
-            for key, value in batch_data.items():
-                if value is not None:
-                    merged_data[key] = value
+        # Run batches in parallel with a concurrency cap. Sequential when
+        # pages is None (legacy callers / tests) to preserve behavior.
+        if pages:
+            semaphore = asyncio.Semaphore(self.MAX_PARALLEL_BATCHES)
 
-            batch_results.append(
-                {
-                    "batch_name": batch_name,
-                    "raw_response": raw_response,
-                    "parsed_fields": batch_data,
-                    "usage": usage,
-                }
-            )
+            async def _guarded(name: str) -> tuple[str, BaseModel, str, dict]:
+                async with semaphore:
+                    return await _run_one(name)
 
-            if usage.get("status") != "success":
-                errors.append(f"Batch '{batch_name}': {usage.get('status')} - {usage.get('error', 'unknown')}")
+            in_flight = [
+                asyncio.create_task(_guarded(name)) for name in BATCH_FIELD_ORDER
+            ]
+            completed = 0
+            for fut in asyncio.as_completed(in_flight):
+                batch_name, result, raw_response, usage = await fut
+                completed += 1
 
-            if progress_callback:
-                await progress_callback(i + 1, total_batches, batch_name)
+                batch_data = result.model_dump(exclude_none=False)
+                for key, value in batch_data.items():
+                    if value is not None:
+                        merged_data[key] = value
+
+                batch_results.append(
+                    {
+                        "batch_name": batch_name,
+                        "raw_response": raw_response,
+                        "parsed_fields": batch_data,
+                        "usage": usage,
+                    }
+                )
+
+                if usage.get("status") != "success":
+                    errors.append(
+                        f"Batch '{batch_name}': {usage.get('status')} - {usage.get('error', 'unknown')}"
+                    )
+
+                if progress_callback:
+                    await progress_callback(completed, total_batches, batch_name)
+        else:
+            for i, batch_name in enumerate(BATCH_FIELD_ORDER):
+                bn, result, raw_response, usage = await _run_one(batch_name)
+
+                batch_data = result.model_dump(exclude_none=False)
+                for key, value in batch_data.items():
+                    if value is not None:
+                        merged_data[key] = value
+
+                batch_results.append(
+                    {
+                        "batch_name": bn,
+                        "raw_response": raw_response,
+                        "parsed_fields": batch_data,
+                        "usage": usage,
+                    }
+                )
+
+                if usage.get("status") != "success":
+                    errors.append(
+                        f"Batch '{bn}': {usage.get('status')} - {usage.get('error', 'unknown')}"
+                    )
+
+                if progress_callback:
+                    await progress_callback(i + 1, total_batches, bn)
 
         if errors:
             logger.warning("LLM extraction completed with errors: %s", errors)
 
         metadata = FullMetadata(**merged_data)
         return metadata, batch_results
+
+    @newrelic.agent.function_trace(name="LLM: Run Hybrid Extraction", group="Custom")
+    async def run_hybrid_full_extraction(
+        self,
+        ocr_text: str,
+        model: str = "airavata",
+        temperature: float = 0.3,
+        max_tokens: int = 256,
+        language: str = "tel",
+        page_count: int = 1,
+        system_prompt_override: str | None = None,
+        extraction_prompt_override: str | None = None,
+        progress_callback: Callable[[int, int, str], Awaitable[None]] | None = None,
+        pages: list[PageText] | None = None,
+    ) -> tuple[FullMetadata, list[dict], dict[str, "ExtractedField"]]:
+        """Hybrid extraction: cheap extractors first, LLM only for gaps.
+
+        This is the production entry point. The 5 high-confidence fields
+        (isbn, pages, publication_date, publisher, language) are resolved
+        by regex/dictionary with no LLM call. The LLM is then asked only
+        for the remaining ~47 fields, broken into the 8 batches as before
+        but with the cheap-extractor values pre-populated so they can't be
+        overwritten by hallucinated LLM output.
+
+        Returns ``(metadata, batch_results, evidence)`` where ``evidence``
+        is a ``field_name -> ExtractedField`` map carrying confidence,
+        method, and source page info for every populated field.
+        """
+        target_fields = list(FullMetadata.model_fields.keys())
+        if "custom_fields" in target_fields:
+            target_fields.remove("custom_fields")
+
+        # Build the (page_num, text) tuple list that the cheap extractors
+        # expect. This is just the OCR text per page.
+        page_tuples: list[tuple[int, str]] = []
+        if pages:
+            page_tuples = [(p.page_number, p.text) for p in pages]
+        elif ocr_text:
+            # Fall back to a single synthetic page if the caller didn't
+            # pass per-page text. Cheap extractors still work on the blob.
+            page_tuples = [(1, ocr_text)]
+
+        batch_results: list[dict] = []
+
+        # LLM-fill callback: only the gaps reach the LLM. We use the
+        # same batch-based approach as before, but restricted to batches
+        # that contain unresolved fields.
+        async def _llm_fill(gaps: set[str]) -> dict[str, ExtractedField]:
+            # Map gaps → which batches we still need to call.
+            needed_batches: set[str] = set()
+            for field_name in gaps:
+                needed_batches.add(FIELD_TO_BATCH.get(field_name, "physical_extra"))
+
+            llm_results: dict[str, ExtractedField] = {}
+            if not needed_batches:
+                return llm_results
+
+            total_needed = len(needed_batches)
+            semaphore = asyncio.Semaphore(self.MAX_PARALLEL_BATCHES)
+
+            async def _guarded(bn: str):
+                async with semaphore:
+                    try:
+                        return await self._run_one_batch_for_hybrid(
+                            batch_name=bn,
+                            ocr_text=ocr_text,
+                            pages=pages,
+                            model=model,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            language=language,
+                            page_count=page_count,
+                            system_prompt_override=system_prompt_override,
+                            extraction_prompt_override=extraction_prompt_override,
+                            gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
+                        )
+                    except Exception as e:
+                        return e
+
+            in_flight = [
+                asyncio.create_task(_guarded(bn)) for bn in needed_batches
+            ]
+            completed = 0
+            for fut in asyncio.as_completed(in_flight):
+                outcome = await fut
+                completed += 1
+                if isinstance(outcome, Exception):
+                    logger.error("Hybrid LLM batch failed: %s", outcome)
+                    batch_results.append(
+                        {
+                            "batch_name": "<failed>",
+                            "raw_response": "",
+                            "parsed_fields": {},
+                            "usage": {"status": "error", "error": str(outcome)},
+                        }
+                    )
+                    if progress_callback:
+                        await progress_callback(completed, total_needed, "<failed>")
+                    continue
+                batch_name, parsed, raw_response, usage = outcome
+                batch_results.append(
+                    {
+                        "batch_name": batch_name,
+                        "raw_response": raw_response,
+                        "parsed_fields": parsed,
+                        "usage": usage,
+                    }
+                )
+                for field_name, value in parsed.items():
+                    if value is not None and field_name in gaps:
+                        llm_results[field_name] = ExtractedField(
+                            field_name=field_name,
+                            value=value,
+                            confidence=0.6,  # baseline LLM confidence
+                            method="llm",
+                            source_page_number=None,
+                            source_text_snippet=None,
+                        )
+                if progress_callback:
+                    await progress_callback(completed, total_needed, batch_name)
+
+            return llm_results
+
+        results = await run_hybrid_extraction(
+            full_text=ocr_text,
+            pages=page_tuples,
+            llm_fill_remaining=_llm_fill,
+            target_fields=target_fields,
+        )
+
+        merged_data = {fn: ef.value for fn, ef in results.items() if ef.value is not None}
+        metadata = FullMetadata(**merged_data)
+        return metadata, batch_results, results
+
+    async def _run_one_batch_for_hybrid(
+        self,
+        batch_name: str,
+        ocr_text: str,
+        pages: list[PageText] | None,
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        language: str,
+        page_count: int,
+        system_prompt_override: str | None,
+        extraction_prompt_override: str | None,
+        gap_fields: set[str],
+    ) -> tuple[str, dict, str, dict]:
+        """Run one LLM batch and return only the gap fields it covers."""
+        batch_schema = METADATA_BATCHES[batch_name]
+        if pages:
+            selected = select_pages_for_batch(pages, batch_name)
+            batch_text = assemble_ocr_text(selected, self.MAX_OCR_CHARS)
+            batch_page_count = len(selected)
+        else:
+            batch_text = ocr_text
+            batch_page_count = page_count
+
+        result, raw_response, usage = await self.extract_batch(
+            ocr_text=batch_text,
+            batch_name=batch_name,
+            batch_schema=batch_schema,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            language=language,
+            page_count=batch_page_count,
+            system_prompt_override=system_prompt_override,
+            extraction_prompt_override=extraction_prompt_override,
+        )
+        # Filter to only the fields that are actually gaps, so we don't
+        # accidentally clobber cheap-extractor values downstream.
+        parsed_all = result.model_dump(exclude_none=False)
+        parsed_filtered = {k: v for k, v in parsed_all.items() if k in gap_fields and v is not None}
+        return batch_name, parsed_filtered, raw_response, usage
 
     async def list_available_models(self) -> list[dict]:
         try:
