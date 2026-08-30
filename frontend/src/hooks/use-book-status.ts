@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
@@ -56,12 +56,20 @@ export function useBookStatus({
   const [pipelineFailed, setPipelineFailed] = useState(false);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
 
+  // Refs to avoid TDZ in refetchInterval — the callback is captured as part
+  // of the useQuery options object *before* the const is assigned, so closing
+  // over `jobsQuery` / `bookQuery` directly triggers "Cannot access … before
+  // initialization" in minified builds.
+  const bookDataRef = useRef<BookDetail | undefined>(undefined);
+  const jobsDataRef = useRef<JobResponse[] | undefined>(undefined);
+
   const bookQuery = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
     enabled: !!bookId,
     staleTime: 5_000,
   });
+  bookDataRef.current = bookQuery.data;
 
   const jobsQuery = useQuery({
     queryKey: ["book", bookId, "jobs"],
@@ -71,11 +79,11 @@ export function useBookStatus({
       if (typeof document !== "undefined" && document.visibilityState !== "visible") {
         return pollIntervalMs;
       }
-      const jobs = jobsQuery.data as JobResponse[] | undefined;
+      const jobs = jobsDataRef.current as JobResponse[] | undefined;
       const hasRunning = jobs?.some(
         (j) => j.status === "queued" || j.status === "running"
       );
-      const bookStatus = (bookQuery.data?.status ?? "") as BookStatus;
+      const bookStatus = (bookDataRef.current?.status ?? "") as BookStatus;
       if (!hasRunning && !RUNNING_STATUSES.includes(bookStatus)) {
         return false;
       }
@@ -83,33 +91,49 @@ export function useBookStatus({
     },
     staleTime: 1_000,
   });
+  jobsDataRef.current = jobsQuery.data;
 
-  useSSE({
-    bookId,
-    enabled: !!bookId,
-    onJobComplete: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-    },
-    onJobFailed: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
-    },
-    onPipelineComplete: () => {
-      setPipelineFailed(false);
-      setPipelineError(null);
-      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-    },
-    onPipelineFailed: (stage, error) => {
+  const handleJobComplete = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
+    queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+  }, [queryClient, bookId]);
+
+  const handleJobFailed = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
+  }, [queryClient, bookId]);
+
+  const handlePipelineComplete = useCallback(() => {
+    setPipelineFailed(false);
+    setPipelineError(null);
+    queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+  }, [queryClient, bookId]);
+
+  const handlePipelineFailed = useCallback(
+    (stage: string | undefined, error: string) => {
       setPipelineFailed(true);
       setPipelineError(`${stage ?? "pipeline"}: ${error}`);
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
     },
-    onAwaitingReview: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-    },
-    onBookStatusChanged: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-    },
+    [queryClient, bookId],
+  );
+
+  const handleAwaitingReview = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+  }, [queryClient, bookId]);
+
+  const handleBookStatusChanged = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+  }, [queryClient, bookId]);
+
+  useSSE({
+    bookId,
+    enabled: !!bookId,
+    onJobComplete: handleJobComplete,
+    onJobFailed: handleJobFailed,
+    onPipelineComplete: handlePipelineComplete,
+    onPipelineFailed: handlePipelineFailed,
+    onAwaitingReview: handleAwaitingReview,
+    onBookStatusChanged: handleBookStatusChanged,
   });
 
   const book = bookQuery.data ?? null;
