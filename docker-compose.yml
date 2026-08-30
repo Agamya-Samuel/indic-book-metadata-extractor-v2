@@ -40,7 +40,6 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
-    mem_limit: 8g
     ports:
       - "11434:11434"
     volumes:
@@ -63,7 +62,6 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    mem_limit: 1g
     ports:
       - "8000:8000"
     env_file:
@@ -104,7 +102,6 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    mem_limit: 4g
     command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "--hostname=ocr@%h", "-Q", "ocr,default"]
     env_file:
       - .env
@@ -144,7 +141,6 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    mem_limit: 2g
     command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--hostname=llm@%h", "-Q", "llm"]
     env_file:
       - .env

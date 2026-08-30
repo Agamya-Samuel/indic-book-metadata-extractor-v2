@@ -73,10 +73,6 @@ services:
     environment:
       OLLAMA_PRELOAD_MODEL: airavata
       OLLAMA_KEEP_ALIVE: "30m"
-    deploy:
-      resources:
-        limits:
-          memory: 6G
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -124,10 +120,6 @@ services:
       - ./docker/scripts/backend-entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-    deploy:
-      resources:
-        limits:
-          memory: 1G
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,10 +163,6 @@ services:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
       - ./backend/alembic.ini:/app/alembic.ini
-    deploy:
-      resources:
-        limits:
-          memory: 2G
     depends_on:
       postgres:
         condition: service_healthy
@@ -251,10 +239,6 @@ services:
         sleep 86400
       done
       "
-    deploy:
-      resources:
-        limits:
-          memory: 128M
     depends_on:
       postgres:
         condition: service_healthy
