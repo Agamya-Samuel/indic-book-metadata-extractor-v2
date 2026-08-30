@@ -7,6 +7,7 @@ import {
   getBook,
   getAvailableModels,
   getMetadataFieldDefinitions,
+  getBookJobs,
   runExtraction,
   retryExtraction,
   DEFAULT_EXTRACTION_CONFIG,
@@ -99,12 +100,12 @@ export default function LlmConfigPage() {
     gcTime: 30 * 60 * 1000,
   });
 
-  const { isComplete, isFailed, progress, isPolling, errorLog } =
+  const { isComplete, isFailed, progress, isPolling, errorLog, allJobs } =
     useJobPolling({
       bookId,
       jobId: activeJobId ?? undefined,
       jobType: "llm",
-      enabled: !!activeJobId,
+      enabled: !!activeJobId || book?.status === "llm_running" || book?.status === "awaiting_review",
     });
 
   const fieldsByBatch = useMemo(() => {
@@ -165,6 +166,17 @@ export default function LlmConfigPage() {
       toast.error("LLM extraction failed");
     }
   }, [isComplete, isFailed, activeJobId, errorLog, setWorkflowStep, setCompletedStep]);
+
+  // On page refresh, discover the existing LLM job so the progress view
+  // is restored instead of showing the config form.
+  useEffect(() => {
+    if (!activeJobId && allJobs.length > 0) {
+      const llmJob = allJobs.find((j) => j.job_type === "llm");
+      if (llmJob) {
+        setActiveJobId(llmJob.id);
+      }
+    }
+  }, [activeJobId, allJobs]);
 
   if (isLoadingBook || isLoadingModels || isLoadingFields) {
     return <WorkflowPageSkeleton />;

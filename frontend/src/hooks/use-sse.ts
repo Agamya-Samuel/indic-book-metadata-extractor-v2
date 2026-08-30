@@ -72,6 +72,28 @@ export function useSSE({
   const baseReconnectDelay = 1000;
   const connectRef = useRef<(() => void) | null>(null);
 
+  // Store callbacks in a ref so `connect` doesn't depend on them directly.
+  // This prevents the SSE connection from being torn down and recreated on
+  // every render when callers pass inline arrow functions.
+  const callbacksRef = useRef({
+    onJobComplete,
+    onJobFailed,
+    onPipelineComplete,
+    onPipelineFailed,
+    onAwaitingReview,
+    onBookStatusChanged,
+  });
+  useEffect(() => {
+    callbacksRef.current = {
+      onJobComplete,
+      onJobFailed,
+      onPipelineComplete,
+      onPipelineFailed,
+      onAwaitingReview,
+      onBookStatusChanged,
+    };
+  });
+
   const updateJobCache = useCallback((event: SSEEvent) => {
     queryClient.setQueryData<JobResponse[]>(
       ["book", bookId, "jobs"],
@@ -174,32 +196,34 @@ export function useSSE({
           updateJobCache(data);
         }
 
-        if ((data.type === "job_complete" || (data.type === "job.terminal" && data.status === "completed")) && onJobComplete) {
-          onJobComplete(data.job_id || data.id || "", data.job_type || "");
+        const cbs = callbacksRef.current;
+
+        if ((data.type === "job_complete" || (data.type === "job.terminal" && data.status === "completed")) && cbs.onJobComplete) {
+          cbs.onJobComplete(data.job_id || data.id || "", data.job_type || "");
         }
 
-        if ((data.type === "job_failed" || (data.type === "job.terminal" && data.status === "failed")) && onJobFailed) {
-          onJobFailed(
+        if ((data.type === "job_failed" || (data.type === "job.terminal" && data.status === "failed")) && cbs.onJobFailed) {
+          cbs.onJobFailed(
             data.job_id || data.id || "",
             data.job_type || "",
             data.error || data.error_log || "Unknown error"
           );
         }
 
-        if (data.type === "pipeline.completed" && onPipelineComplete) {
-          onPipelineComplete();
+        if (data.type === "pipeline.completed" && cbs.onPipelineComplete) {
+          cbs.onPipelineComplete();
         }
 
-        if (data.type === "pipeline.failed" && onPipelineFailed) {
-          onPipelineFailed(data.stage, data.error || "Pipeline failed");
+        if (data.type === "pipeline.failed" && cbs.onPipelineFailed) {
+          cbs.onPipelineFailed(data.stage, data.error || "Pipeline failed");
         }
 
-        if (data.type === "book.awaiting_review" && onAwaitingReview) {
-          onAwaitingReview(data.low_confidence_count ?? 0);
+        if (data.type === "book.awaiting_review" && cbs.onAwaitingReview) {
+          cbs.onAwaitingReview(data.low_confidence_count ?? 0);
         }
 
-        if (data.type === "book.status_changed" && onBookStatusChanged) {
-          onBookStatusChanged(data.status || "");
+        if (data.type === "book.status_changed" && cbs.onBookStatusChanged) {
+          cbs.onBookStatusChanged(data.status || "");
         }
       } catch (e) {
         // Non-JSON payloads (e.g. heartbeat comments) are silently ignored.
@@ -224,18 +248,12 @@ export function useSSE({
   }, [
     bookId,
     enabled,
-    onJobComplete,
-    onJobFailed,
-    onPipelineComplete,
-    onPipelineFailed,
-    onAwaitingReview,
-    onBookStatusChanged,
     updateJobCache,
   ]);
 
   useEffect(() => {
     connectRef.current = connect;
-  });
+  }, [connect]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

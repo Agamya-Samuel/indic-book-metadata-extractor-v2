@@ -28,6 +28,7 @@ const STEP_MAP: Record<string, WorkflowStep> = {
   ocr_running: 3,
   ocr_complete: 5,
   llm_running: 5,
+  awaiting_review: 6,
   complete: 7,
 };
 
