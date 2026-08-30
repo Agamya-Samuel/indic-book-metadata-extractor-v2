@@ -86,18 +86,8 @@
   --text-muted:        var(--neutral-600);
   --text-subtle:       var(--neutral-500);
   --text-inverse:      var(--neutral-0);
-  /* Single source of truth for the default text color used by every
-     button variant that sits on a transparent or surface background
-     (outline / secondary / ghost). Aliases --text so it tracks both
-     themes automatically. Do not reference --text directly from the
-     button component — go through this token so future contrast
-     tweaks happen in one place. */
   --btn-text:          var(--text);
   --btn-text-inverse:  #fff;
-  /* On-color text: always white because both --accent (dark navy in light,
-     mid blue in dark) and any full-saturation button background are dark
-     enough to require a high-contrast foreground. Single source of truth
-     for every colored button, badge, and skip link. */
   --accent:            var(--brand-700);
   --accent-hover:      var(--brand-800);
   --accent-active:     var(--brand-900);
@@ -174,8 +164,6 @@
   --text-muted:        var(--neutral-300);
   --text-subtle:       var(--neutral-400);
   --text-inverse:      var(--neutral-0);
-  /* Inherits from --text above; redeclared for clarity and so future
-     dark-mode-only contrast tweaks land here, not on --text. */
   --btn-text:          var(--text);
   --btn-text-inverse:  #fff;
   /* Keep the accent dark in both modes so white on-color text stays
@@ -339,14 +327,8 @@
     -webkit-tap-highlight-color: color-mix(in oklch, var(--accent) 18%, transparent);
   }
 
-  /* Note: there is intentionally NO `button { color: inherit; font: inherit; }`
-     reset here. All interactive buttons in this codebase go through the
-     shared <Button> / <LinkButton> component, which sets its own text
-     color per variant via the --btn-text token and a data-variant attribute.
-     The component-layer rules (see @layer components below) apply the correct
-     text color for each variant, preventing invisible text against dark
-     backgrounds that can occur when Tailwind v4 layer ordering fails to
-     apply text-[...] utilities on buttons. */
+  /* No `button { color: inherit }` reset — the component-layer
+     data-variant rules below handle text color per variant. */
 
   /* Honor forced-colors mode (Windows High Contrast) — keep the focus ring
      visible and use a system color so the system can adjust it. */
@@ -414,13 +396,8 @@
     z-index: 1;
   }
 
-  /* --- Button variant text colors ------------------------------------------
-     Provides a reliable baseline for button text color at the component layer
-     so text is always legible against its own background. Tailwind utility
-     classes in @layer utilities can still override these for specific instances
-     (e.g. status-colored page-number buttons in OCR review). This guard
-     prevents invisible text on dark backgrounds that can occur when Tailwind
-     CSS v4 layer ordering fails to apply text-[...] utilities on buttons. */
+  /* Button text colors — ensures legibility against dark backgrounds
+     even when Tailwind v4 utilities fail to apply. */
   button[data-variant="primary"],
   a[data-variant="primary"],
   button[data-variant="danger"],

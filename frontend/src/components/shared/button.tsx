@@ -20,7 +20,7 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-[var(--accent)] text-[var(--btn-text-inverse)] " +
+    "bg-[var(--accent)] " +
     "hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] " +
     "shadow-[var(--shadow-xs)]",
   secondary:
@@ -36,7 +36,7 @@ const variants: Record<Variant, string> = {
     "bg-transparent text-[var(--btn-text)] " +
     "hover:bg-[var(--surface-sunken)] active:bg-[var(--surface-sunken)]",
   danger:
-    "bg-[var(--danger-600)] text-[var(--btn-text-inverse)] " +
+    "bg-[var(--danger-600)] " +
     "hover:bg-[var(--danger-700)] active:bg-[var(--danger-900)] " +
     "shadow-[var(--shadow-xs)]",
   link:
@@ -84,12 +84,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
+    const colorStyle =
+      variant === "primary" || variant === "danger"
+        ? ({ color: "#fff" } as React.CSSProperties)
+        : undefined;
+
     return (
       <button
         ref={ref}
         type={type}
         disabled={disabled || loading}
-        data-variant={variant}
+        style={colorStyle}
         className={buttonClasses(variant, size, className)}
         aria-busy={loading || undefined}
         {...rest}
@@ -130,8 +135,13 @@ export function LinkButton({
   children,
   ...rest
 }: LinkButtonProps) {
+  const colorStyle =
+    variant === "primary" || variant === "danger"
+      ? ({ color: "#fff" } as React.CSSProperties)
+      : undefined;
+
   return (
-    <Link data-variant={variant} className={buttonClasses(variant, size, className)} {...rest}>
+    <Link data-variant={variant} style={colorStyle} className={buttonClasses(variant, size, className)} {...rest}>
       {leftIcon && <span className="shrink-0">{leftIcon}</span>}
       {children && <span className="truncate">{children}</span>}
       {rightIcon && <span className="shrink-0">{rightIcon}</span>}
