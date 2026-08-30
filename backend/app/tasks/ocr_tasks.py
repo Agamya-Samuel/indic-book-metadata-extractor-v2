@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import newrelic.agent
-from celery import chord, group
 from sqlalchemy import exc as sa_exc, select
 from app.core.config import settings
 from app.core.database import async_session_factory
@@ -259,12 +258,12 @@ def run_ocr_for_page_batch(
 
 
 # ---------------------------------------------------------------------------
-# Book-level OCR: orchestrates parallel page tasks via chord
+# Book-level OCR: processes pages sequentially with per-page progress updates
 # ---------------------------------------------------------------------------
 @celery_app.task(bind=True, name="run_ocr_for_book")
 @newrelic.agent.background_task(name="OCR: Book Orchestration", group="CeleryTask")
 def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
-    """Kick off parallel OCR for all pages of a book using Celery chord."""
+    """Run OCR sequentially for every page of a book, updating progress after each page."""
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
     newrelic.agent.add_custom_attribute("language", language)
@@ -302,17 +301,24 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
         if page_ids is None:
             return
 
-        batch_size = settings.ocr_batch_size
-        batches = [page_ids[i : i + batch_size] for i in range(0, len(page_ids), batch_size)]
         total_pages = len(page_ids)
+        errors: list[str] = []
+        completed = 0
 
-        page_tasks = group(
-            run_ocr_for_page_batch.s(batch, book_id_str, language, job_id_str, total_pages)
-            for batch in batches
-        )
-        callback = _ocr_book_complete.s(job_id_str, book_id_str, total_pages, len(batches))
+        for page_id in page_ids:
+            try:
+                _process_page_threadsafe(page_id, book_id_str, language)
+            except Exception as e:
+                logger.error("OCR failed for page %s: %s", page_id, e)
+                errors.append(f"Page {page_id}: {e}")
 
-        chord(page_tasks, callback).apply_async()
+            completed += 1
+            try:
+                _update_job_progress(job_id_str, completed, total_pages)
+            except Exception:
+                logger.debug("Progress update failed for page %s", page_id)
+
+        _finalize_job(job_id_str, book_id_str, total_pages, errors)
 
     except Exception as e:
         logger.error("OCR book job %s setup failed: %s", job_id_str, e)
@@ -322,7 +328,8 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 
 @celery_app.task(name="_ocr_book_complete")
 def _ocr_book_complete(results, job_id_str: str, book_id_str: str, total_pages: int, batch_count: int):
-    """Callback invoked after all page OCR batches complete."""
+    """Legacy chord callback. No longer invoked (orchestrator now finalizes inline),
+    but kept for backward compatibility with any in-flight chord dispatches."""
 
     async def _finalize():
         async with async_session_factory() as db:
@@ -372,6 +379,50 @@ def _ocr_book_complete(results, job_id_str: str, book_id_str: str, total_pages: 
         run_async(_finalize())
     except Exception as e:
         logger.error("OCR book completion callback failed for %s: %s", job_id_str, e)
+        _mark_job_failed(job_id_str, str(e))
+
+
+def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: list[str]) -> None:
+    """Finalize the job after the sequential OCR loop completes.
+
+    Sets job status, progress, completion timestamp, and updates the book's
+    OCR status based on how many pages failed.
+    """
+
+    async def _do():
+        async with async_session_factory() as db:
+            job_id = uuid.UUID(job_id_str)
+            book_id = uuid.UUID(book_id_str)
+
+            job_result = await db.execute(select(Job).where(Job.id == job_id))
+            job = job_result.scalar_one_or_none()
+            if job is None:
+                return
+
+            book_result = await db.execute(select(Book).where(Book.id == book_id))
+            book = book_result.scalar_one_or_none()
+
+            if errors and len(errors) >= total_pages:
+                job.status = JobStatus.FAILED
+                job.error_log = "All pages failed:\n" + "\n".join(errors)
+            elif errors:
+                job.status = JobStatus.COMPLETED
+                job.error_log = "Some pages failed:\n" + "\n".join(errors)
+                if book:
+                    book.status = BookStatus.OCR_COMPLETE
+            else:
+                job.status = JobStatus.COMPLETED
+                if book:
+                    book.status = BookStatus.OCR_COMPLETE
+
+            job.progress = 100.0
+            job.completed_at = datetime.now(timezone.utc)
+            await db.commit()
+
+    try:
+        run_async_threadsafe(_do())
+    except Exception as e:
+        logger.error("OCR book finalization failed for %s: %s", job_id_str, e)
         _mark_job_failed(job_id_str, str(e))
 
 
