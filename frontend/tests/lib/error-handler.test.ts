@@ -3,7 +3,7 @@ import axios from "axios";
 import { parseApiError, getErrorMessage } from "@/lib/error-handler";
 
 function makeAxiosError(
-  status: number | undefined,
+  status: number,
   data?: Record<string, string>,
   message?: string
 ) {

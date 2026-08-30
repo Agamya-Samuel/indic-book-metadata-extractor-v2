@@ -2,4 +2,4 @@ FROM indic-book-metadata-extractor-backend
 
 WORKDIR /app
 
-CMD ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+CMD ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "-Q", "ocr,default"]

@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: indic_books
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -40,7 +40,6 @@ services:
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
-    mem_limit: 8g
     ports:
       - "11434:11434"
     volumes:
@@ -63,13 +62,12 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    mem_limit: 1g
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/indic_books
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       - REDIS_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
@@ -99,23 +97,61 @@ services:
       ollama:
         condition: service_healthy
 
-  worker:
+  worker-ocr:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    mem_limit: 2g
-    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=4", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "--hostname=ocr@%h", "-Q", "ocr,default"]
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/indic_books
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - OLLAMA_URL=http://ollama:11434
+      - STORAGE_PATH=/app/storage
+      - OCR_BATCH_SIZE=${OCR_BATCH_SIZE:-10}
+      - OCR_THREAD_WORKERS=${OCR_THREAD_WORKERS:-4}
+      - OCR_RENDER_DPI=${OCR_RENDER_DPI:-300}
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
+      - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
+      - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
+      - NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
+      - NEW_RELIC_LOG=${NEW_RELIC_LOG:-error}
+      - NEW_RELIC_MONITOR_MODE=${NEW_RELIC_MONITOR_MODE:-true}
+      - NEW_RELIC_DEVELOPER_MODE=${NEW_RELIC_DEVELOPER_MODE:-false}
+    volumes:
+      - ./backend/storage:/app/storage
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/alembic.ini:/app/alembic.ini
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  worker-llm:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    restart: unless-stopped
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--hostname=llm@%h", "-Q", "llm"]
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       - REDIS_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker LLM}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
       - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
@@ -142,6 +178,8 @@ services:
       dockerfile: ../docker/Dockerfile.frontend
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:8000/api}
+        - NEXT_PUBLIC_OPENREFINE_URL=${NEXT_PUBLIC_OPENREFINE_URL:-http://localhost:3333}
+        - NEXT_PUBLIC_WIKIBASE_URL=${NEXT_PUBLIC_WIKIBASE_URL:-http://localhost:8080}
         - NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY=${NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY:-}
         - NEXT_PUBLIC_NEW_RELIC_APP_ID=${NEXT_PUBLIC_NEW_RELIC_APP_ID:-}
         - NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID=${NEXT_PUBLIC_NEW_RELIC_ACCOUNT_ID:-}
@@ -152,6 +190,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - NEXT_PUBLIC_OPENREFINE_URL=${NEXT_PUBLIC_OPENREFINE_URL:-http://localhost:3333}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
@@ -167,7 +206,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - FLOWER_PORT=5555
-      - FLOWER_BASIC_AUTH=admin:admin
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
     depends_on:
       redis:
         condition: service_healthy
@@ -181,7 +220,7 @@ services:
     environment:
       - PGHOST=postgres
       - PGUSER=postgres
-      - PGPASSWORD=postgres
+      - PGPASSWORD=${POSTGRES_PASSWORD}
       - PGDATABASE=indic_books
     entrypoint: >
       /bin/sh -c "
@@ -212,8 +251,139 @@ services:
     profiles:
       - monitoring
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Wikibase (structured data store)
+  # ─────────────────────────────────────────────────────────────────────────────
+  wikibase:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8181:80"
+    environment:
+      DB_SERVER: mysql:3306
+      DB_USER: wikibase
+      DB_PASS: ${MYSQL_PASSWORD}
+      DB_NAME: wikibase
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_ADMIN_EMAIL: admin@localhost
+      MW_WG_SERVER: "http://localhost:8181"
+      MW_WG_SITENAME: IndicBooks
+      MW_WG_LANGUAGE_CODE: en
+      WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST:-localhost:8181}
+      ELASTICSEARCH_HOST: elasticsearch
+      METADATA_CALLBACK: "false"
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
+    volumes:
+      - wikibase_config:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data:/var/www/html/images
+      - quickstatements_data:/quickstatements/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  wikibase-jobrunner:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    command: /jobrunner-entrypoint.sh
+    restart: unless-stopped
+    depends_on:
+      wikibase:
+        condition: service_healthy
+    volumes:
+      - wikibase_config:/config
+      - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
+      - wikibase_data:/var/www/html/images
+      - quickstatements_data:/quickstatements/data
+
+  wikibase-init:
+    build:
+      context: ./docker/wikibase
+      dockerfile: Dockerfile
+    command: /create-properties.sh
+    restart: "no"
+    environment:
+      MW_ADMIN_NAME: admin
+      MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
+      MW_WG_SERVER: "http://localhost:8181"
+    volumes:
+      - wikibase_config:/config
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  quickstatements:
+    image: wikibase/quickstatements:1
+    restart: unless-stopped
+    ports:
+      - "9191:80"
+    environment:
+      QUICKSTATEMENTS_PUBLIC_URL: "http://localhost:9191"
+      WIKIBASE_PUBLIC_URL: "http://localhost:8181"
+    volumes:
+      - quickstatements_data:/quickstatements/data
+    depends_on:
+      wikibase:
+        condition: service_healthy
+
+  mysql:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wikibase
+      MYSQL_USER: wikibase
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: wikibase/elasticsearch:1
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\"' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # OpenRefine (bulk data cleaning GUI)
+  # ─────────────────────────────────────────────────────────────────────────────
+  openrefine:
+    build:
+      context: ./docker/openrefine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    volumes:
+      - openrefine_data:/refine
+
 volumes:
   pgdata:
   redis_data:
   ollama_data:
   backup_data:
+  wikibase_config:
+  wikibase_data:
+  mysql_data:
+  elasticsearch_data:
+  openrefine_data:
+  quickstatements_data:

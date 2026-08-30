@@ -5,15 +5,20 @@ from datetime import datetime, timezone
 import newrelic.agent
 from sqlalchemy import exc as sa_exc, select
 
+from app.core.config import settings
 from app.core.database import async_session_factory
 from app.models.book import Book, BookStatus
-from app.models.job import Job, JobStatus
+from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
+from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
+from app.services.batch_routing import PageText
 from app.services.llm_service import llm_service as llm_service_singleton
 from app.services.prompts import render_extraction_prompt
+from app.services.search_service import SearchService
+from app.services.sse_service import event_id, publish_sync
 from app.tasks.async_utils import run_async
 from app.tasks.celery_app import celery_app
 
@@ -22,8 +27,13 @@ logger = logging.getLogger(__name__)
 
 async def _validate_book_context(
     job_id: uuid.UUID, book_id: uuid.UUID
-) -> tuple[Job, Book, str, int]:
-    """Load job/book, validate preconditions, and return (job, book, ocr_text, page_count).
+) -> tuple[Job, Book, str, int, list[PageText]]:
+    """Load job/book, validate preconditions, and return (job, book, ocr_text, page_count, pages).
+
+    ``pages`` is the per-page OCR text list used by the LLM service to route
+    each metadata batch to the most relevant page region. The legacy
+    ``ocr_text`` blob is also returned for backward compatibility and
+    logging.
 
     Raises on unrecoverable validation failure with the job already marked failed.
     """
@@ -74,12 +84,14 @@ async def _validate_book_context(
         ocr_by_page = {r.page_id: r for r in ocr_result_rows.scalars().all()}
 
         text_parts = []
+        page_texts: list[PageText] = []
         for page in pages:
             ocr = ocr_by_page.get(page.id)
             if ocr:
                 text = ocr.corrected_text or ocr.raw_text or ""
                 if text.strip():
                     text_parts.append(text.strip())
+                    page_texts.append(PageText(page_number=page.page_number, text=text))
 
         if not text_parts:
             job.status = JobStatus.FAILED
@@ -95,13 +107,15 @@ async def _validate_book_context(
         book.status = BookStatus.LLM_RUNNING
         await db.commit()
 
-        return job, book, ocr_text, language, page_count
+        return job, book, ocr_text, language, page_count, page_texts
 
 
 async def _persist_extraction_results(
-    metadata, batch_results, book_id, job_id, ocr_text, language, page_count
+    metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
+    evidence=None,
 ):
-    """Persist extracted metadata and LLM run records, finalize job status."""
+    """Persist extracted metadata, LLM run records, and per-field evidence."""
+    evidence = evidence or {}
     async with async_session_factory() as db:
         metadata_result = await db.execute(
             select(BookMetadata).where(BookMetadata.book_id == book_id)
@@ -121,6 +135,40 @@ async def _persist_extraction_results(
             db.add(new_metadata)
 
         await db.flush()
+
+        # Per-field evidence: one row per populated field.
+        if evidence:
+            existing_evidence_result = await db.execute(
+                select(MetadataFieldEvidence).where(
+                    MetadataFieldEvidence.book_id == book_id
+                )
+            )
+            existing_evidence = {
+                e.field_name: e
+                for e in existing_evidence_result.scalars().all()
+            }
+            for field_name, ef in evidence.items():
+                if ef.value is None:
+                    continue
+                ef_row = existing_evidence.get(field_name)
+                if ef_row is None:
+                    db.add(
+                        MetadataFieldEvidence(
+                            book_id=book_id,
+                            field_name=field_name,
+                            value=ef.value,
+                            confidence=ef.confidence,
+                            extraction_method=ef.method,
+                            source_page_number=ef.source_page_number,
+                            source_text_snippet=ef.source_text_snippet,
+                        )
+                    )
+                else:
+                    ef_row.value = ef.value
+                    ef_row.confidence = ef.confidence
+                    ef_row.extraction_method = ef.method
+                    ef_row.source_page_number = ef.source_page_number
+                    ef_row.source_text_snippet = ef.source_text_snippet
 
         for br in batch_results:
             llm_run = LlmRun(
@@ -160,15 +208,56 @@ async def _persist_extraction_results(
             job.status = JobStatus.COMPLETED
             job.error_log = f"Partial failures: {', '.join(error_batches)}"
             if book:
-                book.status = BookStatus.COMPLETE
+                book.status = BookStatus.AWAITING_REVIEW
         else:
             job.status = JobStatus.COMPLETED
             if book:
-                book.status = BookStatus.COMPLETE
+                book.status = BookStatus.AWAITING_REVIEW
 
         job.progress = 100.0
         job.completed_at = datetime.now(timezone.utc)
         await db.commit()
+        terminal_status = job.status
+        error_log = job.error_log
+        new_book_status = book.status if book else None
+        job_uuid = job.id
+        book_uuid = book.id
+
+        publish_sync(
+            book_uuid,
+            {
+                "id": event_id(f"job-{terminal_status}"),
+                "type": "job.terminal",
+                "book_id": str(book_uuid),
+                "job_id": str(job_uuid),
+                "status": terminal_status,
+                "error_log": error_log,
+            },
+        )
+        if new_book_status is not None:
+            publish_sync(
+                book_uuid,
+                {
+                    "id": event_id("book-status"),
+                    "type": "book.status_changed",
+                    "book_id": str(book_uuid),
+                    "status": new_book_status,
+                    "job_id": str(job_uuid),
+                },
+            )
+            if new_book_status == BookStatus.AWAITING_REVIEW:
+                low_conf_count = await SearchService.count_low_confidence_fields(
+                    db, book_uuid, settings.low_confidence_threshold
+                )
+                publish_sync(
+                    book_uuid,
+                    {
+                        "id": event_id("book-awaiting-review"),
+                        "type": "book.awaiting_review",
+                        "book_id": str(book_uuid),
+                        "low_confidence_count": low_conf_count,
+                    },
+                )
 
 
 @celery_app.task(
@@ -197,7 +286,7 @@ def run_llm_extraction(
         job_id = uuid.UUID(job_id_str)
         book_id = uuid.UUID(book_id_str)
 
-        job, book, ocr_text, language, page_count = await _validate_book_context(
+        job, book, ocr_text, language, page_count, page_texts = await _validate_book_context(
             job_id, book_id
         )
 
@@ -212,8 +301,23 @@ def run_llm_extraction(
                 if progress_job:
                     progress_job.progress = round((current / total) * 100, 1)
                     await progress_db.commit()
+                    progress_pct = progress_job.progress
+                else:
+                    progress_pct = round((current / total) * 100, 1)
+            publish_sync(
+                book_id,
+                {
+                    "id": event_id("job-progress"),
+                    "type": "job.progress",
+                    "book_id": str(book_id),
+                    "job_id": str(job_id),
+                    "job_type": JobType.LLM,
+                    "progress": progress_pct,
+                    "batch": batch_name,
+                },
+            )
 
-        metadata, batch_results = await llm.run_full_extraction(
+        metadata, batch_results, evidence = await llm.run_hybrid_full_extraction(
             ocr_text=ocr_text,
             model=model,
             temperature=temperature,
@@ -223,10 +327,12 @@ def run_llm_extraction(
             system_prompt_override=system_prompt_override,
             extraction_prompt_override=extraction_prompt_override,
             progress_callback=on_progress,
+            pages=page_texts,
         )
 
         await _persist_extraction_results(
-            metadata, batch_results, book_id, job_id, ocr_text, language, page_count
+            metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
+            evidence=evidence,
         )
 
     try:
@@ -255,10 +361,37 @@ def run_llm_extraction(
                     )
                 )
                 book = book_result.scalar_one_or_none()
+                book_status_after: str | None = None
                 if book and book.status == BookStatus.LLM_RUNNING:
                     book.status = BookStatus.OCR_COMPLETE
+                    book_status_after = BookStatus.OCR_COMPLETE
 
                 await db.commit()
+                book_uuid = book.id if book else None
+
+            if book_uuid is not None:
+                publish_sync(
+                    book_uuid,
+                    {
+                        "id": event_id("job-failed"),
+                        "type": "job.terminal",
+                        "book_id": str(book_uuid),
+                        "job_id": job_id_str,
+                        "status": JobStatus.FAILED,
+                        "error_log": error_message,
+                    },
+                )
+                if book_status_after is not None:
+                    publish_sync(
+                        book_uuid,
+                        {
+                            "id": event_id("book-status"),
+                            "type": "book.status_changed",
+                            "book_id": str(book_uuid),
+                            "status": book_status_after,
+                            "job_id": job_id_str,
+                        },
+                    )
 
         run_async(_mark_failed())
         raise

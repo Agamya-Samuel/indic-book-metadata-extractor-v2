@@ -3,12 +3,24 @@
 import { useState, useCallback, useMemo } from "react";
 import type { MetadataFieldDefinition } from "@/lib/api";
 import CollapsibleSection from "@/components/shared/collapsible-section";
+import { Button } from "@/components/shared/button";
+import { Field, Input, Textarea } from "@/components/shared/input";
+import { Card, Stack } from "@/components/shared/card";
+import { cn } from "@/lib/utils";
+
+interface FieldConfidence {
+  confidence: number | null;
+  extraction_method: string;
+  source_page_number: number | null;
+  source_text_snippet: string | null;
+}
 
 interface MetadataFormProps {
   fieldDefinitions: MetadataFieldDefinition[];
   values: Record<string, string>;
   onSave: (fields: Record<string, string | Record<string, string>>) => void;
   isSaving: boolean;
+  confidenceByField?: Record<string, FieldConfidence>;
 }
 
 const BATCH_DISPLAY_NAMES: Record<string, string> = {
@@ -35,9 +47,15 @@ const LONG_TEXT_FIELDS = new Set([
 ]);
 
 function getFieldConfidence(
-  value: string | undefined | null
+  value: string | undefined | null,
+  realConfidence: number | null | undefined,
 ): "high" | "medium" | "empty" {
   if (!value || value.trim() === "") return "empty";
+  if (typeof realConfidence === "number") {
+    if (realConfidence >= 0.85) return "high";
+    if (realConfidence >= 0.5) return "medium";
+    return "medium";
+  }
   const lower = value.toLowerCase();
   if (
     lower === "n/a" ||
@@ -52,19 +70,22 @@ function getFieldConfidence(
 
 const CONFIDENCE_STYLES = {
   high: {
-    dot: "bg-green-500",
-    border: "border-green-200 dark:border-green-800",
+    dot: "bg-[var(--success-500)]",
+    border: "border-[var(--border)]",
     bg: "",
+    label: "High confidence",
   },
   medium: {
-    dot: "bg-yellow-500",
-    border: "border-yellow-200 dark:border-yellow-800",
-    bg: "bg-yellow-25 dark:bg-yellow-900/10",
+    dot: "bg-[var(--warning-500)]",
+    border: "border-[var(--warning-500)]/30",
+    bg: "bg-[var(--warning-50)] dark:bg-[var(--warning-900)]/10",
+    label: "Uncertain",
   },
   empty: {
-    dot: "bg-red-400",
-    border: "border-red-200 dark:border-red-800",
-    bg: "",
+    dot: "bg-[var(--danger-500)]",
+    border: "border-[var(--danger-500)]/20",
+    bg: "bg-[var(--danger-50)]/40 dark:bg-[var(--danger-900)]/5",
+    label: "Missing",
   },
 };
 
@@ -73,6 +94,7 @@ export default function MetadataForm({
   values,
   onSave,
   isSaving,
+  confidenceByField,
 }: MetadataFormProps) {
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [customFieldName, setCustomFieldName] = useState("");
@@ -105,12 +127,9 @@ export default function MetadataForm({
     return keys;
   }, [editedValues, values, customFields]);
 
-  const handleChange = useCallback(
-    (fieldName: string, value: string) => {
-      setEditedValues((prev) => ({ ...prev, [fieldName]: value }));
-    },
-    []
-  );
+  const handleChange = useCallback((fieldName: string, value: string) => {
+    setEditedValues((prev) => ({ ...prev, [fieldName]: value }));
+  }, []);
 
   const handleAddCustomField = useCallback(() => {
     const name = customFieldName.trim();
@@ -164,7 +183,7 @@ export default function MetadataForm({
 
   return (
     <div>
-      <div className="space-y-3">
+      <Stack gap={3}>
         {Object.entries(fieldsByBatch).map(([batch, fields]) => (
           <CollapsibleSection
             key={batch}
@@ -172,64 +191,66 @@ export default function MetadataForm({
             count={fields.length}
             defaultOpen={batch === "core_identity" || batch === "publication"}
           >
-            <div className="space-y-2">
+            <Stack gap={2}>
               {fields.map((field) => {
                 const value = currentValues[field.field_name] ?? "";
-                const confidence = getFieldConfidence(value);
+                const realConf = confidenceByField?.[field.field_name]?.confidence;
+                const confidence = getFieldConfidence(value, realConf);
                 const style = CONFIDENCE_STYLES[confidence];
                 const isLong = LONG_TEXT_FIELDS.has(field.field_name);
+                const tooltip =
+                  realConf != null
+                    ? `${style.label} (confidence ${(realConf * 100).toFixed(0)}%, ${confidenceByField?.[field.field_name]?.extraction_method ?? "unknown"})`
+                    : style.label;
 
                 return (
                   <div
                     key={field.field_name}
-                    className={`flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 px-3 py-2 rounded border ${style.border} ${style.bg}`}
+                    className={cn(
+                      "flex flex-col gap-2 rounded-[var(--radius)] border px-3 py-2.5 sm:flex-row sm:items-start sm:gap-3",
+                      style.border,
+                      style.bg,
+                    )}
                   >
-                    <div className="sm:w-44 shrink-0 pt-1.5">
+                    <div className="shrink-0 sm:w-44">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`inline-block w-2 h-2 rounded-full ${style.dot}`}
-                          title={
-                            confidence === "high"
-                              ? "Extracted"
-                              : confidence === "medium"
-                                ? "Uncertain"
-                                : "Missing"
-                          }
+                          aria-hidden="true"
+                          className={cn("inline-block size-2 rounded-full", style.dot)}
                         />
                         <label
                           htmlFor={`field-${field.field_name}`}
-                          className="text-xs font-medium text-gray-700 dark:text-gray-300"
+                          className="text-[var(--text-xs)] font-medium text-[var(--text)]"
+                          title={tooltip}
                         >
                           {field.display_name}
                         </label>
                       </div>
                       {field.wikidata_property && (
-                        <span className="text-[10px] px-1 py-0.5 bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 rounded ml-3.5">
+                        <span className="mt-1 ml-3.5 inline-block rounded-[var(--radius-xs)] bg-[var(--neutral-100)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)] dark:bg-[var(--neutral-800)]">
                           {field.wikidata_property}
                         </span>
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       {isLong ? (
-                        <textarea
+                        <Textarea
                           id={`field-${field.field_name}`}
                           value={value}
                           onChange={(e) =>
                             handleChange(field.field_name, e.target.value)
                           }
-                          rows={2}
-                          className="w-full border rounded px-2 py-1 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                          rows={3}
                           dir="auto"
                         />
                       ) : (
-                        <input
+                        <Input
                           id={`field-${field.field_name}`}
                           type="text"
                           value={value}
                           onChange={(e) =>
                             handleChange(field.field_name, e.target.value)
                           }
-                          className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                           dir="auto"
                           placeholder={
                             confidence === "empty" ? "Not extracted" : ""
@@ -240,77 +261,84 @@ export default function MetadataForm({
                   </div>
                 );
               })}
-            </div>
+            </Stack>
           </CollapsibleSection>
         ))}
-      </div>
+      </Stack>
 
-      <div className="mt-4 border rounded-lg p-4 dark:border-gray-600">
-        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Custom Fields
-        </h4>
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={customFieldName}
-            onChange={(e) => setCustomFieldName(e.target.value)}
-            placeholder="Field name"
-            aria-label="New custom field name"
-            className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAddCustomField();
-            }}
-          />
-          <button
-            onClick={handleAddCustomField}
-            disabled={!customFieldName.trim()}
-            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Add
-          </button>
-        </div>
-        {Object.keys(customFields).length > 0 && (
-          <div className="space-y-2">
-            {Object.entries(customFields).map(([key, val]) => {
-              const displayName = key.replace("custom_", "");
-              return (
-                <div key={key} className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-32 truncate">
-                    {displayName}
-                  </span>
-                  <input
-                    type="text"
-                    value={editedValues[key] ?? val}
-                    onChange={(e) => handleChange(key, e.target.value)}
-                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                    dir="auto"
-                  />
-                  <button
-                    onClick={() => handleRemoveCustomField(key)}
-                    className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-                  >
-                    Remove
-                  </button>
-                </div>
-              );
-            })}
+      <Card className="mt-4" title="Custom fields" description="Add any field that's not in the standard list.">
+        <Stack gap={3}>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Field label="New field" htmlFor="new-custom-field">
+                <Input
+                  id="new-custom-field"
+                  type="text"
+                  value={customFieldName}
+                  onChange={(e) => setCustomFieldName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddCustomField();
+                  }}
+                  placeholder="e.g. printer"
+                />
+              </Field>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAddCustomField}
+              disabled={!customFieldName.trim()}
+            >
+              Add
+            </Button>
           </div>
-        )}
-      </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <button
+          {Object.keys(customFields).length > 0 && (
+            <Stack gap={2}>
+              {Object.entries(customFields).map(([key, val]) => {
+                const displayName = key.replace("custom_", "");
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="w-32 shrink-0 truncate text-[var(--text-xs)] font-medium text-[var(--text-muted)]">
+                      {displayName}
+                    </span>
+                    <Input
+                      className="flex-1"
+                      type="text"
+                      value={editedValues[key] ?? val}
+                      onChange={(e) => handleChange(key, e.target.value)}
+                      dir="auto"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveCustomField(key)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
+            </Stack>
+          )}
+        </Stack>
+      </Card>
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+          {dirtyKeys.size > 0
+            ? `${dirtyKeys.size} unsaved change${dirtyKeys.size !== 1 ? "s" : ""}`
+            : "No unsaved changes"}
+        </span>
+        <Button
+          type="button"
           onClick={handleSave}
-          disabled={isSaving || dirtyKeys.size === 0}
-          className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          loading={isSaving}
+          disabled={dirtyKeys.size === 0}
         >
-          {isSaving ? "Saving..." : "Save Metadata"}
-        </button>
-        {dirtyKeys.size > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {dirtyKeys.size} unsaved change{dirtyKeys.size !== 1 ? "s" : ""}
-          </span>
-        )}
+          Save metadata
+        </Button>
       </div>
     </div>
   );

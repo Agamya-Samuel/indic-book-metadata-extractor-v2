@@ -282,3 +282,26 @@ class SearchService:
             "genres": genres,
             "publishers": publishers,
         }
+
+    @staticmethod
+    async def count_low_confidence_fields(
+        db: AsyncSession,
+        book_id: UUID,
+        threshold: float = 0.70,
+    ) -> int:
+        """Count populated metadata fields whose confidence is below the threshold.
+
+        Used by the UI to surface a "Review needed" hint for books whose LLM
+        extraction returned low-confidence answers on one or more fields.
+        """
+        from app.models.metadata_field_evidence import MetadataFieldEvidence
+
+        result = await db.execute(
+            select(func.count(MetadataFieldEvidence.id)).where(
+                MetadataFieldEvidence.book_id == book_id,
+                MetadataFieldEvidence.confidence.isnot(None),
+                MetadataFieldEvidence.confidence < threshold,
+                MetadataFieldEvidence.value.isnot(None),
+            )
+        )
+        return int(result.scalar() or 0)

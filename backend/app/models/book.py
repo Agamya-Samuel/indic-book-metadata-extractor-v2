@@ -12,6 +12,7 @@ class BookStatus(StrEnum):
     OCR_RUNNING = "ocr_running"
     OCR_COMPLETE = "ocr_complete"
     LLM_RUNNING = "llm_running"
+    AWAITING_REVIEW = "awaiting_review"
     COMPLETE = "complete"
 
 
@@ -28,4 +29,9 @@ class Book(UUIDMixin, TimestampMixin, Base):
     jobs = relationship("Job", back_populates="book", cascade="all, delete-orphan")
     metadata_record = relationship(
         "BookMetadata", back_populates="book", uselist=False, cascade="all, delete-orphan"
+    )
+    metadata_evidence = relationship(
+        "MetadataFieldEvidence",
+        back_populates="book",
+        cascade="all, delete-orphan",
     )

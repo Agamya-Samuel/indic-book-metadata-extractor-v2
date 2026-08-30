@@ -7,8 +7,21 @@ import { useMutation } from "@tanstack/react-query";
 import { uploadBook } from "@/lib/api";
 import { useBookStore } from "@/stores/book-store";
 import { toast } from "sonner";
+import { Button } from "@/components/shared/button";
+import { Field, Input, Select } from "@/components/shared/input";
+import { ErrorState } from "@/components/shared/empty-state";
+import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { cn } from "@/lib/utils";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+
+const LANGUAGES = [
+  { value: "tel", label: "Telugu" },
+  { value: "hin", label: "Hindi" },
+  { value: "eng", label: "English" },
+];
 
 export default function UploadPage() {
+  useDocumentTitle("Upload book");
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -17,9 +30,7 @@ export default function UploadPage() {
   const { setLanguage: setStoreLanguage } = useBookStore();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      "application/pdf": [".pdf"],
-    },
+    accept: { "application/pdf": [".pdf"] },
     maxFiles: 1,
     maxSize: 200 * 1024 * 1024,
     onDrop: (acceptedFiles, fileRejections) => {
@@ -43,9 +54,7 @@ export default function UploadPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      if (!file) {
-        throw new Error("No file selected");
-      }
+      if (!file) throw new Error("No file selected");
       return uploadBook(file, title || undefined, language);
     },
     onSuccess: (data) => {
@@ -70,127 +79,132 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 sm:p-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Upload Book</h1>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Step 1 of 7"
+        title="Upload a book"
+        description="Drop a PDF of an Indic-language book. The system will extract text with OCR, identify bibliographic fields with a fine-tuned language model, and prepare the records for review."
+      />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                PDF File <span className="text-red-500">*</span>
-              </label>
-              <div
-                {...getRootProps()}
-                className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                  isDragActive
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                    : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-                }`}
-              >
-                <input {...getInputProps()} />
-                <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                    <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                      <span>Upload a file</span>
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">PDF up to 200 MB</p>
-                  {file && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-2">
-                      Selected: {file.name}
-                    </p>
+      <div className="mx-auto max-w-2xl">
+        <Card>
+          <form onSubmit={handleSubmit}>
+            <Stack gap={5}>
+              <Field label="PDF file" required htmlFor="pdf-file-input">
+                <div
+                  {...getRootProps()}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center",
+                    "rounded-[var(--radius-lg)] border-2 border-dashed",
+                    "px-6 py-10 text-center cursor-pointer",
+                    "transition-colors duration-[var(--duration-fast)]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                    isDragActive
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                      : "border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)]",
                   )}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="title"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Title (optional)
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200"
-                placeholder="Enter book title"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="language"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Language <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200"
-                required
-              >
-                <option value="tel">Telugu</option>
-                <option value="hin">Hindi</option>
-                <option value="eng">English</option>
-              </select>
-            </div>
-
-            {error && (
-              <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4" role="alert">
-                <div className="flex">
-                  <div className="flex-shrink-0">
+                >
+                  <input
+                    {...getInputProps({
+                      id: "pdf-file-input",
+                      name: "pdf",
+                      "aria-describedby": "pdf-file-hint",
+                    })}
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="mb-3 flex size-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-muted)]"
+                  >
                     <svg
-                      className="h-5 w-5 text-red-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      className="size-5"
                     >
                       <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5m0 0L7.5 12M12 7.5v9"
                       />
                     </svg>
                   </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
-                  </div>
+                  <p className="text-[var(--text-sm)] text-[var(--text)]">
+                    <span className="font-semibold text-[var(--accent)]">
+                      Click to upload
+                    </span>{" "}
+                    or drag and drop
+                  </p>
+                  <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
+                    PDF up to 200 MB
+                  </p>
+                  {file && (
+                    <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2.5 py-0.5 text-[var(--text-xs)] font-medium text-[var(--accent-soft-text)]">
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="size-3"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.704 5.296a1 1 0 010 1.408l-7.997 8a1 1 0 01-1.408 0l-3.999-4a1 1 0 011.408-1.408L8 12.59l7.296-7.294a1 1 0 011.408 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {file.name}
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
+              </Field>
 
-            <button
-              type="submit"
-              disabled={!file || uploadMutation.isPending}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {uploadMutation.isPending ? "Uploading..." : "Upload"}
-            </button>
+              <Field
+                label="Title"
+                hint="Optional. If left blank, the filename is used."
+                htmlFor="title"
+              >
+                <Input
+                  id="title"
+                  name="title"
+                  type="text"
+                  autoComplete="off"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Kaviraj Margamu"
+                />
+              </Field>
+
+              <Field label="Primary language" required htmlFor="language">
+                <Select
+                  id="language"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  required
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {l.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              {error && <ErrorState title="Upload failed" description={error} />}
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  size="lg"
+                  loading={uploadMutation.isPending}
+                  disabled={uploadMutation.isPending}
+                >
+                  {uploadMutation.isPending ? "Uploading" : "Upload and continue"}
+                </Button>
+              </div>
+            </Stack>
           </form>
-        </div>
+        </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }
