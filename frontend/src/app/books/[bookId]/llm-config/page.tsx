@@ -103,6 +103,7 @@ export default function LlmConfigPage() {
     useJobPolling({
       bookId,
       jobId: activeJobId ?? undefined,
+      jobType: "llm",
       enabled: !!activeJobId,
     });
 
@@ -142,6 +143,7 @@ export default function LlmConfigPage() {
       setActiveJobId(result.job_id);
       setError(null);
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
       toast.info("LLM extraction started");
       setWorkflowStep(5);
       setCompletedStep(5);
