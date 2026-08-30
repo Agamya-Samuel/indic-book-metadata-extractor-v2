@@ -347,33 +347,41 @@ class LLMService:
                 needed_batches.add(FIELD_TO_BATCH.get(field_name, "physical_extra"))
 
             llm_results: dict[str, ExtractedField] = {}
-            batch_tasks = [
-                self._run_one_batch_for_hybrid(
-                    batch_name=bn,
-                    ocr_text=ocr_text,
-                    pages=pages,
-                    model=model,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    language=language,
-                    page_count=page_count,
-                    system_prompt_override=system_prompt_override,
-                    extraction_prompt_override=extraction_prompt_override,
-                    gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
-                )
-                for bn in needed_batches
-            ]
-            if not batch_tasks:
+            if not needed_batches:
                 return llm_results
 
-            outcomes = await asyncio.gather(*batch_tasks, return_exceptions=True)
+            total_needed = len(needed_batches)
+            semaphore = asyncio.Semaphore(self.MAX_PARALLEL_BATCHES)
+
+            async def _guarded(bn: str):
+                async with semaphore:
+                    return await self._run_one_batch_for_hybrid(
+                        batch_name=bn,
+                        ocr_text=ocr_text,
+                        pages=pages,
+                        model=model,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        language=language,
+                        page_count=page_count,
+                        system_prompt_override=system_prompt_override,
+                        extraction_prompt_override=extraction_prompt_override,
+                        gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
+                    )
+
+            in_flight = [
+                asyncio.create_task(_guarded(bn)) for bn in needed_batches
+            ]
             completed = 0
-            for outcome in outcomes:
+            for fut in asyncio.as_completed(in_flight):
+                outcome = await fut
+                completed += 1
                 if isinstance(outcome, Exception):
                     logger.error("Hybrid LLM batch failed: %s", outcome)
+                    if progress_callback:
+                        await progress_callback(completed, total_needed, "<failed>")
                     continue
                 batch_name, parsed, raw_response, usage = outcome
-                completed += 1
                 batch_results.append(
                     {
                         "batch_name": batch_name,
@@ -393,7 +401,7 @@ class LLMService:
                             source_text_snippet=None,
                         )
                 if progress_callback:
-                    await progress_callback(completed, len(needed_batches), batch_name)
+                    await progress_callback(completed, total_needed, batch_name)
 
             return llm_results
 
