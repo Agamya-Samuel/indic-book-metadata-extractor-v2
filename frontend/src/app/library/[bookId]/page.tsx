@@ -12,6 +12,7 @@ import { LinkButton } from "@/components/shared/button";
 import Image from "next/image";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import WorkflowResumeBanner from "@/components/library/workflow-resume-banner";
 import { cn } from "@/lib/utils";
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -247,6 +248,8 @@ export default function BookDetailPage() {
             </div>
           }
         />
+
+        <WorkflowResumeBanner detail={detail.book} />
 
         <Stack gap={6}>
           {Object.keys(metadataFields).length > 0 && (
