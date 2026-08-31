@@ -22,11 +22,18 @@ class TestGetTesseractLang:
         assert _get_tesseract_lang("hin") == "hin+eng"
 
     def test_unknown_passthrough(self):
-        assert _get_tesseract_lang("tam") == "tam"
+        assert _get_tesseract_lang("xyz_unknown") == "xyz_unknown"
 
     def test_language_map_contents(self):
         assert "tel" in LANGUAGE_MAP
         assert "hin" in LANGUAGE_MAP
+        assert "eng" in LANGUAGE_MAP
+        # Only 3 supported languages
+        for code in ("tel", "hin", "eng"):
+            assert code in LANGUAGE_MAP, f"missing language: {code}"
+            # All non-eng codes pair with English
+            if code != "eng":
+                assert "eng" in LANGUAGE_MAP[code]
 
 
 def _mock_tesseract_data(words):

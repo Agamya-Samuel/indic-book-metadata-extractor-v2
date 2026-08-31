@@ -28,10 +28,32 @@ class Settings(BaseSettings):
 
     # OCR
     tesseract_cmd: str = "tesseract"
+    tesseract_oem: int = 1
+    tesseract_tessdata_dir: str = ""
     default_ocr_language: str = "tel"
     ocr_batch_size: int = 10
     ocr_thread_workers: int = 4
     ocr_render_dpi: int = 300
+
+    # OCR preprocessing (Tier 1)
+    # Disabled by default — Sauvola binarization + denoise can erode shiro-rekha
+    # in Devanagari, causing conjunct misrecognition. Enable per-book via
+    # preprocessing_config or set OCR_AUTO_PREPROCESS=true to apply globally.
+    ocr_auto_preprocess: bool = False
+    ocr_binarization: str = "sauvola"  # sauvola / otsu / adaptive / none
+    ocr_denoise_strength: int = 7
+    ocr_upscale_dpi: int = 300
+
+    # OCR models (Tier 2 + Tier 3)
+    ocr_custom_model_dir: str = ""
+
+    # OCR dictionaries (Tier 4)
+    ocr_use_dictionary: str = ""  # comma-separated language codes, e.g. "hin,tel"
+
+    # OCR post-processing (Tier 5)
+    ocr_postprocess: bool = True
+    ocr_low_conf_retry: bool = True
+    ocr_low_conf_threshold: int = 40
 
     # New Relic
     new_relic_enabled: bool = False

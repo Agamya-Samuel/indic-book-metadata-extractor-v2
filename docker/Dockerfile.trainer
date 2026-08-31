@@ -1,0 +1,25 @@
+FROM indic-book-metadata-extractor-backend
+
+# Training-only image. Adds the Tesseract training toolchain + Indic fonts.
+# NOT used in production — operators build this on a host where they intend
+# to run tesstrain.sh. The .traineddata files produced are mounted into the
+# regular worker container via OCR_CUSTOM_MODEL_DIR.
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libtesseract-dev \
+    tesseract-ocr-osd \
+    fonts-noto-core \
+    fonts-noto-extra \
+    fonts-indic \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install tesstrain.sh + combine_tessdata from the official tesseract-ocr repo.
+ARG TESSERACT_REF=main
+RUN git clone --depth 1 --branch ${TESSERACT_REF} https://github.com/tesseract-ocr/tesseract.git /tmp/tesseract \
+    && cp /tmp/tesseract/src/training/tesstrain.sh /usr/local/bin/tesstrain.sh \
+    && chmod +x /usr/local/bin/tesstrain.sh \
+    && rm -rf /tmp/tesseract
+
+CMD ["bash"]

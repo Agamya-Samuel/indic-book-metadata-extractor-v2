@@ -28,6 +28,7 @@ dependencies = [
     "numpy>=1.26",
     # OCR
     "pytesseract>=0.3.10",
+    "python-Levenshtein>=0.25",  # used by scripts/eval_model.py for CER/WER
     # LLM
     "instructor>=1.3",
     "httpx>=0.27",

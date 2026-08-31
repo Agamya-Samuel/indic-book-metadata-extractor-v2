@@ -13,7 +13,7 @@ from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
-from app.services import ocr_service, preprocessing, storage
+from app.services import ocr_service, ocr_postprocess, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
 from app.tasks.async_utils import run_async, run_async_threadsafe
 from app.tasks.celery_app import celery_app
@@ -50,23 +50,39 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
 
         ocr_data = ocr_service.run_ocr(image_path, language, page_position=page.page_number - 1)
 
+        words = ocr_data["words"]
+        if settings.ocr_low_conf_retry:
+            words = ocr_service.retry_low_confidence_words(
+                image_path, words, language, threshold=settings.ocr_low_conf_threshold
+            )
+
+        raw_text = ocr_data["full_text"]
+        cleaned_text = raw_text
+        corrections: list[dict] = []
+        if settings.ocr_postprocess:
+            cleaned_text, corrections = ocr_postprocess.normalize_text(raw_text, language)
+
         ocr_result = await db.execute(
             select(OcrResult).where(OcrResult.page_id == page.id)
         )
         existing = ocr_result.scalar_one_or_none()
 
         if existing:
-            existing.raw_text = ocr_data["full_text"]
-            existing.bounding_boxes = {"words": ocr_data["words"]}
+            existing.raw_text = raw_text
+            existing.bounding_boxes = {"words": words}
             existing.confidence = ocr_data["avg_confidence"]
             existing.language_detected = language
+            existing.cleaned_text = cleaned_text
+            existing.corrections = {"rules": corrections}
         else:
             new_result = OcrResult(
                 page_id=page.id,
-                raw_text=ocr_data["full_text"],
-                bounding_boxes={"words": ocr_data["words"]},
+                raw_text=raw_text,
+                bounding_boxes={"words": words},
                 confidence=ocr_data["avg_confidence"],
                 language_detected=language,
+                cleaned_text=cleaned_text,
+                corrections={"rules": corrections},
             )
             db.add(new_result)
 

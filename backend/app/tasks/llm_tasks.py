@@ -88,7 +88,7 @@ async def _validate_book_context(
         for page in pages:
             ocr = ocr_by_page.get(page.id)
             if ocr:
-                text = ocr.corrected_text or ocr.raw_text or ""
+                text = ocr.corrected_text or ocr.cleaned_text or ocr.raw_text or ""
                 if text.strip():
                     text_parts.append(text.strip())
                     page_texts.append(PageText(page_number=page.page_number, text=text))
