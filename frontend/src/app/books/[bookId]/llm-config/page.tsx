@@ -167,12 +167,19 @@ export default function LlmConfigPage() {
     }
   }, [isComplete, isFailed, activeJobId, errorLog, setWorkflowStep, setCompletedStep]);
 
-  // On page refresh, discover the existing LLM job so the progress view
-  // is restored instead of showing the config form.
+  // On page refresh, discover an in-flight LLM job so the progress view
+  // is restored instead of showing the config form. Skip terminal jobs
+  // (completed/failed/cancelled) so a cancelled run doesn't trap the user
+  // on the polling screen.
   useEffect(() => {
     if (!activeJobId && allJobs.length > 0) {
       const llmJob = allJobs.find((j) => j.job_type === "llm");
-      if (llmJob) {
+      if (
+        llmJob &&
+        llmJob.status !== "completed" &&
+        llmJob.status !== "failed" &&
+        llmJob.status !== "cancelled"
+      ) {
         setActiveJobId(llmJob.id);
       }
     }
