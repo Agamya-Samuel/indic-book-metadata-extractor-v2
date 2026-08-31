@@ -48,12 +48,14 @@ class LLMService:
     FAILURE_THRESHOLD: int = 3
     COOLDOWN_SECONDS: float = 60.0
 
-    # Context window management for Ollama models (num_ctx=4096 in Modelfile).
-    # Reserve tokens for: system prompt (~200), extraction template (~400), output (~256).
-    # That leaves ~3240 tokens for OCR input. At ~4 chars/token that's ~12960 chars,
-    # but we use a conservative 8000-char cap and route per-batch to keep
-    # each batch focused on its likely page region.
-    MAX_OCR_CHARS: int = 8000  # per-batch budget under num_ctx=4096
+    # Context window management for Ollama models (num_ctx=8192 in Modelfile).
+    # With max_tokens=512 reserved for output, that leaves ~7680 tokens for input.
+    # Indic script tokenizes at roughly 2-4 chars/token (BPE splits Unicode
+    # code-point fragments), so 2500 chars of Telugu/Devanagari text fits
+    # comfortably with the system prompt + extraction template + output budget.
+    # We deliberately cap per-batch text to 2500 to keep the model focused on
+    # the routed page region rather than letting later pages dominate.
+    MAX_OCR_CHARS: int = 2500  # per-batch budget under num_ctx=8192
     MAX_PARALLEL_BATCHES: int = 2  # safe for CPU Ollama; raise if GPU
 
     def __init__(self, ollama_url: str | None = None):
@@ -143,7 +145,14 @@ class LLMService:
             )
 
             raw_response_text = result.model_dump_json()
-            usage_stats = {"status": "success"}
+            # Distinguish "LLM succeeded but returned nothing useful" from
+            # "LLM succeeded and returned real values". The former almost
+            # always means context truncation; the UI / job status must
+            # surface this so users know the batch produced zero evidence.
+            if all(v is None for v in result.model_dump().values()):
+                usage_stats = {"status": "empty_response"}
+            else:
+                usage_stats = {"status": "success"}
             self._record_success()
 
         except InstructorRetryException as e:
@@ -152,7 +161,10 @@ class LLMService:
             if last_response and hasattr(last_response, "choices") and last_response.choices:
                 raw_response_text = last_response.choices[0].message.content or ""
             result = _fallback_parse(raw_response_text, batch_schema)
-            usage_stats = {"status": "fallback", "error": str(e)}
+            if all(v is None for v in result.model_dump().values()):
+                usage_stats = {"status": "empty_response", "error": str(e)}
+            else:
+                usage_stats = {"status": "fallback", "error": str(e)}
             self._record_success()  # fallback is still a response
 
         except (httpx.TimeoutException, openai.APITimeoutError) as e:

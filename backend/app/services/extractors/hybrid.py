@@ -11,11 +11,15 @@ buy accuracy, and to attach provenance to every field that gets filled.
 
 from __future__ import annotations
 
+import logging
 from typing import Awaitable, Callable, Iterable
 
 from app.services.extractors import ExtractedField
 from app.services.extractors.dictionary_extractors import REGISTRY as DICT_REGISTRY
 from app.services.extractors.regex_extractors import REGISTRY as REGEX_REGISTRY
+
+
+logger = logging.getLogger(__name__)
 
 
 # Fields handled by cheap extractors. Everything else is sent to the LLM.
@@ -41,6 +45,8 @@ async def run_hybrid_extraction(
     targets = set(target_fields) if target_fields is not None else None
 
     results: dict[str, ExtractedField] = {}
+    tier1_resolved: list[str] = []
+    tier2_resolved: list[str] = []
 
     # Tier 1: regex.
     for field_name, fn in REGEX_REGISTRY.items():
@@ -52,6 +58,7 @@ async def run_hybrid_extraction(
             extracted = None
         if extracted is not None:
             results[field_name] = extracted
+            tier1_resolved.append(field_name)
 
     # Tier 2: dictionary.
     for field_name, fn in DICT_REGISTRY.items():
@@ -65,15 +72,35 @@ async def run_hybrid_extraction(
             extracted = None
         if extracted is not None:
             results[field_name] = extracted
+            tier2_resolved.append(field_name)
+
+    # Surface per-tier resolution counts so operators can tell from logs
+    # whether "0 fields extracted" is an LLM problem or a regex/dict problem.
+    logger.info(
+        "Hybrid tier1 (regex) resolved %d field(s): %s",
+        len(tier1_resolved),
+        tier1_resolved or "(none)",
+    )
+    logger.info(
+        "Hybrid tier2 (dict) resolved %d field(s): %s",
+        len(tier2_resolved),
+        tier2_resolved or "(none)",
+    )
 
     # Tier 3: LLM, only for fields we still don't have.
     if targets is not None:
         gaps = targets - set(results.keys())
         if gaps:
+            logger.info(
+                "Hybrid tier3 (LLM) called for %d gap field(s)",
+                len(gaps),
+            )
             llm_results = await llm_fill_remaining(gaps)
             for field_name, extracted in llm_results.items():
                 existing = results.get(field_name)
                 if existing is None or existing.confidence < extracted.confidence:
                     results[field_name] = extracted
+        else:
+            logger.info("Hybrid tier3 (LLM) skipped — cheap extractors resolved all targets")
 
     return results

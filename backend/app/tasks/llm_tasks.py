@@ -196,7 +196,12 @@ async def _persist_extraction_results(
         error_batches = [
             br["batch_name"]
             for br in batch_results
-            if br.get("usage", {}).get("status") not in ("success", "fallback")
+            if br.get("usage", {}).get("status") not in ("success", "fallback", "empty_response")
+        ]
+        empty_batches = [
+            br["batch_name"]
+            for br in batch_results
+            if br.get("usage", {}).get("status") == "empty_response"
         ]
 
         if error_batches and len(error_batches) == len(batch_results):
@@ -207,6 +212,19 @@ async def _persist_extraction_results(
         elif error_batches:
             job.status = JobStatus.COMPLETED
             job.error_log = f"Partial failures: {', '.join(error_batches)}"
+            if book:
+                book.status = BookStatus.AWAITING_REVIEW
+        elif empty_batches:
+            # Job technically completed but every "empty" batch produced no
+            # values — likely a context-length truncation problem. Surface
+            # this prominently in error_log so users aren't confused by a
+            # fully green job with zero extracted fields.
+            job.status = JobStatus.COMPLETED
+            job.error_log = (
+                f"LLM returned no values for {len(empty_batches)} "
+                f"batch(es): {', '.join(empty_batches)}. "
+                "Likely context-length truncation; check num_ctx and per-batch OCR cap."
+            )
             if book:
                 book.status = BookStatus.AWAITING_REVIEW
         else:
@@ -274,7 +292,7 @@ def run_llm_extraction(
     book_id_str: str,
     model: str = "airavata",
     temperature: float = 0.3,
-    max_tokens: int = 2048,
+    max_tokens: int = 512,
     system_prompt_override: str | None = None,
     extraction_prompt_override: str | None = None,
 ):
