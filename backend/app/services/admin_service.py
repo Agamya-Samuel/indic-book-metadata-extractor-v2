@@ -134,6 +134,23 @@ async def cancel_job(db: AsyncSession, job_id: UUID) -> Job:
     job.status = JobStatus.CANCELLED
     job.completed_at = datetime.now(timezone.utc)
     job.error_log = "Cancelled by admin"
+
+    # Roll the book back to the stage that immediately precedes this job
+    # type, so the UI re-enables the relevant "Run" button. Only do this
+    # when the book is still in a state that implies this job is the
+    # active one — never downgrade past OCR_COMPLETE for an LLM cancel
+    # or past PAGES_SELECTED for an OCR cancel, even if a later stage
+    # somehow already wrote to it.
+    book = await db.get(Book, job.book_id)
+    if book is not None:
+        if job.job_type == JobType.LLM and book.status == BookStatus.LLM_RUNNING:
+            book.status = BookStatus.OCR_COMPLETE
+        elif (
+            job.job_type == JobType.OCR
+            and book.status == BookStatus.OCR_RUNNING
+        ):
+            book.status = BookStatus.PAGES_SELECTED
+
     await db.commit()
     await db.refresh(job)
     return job
