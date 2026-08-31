@@ -10,10 +10,13 @@ from app.services.preprocessing import (
     adjust_brightness_contrast,
     binarize_adaptive,
     binarize_otsu,
+    binarize_sauvola,
     denoise,
     deskew,
+    remove_borders,
     run_pipeline,
     to_grayscale,
+    upscale_to_dpi,
 )
 
 
@@ -181,3 +184,68 @@ class TestRunPipeline:
 
         run_pipeline(input_path, {}, output_path)
         assert output_path.exists()
+
+
+class TestBinarizeSauvola:
+    def test_returns_binary(self):
+        img = _white_gray()
+        img[80:120, 80:220] = 0
+        result = binarize_sauvola(img)
+        unique = set(np.unique(result))
+        assert unique.issubset({0, 255})
+
+    def test_rgb_input(self):
+        img = _white_image()
+        result = binarize_sauvola(img)
+        assert result.ndim == 2
+
+    def test_handles_uneven_background(self):
+        # Gradient background (simulated stained paper)
+        h, w = 100, 200
+        gradient = np.tile(np.linspace(80, 180, w, dtype=np.uint8), (h, 1))
+        result = binarize_sauvola(gradient)
+        assert set(np.unique(result)).issubset({0, 255})
+
+    def test_even_window_corrected(self):
+        img = _white_gray()
+        result = binarize_sauvola(img, window_size=20)
+        assert result.ndim == 2
+
+
+class TestUpscaleToDpi:
+    def test_upscale_below_target(self):
+        img = _white_gray(200, 300)
+        result = upscale_to_dpi(img, current_dpi=200, target_dpi=300)
+        assert result.shape == (300, 450)
+
+    def test_no_change_at_or_above_target(self):
+        img = _white_gray(200, 300)
+        result = upscale_to_dpi(img, current_dpi=300, target_dpi=300)
+        assert result.shape == img.shape
+        result = upscale_to_dpi(img, current_dpi=600, target_dpi=300)
+        assert result.shape == img.shape
+
+
+class TestRemoveBorders:
+    def test_no_borders_no_change(self):
+        img = _white_gray()
+        img[20:180, 20:280] = 0
+        result = remove_borders(img)
+        assert result.shape == img.shape
+
+    def test_strips_uniform_margin(self):
+        img = np.ones((400, 600), dtype=np.uint8) * 255
+        img[80:320, 100:500] = 0
+        result = remove_borders(img)
+        assert result.shape[0] < img.shape[0] or result.shape[1] < img.shape[1]
+
+    def test_tiny_image_unchanged(self):
+        img = _white_gray(10, 10)
+        result = remove_borders(img)
+        assert result.shape == img.shape
+
+    def test_handles_rgb(self):
+        img = _white_image()
+        img[40:160, 40:260] = 0
+        result = remove_borders(img)
+        assert result.ndim in (2, 3)

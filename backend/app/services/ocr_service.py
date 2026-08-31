@@ -5,6 +5,7 @@ import pytesseract
 from PIL import Image
 
 from app.core.config import settings
+from app.services.ocr_dictionaries import get_dictionary_paths
 from app.services.page_classifier import (
     Classification,
     PSM,
@@ -13,14 +14,28 @@ from app.services.page_classifier import (
 )
 
 LANGUAGE_MAP = {
+    # Telugu + English (bilingual colonial-era pages)
     "tel": "tel+eng",
+    # Hindi (Devanagari) + English
     "hin": "hin+eng",
+    # English only
     "eng": "eng",
 }
 
 
 def _get_tesseract_lang(language: str) -> str:
     return LANGUAGE_MAP.get(language, language)
+
+
+def _is_dictionary_enabled(language: str) -> bool:
+    """Check whether dictionary constraints are enabled for this language.
+
+    Configured via ``OCR_USE_DICTIONARY`` env var (comma-separated language codes).
+    """
+    if not settings.ocr_use_dictionary:
+        return False
+    enabled = {lang.strip() for lang in settings.ocr_use_dictionary.split(",") if lang.strip()}
+    return language in enabled
 
 
 def _classify_psm(image_path: Path, page_position: int | None = None) -> Classification:
@@ -38,12 +53,28 @@ def _classify_psm(image_path: Path, page_position: int | None = None) -> Classif
         return Classification(psm=PSM.UNIFORM_BLOCK, label="classifier_failed")
 
 
+def _build_config(psm: int, language: str) -> str:
+    """Compose the Tesseract command-line config string.
+
+    Includes --psm, --oem, --dpi, and --user-words/--user-patterns if a
+    dictionary is enabled for the active language (set via OCR_USE_DICTIONARY).
+    """
+    parts = [f"--psm {psm}", f"--oem {settings.tesseract_oem}", f"--dpi {settings.ocr_render_dpi}"]
+    words_path, patterns_path = get_dictionary_paths(language)
+    if settings.ocr_use_dictionary and words_path and patterns_path:
+        parts.append(f'--user-words "{words_path}"')
+        parts.append(f'--user-patterns "{patterns_path}"')
+    return " ".join(parts)
+
+
 @newrelic.agent.function_trace(name="OCR: Run Tesseract", group="Custom")
 def run_ocr(image_path: Path, language: str = "tel", page_position: int | None = None) -> dict:
     newrelic.agent.add_custom_attribute("language", language)
     newrelic.agent.add_custom_attribute("page_filename", image_path.name)
     if settings.tesseract_cmd:
         pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+    if settings.tesseract_tessdata_dir:
+        pytesseract.pytesseract.tessdata_dir = settings.tesseract_tessdata_dir
 
     img = Image.open(str(image_path))
 
@@ -52,7 +83,7 @@ def run_ocr(image_path: Path, language: str = "tel", page_position: int | None =
     classification = _classify_psm(image_path, page_position=page_position)
     psm = psm_to_tesseract_arg(classification.psm)
 
-    config = f"--psm {psm} --oem 1 --dpi {settings.ocr_render_dpi}"
+    config = _build_config(psm, language)
 
     data = pytesseract.image_to_data(
         img,
@@ -106,3 +137,60 @@ def run_ocr(image_path: Path, language: str = "tel", page_position: int | None =
         "psm": psm,
         "psm_label": classification.label,
     }
+
+
+def retry_low_confidence_words(
+    image_path: Path,
+    words: list[dict],
+    language: str,
+    threshold: int | None = None,
+) -> list[dict]:
+    """Re-OCR each low-confidence word with --psm 8 (single word) and keep the
+    higher-confidence result. Run by ocr_postprocess after the main pass.
+    """
+    if not settings.ocr_low_conf_retry:
+        return words
+
+    threshold = threshold if threshold is not None else settings.ocr_low_conf_threshold
+    if not words:
+        return words
+
+    if settings.tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+    if settings.tesseract_tessdata_dir:
+        pytesseract.pytesseract.tessdata_dir = settings.tesseract_tessdata_dir
+
+    tesseract_lang = _get_tesseract_lang(language)
+    config = f"--psm 8 --oem {settings.tesseract_oem} --dpi {settings.ocr_render_dpi}"
+
+    try:
+        img = Image.open(str(image_path))
+    except Exception:
+        return words
+
+    out = []
+    for w in words:
+        if w.get("confidence", 100) >= threshold or not w.get("bbox"):
+            out.append(w)
+            continue
+        bbox = w["bbox"]
+        x, y, ww, hh = bbox["x"], bbox["y"], bbox["w"], bbox["h"]
+        try:
+            crop = img.crop((x, y, x + ww, y + hh))
+            retry_text = pytesseract.image_to_string(
+                crop,
+                lang=tesseract_lang,
+                config=config,
+            ).strip()
+        except Exception:
+            out.append(w)
+            continue
+        if retry_text and retry_text != w["text"]:
+            new_w = dict(w)
+            new_w["text"] = retry_text
+            new_w["confidence"] = max(w["confidence"], threshold)
+            new_w["retried"] = True
+            out.append(new_w)
+        else:
+            out.append(w)
+    return out

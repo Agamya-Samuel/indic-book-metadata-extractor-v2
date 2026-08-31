@@ -16,6 +16,8 @@ class OcrResult(UUIDMixin, TimestampMixin, Base):
     raw_text: Mapped[str | None] = mapped_column(Text)
     bounding_boxes: Mapped[dict | None] = mapped_column(JSONB)
     corrected_text: Mapped[str | None] = mapped_column(Text)
+    cleaned_text: Mapped[str | None] = mapped_column(Text)
+    corrections: Mapped[dict | None] = mapped_column(JSONB, default=dict)
     confidence: Mapped[float | None] = mapped_column(Float)
     language_detected: Mapped[str | None] = mapped_column(String(10))
 
