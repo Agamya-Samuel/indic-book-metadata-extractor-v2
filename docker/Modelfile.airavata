@@ -1,15 +1,11 @@
 FROM hf.co/mradermacher/Airavata-GGUF:Q4_K_M
 
 PARAMETER temperature 0.3
-PARAMETER num_ctx 4096
-PARAMETER stop " candidaterespons
-"
-PARAMETER stop "nassistant
-"
+PARAMETER num_ctx 8192
 
 TEMPLATE """<s>{{- range .Messages }}
-<|im_start|>{{ .Role }}
-{{ .Content }}<|im_end|>
+{{ .Role }}
+{{ .Content }}
 {{- end }}
-<|im_start|>assistant
+assistant
 """

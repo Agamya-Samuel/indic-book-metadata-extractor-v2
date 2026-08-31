@@ -69,7 +69,7 @@ class TestExtractionRequest:
         req = ExtractionRequest()
         assert req.model == "airavata"
         assert req.temperature == 0.3
-        assert req.max_tokens == 2048
+        assert req.max_tokens == 512
         assert req.custom_system_prompt is None
         assert req.custom_extraction_prompt is None
 
