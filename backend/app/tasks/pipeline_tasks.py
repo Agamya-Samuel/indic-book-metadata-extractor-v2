@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -55,144 +54,128 @@ def _publish(book_id: uuid.UUID, event: dict[str, Any]) -> None:
     publish_sync(book_id, event)
 
 
-def _load_book(book_id: uuid.UUID) -> Book | None:
-    async def _do():
-        async with async_session_factory() as db:
-            result = await db.execute(select(Book).where(Book.id == book_id))
-            return result.scalar_one_or_none()
-
-    return run_async(_do())
+async def _load_book_async(book_id: uuid.UUID) -> Book | None:
+    async with async_session_factory() as db:
+        result = await db.execute(select(Book).where(Book.id == book_id))
+        return result.scalar_one_or_none()
 
 
-def _load_latest_job(book_id: uuid.UUID, job_type: JobType) -> Job | None:
-    async def _do():
-        async with async_session_factory() as db:
-            result = await db.execute(
-                select(Job)
-                .where(Job.book_id == book_id, Job.job_type == job_type)
-                .order_by(Job.created_at.desc())
-                .limit(1)
-            )
-            return result.scalar_one_or_none()
-
-    return run_async(_do())
-
-
-def _set_book_status(book_id: uuid.UUID, status: BookStatus) -> None:
-    async def _do():
-        async with async_session_factory() as db:
-            result = await db.execute(select(Book).where(Book.id == book_id))
-            book = result.scalar_one_or_none()
-            if book is None:
-                return
-            book.status = status
-            await db.commit()
-
-    run_async(_do())
+async def _load_latest_job_async(
+    book_id: uuid.UUID, job_type: JobType
+) -> Job | None:
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(Job)
+            .where(Job.book_id == book_id, Job.job_type == job_type)
+            .order_by(Job.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
 
 
-def _select_all_pages(book_id: uuid.UUID, total_pages: int) -> int:
+async def _set_book_status_async(book_id: uuid.UUID, status: BookStatus) -> None:
+    async with async_session_factory() as db:
+        result = await db.execute(select(Book).where(Book.id == book_id))
+        book = result.scalar_one_or_none()
+        if book is None:
+            return
+        book.status = status
+        await db.commit()
+
+
+async def _select_all_pages_async(
+    book_id: uuid.UUID, total_pages: int
+) -> int:
     """Render and register all pages of a book. Returns the count."""
-    async def _do():
-        async with async_session_factory() as db:
-            existing = await db.execute(select(Page).where(Page.book_id == book_id))
-            for p in existing.scalars().all():
-                if p.image_path:
-                    fp = Path(settings.storage_path) / p.image_path
-                    fp.unlink(missing_ok=True)
-                await db.delete(p)
-            await db.flush()
+    async with async_session_factory() as db:
+        existing = await db.execute(select(Page).where(Page.book_id == book_id))
+        for p in existing.scalars().all():
+            if p.image_path:
+                fp = Path(settings.storage_path) / p.image_path
+                fp.unlink(missing_ok=True)
+            await db.delete(p)
+        await db.flush()
 
-            pdf_path = storage.original_pdf_path(str(book_id))
-            if not pdf_path.exists():
-                raise RuntimeError(f"Original PDF missing for book {book_id}")
+        pdf_path = storage.original_pdf_path(str(book_id))
+        if not pdf_path.exists():
+            raise RuntimeError(f"Original PDF missing for book {book_id}")
 
-            rendered = 0
-            for pn in range(1, total_pages + 1):
-                out = storage.full_page_path(str(book_id), pn)
-                pdf_service.render_full_page(pdf_path, pn, out)
-                page = Page(
-                    book_id=book_id,
-                    page_number=pn,
-                    image_path=storage.relative(out),
-                )
-                db.add(page)
-                rendered += 1
-
-            result = await db.execute(select(Book).where(Book.id == book_id))
-            book = result.scalar_one_or_none()
-            if book is not None:
-                book.status = BookStatus.PAGES_SELECTED
-            await db.commit()
-            return rendered
-
-    return run_async(_do())
-
-
-def _create_ocr_job(book_id: uuid.UUID) -> Job:
-    async def _do():
-        async with async_session_factory() as db:
-            book_result = await db.execute(select(Book).where(Book.id == book_id))
-            book = book_result.scalar_one_or_none()
-            if book is None:
-                raise RuntimeError(f"Book {book_id} not found")
-            book.status = BookStatus.OCR_RUNNING
-            job = Job(
+        rendered = 0
+        for pn in range(1, total_pages + 1):
+            out = storage.full_page_path(str(book_id), pn)
+            pdf_service.render_full_page(pdf_path, pn, out)
+            page = Page(
                 book_id=book_id,
-                job_type=JobType.OCR,
-                status=JobStatus.QUEUED,
-                progress=0.0,
+                page_number=pn,
+                image_path=storage.relative(out),
             )
-            db.add(job)
-            await db.commit()
-            await db.refresh(job)
-            return job
+            db.add(page)
+            rendered += 1
 
-    return run_async(_do())
-
-
-def _create_llm_job(book_id: uuid.UUID) -> Job:
-    async def _do():
-        async with async_session_factory() as db:
-            book_result = await db.execute(select(Book).where(Book.id == book_id))
-            book = book_result.scalar_one_or_none()
-            if book is None:
-                raise RuntimeError(f"Book {book_id} not found")
-            book.status = BookStatus.LLM_RUNNING
-            job = Job(
-                book_id=book_id,
-                job_type=JobType.LLM,
-                status=JobStatus.QUEUED,
-                progress=0.0,
-            )
-            db.add(job)
-            await db.commit()
-            await db.refresh(job)
-            return job
-
-    return run_async(_do())
+        result = await db.execute(select(Book).where(Book.id == book_id))
+        book = result.scalar_one_or_none()
+        if book is not None:
+            book.status = BookStatus.PAGES_SELECTED
+        await db.commit()
+        return rendered
 
 
-def _wait_for_terminal(book_id: uuid.UUID, job_id: uuid.UUID) -> str:
-    """Block (Celery worker thread) until the job reaches a terminal state.
+async def _create_ocr_job_async(book_id: uuid.UUID) -> Job:
+    async with async_session_factory() as db:
+        book_result = await db.execute(select(Book).where(Book.id == book_id))
+        book = book_result.scalar_one_or_none()
+        if book is None:
+            raise RuntimeError(f"Book {book_id} not found")
+        book.status = BookStatus.OCR_RUNNING
+        job = Job(
+            book_id=book_id,
+            job_type=JobType.OCR,
+            status=JobStatus.QUEUED,
+            progress=0.0,
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+        return job
+
+
+async def _create_llm_job_async(book_id: uuid.UUID) -> Job:
+    async with async_session_factory() as db:
+        book_result = await db.execute(select(Book).where(Book.id == book_id))
+        book = book_result.scalar_one_or_none()
+        if book is None:
+            raise RuntimeError(f"Book {book_id} not found")
+        book.status = BookStatus.LLM_RUNNING
+        job = Job(
+            book_id=book_id,
+            job_type=JobType.LLM,
+            status=JobStatus.QUEUED,
+            progress=0.0,
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+        return job
+
+
+async def _wait_for_terminal_async(
+    book_id: uuid.UUID, job_id: uuid.UUID
+) -> str:
+    """Block until the job reaches a terminal state.
 
     Returns the final status string. Raises ``TimeoutError`` if the stage
     does not complete within ``_STAGE_POLL_TIMEOUT_SECONDS``.
     """
-    deadline = time.monotonic() + _STAGE_POLL_TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        async def _check():
-            async with async_session_factory() as db:
-                result = await db.execute(select(Job).where(Job.id == job_id))
-                job = result.scalar_one_or_none()
-                if job is None:
-                    return None
-                return job.status
-
-        status = run_async(_check())
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + _STAGE_POLL_TIMEOUT_SECONDS
+    while loop.time() < deadline:
+        async with async_session_factory() as db:
+            result = await db.execute(select(Job).where(Job.id == job_id))
+            job = result.scalar_one_or_none()
+            status = job.status if job is not None else None
         if status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED):
             return status
-        time.sleep(_STAGE_POLL_INTERVAL_SECONDS)
+        await asyncio.sleep(_STAGE_POLL_INTERVAL_SECONDS)
     raise TimeoutError(f"Job {job_id} did not reach terminal state in time")
 
 
@@ -279,12 +262,6 @@ async def _process_book_pipeline_async(book_id_str: str, language: str) -> None:
         raise
 
 
-async def _load_book_async(book_id: uuid.UUID) -> Book | None:
-    async with async_session_factory() as db:
-        result = await db.execute(select(Book).where(Book.id == book_id))
-        return result.scalar_one_or_none()
-
-
 async def _stage_pages_selected_async(book_id: uuid.UUID) -> None:
     book = await _load_book_async(book_id)
     if book is None or book.total_pages is None:
@@ -301,7 +278,7 @@ async def _stage_pages_selected_async(book_id: uuid.UUID) -> None:
         },
     )
     try:
-        count = _select_all_pages(book_id, book.total_pages)
+        count = await _select_all_pages_async(book_id, book.total_pages)
         _publish(
             book_id,
             {
@@ -332,7 +309,7 @@ async def _stage_ocr_async(book_id: uuid.UUID, language: str) -> Job:
         raise RuntimeError(f"Book {book_id} not found")
 
     if book.status == BookStatus.OCR_COMPLETE:
-        latest = _load_latest_job(book_id, JobType.OCR)
+        latest = await _load_latest_job_async(book_id, JobType.OCR)
         if latest is not None and latest.status == JobStatus.COMPLETED:
             return latest
 
@@ -346,7 +323,7 @@ async def _stage_ocr_async(book_id: uuid.UUID, language: str) -> Job:
         },
     )
     try:
-        job = _create_ocr_job(book_id)
+        job = await _create_ocr_job_async(book_id)
     except Exception as exc:  # noqa: BLE001
         _publish(
             book_id,
@@ -364,7 +341,7 @@ async def _stage_ocr_async(book_id: uuid.UUID, language: str) -> Job:
 
     preprocess_pages_for_book.delay(str(job.id), str(book_id), language)
 
-    status = _wait_for_terminal(book_id, job.id)
+    status = await _wait_for_terminal_async(book_id, job.id)
     if status != JobStatus.COMPLETED:
         _publish(
             book_id,
@@ -397,7 +374,7 @@ async def _stage_llm_async(book_id: uuid.UUID) -> Job:
         raise RuntimeError(f"Book {book_id} not found")
 
     if book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):
-        latest = _load_latest_job(book_id, JobType.LLM)
+        latest = await _load_latest_job_async(book_id, JobType.LLM)
         if latest is not None and latest.status == JobStatus.COMPLETED:
             return latest
 
@@ -411,7 +388,7 @@ async def _stage_llm_async(book_id: uuid.UUID) -> Job:
         },
     )
     try:
-        job = _create_llm_job(book_id)
+        job = await _create_llm_job_async(book_id)
     except Exception as exc:  # noqa: BLE001
         _publish(
             book_id,
@@ -432,7 +409,7 @@ async def _stage_llm_async(book_id: uuid.UUID) -> Job:
         str(book_id),
     )
 
-    status = _wait_for_terminal(book_id, job.id)
+    status = await _wait_for_terminal_async(book_id, job.id)
     if status != JobStatus.COMPLETED:
         _publish(
             book_id,
