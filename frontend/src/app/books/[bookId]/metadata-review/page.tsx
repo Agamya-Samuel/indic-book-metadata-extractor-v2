@@ -136,13 +136,7 @@ export default function MetadataReviewPage() {
     mutationFn: async (
       fields: Record<string, string | Record<string, string>>
     ) => {
-      // Preserve nested objects (e.g. ``custom_fields``) instead of
-      // casting them to strings so the API contract stays honest.
-      const cleaned: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(fields)) {
-        cleaned[k] = v;
-      }
-      return updateMetadata(bookId, cleaned as Record<string, unknown>);
+      return updateMetadata(bookId, fields);
     },
     onSuccess: (result: MetadataResponse) => {
       queryClient.setQueryData(["metadata", bookId], result);

@@ -255,7 +255,7 @@ export interface MetadataResponse {
 }
 
 export interface MetadataUpdateRequest {
-  fields: Record<string, string>;
+  fields: Record<string, string | Record<string, string>>;
 }
 
 export interface LlmRunResponse {
@@ -310,7 +310,7 @@ export const getMetadata = async (bookId: string): Promise<MetadataResponse> => 
 
 export const updateMetadata = async (
   bookId: string,
-  fields: Record<string, string>
+  fields: Record<string, string | Record<string, string>>
 ): Promise<MetadataResponse> => {
   const response = await api.put<MetadataResponse>(`/books/${bookId}/metadata`, {
     fields,

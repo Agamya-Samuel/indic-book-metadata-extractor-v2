@@ -67,7 +67,7 @@ describe("MetadataForm", () => {
         isSaving={false}
       />
     );
-    expect(screen.getByText("Custom Fields")).toBeDefined();
+    expect(screen.getByText(/Custom fields/)).toBeDefined();
   });
 
   it("pre-fills values from props", () => {
@@ -95,7 +95,7 @@ describe("MetadataForm", () => {
         isSaving={false}
       />
     );
-    expect(screen.getByText("Save Metadata")).toBeDefined();
+    expect(screen.getByText(/Save metadata/)).toBeDefined();
   });
 
   it("disables save button when no changes", () => {
@@ -107,7 +107,7 @@ describe("MetadataForm", () => {
         isSaving={false}
       />
     );
-    const saveBtn = screen.getByText("Save Metadata").closest("button")!;
+    const saveBtn = screen.getByText(/Save metadata/).closest("button")!;
     expect(saveBtn.disabled).toBe(true);
   });
 
@@ -151,7 +151,7 @@ describe("MetadataForm", () => {
       fireEvent.change(titleInput, { target: { value: "Modified Title" } });
     }
 
-    const saveBtn = screen.getByText("Save Metadata").closest("button")!;
+    const saveBtn = screen.getByText(/Save metadata/).closest("button")!;
     fireEvent.click(saveBtn);
 
     expect(onSave).toHaveBeenCalled();
@@ -159,7 +159,7 @@ describe("MetadataForm", () => {
     expect(savedFields.title).toBe("Modified Title");
   });
 
-  it("shows 'Saving...' when isSaving is true", () => {
+  it("shows loading spinner when isSaving is true", () => {
     render(
       <MetadataForm
         fieldDefinitions={mockFieldDefs}
@@ -168,7 +168,8 @@ describe("MetadataForm", () => {
         isSaving={true}
       />
     );
-    expect(screen.getByText("Saving...")).toBeDefined();
+    const saveBtn = screen.getByText(/Save metadata/).closest("button")!;
+    expect(saveBtn.getAttribute("aria-busy")).toBe("true");
   });
 
   it("renders description as textarea (long text field)", () => {
@@ -221,7 +222,7 @@ describe("MetadataForm", () => {
       />
     );
 
-    const nameInput = screen.getByPlaceholderText("Field name");
+    const nameInput = screen.getByPlaceholderText("e.g. printer");
     fireEvent.change(nameInput, { target: { value: "My Custom" } });
     fireEvent.keyDown(nameInput, { key: "Enter" });
 
@@ -238,13 +239,13 @@ describe("MetadataForm", () => {
       />
     );
 
-    const nameInput = screen.getByPlaceholderText("Field name");
+    const nameInput = screen.getByPlaceholderText("e.g. printer");
     fireEvent.change(nameInput, { target: { value: "ToRemove" } });
     fireEvent.keyDown(nameInput, { key: "Enter" });
 
     expect(screen.getByText("ToRemove")).toBeDefined();
 
-    fireEvent.click(screen.getByText("Remove"));
+    fireEvent.click(screen.getByText(/^Remove$/));
 
     expect(screen.queryByText("ToRemove")).toBeNull();
   });

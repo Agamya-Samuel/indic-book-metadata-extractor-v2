@@ -90,14 +90,14 @@ describe("LibraryPage", () => {
   it("renders empty library message", async () => {
     render(<LibraryPage />, { wrapper: createWrapper() });
     await waitFor(() => {
-      expect(screen.getByText("No books in the library yet.")).toBeDefined();
+      expect(screen.getByText(/Your library is empty/)).toBeDefined();
     });
   });
 
   it("renders upload link in empty state", async () => {
     render(<LibraryPage />, { wrapper: createWrapper() });
     await waitFor(() => {
-      expect(screen.getByText("Upload your first book")).toBeDefined();
+      expect(screen.getByText(/Upload a book/)).toBeDefined();
     });
   });
 

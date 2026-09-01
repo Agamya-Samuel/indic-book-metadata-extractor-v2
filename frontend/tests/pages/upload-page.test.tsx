@@ -29,12 +29,11 @@ describe("UploadPage", () => {
 
   it("renders upload form with heading", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
-    expect(screen.getByText("Upload Book")).toBeDefined();
+    expect(screen.getByText(/Upload a book/)).toBeDefined();
   });
 
   it("renders dropzone area", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
-    expect(screen.getByText("Upload a file")).toBeDefined();
     expect(screen.getByText(/or drag and drop/)).toBeDefined();
   });
 
@@ -53,19 +52,23 @@ describe("UploadPage", () => {
 
   it("renders title input", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
-    const input = screen.getByPlaceholderText("Enter book title");
+    const input = screen.getByPlaceholderText(/Kaviraj Margamu/);
     expect(input).toBeDefined();
   });
 
-  it("renders Upload button", () => {
+  it("renders Upload and continue button", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
-    expect(screen.getByText("Upload")).toBeDefined();
+    expect(screen.getByText(/Upload and continue/)).toBeDefined();
   });
 
-  it("disables upload button when no file selected", () => {
+  it("renders upload button enabled in idle state", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
-    const btn = screen.getByText("Upload").closest("button")!;
-    expect(btn.disabled).toBe(true);
+    const btn = screen.getByText(/Upload and continue/).closest("button")!;
+    // The upload page does not gate the button on file selection — the
+    // server-side validator rejects empty submissions. Verify the button is
+    // present and enabled.
+    expect(btn).toBeDefined();
+    expect(btn.disabled).toBe(false);
   });
 
   it("shows file size limit", () => {

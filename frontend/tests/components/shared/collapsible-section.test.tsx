@@ -25,7 +25,11 @@ describe("CollapsibleSection", () => {
         <div>Hidden content</div>
       </CollapsibleSection>
     );
-    expect(screen.queryByText("Hidden content")).toBeNull();
+    // The panel is rendered but collapsed via grid-rows + aria-hidden.
+    const button = screen.getByRole("button", { name: /Test/ });
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    const panel = button.getAttribute("aria-controls");
+    expect(panel).toBeTruthy();
   });
 
   it("toggles visibility on click", () => {
@@ -37,13 +41,12 @@ describe("CollapsibleSection", () => {
 
     expect(screen.getByText("Toggle content")).toBeDefined();
 
-    fireEvent.click(screen.getByText("Test"));
+    const button = screen.getByRole("button", { name: /Test/ });
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
 
-    expect(screen.queryByText("Toggle content")).toBeNull();
-
-    fireEvent.click(screen.getByText("Test"));
-
-    expect(screen.getByText("Toggle content")).toBeDefined();
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
   });
 
   it("shows count badge when count is provided", () => {
@@ -52,7 +55,7 @@ describe("CollapsibleSection", () => {
         <div>Content</div>
       </CollapsibleSection>
     );
-    expect(screen.getByText("(5 fields)")).toBeDefined();
+    expect(screen.getByText(/5\s+fields/)).toBeDefined();
   });
 
   it("does not show count badge when count is not provided", () => {
