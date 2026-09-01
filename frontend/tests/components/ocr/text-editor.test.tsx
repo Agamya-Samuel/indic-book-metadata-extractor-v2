@@ -43,7 +43,7 @@ describe("OcrTextEditor", () => {
 
   it("renders word count", () => {
     render(<OcrTextEditor {...defaultProps} />);
-    expect(screen.getByText("(3 words)")).toBeDefined();
+    expect(screen.getByText(/3\s*words/)).toBeDefined();
   });
 
   it("renders all words in structured mode", () => {
@@ -61,23 +61,23 @@ describe("OcrTextEditor", () => {
     expect(onWordClick).toHaveBeenCalledWith(0);
   });
 
-  it("renders OCR Text header", () => {
+  it("renders OCR text header", () => {
     render(<OcrTextEditor {...defaultProps} />);
-    expect(screen.getByText("OCR Text")).toBeDefined();
+    expect(screen.getByText(/OCR text/i)).toBeDefined();
   });
 
   it("toggles to edit mode", () => {
     render(<OcrTextEditor {...defaultProps} />);
 
-    fireEvent.click(screen.getByText("Edit Text"));
+    fireEvent.click(screen.getByText(/^Edit text$/));
 
-    expect(screen.getByText("Cancel Edit")).toBeDefined();
+    expect(screen.getByText(/^Cancel edit$/)).toBeDefined();
   });
 
   it("shows textarea in edit mode", () => {
     render(<OcrTextEditor {...defaultProps} />);
 
-    fireEvent.click(screen.getByText("Edit Text"));
+    fireEvent.click(screen.getByText(/^Edit text$/));
 
     const textarea = document.querySelector("textarea");
     expect(textarea).toBeDefined();
@@ -88,7 +88,7 @@ describe("OcrTextEditor", () => {
     const onSave = vi.fn();
     render(<OcrTextEditor {...defaultProps} onSave={onSave} />);
 
-    fireEvent.click(screen.getByText("Save Corrections"));
+    fireEvent.click(screen.getByText(/^Save corrections$/));
     expect(onSave).toHaveBeenCalledWith("Hello World LowConf");
   });
 
@@ -107,24 +107,24 @@ describe("OcrTextEditor", () => {
     expect(screen.queryByText("Edited")).toBeNull();
   });
 
-  it("shows Saving... when isSaving", () => {
+  it("shows Saving when isSaving", () => {
     render(<OcrTextEditor {...defaultProps} isSaving={true} />);
-    expect(screen.getByText("Saving...")).toBeDefined();
+    expect(screen.getByText("Saving")).toBeDefined();
   });
 
-  it("returns from edit mode on Cancel Edit", () => {
+  it("returns from edit mode on Cancel edit", () => {
     render(<OcrTextEditor {...defaultProps} />);
 
-    fireEvent.click(screen.getByText("Edit Text"));
-    expect(screen.getByText("Cancel Edit")).toBeDefined();
+    fireEvent.click(screen.getByText(/^Edit text$/));
+    expect(screen.getByText(/^Cancel edit$/)).toBeDefined();
 
-    fireEvent.click(screen.getByText("Cancel Edit"));
-    expect(screen.getByText("Edit Text")).toBeDefined();
+    fireEvent.click(screen.getByText(/^Cancel edit$/));
+    expect(screen.getByText(/^Edit text$/)).toBeDefined();
     expect(screen.getByText("Hello")).toBeDefined();
   });
 
-  it("renders Save Corrections button", () => {
+  it("renders Save corrections button", () => {
     render(<OcrTextEditor {...defaultProps} />);
-    expect(screen.getByText("Save Corrections")).toBeDefined();
+    expect(screen.getByText(/^Save corrections$/)).toBeDefined();
   });
 });

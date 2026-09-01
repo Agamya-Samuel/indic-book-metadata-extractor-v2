@@ -61,7 +61,7 @@ describe("BoundingBoxCanvas", () => {
       <BoundingBoxCanvas imageUrl="http://test/image.png" boxes={mockBoxes} />
     );
     expect(screen.getByText(/2 words/)).toBeDefined();
-    expect(screen.getByText(/Zoom: 100%/)).toBeDefined();
+    expect(screen.getByText(/zoom 100%/i)).toBeDefined();
   });
 
   it("renders confidence legend", () => {
@@ -73,11 +73,11 @@ describe("BoundingBoxCanvas", () => {
     expect(screen.getByText("Low")).toBeDefined();
   });
 
-  it("renders Reset View button", () => {
+  it("renders Reset view button", () => {
     render(
       <BoundingBoxCanvas imageUrl="http://test/image.png" boxes={mockBoxes} />
     );
-    expect(screen.getByText("Reset View")).toBeDefined();
+    expect(screen.getByText(/^Reset view$/)).toBeDefined();
   });
 
   it("renders with empty boxes array", () => {
