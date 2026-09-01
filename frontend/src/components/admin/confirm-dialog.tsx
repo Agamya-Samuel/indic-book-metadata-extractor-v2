@@ -72,10 +72,10 @@ export default function ConfirmDialog({
       onClick={(e) => {
         if (e.target === ref.current && !loading) onClose();
       }}
-      className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40"
+      className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40 dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]"
     >
-      <div className="px-6 pt-5 pb-2">
-        <h2 className="text-[var(--text-md)] font-semibold text-[var(--text)]">
+       <div className="px-6 pt-5 pb-2">
+         <h2 className="text-[var(--text-md)] font-semibold text-[var(--text)] text-left">
           {title}
         </h2>
         {description && (
@@ -99,7 +99,7 @@ export default function ConfirmDialog({
             defaultValue=""
             disabled={loading}
             autoFocus
-            className="block w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] placeholder:text-[var(--text-subtle)] px-3 h-10 text-base sm:text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-ring)] focus:ring-2 focus:ring-[var(--accent-ring)]/30"
+            className="block w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] placeholder:text-[var(--text-subtle)] px-3 h-10 text-base sm:text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-ring)] focus:ring-2 focus:ring-[var(--accent-ring)]/30 dark:bg-[var(--neutral-800)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-700)]"
           />
         </div>
       )}

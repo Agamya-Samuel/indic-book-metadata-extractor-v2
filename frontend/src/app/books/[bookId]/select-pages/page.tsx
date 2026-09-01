@@ -13,6 +13,7 @@ import { PageContainer, PageHeader, Card } from "@/components/shared/card";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
 import { EmptyState, ErrorState } from "@/components/shared/empty-state";
+import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 
@@ -229,7 +230,7 @@ export default function SelectPagesPage() {
                     />
                     {!isLoaded && (
                       <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface-sunken)]">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-subtle)]"></div>
+                        <Spinner className="h-8 w-8 border-2 text-[var(--text-subtle)]" />
                       </div>
                     )}
                   </div>

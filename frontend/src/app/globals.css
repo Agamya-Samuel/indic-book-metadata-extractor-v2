@@ -430,14 +430,20 @@
   }
 
   /* Spinners and progress indicators keep animating at reduced motion
-     so the user can still see that work is happening. */
-  .animate-spin,
-  .animate-ping,
-  .animate-pulse,
+     so the user can still see that work is happening. We re-state the
+     animation properties explicitly because `revert` rolls back to the
+     user-agent default of `0s`, which would freeze the spinner. */
+  .animate-spin {
+    animation: spin 1s linear infinite !important;
+  }
+  .animate-ping {
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+  }
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+  }
   .animate-current-step {
-    animation-duration: revert !important;
-    animation-iteration-count: revert !important;
-    transition-duration: revert !important;
+    animation: current-step-pulse 2.4s ease-in-out infinite !important;
   }
 }
 

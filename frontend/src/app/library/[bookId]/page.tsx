@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getBookDetail } from "@/lib/api";
+import { getBookDetail, getPageImageUrl } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { BookDetailSkeleton } from "@/components/shared/skeleton";
@@ -251,9 +251,6 @@ export default function BookDetailPage() {
                   Edit Metadata
                 </LinkButton>
               )}
-              <LinkButton href="/library" variant="outline" size="md">
-                Back to Library
-              </LinkButton>
             </div>
           }
         />
@@ -480,8 +477,13 @@ export default function BookDetailPage() {
                     {expandedPage === idx && (
                       <div className="px-5 pb-4 flex flex-col md:flex-row gap-4">
                         <div className="md:w-1/2">
+                          {/* The backend returns `image_url` as a relative
+                              `/api/pages/...` path. Resolve it against the
+                              configured API base URL so it works whether the
+                              backend is same-origin (`/api`) or a separate
+                              host (e.g. `https://...-api...`). */}
                           <Image
-                            src={`/api${page.image_url}`}
+                            src={getPageImageUrl(page.id)}
                             alt={`Page ${page.page_number}`}
                             width={800}
                             height={1100}

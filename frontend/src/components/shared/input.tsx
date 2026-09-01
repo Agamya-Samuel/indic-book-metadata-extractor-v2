@@ -17,7 +17,8 @@ const fieldBase =
   "focus:ring-2 focus:ring-[var(--accent-ring)]/30 " +
   "disabled:opacity-50 disabled:cursor-not-allowed " +
   "aria-[invalid=true]:border-[var(--danger-500)] " +
-  "aria-[invalid=true]:focus:ring-[var(--danger-500)]/30";
+  "aria-[invalid=true]:focus:ring-[var(--danger-500)]/30 " +
+  "dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;

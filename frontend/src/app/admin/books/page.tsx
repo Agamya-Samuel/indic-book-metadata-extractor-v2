@@ -248,56 +248,61 @@ export default function AdminBooksPage() {
 
       <Card className="mb-4">
         <Stack gap={3}>
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[220px]">
-              <Field label="Search" htmlFor="admin-book-search">
-                <Input
-                  id="admin-book-search"
-                  type="text"
-                  placeholder="Title or filename…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+          <div>
+            <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+              Filters
+            </p>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex-1 min-w-[220px]">
+                <Field label="Search" htmlFor="admin-book-search">
+                  <Input
+                    id="admin-book-search"
+                    type="text"
+                    placeholder="Title or filename…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="w-40">
+                <Field label="Language" htmlFor="admin-book-language">
+                  <Select
+                    id="admin-book-language"
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                  >
+                    <option value="">All</option>
+                    <option value="tel">Telugu</option>
+                    <option value="hin">Hindi</option>
+                  </Select>
+                </Field>
+              </div>
+              <div className="w-48">
+                <Field label="Status" htmlFor="admin-book-status">
+                  <Select
+                    id="admin-book-status"
+                    value={statusFilter}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                  >
+                    <option value="">All statuses</option>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+              <label className="inline-flex items-center gap-2 self-end h-10 px-1 text-[var(--text-sm)] text-[var(--text)] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasMetadataOnly}
+                  onChange={(e) => handleHasMetadataChange(e.target.checked)}
+                  className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
                 />
-              </Field>
+                Has metadata only
+              </label>
             </div>
-            <div className="w-40">
-              <Field label="Language" htmlFor="admin-book-language">
-                <Select
-                  id="admin-book-language"
-                  value={language}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                >
-                  <option value="">All</option>
-                  <option value="tel">Telugu</option>
-                  <option value="hin">Hindi</option>
-                </Select>
-              </Field>
-            </div>
-            <div className="w-48">
-              <Field label="Status" htmlFor="admin-book-status">
-                <Select
-                  id="admin-book-status"
-                  value={statusFilter}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace(/_/g, " ")}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <label className="inline-flex items-center gap-2 self-center h-10 px-1 text-[var(--text-sm)] text-[var(--text)] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasMetadataOnly}
-                onChange={(e) => handleHasMetadataChange(e.target.checked)}
-                className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
-              />
-              Has metadata only
-            </label>
           </div>
 
           {selected.size > 0 && (
@@ -458,18 +463,52 @@ function BookRow({
 }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [confirm, setConfirm] = React.useState<null | "reset" | "delete">(null);
+  const buttonRef = React.useRef<HTMLButtonElement | null>(null);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const [menuPos, setMenuPos] = React.useState<{ top: number; right: number } | null>(null);
 
   React.useEffect(() => {
     if (!menuOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
         setMenuOpen(false);
       }
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [menuOpen]);
+
+  const openMenu = () => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    const btn = buttonRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      // Anchor the menu's right edge to the button's right edge so the
+      // menu grows leftward into available space — this keeps the menu
+      // on-screen even when the row is near the viewport edge.
+      setMenuPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setMenuOpen(true);
+  };
 
   const title = book.title || book.filename.replace(/\.pdf$/i, "");
 
@@ -544,68 +583,74 @@ function BookRow({
         )}
       </td>
       <td className="px-3 py-2.5 align-middle text-right">
-        <div className="relative inline-block" ref={menuRef}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            disabled={pending}
+        <Button
+          ref={buttonRef}
+          variant="outline"
+          size="sm"
+          onClick={openMenu}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          disabled={pending}
+        >
+          Actions
+          <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5" aria-hidden="true">
+            <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" />
+          </svg>
+        </Button>
+        {/*
+          The menu is rendered in a portal-equivalent (fixed position) so it
+          escapes any `overflow-x-auto` wrapping the table on narrow viewports.
+          Anchored to the button's bounding rect at the moment it opens.
+        */}
+        {menuOpen && menuPos && (
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ top: menuPos.top, right: menuPos.right }}
+            className="fixed w-56 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] py-1 text-left z-50 animate-fade-in"
           >
-            Actions
-            <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5" aria-hidden="true">
-              <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" />
-            </svg>
-          </Button>
-          {menuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 mt-1 w-56 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] py-1 z-20 text-left"
+            <MenuLink href={`/library/${book.id}`}>Open in library</MenuLink>
+            <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
+            <div className="my-1 border-t border-[var(--border)]" />
+            {canRerunOcr && (
+              <MenuButton
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRerunOcr();
+                }}
+              >
+                Re-run OCR
+              </MenuButton>
+            )}
+            {canRerunExt && (
+              <MenuButton
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRerunExtraction();
+                }}
+              >
+                Re-run extraction
+              </MenuButton>
+            )}
+            <MenuButton
+              onClick={() => {
+                setMenuOpen(false);
+                setConfirm("reset");
+              }}
             >
-              <MenuLink href={`/library/${book.id}`}>Open in library</MenuLink>
-              <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
-              <div className="my-1 border-t border-[var(--border)]" />
-              {canRerunOcr && (
-                <MenuButton
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onRerunOcr();
-                  }}
-                >
-                  Re-run OCR
-                </MenuButton>
-              )}
-              {canRerunExt && (
-                <MenuButton
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onRerunExtraction();
-                  }}
-                >
-                  Re-run extraction
-                </MenuButton>
-              )}
-              <MenuButton
-                onClick={() => {
-                  setMenuOpen(false);
-                  setConfirm("reset");
-                }}
-              >
-                Reset to uploaded…
-              </MenuButton>
-              <MenuButton
-                danger
-                onClick={() => {
-                  setMenuOpen(false);
-                  setConfirm("delete");
-                }}
-              >
-                Delete…
-              </MenuButton>
-            </div>
-          )}
-        </div>
+              Reset to uploaded…
+            </MenuButton>
+            <MenuButton
+              danger
+              onClick={() => {
+                setMenuOpen(false);
+                setConfirm("delete");
+              }}
+            >
+              Delete…
+            </MenuButton>
+          </div>
+        )}
       </td>
 
       <ConfirmDialog
