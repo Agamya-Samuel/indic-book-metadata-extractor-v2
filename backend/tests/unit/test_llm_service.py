@@ -172,7 +172,7 @@ class TestLLMServiceListModels:
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "models": [
-                {"name": "airavata", "size": 4294967296, "details": {"parameter_size": "7B"}},
+                {"name": "qwen2.5", "size": 4294967296, "details": {"parameter_size": "7B"}},
                 {"name": "llama2", "size": None, "details": {}},
             ]
         }
@@ -185,7 +185,7 @@ class TestLLMServiceListModels:
         models = await service.list_available_models()
 
         assert len(models) == 2
-        assert models[0]["name"] == "airavata"
+        assert models[0]["name"] == "qwen2.5"
         assert models[0]["size_gb"] == 4.0
         assert models[1]["size_gb"] is None
 

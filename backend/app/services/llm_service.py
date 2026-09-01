@@ -93,7 +93,7 @@ class LLMService:
         ocr_text: str,
         batch_name: str,
         batch_schema: type[BaseModel],
-        model: str = "airavata",
+        model: str = "qwen2.5",
         temperature: float = 0.3,
         max_tokens: int = 256,
         language: str = "tel",
@@ -186,7 +186,7 @@ class LLMService:
     async def run_full_extraction(
         self,
         ocr_text: str,
-        model: str = "airavata",
+        model: str = "qwen2.5",
         temperature: float = 0.3,
         max_tokens: int = 256,
         language: str = "tel",
@@ -310,7 +310,7 @@ class LLMService:
     async def run_hybrid_full_extraction(
         self,
         ocr_text: str,
-        model: str = "airavata",
+        model: str = "qwen2.5",
         temperature: float = 0.3,
         max_tokens: int = 256,
         language: str = "tel",

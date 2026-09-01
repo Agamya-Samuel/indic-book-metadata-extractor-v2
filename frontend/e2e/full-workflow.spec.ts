@@ -212,7 +212,7 @@ test.describe("Full Workflow - Mocked API", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([
-          { name: "airavata", size_gb: 4.2, parameter_count: "7B" },
+          { name: "qwen2.5", size_gb: 4.7, parameter_count: "7B" },
         ]),
       });
     });

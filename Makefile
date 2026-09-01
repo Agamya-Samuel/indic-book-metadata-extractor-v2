@@ -16,7 +16,7 @@ help:
 	@echo "  make logs-worker-llm  Tail LLM worker logs"
 	@echo "  make migrate         Run database migrations"
 	@echo "  make reset-db        Reset database (destroys data!)"
-	@echo "  make download-model  Download Airavata model to Ollama"
+	@echo "  make download-model  Download Qwen2.5 7B model to Ollama"
 	@echo "  make test-e2e        Run end-to-end smoke test"
 	@echo "  make shell-backend   Open shell in backend container"
 	@echo "  make backup-db       Create a manual database backup"
@@ -92,8 +92,8 @@ reset-db:
 	@echo "Database reset complete. Run 'make up' to start all services."
 
 download-model:
-	@echo "Downloading Airavata model..."
-	docker compose exec ollama ollama pull airavata
+	@echo "Downloading Qwen2.5 7B model..."
+	docker compose exec ollama ollama pull qwen2.5:7b
 
 test-e2e:
 	@echo "Running E2E smoke test..."

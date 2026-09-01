@@ -279,9 +279,9 @@ export default function LlmConfigPage() {
                         setConfig((prev) => ({ ...prev, model: e.target.value }))
                       }
                     >
-                      <option value="airavata">airavata (default)</option>
-                      {models
-                        ?.filter((m) => m.name !== "airavata")
+                      <option value="qwen2.5">qwen2.5 (default)</option>
+  {models
+    ?.filter((m) => m.name !== "qwen2.5")
                         .map((m) => (
                           <option key={m.name} value={m.name}>
                             {m.name}
