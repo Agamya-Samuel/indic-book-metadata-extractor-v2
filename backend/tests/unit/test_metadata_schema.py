@@ -67,7 +67,7 @@ class TestFieldDefinitions:
 class TestExtractionRequest:
     def test_defaults(self):
         req = ExtractionRequest()
-        assert req.model == "airavata"
+        assert req.model == "qwen2.5"
         assert req.temperature == 0.3
         assert req.max_tokens == 512
         assert req.custom_system_prompt is None

@@ -60,7 +60,7 @@ services:
       start_period: 10s
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # LLM Inference (Airavata 7B) — staging: slightly smaller cap to share host with prod
+  # LLM Inference (Qwen2.5 7B) — staging: slightly smaller cap to share host with prod
   # ─────────────────────────────────────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
@@ -68,10 +68,10 @@ services:
     volumes:
       - ollama_data:/root/.ollama
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
-      - ./docker/Modelfile.airavata:/models/Modelfile.airavata
+      - ./docker/Modelfile.qwen2.5:/models/Modelfile.qwen2.5
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     environment:
-      OLLAMA_PRELOAD_MODEL: airavata
+      OLLAMA_PRELOAD_MODEL: qwen2.5
       OLLAMA_KEEP_ALIVE: "30m"
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]

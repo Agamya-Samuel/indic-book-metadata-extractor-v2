@@ -2,7 +2,7 @@
 """Standalone test script for the LLM extraction pipeline.
 
 Usage:
-    # Full extraction with default Airavata model
+    # Full extraction with default Qwen2.5 model
     python scripts/test_llm_extraction.py --language tel
 
     # Test with a specific OCR text file
@@ -226,8 +226,8 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        default="airavata",
-        help="Ollama model name (default: airavata)",
+        default="qwen2.5",
+        help="Ollama model name (default: qwen2.5)",
     )
     parser.add_argument(
         "--temperature",

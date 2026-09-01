@@ -106,7 +106,7 @@ class TestLlmRuns:
 
         run = LlmRun(
             job_id=job.id,
-            model="airavata",
+            model="qwen2.5",
             prompt_template="test prompt",
             raw_response='{"title": "Test"}',
             parsed_fields={"title": "Test"},
@@ -118,4 +118,4 @@ class TestLlmRuns:
         assert response.status_code == 200
         runs = response.json()
         assert len(runs) == 1
-        assert runs[0]["model"] == "airavata"
+        assert runs[0]["model"] == "qwen2.5"

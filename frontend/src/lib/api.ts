@@ -270,7 +270,7 @@ export interface LlmRunResponse {
 }
 
 export const DEFAULT_EXTRACTION_CONFIG: ExtractionRequest = {
-  model: "airavata",
+  model: "qwen2.5",
   temperature: 0.3,
   max_tokens: 2048,
   fields_per_batch: 10,

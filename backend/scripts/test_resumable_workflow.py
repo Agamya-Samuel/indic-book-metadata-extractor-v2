@@ -151,7 +151,7 @@ def test_resume_after_extraction(client: httpx.Client, book_id: str):
     r = client.post(
         f"{BASE_URL}/books/{book_id}/run-extraction",
         json={
-            "model": "airavata",
+            "model": "qwen2.5",
             "temperature": 0.3,
             "max_tokens": 2048,
             "fields_per_batch": 10,
@@ -159,7 +159,7 @@ def test_resume_after_extraction(client: httpx.Client, book_id: str):
     )
     if r.status_code != 201:
         print(f"  [SKIP] Extraction start returned {r.status_code}: {r.text}")
-        print("  (This may be expected if Ollama/Airavata is not fully configured)")
+        print("  (This may be expected if Ollama/Qwen2.5 is not fully configured)")
         return
     data = r.json()
     job_id = data["job_id"]

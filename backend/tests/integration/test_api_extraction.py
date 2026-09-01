@@ -55,7 +55,7 @@ class TestRunExtraction:
 
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "airavata", "temperature": 0.3, "max_tokens": 2048},
+            json={"model": "qwen2.5", "temperature": 0.3, "max_tokens": 2048},
         )
         assert response.status_code == 201
         data = response.json()
@@ -67,7 +67,7 @@ class TestRunExtraction:
         book = await make_book_with_pages()
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "airavata"},
+            json={"model": "qwen2.5"},
         )
         assert response.status_code == 400
 
@@ -88,7 +88,7 @@ class TestRunExtraction:
 
         response = await client.post(
             f"/api/books/{book_resp['id']}/run-extraction",
-            json={"model": "airavata"},
+            json={"model": "qwen2.5"},
         )
         assert response.status_code == 400
 
@@ -107,7 +107,7 @@ class TestRunExtraction:
 
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "airavata"},
+            json={"model": "qwen2.5"},
         )
         assert response.status_code == 409
 
@@ -125,6 +125,6 @@ class TestRetryExtraction:
 
         response = await client.post(
             f"/api/books/{book['id']}/retry-extraction",
-            json={"model": "airavata"},
+            json={"model": "qwen2.5"},
         )
         assert response.status_code == 201

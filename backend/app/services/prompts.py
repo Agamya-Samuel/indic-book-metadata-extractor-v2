@@ -23,7 +23,7 @@ Always respond with valid JSON matching the exact schema provided. Do not includ
 
 # Per-language worked examples distilled from real copyright-page / colophon
 # layouts in the project's commons/ fixtures (Telugu/Hindi) and from common
-# Indic bibliographic conventions. Airavata 7B Q4_K_M follows JSON schemas
+# Indic bibliographic conventions. Qwen2.5 7B Q4_K_M follows JSON schemas
 # noticeably better when given concrete output patterns to mirror. Keep each
 # example short and field-set minimal — we want to show schema shape, not
 # dump the full pydantic model.

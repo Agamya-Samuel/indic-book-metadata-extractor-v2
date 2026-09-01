@@ -57,7 +57,7 @@ export default function Home() {
         <dl className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--border)] sm:grid-cols-3 animate-hero animate-hero-5">
           {[
             { k: "OCR", v: "Tesseract 5 + Indic scripts" },
-            { k: "LLM", v: "Airavata 7B" },
+            { k: "LLM", v: "Qwen2.5 7B" },
             { k: "Export", v: "Wikibase · OpenRefine" },
           ].map((item) => (
             <div
