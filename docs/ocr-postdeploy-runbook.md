@@ -17,9 +17,7 @@ alembic upgrade head
 
 ### 1.2 Rebuild the backend Docker image
 
-The new `Dockerfile.backend` clones the `indic-ocr/tessdata` repository at
-build time. Without a rebuild, Tesseract will still use the old stock
-`tesseract-ocr-tel/hin` packs and you'll see no Tier 2 improvement.
+The Docker image uses the stock Tesseract models installed via apt-get.
 
 ```bash
 make rebuild
@@ -62,17 +60,11 @@ OCR_USE_DICTIONARY=hin,tel
 
 See `docs/ocr-training.md` for the full operator playbook.
 
-### 2.2 Pin TESSDATA_REF for reproducibility
+### 2.2 Tesseract models
 
-The build clones `indic-ocr/tessdata` at `master` by default. Pin to a commit
-SHA in `docker/Dockerfile.backend` for reproducible builds:
-
-```dockerfile
-ARG TESSDATA_REF=<commit-sha>
-```
-
-Or, alternatively, set `OCR_TESSDATA_DIR` on the host to point at a managed
-tessdata location, so the swap doesn't require an image rebuild.
+The Docker image uses the stock Tesseract models installed via apt-get
+(`tesseract-ocr-tel`, `tesseract-ocr-hin`, `tesseract-ocr-eng`). No
+additional model installation is needed.
 
 ---
 
@@ -187,7 +179,7 @@ behavior:
 # 1. Apply DB migration                              # ~10 seconds
 alembic upgrade head
 
-# 2. Rebuild image (first build downloads tessdata)  # ~10 min first time
+# 2. Rebuild image
 make rebuild
 
 # 3. Start all services                              # ~60 seconds
