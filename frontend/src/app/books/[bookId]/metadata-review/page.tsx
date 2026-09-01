@@ -29,6 +29,7 @@ import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store"
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress, EmptyState } from "@/components/shared/empty-state";
+import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export default function MetadataReviewPage() {
@@ -178,7 +179,7 @@ export default function MetadataReviewPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mx-auto mb-4" />
+          <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)] mx-auto mb-4" />
           <h2 className="text-[var(--text-lg)] font-semibold text-[var(--text)] mb-2">
             LLM Extraction in Progress
           </h2>

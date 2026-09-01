@@ -22,6 +22,7 @@ import { OcrReviewSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, Card } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
+import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 
@@ -210,7 +211,7 @@ export default function OcrReviewPage() {
         {showPollingOverlay ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-md">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)] mx-auto mb-4" />
+              <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)] mx-auto mb-4" />
               <p className="text-[var(--text)] font-medium">Running OCR...</p>
               <p className="text-[var(--text-muted)] text-[var(--text-sm)] mt-1">
                 {Math.round(progress)}% complete
@@ -231,7 +232,7 @@ export default function OcrReviewPage() {
         ) : isLoadingOcr ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)] mx-auto mb-3" />
+              <Spinner className="h-8 w-8 border-2 text-[var(--accent)] mx-auto mb-3" />
               <p className="text-[var(--text-muted)] text-[var(--text-sm)]">Loading OCR results...</p>
             </div>
           </div>

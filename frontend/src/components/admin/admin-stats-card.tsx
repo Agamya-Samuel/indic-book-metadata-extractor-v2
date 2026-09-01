@@ -8,6 +8,7 @@ interface AdminStatsCardProps {
   sublabel?: React.ReactNode;
   tone?: "neutral" | "info" | "success" | "warning" | "danger";
   className?: string;
+  flush?: boolean;
 }
 
 const toneAccent: Record<NonNullable<AdminStatsCardProps["tone"]>, string> = {
@@ -24,12 +25,15 @@ export default function AdminStatsCard({
   sublabel,
   tone = "neutral",
   className,
+  flush = false,
 }: AdminStatsCardProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]",
-        "shadow-[var(--shadow-xs)] p-5",
+        "relative",
+        flush
+          ? "px-5 py-4"
+          : "overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)] p-5",
         className,
       )}
     >

@@ -91,38 +91,43 @@ export default function AdminJobsPage() {
       />
 
       <Card className="mb-4">
-        <div className="flex flex-wrap gap-3 items-end">
-          <div className="w-40">
-            <Field label="Status" htmlFor="admin-job-status">
-              <Select
-                id="admin-job-status"
-                value={statusFilter}
-                onChange={(e) => handleStatusChange(e.target.value)}
-              >
-                <option value="">All</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-          <div className="w-40">
-            <Field label="Type" htmlFor="admin-job-type">
-              <Select
-                id="admin-job-type"
-                value={typeFilter}
-                onChange={(e) => handleTypeChange(e.target.value)}
-              >
-                <option value="">All</option>
-                {JOB_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+        <div>
+          <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+            Filters
+          </p>
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="w-40">
+              <Field label="Status" htmlFor="admin-job-status">
+                <Select
+                  id="admin-job-status"
+                  value={statusFilter}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                >
+                  <option value="">All</option>
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <div className="w-40">
+              <Field label="Type" htmlFor="admin-job-type">
+                <Select
+                  id="admin-job-type"
+                  value={typeFilter}
+                  onChange={(e) => handleTypeChange(e.target.value)}
+                >
+                  <option value="">All</option>
+                  {JOB_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
           </div>
         </div>
       </Card>
