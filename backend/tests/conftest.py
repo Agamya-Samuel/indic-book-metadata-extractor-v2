@@ -102,7 +102,6 @@ def _make_celery_mocks():
         ("ocr", "app.tasks.ocr_tasks.run_ocr_for_book"),
         ("preprocess", "app.tasks.ocr_tasks.preprocess_pages_for_book"),
         ("llm", "app.tasks.llm_tasks.run_llm_extraction"),
-        ("pipeline", "app.tasks.pipeline_tasks.process_book_pipeline"),
     ]
 
 
