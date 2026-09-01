@@ -21,9 +21,16 @@ class TestSelectPagesForBatch:
         result = select_pages_for_batch(_pages(10), "core_identity")
         assert [p.page_number for p in result] == [1, 2, 3]
 
-    def test_ancillary_content_takes_first_five(self):
+    def test_ancillary_content_takes_first_five_plus_back_matter(self):
         result = select_pages_for_batch(_pages(10), "ancillary_content")
-        assert [p.page_number for p in result] == [1, 2, 3, 4, 5]
+        # Front slice 1..5 plus back-matter pages 8..10.
+        assert [p.page_number for p in result] == [1, 2, 3, 4, 5, 8, 9, 10]
+
+    def test_relationships_unions_back_matter(self):
+        result = select_pages_for_batch(_pages(10), "relationships")
+        # Front slice (0, 8) → pages 1..8, back slice (-3, None) →
+        # 8,9,10 (deduped against the front window).
+        assert [p.page_number for p in result] == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     def test_physical_extra_takes_all(self):
         result = select_pages_for_batch(_pages(5), "physical_extra")

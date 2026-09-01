@@ -67,9 +67,15 @@ export default function SelectPagesPage() {
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Only clear the persisted selection when the bookId changes, so
+  // navigating away and back doesn't wipe edits.
+  const prevBookIdRef = useRef<string | null>(null);
   useEffect(() => {
-    clearSelection();
-  }, [clearSelection]);
+    if (prevBookIdRef.current !== bookId) {
+      clearSelection();
+      prevBookIdRef.current = bookId;
+    }
+  }, [bookId, clearSelection]);
 
   useEffect(() => {
     return () => {
@@ -123,7 +129,13 @@ export default function SelectPagesPage() {
   };
 
   const handleSelectBack5 = () => {
-    const backPages = Array.from({ length: Math.min(5, totalPages) }, (_, i) => totalPages - 4 + i);
+    // Clamp the start at 1 so we always emit valid page numbers even
+    // for short books.
+    const start = Math.max(1, totalPages - 4);
+    const backPages = Array.from(
+      { length: Math.min(5, totalPages) },
+      (_, i) => start + i,
+    );
     selectPagesInStore(backPages);
   };
 
@@ -142,9 +154,14 @@ export default function SelectPagesPage() {
     setImagesLoaded((prev) => new Set([...prev, pageNumber]));
   };
 
-  if (book && !useWorkflowStore.getState().bookId) {
-    setWorkflowBookId(bookId);
-  }
+  // Moved out of render body into a side-effect so the StrictMode
+  // double-invoke (and any re-render) doesn't trigger duplicate zustand
+  // state writes / localStorage persistence.
+  useEffect(() => {
+    if (book && !useWorkflowStore.getState().bookId) {
+      setWorkflowBookId(bookId);
+    }
+  }, [book, bookId, setWorkflowBookId]);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">

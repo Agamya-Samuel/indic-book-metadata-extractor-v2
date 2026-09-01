@@ -100,7 +100,13 @@ class LLMService:
         page_count: int = 1,
         system_prompt_override: str | None = None,
         extraction_prompt_override: str | None = None,
-    ) -> tuple[BaseModel, str, dict]:
+    ) -> tuple[BaseModel, str, dict, str]:
+        """Run one batch.
+
+        Returns ``(result, raw_response, usage, extraction_prompt)`` where
+        ``extraction_prompt`` is the exact prompt sent to the LLM so the
+        persist step can store an honest audit trail.
+        """
         # Check circuit breaker before attempting LLM call
         self._check_circuit_breaker()
 
@@ -180,7 +186,7 @@ class LLMService:
             usage_stats = {"status": "error", "error": str(e)}
             self._record_failure()
 
-        return result, raw_response_text, usage_stats
+        return result, raw_response_text, usage_stats, extraction_prompt
 
     @newrelic.agent.function_trace(name="LLM: Run Full Extraction", group="Custom")
     async def run_full_extraction(
@@ -212,7 +218,7 @@ class LLMService:
         total_batches = len(BATCH_FIELD_ORDER)
         errors: list[str] = []
 
-        async def _run_one(batch_name: str) -> tuple[str, BaseModel, str, dict]:
+        async def _run_one(batch_name: str) -> tuple[str, BaseModel, str, dict, str]:
             batch_schema = METADATA_BATCHES[batch_name]
             if pages:
                 selected = select_pages_for_batch(pages, batch_name)
@@ -222,7 +228,7 @@ class LLMService:
                 batch_text = ocr_text
                 batch_page_count = page_count
 
-            result, raw_response, usage = await self.extract_batch(
+            result, raw_response, usage, prompt = await self.extract_batch(
                 ocr_text=batch_text,
                 batch_name=batch_name,
                 batch_schema=batch_schema,
@@ -234,14 +240,14 @@ class LLMService:
                 system_prompt_override=system_prompt_override,
                 extraction_prompt_override=extraction_prompt_override,
             )
-            return batch_name, result, raw_response, usage
+            return batch_name, result, raw_response, usage, prompt
 
         # Run batches in parallel with a concurrency cap. Sequential when
         # pages is None (legacy callers / tests) to preserve behavior.
         if pages:
             semaphore = asyncio.Semaphore(self.MAX_PARALLEL_BATCHES)
 
-            async def _guarded(name: str) -> tuple[str, BaseModel, str, dict]:
+            async def _guarded(name: str) -> tuple[str, BaseModel, str, dict, str]:
                 async with semaphore:
                     return await _run_one(name)
 
@@ -250,7 +256,7 @@ class LLMService:
             ]
             completed = 0
             for fut in asyncio.as_completed(in_flight):
-                batch_name, result, raw_response, usage = await fut
+                batch_name, result, raw_response, usage, prompt = await fut
                 completed += 1
 
                 batch_data = result.model_dump(exclude_none=False)
@@ -264,6 +270,8 @@ class LLMService:
                         "raw_response": raw_response,
                         "parsed_fields": batch_data,
                         "usage": usage,
+                        "prompt": prompt,
+                        "model": model,
                     }
                 )
 
@@ -276,7 +284,7 @@ class LLMService:
                     await progress_callback(completed, total_batches, batch_name)
         else:
             for i, batch_name in enumerate(BATCH_FIELD_ORDER):
-                bn, result, raw_response, usage = await _run_one(batch_name)
+                bn, result, raw_response, usage, prompt = await _run_one(batch_name)
 
                 batch_data = result.model_dump(exclude_none=False)
                 for key, value in batch_data.items():
@@ -289,6 +297,8 @@ class LLMService:
                         "raw_response": raw_response,
                         "parsed_fields": batch_data,
                         "usage": usage,
+                        "prompt": prompt,
+                        "model": model,
                     }
                 )
 
@@ -399,18 +409,22 @@ class LLMService:
                             "raw_response": "",
                             "parsed_fields": {},
                             "usage": {"status": "error", "error": str(outcome)},
+                            "prompt": "",
+                            "model": model,
                         }
                     )
                     if progress_callback:
                         await progress_callback(completed, total_needed, "<failed>")
                     continue
-                batch_name, parsed, raw_response, usage = outcome
+                batch_name, parsed, raw_response, usage, prompt = outcome
                 batch_results.append(
                     {
                         "batch_name": batch_name,
                         "raw_response": raw_response,
                         "parsed_fields": parsed,
                         "usage": usage,
+                        "prompt": prompt,
+                        "model": model,
                     }
                 )
                 for field_name, value in parsed.items():
@@ -452,8 +466,11 @@ class LLMService:
         system_prompt_override: str | None,
         extraction_prompt_override: str | None,
         gap_fields: set[str],
-    ) -> tuple[str, dict, str, dict]:
-        """Run one LLM batch and return only the gap fields it covers."""
+    ) -> tuple[str, dict, str, dict, str]:
+        """Run one LLM batch and return only the gap fields it covers.
+
+        Returns ``(batch_name, parsed_filtered, raw_response, usage, prompt)``.
+        """
         batch_schema = METADATA_BATCHES[batch_name]
         if pages:
             selected = select_pages_for_batch(pages, batch_name)
@@ -463,7 +480,7 @@ class LLMService:
             batch_text = ocr_text
             batch_page_count = page_count
 
-        result, raw_response, usage = await self.extract_batch(
+        result, raw_response, usage, prompt = await self.extract_batch(
             ocr_text=batch_text,
             batch_name=batch_name,
             batch_schema=batch_schema,
@@ -479,7 +496,7 @@ class LLMService:
         # accidentally clobber cheap-extractor values downstream.
         parsed_all = result.model_dump(exclude_none=False)
         parsed_filtered = {k: v for k, v in parsed_all.items() if k in gap_fields and v is not None}
-        return batch_name, parsed_filtered, raw_response, usage
+        return batch_name, parsed_filtered, raw_response, usage, prompt
 
     async def list_available_models(self) -> list[dict]:
         try:
@@ -566,19 +583,37 @@ def _empty_batch(batch_schema: type[BaseModel]) -> BaseModel:
 
 
 def _fallback_parse(raw_text: str, batch_schema: type[BaseModel]) -> BaseModel:
+    """Best-effort parse of free-form LLM output.
+
+    Walks the string with :class:`json.JSONDecoder.raw_decode` to grab the
+    first valid JSON object that validates against the schema. This
+    handles cases like ``{"a": 1}\\n{"b": 2}`` where naive
+    ``find('{')``/``rfind('}')`` slicing picks up invalid fragments.
+    """
     if not raw_text:
         return _empty_batch(batch_schema)
 
-    try:
-        start = raw_text.find("{")
-        end = raw_text.rfind("}") + 1
-        if start >= 0 and end > start:
-            json_str = raw_text[start:end]
-            parsed = json.loads(json_str)
-            return batch_schema(**parsed)
-    except (json.JSONDecodeError, Exception) as e:
-        logger.warning("Fallback parse failed: %s", e)
-
+    decoder = json.JSONDecoder()
+    cursor = 0
+    last_error: Exception | None = None
+    while True:
+        start = raw_text.find("{", cursor)
+        if start == -1:
+            break
+        try:
+            obj, end = decoder.raw_decode(raw_text[start:])
+        except json.JSONDecodeError as exc:
+            last_error = exc
+            cursor = start + 1
+            continue
+        try:
+            return batch_schema(**obj)
+        except Exception as exc:
+            last_error = exc
+            cursor = start + end
+            continue
+    if last_error is not None:
+        logger.warning("Fallback parse failed: %s", last_error)
     return _empty_batch(batch_schema)
 
 

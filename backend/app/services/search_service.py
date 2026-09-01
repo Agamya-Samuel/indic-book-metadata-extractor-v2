@@ -287,7 +287,7 @@ class SearchService:
     async def count_low_confidence_fields(
         db: AsyncSession,
         book_id: UUID,
-        threshold: float = 0.70,
+        threshold: float = 0.55,
     ) -> int:
         """Count populated metadata fields whose confidence is below the threshold.
 

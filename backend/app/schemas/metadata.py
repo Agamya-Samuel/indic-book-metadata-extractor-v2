@@ -308,7 +308,7 @@ class ExtractionResponse(BaseModel):
 
 class MetadataResponse(BaseModel):
     book_id: uuid.UUID
-    fields: dict
+    fields: dict = Field(default_factory=dict)
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
@@ -320,7 +320,7 @@ class MetadataUpdateRequest(BaseModel):
 
 class LlmRunResponse(BaseModel):
     id: uuid.UUID
-    job_id: uuid.UUID
+    job_id: uuid.UUID | None = None
     model: str
     prompt_template: str | None
     batch_config: dict | None

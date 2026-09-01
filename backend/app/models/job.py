@@ -37,6 +37,7 @@ class Job(UUIDMixin, Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_log: Mapped[str | None] = mapped_column(Text)
+    celery_task_id: Mapped[str | None] = mapped_column(String(64), index=True)
 
     book = relationship("Book", back_populates="jobs")
     llm_runs = relationship("LlmRun", back_populates="job", cascade="all, delete-orphan")

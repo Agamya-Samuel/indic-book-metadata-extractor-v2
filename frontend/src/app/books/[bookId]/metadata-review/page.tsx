@@ -112,8 +112,13 @@ export default function MetadataReviewPage() {
 
   const { isFailed, progress, isPolling, errorLog } =
     useJobPolling({
+      // Poll on any active job state, not only ``llm_running``, so the
+      // brief ``llm_running`` → ``awaiting_review`` transition isn't missed.
       bookId,
-      enabled: book?.status === "llm_running",
+      enabled:
+        book?.status === "llm_running" ||
+        book?.status === "ocr_running" ||
+        book?.status === "preprocessing",
     });
 
   const bookStatus = useBookStatus({ bookId });
@@ -131,17 +136,21 @@ export default function MetadataReviewPage() {
     mutationFn: async (
       fields: Record<string, string | Record<string, string>>
     ) => {
+      // Preserve nested objects (e.g. ``custom_fields``) instead of
+      // casting them to strings so the API contract stays honest.
       const cleaned: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(fields)) {
         cleaned[k] = v;
       }
-      return updateMetadata(bookId, cleaned as Record<string, string>);
+      return updateMetadata(bookId, cleaned as Record<string, unknown>);
     },
     onSuccess: (result: MetadataResponse) => {
       queryClient.setQueryData(["metadata", bookId], result);
       toast.success("Metadata saved successfully");
-      setWorkflowStep(7);
-      setCompletedStep(7);
+      // Don't advance the workflow to step 7 from here. The backend
+      // transitions the book to ``complete`` after the PUT succeeds;
+      // the SSE ``book.status_changed`` event drives the stepper, so
+      // a refresh doesn't bounce the user back to step 6.
     },
     onError: (err) => {
       toast.error(`Failed to save metadata: ${getErrorMessage(err)}`);

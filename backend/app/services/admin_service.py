@@ -249,14 +249,17 @@ async def rerun_ocr(db: AsyncSession, book_id: UUID) -> Job:
         j.error_log = "Re-run OCR requested by admin"
     await db.flush()
 
-    # Drop existing OCR results + processed images
+    # Drop existing OCR results + processed images. Collect files to unlink
+    # and only do so AFTER the DB commit succeeds so a commit failure
+    # doesn't leave orphaned files behind.
     page_ids = [p.id for p in pages]
     await db.execute(delete(OcrResult).where(OcrResult.page_id.in_(page_ids)))
     await db.execute(delete(MetadataFieldEvidence).where(MetadataFieldEvidence.book_id == book_id))
+    files_to_unlink: list[Path] = []
     for p in pages:
         if p.processed_image_path:
             fp = Path(settings.storage_path) / p.processed_image_path
-            fp.unlink(missing_ok=True)
+            files_to_unlink.append(fp)
         p.processed_image_path = None
         p.preprocessing_config = None
     # LLM outputs are stale once OCR changes; clear them too.
@@ -273,6 +276,13 @@ async def rerun_ocr(db: AsyncSession, book_id: UUID) -> Job:
     book.status = BookStatus.OCR_RUNNING
     await db.commit()
     await db.refresh(job)
+
+    # Commit succeeded — now safe to unlink the processed images.
+    for fp in files_to_unlink:
+        try:
+            fp.unlink(missing_ok=True)
+        except OSError:
+            pass
 
     from app.tasks.ocr_tasks import preprocess_pages_for_book
     preprocess_pages_for_book.delay(str(job.id), str(book_id), book.language)

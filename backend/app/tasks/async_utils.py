@@ -63,8 +63,30 @@ def run_async(coro):
     stale futures leak between calls.
 
     NOT thread-safe — use :func:`run_async_threadsafe` from threads.
+
+    If a caller invokes this from *inside* a callback that is already
+    running on the persistent loop (e.g. ``add_done_callback`` or a
+    Celery ``before_task_publish`` signal), ``run_until_complete`` would
+    raise ``RuntimeError: This event loop is already running``. Detect
+    that case and run the coroutine on a fresh thread/loop instead.
     """
     loop = _get_or_create_loop()
+    if loop.is_running():
+        # We're already on the loop (e.g. via a signal handler fired
+        # mid-task). Run the coroutine on a fresh thread/loop so we
+        # don't deadlock waiting on a loop that's already executing us.
+        import concurrent.futures
+
+        def _runner():
+            new_loop = asyncio.new_event_loop()
+            try:
+                return new_loop.run_until_complete(coro)
+            finally:
+                new_loop.close()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(_runner)
+            return future.result()
     return loop.run_until_complete(coro)
 
 

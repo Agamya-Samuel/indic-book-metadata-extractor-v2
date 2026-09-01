@@ -1,7 +1,5 @@
 import logging
-import threading
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,7 +8,7 @@ from sqlalchemy import exc as sa_exc, select
 from app.core.config import settings
 from app.core.database import async_session_factory
 from app.models.book import Book, BookStatus
-from app.models.job import Job, JobStatus
+from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services import ocr_service, ocr_postprocess, preprocessing, storage
@@ -94,11 +92,6 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
         }
 
 
-def _process_page(page_id_str: str, book_id_str: str, language: str) -> dict:
-    """Synchronous wrapper for single-page task (uses the persistent worker loop)."""
-    return run_async(_process_page_async(page_id_str, book_id_str, language))
-
-
 def _process_page_threadsafe(page_id_str: str, book_id_str: str, language: str) -> dict:
     """Thread-safe wrapper: creates a fresh event loop for each call."""
     return run_async_threadsafe(_process_page_async(page_id_str, book_id_str, language))
@@ -110,13 +103,13 @@ def _process_page_threadsafe(page_id_str: str, book_id_str: str, language: str) 
 def _update_job_progress(
     job_id_str: str, completed: int, total: int, book_id_str: str | None = None
 ) -> None:
-    """Update job progress percentage in the database.
+    """Update job progress percentage in the database atomically.
 
-    Uses a thread-safe async wrapper since this may be called from
-    :class:`~concurrent.futures.ThreadPoolExecutor` threads.
-    Also publishes a ``job.progress`` SSE event so connected clients see
-    live updates without polling.
+    Takes a row-level lock so concurrent progress updates serialise and
+    never regress the value. Publishes a ``job.progress`` SSE event so
+    connected clients see live updates without polling.
     """
+
     async def _do():
         book_id: uuid.UUID | None = None
         if book_id_str:
@@ -124,36 +117,46 @@ def _update_job_progress(
                 book_id = uuid.UUID(book_id_str)
             except (TypeError, ValueError):
                 book_id = None
+
         async with async_session_factory() as db:
+            job_id = uuid.UUID(job_id_str)
+            new_progress = round((completed / total) * 100, 1) if total else 0.0
+            # Lock the row so concurrent progress updates serialise and we
+            # never regress the value.
             job_result = await db.execute(
-                select(Job).where(Job.id == uuid.UUID(job_id_str))
+                select(Job).where(Job.id == job_id).with_for_update()
             )
             job = job_result.scalar_one_or_none()
             if not job:
                 return
-            job.progress = round((completed / total) * 100, 1)
+            if new_progress > (job.progress or 0.0):
+                job.progress = new_progress
+                await db.commit()
+                progress_pct = new_progress
+            else:
+                progress_pct = job.progress or 0.0
             if book_id is None and job.book_id is not None:
                 book_id = job.book_id
-            await db.commit()
-            progress_pct = job.progress
-            jid = job.id
-            bkid = book_id
             jtype = job.job_type
 
-        if bkid is not None:
+        if book_id is not None:
             publish_sync(
-                bkid,
+                book_id,
                 {
                     "id": event_id("job-progress"),
                     "type": "job.progress",
-                    "book_id": str(bkid),
-                    "job_id": str(jid),
+                    "book_id": str(book_id),
+                    "job_id": job_id_str,
                     "job_type": jtype,
                     "progress": progress_pct,
                 },
             )
 
-    run_async_threadsafe(_do())
+    try:
+        run_async_threadsafe(_do())
+    except Exception:
+        # Progress is best-effort; logging only.
+        logger.debug("Progress update failed for job %s", job_id_str, exc_info=True)
 
 
 def _publish_book_status(book_id: uuid.UUID, status: str, job_id: uuid.UUID | None = None) -> None:
@@ -185,26 +188,74 @@ def _publish_job_terminal(
     )
 
 
+def _has_active_job_for_book(book_id: uuid.UUID) -> bool:
+    """Return True if the book already has a queued/running OCR or PREPROCESSING job."""
+
+    async def _check():
+        async with async_session_factory() as db:
+            result = await db.execute(
+                select(Job.id)
+                .where(
+                    Job.book_id == book_id,
+                    Job.status.in_((JobStatus.QUEUED, JobStatus.RUNNING)),
+                    Job.job_type.in_(
+                        (JobType.OCR, JobType.PREPROCESSING)
+                    ),
+                )
+                .limit(1)
+            )
+            return result.scalar_one_or_none() is not None
+
+    try:
+        return bool(run_async_threadsafe(_check()))
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Preprocessing phase task
 # ---------------------------------------------------------------------------
 @celery_app.task(
     bind=True,
     name="preprocess_pages_for_book",
-    max_retries=1,
+    max_retries=2,
+    default_retry_delay=15,
     acks_late=True,
 )
 @newrelic.agent.background_task(name="OCR: Preprocessing Phase", group="CeleryTask")
 def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language: str):
-    """Preprocess all pages that need it, then chain into OCR."""
+    """Preprocess all pages that need it, then chain into OCR.
+
+    On failure, the preprocessing job is marked FAILED and OCR is **not**
+    dispatched — downstream code must retry the job explicitly.
+    """
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
 
+    book_uuid = uuid.UUID(book_id_str)
+    if _has_active_job_for_book(book_uuid):
+        logger.info(
+            "Skipping preprocessing for book %s — another active job exists",
+            book_id_str,
+        )
+        return
+
     async def _run():
         async with async_session_factory() as db:
-            book_id = uuid.UUID(book_id_str)
+            job_uuid = uuid.UUID(job_id_str)
+            job_result = await db.execute(
+                select(Job).where(Job.id == job_uuid).with_for_update()
+            )
+            job = job_result.scalar_one_or_none()
+            if job:
+                job.status = JobStatus.RUNNING
+                job.started_at = datetime.now(timezone.utc)
+                if self.request.id and not job.celery_task_id:
+                    job.celery_task_id = self.request.id
+                await db.commit()
+
             pages_result = await db.execute(
-                select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
+                select(Page).where(Page.book_id == book_uuid).order_by(Page.page_number)
             )
             pages = pages_result.scalars().all()
 
@@ -230,113 +281,33 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
     try:
         count = run_async(_run())
         logger.info("Preprocessed %d pages for book %s, chaining to OCR", count, book_id_str)
+    except (ConnectionError, TimeoutError, OSError, sa_exc.OperationalError) as exc:
+        # Transient: let Celery retry.
+        logger.warning("Transient preprocessing error for book %s: %s", book_id_str, exc)
+        raise self.retry(exc=exc)
     except Exception as e:
         logger.error("Preprocessing failed for book %s: %s", book_id_str, e)
+        _mark_job_failed(
+            job_id_str,
+            book_uuid,
+            f"Preprocessing failed: {e}",
+        )
+        return
 
     run_ocr_for_book.delay(job_id_str, book_id_str, language)
 
 
 # ---------------------------------------------------------------------------
-# Single-page OCR task
-# ---------------------------------------------------------------------------
-@celery_app.task(
-    bind=True,
-    name="run_ocr_for_page",
-    max_retries=3,
-    default_retry_delay=30,
-    acks_late=True,
-)
-@newrelic.agent.background_task(name="OCR: Single Page", group="CeleryTask")
-def run_ocr_for_page(self, page_id_str: str, book_id_str: str, language: str):
-    """Run OCR on a single page. Retries up to 3 times on transient errors."""
-    newrelic.agent.add_custom_attribute("book_id", book_id_str)
-    newrelic.agent.add_custom_attribute("page_id", page_id_str)
-    newrelic.agent.add_custom_attribute("language", language)
-
-    try:
-        return _process_page(page_id_str, book_id_str, language)
-    except (ConnectionError, TimeoutError, OSError, sa_exc.OperationalError) as exc:
-        logger.warning("Transient error for page %s, retrying: %s", page_id_str, exc)
-        raise self.retry(exc=exc)
-    except Exception as e:
-        logger.error("OCR failed for page %s: %s", page_id_str, e)
-        return {
-            "page_id": page_id_str,
-            "success": False,
-            "error": str(e),
-        }
-
-
-# ---------------------------------------------------------------------------
-# Batched-page OCR task with thread-based parallelism
-# ---------------------------------------------------------------------------
-@celery_app.task(
-    bind=True,
-    name="run_ocr_for_page_batch",
-    max_retries=3,
-    default_retry_delay=30,
-    acks_late=True,
-)
-@newrelic.agent.background_task(name="OCR: Page Batch", group="CeleryTask")
-def run_ocr_for_page_batch(
-    self,
-    page_id_strs: list,
-    book_id_str: str,
-    language: str,
-    job_id_str: str | None = None,
-    total_pages: int | None = None,
-):
-    """Run OCR on a batch of pages using thread-based parallelism.
-
-    Uses :class:`~concurrent.futures.ThreadPoolExecutor` to process multiple
-    pages concurrently within a single Celery worker process.  Since
-    ``pytesseract`` spawns a subprocess for each call (releasing the GIL),
-    threads achieve true CPU-level parallelism.
-
-    Individual page failures are captured and returned without failing the batch.
-    """
-    newrelic.agent.add_custom_attribute("book_id", book_id_str)
-    newrelic.agent.add_custom_attribute("page_count", len(page_id_strs))
-    newrelic.agent.add_custom_attribute("language", language)
-
-    num_workers = min(settings.ocr_thread_workers, len(page_id_strs))
-    results = [None] * len(page_id_strs)
-
-    progress_counter = 0
-    progress_lock = threading.Lock()
-
-    def _process_idx(idx: int) -> tuple[int, dict]:
-        page_id = page_id_strs[idx]
-        try:
-            return idx, _process_page_threadsafe(page_id, book_id_str, language)
-        except Exception as e:
-            return idx, {"page_id": page_id, "success": False, "error": str(e)}
-
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = {
-            executor.submit(_process_idx, i): i
-            for i in range(len(page_id_strs))
-        }
-        for future in as_completed(futures):
-            idx, result = future.result()
-            results[idx] = result
-
-            if job_id_str and total_pages:
-                with progress_lock:
-                    progress_counter += 1
-                    current = progress_counter
-                try:
-                    _update_job_progress(job_id_str, current, total_pages, book_id_str)
-                except Exception:
-                    logger.debug("Progress update failed for page %d", idx)
-
-    return results
-
-
-# ---------------------------------------------------------------------------
 # Book-level OCR: processes pages sequentially with per-page progress updates
 # ---------------------------------------------------------------------------
-@celery_app.task(bind=True, name="run_ocr_for_book")
+@celery_app.task(
+    bind=True,
+    name="run_ocr_for_book",
+    max_retries=3,
+    default_retry_delay=30,
+    autoretry_for=(ConnectionError, TimeoutError, OSError, sa_exc.OperationalError),
+    acks_late=True,
+)
 @newrelic.agent.background_task(name="OCR: Book Orchestration", group="CeleryTask")
 def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
     """Run OCR sequentially for every page of a book, updating progress after each page."""
@@ -356,6 +327,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
+            job.celery_task_id = self.request.id
             await db.commit()
 
             pages_result = await db.execute(
@@ -380,82 +352,58 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
         total_pages = len(page_ids)
         errors: list[str] = []
         completed = 0
+        avg_conf_sum = 0.0
+        avg_conf_count = 0
+        started = datetime.now(timezone.utc)
 
         for page_id in page_ids:
             try:
                 _process_page_threadsafe(page_id, book_id_str, language)
+                ocr_row_result = run_async_threadsafe(
+                    _capture_page_confidence(page_id)
+                )
+                if ocr_row_result is not None:
+                    avg_conf_sum += ocr_row_result
+                    avg_conf_count += 1
             except Exception as e:
                 logger.error("OCR failed for page %s: %s", page_id, e)
                 errors.append(f"Page {page_id}: {e}")
 
             completed += 1
-            try:
-                _update_job_progress(job_id_str, completed, total_pages, book_id_str)
-            except Exception:
-                logger.debug("Progress update failed for page %s", page_id)
+            _update_job_progress(job_id_str, completed, total_pages, book_id_str)
+
+        avg_confidence = (
+            round(avg_conf_sum / avg_conf_count, 2) if avg_conf_count else None
+        )
+        duration = (datetime.now(timezone.utc) - started).total_seconds()
+        from app.services.metrics import record_ocr_completion
+
+        record_ocr_completion(
+            book_id_str,
+            avg_confidence or 0.0,
+            completed - len(errors),
+            duration,
+        )
 
         _finalize_job(job_id_str, book_id_str, total_pages, errors)
 
+    except (ConnectionError, TimeoutError, OSError, sa_exc.OperationalError) as exc:
+        logger.warning("Transient OCR error for job %s, will retry: %s", job_id_str, exc)
+        raise
     except Exception as e:
         logger.error("OCR book job %s setup failed: %s", job_id_str, e)
-        _mark_job_failed(job_id_str, str(e))
+        _mark_job_failed(job_id_str, uuid.UUID(book_id_str), str(e))
         raise
 
 
-@celery_app.task(name="_ocr_book_complete")
-def _ocr_book_complete(results, job_id_str: str, book_id_str: str, total_pages: int, batch_count: int):
-    """Legacy chord callback. No longer invoked (orchestrator now finalizes inline),
-    but kept for backward compatibility with any in-flight chord dispatches."""
-
-    async def _finalize():
-        async with async_session_factory() as db:
-            job_id = uuid.UUID(job_id_str)
-            book_id = uuid.UUID(book_id_str)
-
-            job_result = await db.execute(select(Job).where(Job.id == job_id))
-            job = job_result.scalar_one_or_none()
-            if job is None:
-                return
-
-            errors = []
-            for batch_result in results:
-                if isinstance(batch_result, list):
-                    for r in batch_result:
-                        if isinstance(r, dict) and r.get("success"):
-                            continue
-                        error_msg = r.get("error", "unknown") if isinstance(r, dict) else str(r)
-                        errors.append(f"Page: {error_msg}")
-                elif isinstance(batch_result, dict) and batch_result.get("success"):
-                    continue
-                else:
-                    error_msg = batch_result.get("error", "unknown") if isinstance(batch_result, dict) else str(batch_result)
-                    errors.append(f"Page: {error_msg}")
-
-            book_result = await db.execute(select(Book).where(Book.id == book_id))
-            book = book_result.scalar_one_or_none()
-
-            if errors and len(errors) == total_pages:
-                job.status = JobStatus.FAILED
-                job.error_log = "All pages failed:\n" + "\n".join(errors)
-            elif errors:
-                job.status = JobStatus.COMPLETED
-                job.error_log = "Some pages failed:\n" + "\n".join(errors)
-                if book:
-                    book.status = BookStatus.OCR_COMPLETE
-            else:
-                job.status = JobStatus.COMPLETED
-                if book:
-                    book.status = BookStatus.OCR_COMPLETE
-
-            job.progress = 100.0
-            job.completed_at = datetime.now(timezone.utc)
-            await db.commit()
-
-    try:
-        run_async(_finalize())
-    except Exception as e:
-        logger.error("OCR book completion callback failed for %s: %s", job_id_str, e)
-        _mark_job_failed(job_id_str, str(e))
+async def _capture_page_confidence(page_id_str: str) -> float | None:
+    """Return the most-recent OcrResult confidence for a page, or None."""
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(OcrResult).where(OcrResult.page_id == uuid.UUID(page_id_str))
+        )
+        row = result.scalar_one_or_none()
+        return row.confidence if row and row.confidence is not None else None
 
 
 def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: list[str]) -> None:
@@ -464,6 +412,9 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
     Sets job status, progress, completion timestamp, and updates the book's
     OCR status based on how many pages failed. Emits SSE events for the
     terminal job status and the book status transition.
+
+    When ANY page fails the book is kept in PAGES_SELECTED so the user
+    knows the OCR was partial and can re-run after fixing pages.
     """
 
     async def _do():
@@ -479,14 +430,18 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             book_result = await db.execute(select(Book).where(Book.id == book_id))
             book = book_result.scalar_one_or_none()
 
-            if errors and len(errors) >= total_pages:
+            if errors and len(errors) == total_pages:
                 job.status = JobStatus.FAILED
                 job.error_log = "All pages failed:\n" + "\n".join(errors)
+                if book:
+                    book.status = BookStatus.PAGES_SELECTED
             elif errors:
                 job.status = JobStatus.COMPLETED
                 job.error_log = "Some pages failed:\n" + "\n".join(errors)
                 if book:
-                    book.status = BookStatus.OCR_COMPLETE
+                    # Partial OCR — keep the book in PAGES_SELECTED so the
+                    # user must explicitly proceed.
+                    book.status = BookStatus.PAGES_SELECTED
             else:
                 job.status = JobStatus.COMPLETED
                 if book:
@@ -507,10 +462,10 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
         run_async_threadsafe(_do())
     except Exception as e:
         logger.error("OCR book finalization failed for %s: %s", job_id_str, e)
-        _mark_job_failed(job_id_str, str(e))
+        _mark_job_failed(job_id_str, uuid.UUID(book_id_str), str(e))
 
 
-def _mark_job_failed(job_id_str: str, error: str):
+def _mark_job_failed(job_id_str: str, book_id: uuid.UUID, error: str):
     """Mark a job as failed in the database and publish a terminal SSE event."""
 
     async def _do():
@@ -524,10 +479,11 @@ def _mark_job_failed(job_id_str: str, error: str):
             job.status = JobStatus.FAILED
             job.error_log = error
             job.completed_at = datetime.now(timezone.utc)
-            book_id = job.book_id
             await db.commit()
 
-        if book_id is not None:
-            _publish_job_terminal(book_id, uuid.UUID(job_id_str), JobStatus.FAILED, error)
+        _publish_job_terminal(book_id, uuid.UUID(job_id_str), JobStatus.FAILED, error)
 
-    run_async(_do())
+    try:
+        run_async(_do())
+    except Exception as e:
+        logger.error("Failed to mark job %s as FAILED: %s", job_id_str, e)

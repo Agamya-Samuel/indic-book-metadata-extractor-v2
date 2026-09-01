@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from collections.abc import AsyncGenerator
 
@@ -20,37 +21,48 @@ logger = logging.getLogger(__name__)
 
 _engine = None
 _async_session_factory = None
+_engine_lock = threading.Lock()
 
 
 def _ensure_engine():
-    """Create the engine and session factory on first use (inside a loop)."""
+    """Create the engine and session factory on first use (inside a loop).
+
+    Protected by a ``threading.Lock`` so concurrent first callers
+    (e.g. FastAPI handling two requests at startup, or a Celery worker
+    prefork) cannot each create their own engine and clobber the global
+    references.
+    """
     global _engine, _async_session_factory
     if _async_session_factory is not None:
         return
-
-    _engine = create_async_engine(
-        settings.database_url,
-        echo=settings.debug,
-        poolclass=NullPool,
-    )
-
-    # Slow-query detection
-    @event.listens_for(_engine.sync_engine, "before_cursor_execute")
-    def _before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-        conn.info.setdefault("query_start_time", []).append(time.monotonic())
-
-    @event.listens_for(_engine.sync_engine, "after_cursor_execute")
-    def _after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-        start_times = conn.info.get("query_start_time")
-        if not start_times:
+    with _engine_lock:
+        if _async_session_factory is not None:
             return
-        elapsed = time.monotonic() - start_times.pop(-1)
-        if elapsed > 1.0:
-            logger.warning("Slow query (%.2fs): %s", elapsed, statement[:300])
 
-    _async_session_factory = async_sessionmaker(
-        _engine, class_=AsyncSession, expire_on_commit=False
-    )
+        _engine = create_async_engine(
+            settings.database_url,
+            echo=settings.debug,
+            poolclass=NullPool,
+        )
+
+        # Slow-query detection registered on the sync_engine proxy that the
+        # asyncpg AsyncEngine executes against.
+        @event.listens_for(_engine.sync_engine, "before_cursor_execute")
+        def _before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            conn.info.setdefault("query_start_time", []).append(time.monotonic())
+
+        @event.listens_for(_engine.sync_engine, "after_cursor_execute")
+        def _after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            start_times = conn.info.get("query_start_time")
+            if not start_times:
+                return
+            elapsed = time.monotonic() - start_times.pop(-1)
+            if elapsed > 1.0:
+                logger.warning("Slow query (%.2fs): %s", elapsed, statement[:300])
+
+        _async_session_factory = async_sessionmaker(
+            _engine, class_=AsyncSession, expire_on_commit=False
+        )
 
 
 class _LazySessionFactory:

@@ -48,8 +48,9 @@ def _classify_psm(image_path: Path, page_position: int | None = None) -> Classif
     """
     try:
         return classify_page(str(image_path))
-    except Exception:
-        # On classifier failure, fall back to the previous safe default.
+    except (OSError, ValueError):
+        # Classifier failures are I/O / parse issues; surface programming
+        # errors instead of silently swallowing them.
         return Classification(psm=PSM.UNIFORM_BLOCK, label="classifier_failed")
 
 
@@ -76,8 +77,19 @@ def run_ocr(image_path: Path, language: str = "tel", page_position: int | None =
     if settings.tesseract_tessdata_dir:
         pytesseract.pytesseract.tessdata_dir = settings.tesseract_tessdata_dir
 
-    img = Image.open(str(image_path))
+    # Context manager releases the OS file handle promptly. Otherwise
+    # under concurrent OCR the descriptor table fills up over the
+    # lifetime of the worker.
+    with Image.open(str(image_path)) as img:
+        return _run_ocr_with_img(img, image_path, language, page_position)
 
+
+def _run_ocr_with_img(
+    img,
+    image_path: Path,
+    language: str,
+    page_position: int | None = None,
+) -> dict:
     tesseract_lang = _get_tesseract_lang(language)
 
     classification = _classify_psm(image_path, page_position=page_position)
@@ -164,33 +176,34 @@ def retry_low_confidence_words(
     config = f"--psm 8 --oem {settings.tesseract_oem} --dpi {settings.ocr_render_dpi}"
 
     try:
-        img = Image.open(str(image_path))
-    except Exception:
+        img_cm = Image.open(str(image_path))
+    except (OSError, ValueError):
         return words
 
-    out = []
-    for w in words:
-        if w.get("confidence", 100) >= threshold or not w.get("bbox"):
-            out.append(w)
-            continue
-        bbox = w["bbox"]
-        x, y, ww, hh = bbox["x"], bbox["y"], bbox["w"], bbox["h"]
-        try:
-            crop = img.crop((x, y, x + ww, y + hh))
-            retry_text = pytesseract.image_to_string(
-                crop,
-                lang=tesseract_lang,
-                config=config,
-            ).strip()
-        except Exception:
-            out.append(w)
-            continue
-        if retry_text and retry_text != w["text"]:
-            new_w = dict(w)
-            new_w["text"] = retry_text
-            new_w["confidence"] = max(w["confidence"], threshold)
-            new_w["retried"] = True
-            out.append(new_w)
-        else:
-            out.append(w)
+    with img_cm as img:
+        out = []
+        for w in words:
+            if w.get("confidence", 100) >= threshold or not w.get("bbox"):
+                out.append(w)
+                continue
+            bbox = w["bbox"]
+            x, y, ww, hh = bbox["x"], bbox["y"], bbox["w"], bbox["h"]
+            try:
+                crop = img.crop((x, y, x + ww, y + hh))
+                retry_text = pytesseract.image_to_string(
+                    crop,
+                    lang=tesseract_lang,
+                    config=config,
+                ).strip()
+            except (OSError, ValueError):
+                out.append(w)
+                continue
+            if retry_text and retry_text != w["text"]:
+                new_w = dict(w)
+                new_w["text"] = retry_text
+                new_w["confidence"] = max(w["confidence"], threshold)
+                new_w["retried"] = True
+                out.append(new_w)
+            else:
+                out.append(w)
     return out

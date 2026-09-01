@@ -70,8 +70,9 @@ class Settings(BaseSettings):
     property_mapping_path: str = "/app/storage/property-mapping.json"
 
     # Threshold below which a metadata field is considered "low confidence" and
-    # surfaces a "Review needed" hint in the UI.
-    low_confidence_threshold: float = 0.70
+    # surfaces a "Review needed" hint in the UI. Set below the LLM baseline
+    # (0.6) so only genuinely low-confidence fields surface the badge.
+    low_confidence_threshold: float = 0.55
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

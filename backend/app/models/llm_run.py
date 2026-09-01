@@ -12,8 +12,11 @@ from sqlalchemy import DateTime, func
 class LlmRun(UUIDMixin, Base):
     __tablename__ = "llm_runs"
 
-    job_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("jobs.id", ondelete="CASCADE")
+    job_id: Mapped[uuid.UUID | None] = mapped_column(
+        # SET NULL keeps LlmRun audit rows after the parent Job is
+        # deleted (e.g. on book purge). Downstream consumers see
+        # job_id=None for these orphan runs.
+        ForeignKey("jobs.id", ondelete="SET NULL")
     )
     model: Mapped[str] = mapped_column(String(100), nullable=False)
     prompt_template: Mapped[str | None] = mapped_column(Text)

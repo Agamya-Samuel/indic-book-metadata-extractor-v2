@@ -26,8 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 async def _validate_book_context(
-    job_id: uuid.UUID, book_id: uuid.UUID
-) -> tuple[Job, Book, str, int, list[PageText]]:
+    job_id: uuid.UUID,
+    book_id: uuid.UUID,
+    celery_task_id: str | None = None,
+) -> tuple[Job, Book, str, str, int, list[PageText]]:
     """Load job/book, validate preconditions, and return (job, book, ocr_text, page_count, pages).
 
     ``pages`` is the per-page OCR text list used by the LLM service to route
@@ -45,6 +47,8 @@ async def _validate_book_context(
 
         job.status = JobStatus.RUNNING
         job.started_at = datetime.now(timezone.utc)
+        if celery_task_id and not job.celery_task_id:
+            job.celery_task_id = celery_task_id
         await db.commit()
 
         book_result = await db.execute(select(Book).where(Book.id == book_id))
@@ -114,11 +118,18 @@ async def _persist_extraction_results(
     metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
     evidence=None,
 ):
-    """Persist extracted metadata, LLM run records, and per-field evidence."""
+    """Persist extracted metadata, LLM run records, and per-field evidence.
+
+    Takes a row-level lock on ``BookMetadata`` so concurrent user edits
+    on the metadata PUT endpoint do not silently get overwritten by
+    the worker.
+    """
     evidence = evidence or {}
     async with async_session_factory() as db:
         metadata_result = await db.execute(
-            select(BookMetadata).where(BookMetadata.book_id == book_id)
+            select(BookMetadata)
+            .where(BookMetadata.book_id == book_id)
+            .with_for_update()
         )
         existing_metadata = metadata_result.scalar_one_or_none()
 
@@ -171,15 +182,20 @@ async def _persist_extraction_results(
                     ef_row.source_text_snippet = ef.source_text_snippet
 
         for br in batch_results:
-            llm_run = LlmRun(
-                job_id=job_id,
-                model=br.get("model", "qwen2.5"),
-                prompt_template=render_extraction_prompt(
+            # Record the actual prompt the LLM saw rather than rebuilding
+            # one from the un-paged OCR text.
+            prompt_template = br.get("prompt")
+            if not prompt_template:
+                prompt_template = render_extraction_prompt(
                     batch_name=br["batch_name"],
                     ocr_text=ocr_text[:2000],
                     language=language,
                     page_count=page_count,
-                ),
+                )
+            llm_run = LlmRun(
+                job_id=job_id,
+                model=br.get("model", "qwen2.5"),
+                prompt_template=prompt_template,
                 batch_config={"batch_name": br["batch_name"]},
                 raw_response=br.get("raw_response"),
                 parsed_fields=br.get("parsed_fields"),
@@ -305,7 +321,7 @@ def run_llm_extraction(
         book_id = uuid.UUID(book_id_str)
 
         job, book, ocr_text, language, page_count, page_texts = await _validate_book_context(
-            job_id, book_id
+            job_id, book_id, celery_task_id=self.request.id
         )
 
         llm = llm_service_singleton
@@ -355,7 +371,13 @@ def run_llm_extraction(
 
     try:
         return run_async(_process())
-    except (ConnectionError, TimeoutError, OSError, sa_exc.OperationalError) as exc:
+    except (
+        ConnectionError,
+        TimeoutError,
+        OSError,
+        sa_exc.OperationalError,
+        sa_exc.DBAPIError,
+    ) as exc:
         logger.warning("Transient error for LLM job %s, retrying: %s", job_id_str, exc)
         raise self.retry(exc=exc)
     except Exception as e:
