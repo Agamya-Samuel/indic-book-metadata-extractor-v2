@@ -143,7 +143,7 @@ export default function OcrTextEditor({
           <Textarea
             value={effectiveEditedText}
             onChange={(e) => setEditedText(e.target.value)}
-            className="min-h-[400px] font-mono text-[var(--text-sm)] resize-none"
+            className="min-h-0 h-full font-mono text-[var(--text-sm)] resize-none"
             dir="auto"
             aria-label="Edit OCR text"
           />

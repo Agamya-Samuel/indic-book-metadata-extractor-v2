@@ -43,7 +43,7 @@ class OcrWord(BaseModel):
 class OcrResultResponse(BaseModel):
     page_id: uuid.UUID
     raw_text: str | None
-    bounding_boxes: dict | None = None
+    bounding_boxes: list[OcrWord] | None = None
     confidence: float | None
     language_detected: str | None
     corrected_text: str | None

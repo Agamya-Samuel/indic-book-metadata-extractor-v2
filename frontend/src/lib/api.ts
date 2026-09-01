@@ -44,7 +44,7 @@ export interface PreprocessingConfig {
   grayscale: boolean;
   brightness: number;
   contrast: number;
-  binarization: "otsu" | "adaptive" | null;
+  binarization: "otsu" | "adaptive" | "sauvola" | "none" | null;
   adaptive_block_size: number;
   adaptive_c: number;
   deskew: boolean;
@@ -107,12 +107,12 @@ export const DEFAULT_PREPROCESSING_CONFIG: PreprocessingConfig = {
   grayscale: true,
   brightness: 0,
   contrast: 0,
-  binarization: null,
+  binarization: "sauvola",
   adaptive_block_size: 11,
   adaptive_c: 2,
   deskew: true,
-  denoise: false,
-  denoise_strength: 10,
+  denoise: true,
+  denoise_strength: 7,
 };
 
 export const uploadBook = async (

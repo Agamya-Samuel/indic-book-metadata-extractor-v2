@@ -75,8 +75,11 @@ export default function OcrReviewPage() {
     mutationFn: async ({ pageId, text }: { pageId: string; text: string }) => {
       return updateOcrCorrection(pageId, text);
     },
-    onSuccess: (result: OcrResultResponse) => {
+    onSuccess: async (result: OcrResultResponse) => {
       queryClient.setQueryData(["ocr", currentPage?.id], result);
+      // Invalidate the cached query so a page refresh re-fetches the latest
+      // state from the DB and avoids showing a stale `corrected_text`.
+      await queryClient.invalidateQueries({ queryKey: ["ocr", currentPage?.id] });
       toast.success("OCR correction saved");
     },
   });
@@ -140,7 +143,7 @@ export default function OcrReviewPage() {
   const showPollingOverlay = isPolling && !ocrResult;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col">
+    <div className="h-screen bg-[var(--background)] flex flex-col overflow-hidden">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 4 ? 4 : currentStep} completedStep={completedStep} />
 
       <div className="border-b border-[var(--border)] bg-[var(--surface)]">
@@ -203,7 +206,7 @@ export default function OcrReviewPage() {
         </PageContainer>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {showPollingOverlay ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-md">
@@ -234,7 +237,7 @@ export default function OcrReviewPage() {
           </div>
         ) : ocrResult ? (
           <>
-            <div className="w-full lg:w-[60%] p-4 overflow-hidden">
+            <div className="w-full lg:w-[60%] p-4 overflow-hidden min-h-0">
               <Card>
                 <BoundingBoxCanvas
                   imageUrl={getPageImageUrl(currentPage!.id)}
@@ -247,7 +250,7 @@ export default function OcrReviewPage() {
               </Card>
             </div>
 
-            <div className="w-full lg:w-[40%] border-l border-[var(--border)] bg-[var(--surface)] flex flex-col">
+            <div className="w-full lg:w-[40%] border-l border-[var(--border)] bg-[var(--surface)] flex flex-col min-h-0">
               <OcrTextEditor
                 words={ocrResult.bounding_boxes ?? []}
                 rawText={ocrResult.raw_text}

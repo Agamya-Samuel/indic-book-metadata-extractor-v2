@@ -119,7 +119,13 @@ async def update_ocr_correction(
 ) -> OcrResultResponse:
     page = await _get_page(page_id, db)
 
-    result = await db.execute(select(OcrResult).where(OcrResult.page_id == page_id))
+    # Row lock to prevent concurrent OCR re-runs from silently overwriting
+    # a user correction. The lock is released at the end of the transaction.
+    result = await db.execute(
+        select(OcrResult)
+        .where(OcrResult.page_id == page_id)
+        .with_for_update()
+    )
     ocr = result.scalar_one_or_none()
     if ocr is None:
         raise HTTPException(status_code=404, detail="OCR result not found")

@@ -275,13 +275,14 @@ export default function PreprocessingPage() {
                         "binarization",
                         e.target.value === "none"
                           ? null
-                          : (e.target.value as "otsu" | "adaptive")
+                          : (e.target.value as "otsu" | "adaptive" | "sauvola")
                       )
                     }
                   >
                     <option value="none">None</option>
                     <option value="otsu">Otsu</option>
                     <option value="adaptive">Adaptive</option>
+                    <option value="sauvola">Sauvola</option>
                   </Select>
                 </Field>
 
