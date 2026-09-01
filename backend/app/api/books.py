@@ -102,12 +102,6 @@ async def upload_book(
     # Pre-render all thumbnails in the background so the page selector loads instantly
     background_tasks.add_task(_pre_render_thumbnails, str(book_id), pdf_path, page_count)
 
-    # Kick off the auto-pipeline: page selection -> OCR -> LLM extraction.
-    # The orchestrator is idempotent and emits SSE events for each stage.
-    from app.tasks.pipeline_tasks import process_book_pipeline
-
-    process_book_pipeline.delay(str(book_id), language)
-
     return BookUploadResponse.model_validate(book)
 
 
