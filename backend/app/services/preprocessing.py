@@ -130,9 +130,13 @@ def remove_borders(image: np.ndarray, min_content_ratio: float = 0.85) -> np.nda
     def _is_uniform(strip: np.ndarray) -> bool:
         if strip.size == 0:
             return True
+        # Compare the strip's mean against the page's median via the
+        # ``min_content_ratio`` parameter (default 0.85 was a dead
+        # parameter that ignored the caller's value).
+        mean_val = float(np.mean(strip))
         if is_dark_mode:
-            return float(np.mean(strip)) < 32.0
-        return float(np.mean(strip)) > 223.0
+            return mean_val < min(255.0 * min_content_ratio, 128.0)
+        return mean_val > max(255.0 * min_content_ratio, 128.0)
 
     top, bottom = 0, h
     while top < bottom - 4 and _is_uniform(gray[top:top + strip_h, :]):

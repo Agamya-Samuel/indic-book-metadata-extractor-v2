@@ -66,7 +66,7 @@ class TestLLMServiceExtractBatch:
         mock_client.chat.completions.create.return_value = mock_result
         _setup_service_with_mock_client(service, mock_client)
 
-        result, raw, usage = await service.extract_batch(
+        result, raw, usage, prompt = await service.extract_batch(
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
@@ -75,13 +75,14 @@ class TestLLMServiceExtractBatch:
         assert isinstance(result, CoreIdentityBatch)
         assert usage["status"] == "success"
         assert "title" in raw
+        assert prompt
 
     async def test_extract_batch_timeout(self, service):
         mock_client = AsyncMock()
         mock_client.chat.completions.create.side_effect = httpx.TimeoutException("timeout")
         _setup_service_with_mock_client(service, mock_client)
 
-        result, raw, usage = await service.extract_batch(
+        result, raw, usage, prompt = await service.extract_batch(
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
@@ -96,7 +97,7 @@ class TestLLMServiceExtractBatch:
         mock_client.chat.completions.create.side_effect = Exception("boom")
         _setup_service_with_mock_client(service, mock_client)
 
-        result, raw, usage = await service.extract_batch(
+        result, raw, usage, prompt = await service.extract_batch(
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
@@ -116,7 +117,7 @@ class TestLLMServiceExtractBatch:
         )
         _setup_service_with_mock_client(service, mock_client)
 
-        result, raw, usage = await service.extract_batch(
+        result, raw, usage, prompt = await service.extract_batch(
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
@@ -137,7 +138,7 @@ class TestLLMServiceFullExtraction:
             data = model.model_dump()
             first_field = next(k for k in data if data[k] is None)
             setattr(model, first_field, f"extracted_{batch_name}")
-            return model, '{"mock": true}', {"status": "success"}
+            return model, '{"mock": true}', {"status": "success"}, "fake prompt"
 
         with patch.object(service, "extract_batch", side_effect=mock_extract):
             metadata, batch_results = await service.run_full_extraction(ocr_text="test text")
@@ -149,7 +150,7 @@ class TestLLMServiceFullExtraction:
         calls = []
 
         async def mock_extract(ocr_text, batch_name, batch_schema, **kwargs):
-            return batch_schema(), '{}', {"status": "success"}
+            return batch_schema(), '{}', {"status": "success"}, "fake prompt"
 
         async def on_progress(current, total, batch_name):
             calls.append((current, total, batch_name))

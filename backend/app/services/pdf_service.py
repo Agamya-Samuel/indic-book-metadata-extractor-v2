@@ -18,14 +18,18 @@ def render_thumbnail(
     output_path: Path,
     width: int = 180,
 ) -> None:
+    # try/finally so a corrupt PDF doesn't leak the underlying file
+    # handle.
     doc = fitz.open(str(pdf_path))
-    page = doc.load_page(page_number - 1)
-    zoom = width / page.rect.width
-    mat = fitz.Matrix(zoom, zoom)
-    pix = page.get_pixmap(matrix=mat)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    pix.save(str(output_path))
-    doc.close()
+    try:
+        page = doc.load_page(page_number - 1)
+        zoom = width / page.rect.width
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        pix.save(str(output_path))
+    finally:
+        doc.close()
 
 
 def render_full_page(
@@ -37,13 +41,15 @@ def render_full_page(
     if dpi is None:
         dpi = settings.ocr_render_dpi
     doc = fitz.open(str(pdf_path))
-    page = doc.load_page(page_number - 1)
-    zoom = dpi / 72
-    mat = fitz.Matrix(zoom, zoom)
-    pix = page.get_pixmap(matrix=mat, alpha=False)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    pix.save(str(output_path))
-    doc.close()
+    try:
+        page = doc.load_page(page_number - 1)
+        zoom = dpi / 72
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        pix.save(str(output_path))
+    finally:
+        doc.close()
 
 
 def render_all_thumbnails(

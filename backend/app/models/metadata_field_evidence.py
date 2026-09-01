@@ -39,10 +39,17 @@ class MetadataFieldEvidence(UUIDMixin, TimestampMixin, Base):
 
     __table_args__ = (
         Index(
+            "ix_metadata_field_evidence_book_field_method",
+            "book_id",
+            "field_name",
+            "extraction_method",
+            unique=True,
+        ),
+        Index(
             "ix_metadata_field_evidence_book_field",
             "book_id",
             "field_name",
-            unique=True,
+            unique=False,
         ),
     )
 

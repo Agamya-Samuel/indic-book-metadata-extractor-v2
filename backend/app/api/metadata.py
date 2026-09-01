@@ -66,7 +66,9 @@ async def update_metadata(
     await get_book_or_404(book_id, db)
 
     result = await db.execute(
-        select(BookMetadata).where(BookMetadata.book_id == book_id)
+        select(BookMetadata)
+        .where(BookMetadata.book_id == book_id)
+        .with_for_update()
     )
     metadata = result.scalar_one_or_none()
 

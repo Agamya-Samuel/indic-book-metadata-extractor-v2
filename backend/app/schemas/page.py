@@ -10,7 +10,7 @@ class PreprocessingConfig(BaseModel):
     grayscale: bool = True
     brightness: int = Field(default=0, ge=-100, le=100)
     contrast: int = Field(default=0, ge=-100, le=100)
-    binarization: Literal["otsu", "adaptive"] | None = None
+    binarization: Literal["otsu", "adaptive", "sauvola", "none"] | None = None
     adaptive_block_size: int = Field(default=11, ge=3)
     adaptive_c: int = Field(default=2)
     deskew: bool = True
@@ -33,7 +33,7 @@ class BoundingBox(BaseModel):
 
 class OcrWord(BaseModel):
     text: str
-    confidence: int
+    confidence: float
     bbox: BoundingBox
     block_num: int
     line_num: int
@@ -43,7 +43,7 @@ class OcrWord(BaseModel):
 class OcrResultResponse(BaseModel):
     page_id: uuid.UUID
     raw_text: str | None
-    bounding_boxes: list[OcrWord] | None
+    bounding_boxes: dict | None = None
     confidence: float | None
     language_detected: str | None
     corrected_text: str | None

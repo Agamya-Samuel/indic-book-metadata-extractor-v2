@@ -24,6 +24,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import threading
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any
@@ -68,6 +69,7 @@ class SSEService:
         self._dispatcher_task: asyncio.Task | None = None
         self._redis: aioredis.Redis | None = None
         self._started = asyncio.Event()
+        self._dispatcher_restarts: int = 0
 
     async def start(self, redis: aioredis.Redis) -> None:
         """Attach to the supplied Redis client and begin the dispatcher loop.
@@ -105,30 +107,40 @@ class SSEService:
         logger.info("SSE service stopped")
 
     async def _dispatch_loop(self) -> None:
-        """Read messages from the global pubsub and fan out to per-book queues."""
+        """Read messages from the global pubsub and fan out to per-book queues.
+
+        Restarts with a 1s backoff on unhandled exceptions so a single
+        bad message can't silently drop the rest of the event stream.
+        """
         assert self._pubsub is not None
-        try:
-            while True:
-                message = await self._pubsub.get_message(
-                    ignore_subscribe_messages=True, timeout=1.0
+        while True:
+            try:
+                while True:
+                    message = await self._pubsub.get_message(
+                        ignore_subscribe_messages=True, timeout=1.0
+                    )
+                    if message is None:
+                        await asyncio.sleep(0)
+                        continue
+                    channel = message.get("channel")
+                    if isinstance(channel, bytes):
+                        channel = channel.decode("utf-8", errors="replace")
+                    data = message.get("data")
+                    if isinstance(data, bytes):
+                        data = data.decode("utf-8", errors="replace")
+                    book_id = book_id_from_channel(channel or "")
+                    if book_id is None or data is None:
+                        continue
+                    await self._fanout(book_id, data)
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001
+                self._dispatcher_restarts += 1
+                logger.exception(
+                    "SSE dispatcher loop crashed; restarting (attempt %d)",
+                    self._dispatcher_restarts,
                 )
-                if message is None:
-                    await asyncio.sleep(0)
-                    continue
-                channel = message.get("channel")
-                if isinstance(channel, bytes):
-                    channel = channel.decode("utf-8", errors="replace")
-                data = message.get("data")
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8", errors="replace")
-                book_id = book_id_from_channel(channel or "")
-                if book_id is None or data is None:
-                    continue
-                await self._fanout(book_id, data)
-        except asyncio.CancelledError:
-            raise
-        except Exception:  # noqa: BLE001
-            logger.exception("SSE dispatcher loop crashed; exiting")
+                await asyncio.sleep(1.0)
 
     async def _fanout(self, book_id: str, data: str) -> None:
         async with self._lock:
@@ -262,18 +274,30 @@ def _serialise_job(job: Job) -> dict[str, Any]:
 # Publish helpers — used by Celery workers (sync) and FastAPI (async)
 # ---------------------------------------------------------------------------
 
+# Reuse a single connection pool across calls so a 200-page book with
+# per-page progress doesn't open/close hundreds of TCP connections.
+_sync_pool: sync_redis.ConnectionPool | None = None
+_sync_pool_lock = threading.Lock()
+
+
 def _sync_redis() -> sync_redis.Redis:
-    return sync_redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    global _sync_pool
+    if _sync_pool is None:
+        with _sync_pool_lock:
+            if _sync_pool is None:
+                _sync_pool = sync_redis.ConnectionPool.from_url(
+                    settings.redis_url,
+                    decode_responses=True,
+                    max_connections=16,
+                )
+    return sync_redis.Redis(connection_pool=_sync_pool)
 
 
 def publish_sync(book_id: str | UUID, event: dict[str, Any]) -> None:
     """Publish an event from a Celery worker (no event loop available)."""
     try:
         client = _sync_redis()
-        try:
-            client.publish(channel_for(book_id), json.dumps(event, default=str))
-        finally:
-            client.close()
+        client.publish(channel_for(book_id), json.dumps(event, default=str))
     except Exception:  # noqa: BLE001
         logger.exception("SSE publish_sync failed for book %s", book_id)
 

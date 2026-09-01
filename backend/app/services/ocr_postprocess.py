@@ -86,21 +86,34 @@ _DANDA_MAP = {
 
 
 def _danda_cleanup(text: str) -> tuple[str, list[Correction]]:
+    """Replace ASCII pipes with Devanagari dandas.
+
+    Records one Correction entry per occurrence in the source text so
+    the audit log accurately reflects what was changed.
+    """
     corrections: list[Correction] = []
     out = text
-    # Order matters: double-danda first
-    for src, dst in [("||", "॥"), ("|", "।")]:
-        if src in out:
-            new = out.replace(src, dst)
+    # Order matters: double-danda first.
+    for src, dst in (("||", "॥"), ("|", "।")):
+        if src not in out:
+            continue
+        new = out.replace(src, dst)
+        # Record every match position.
+        start = 0
+        while True:
+            idx = out.find(src, start)
+            if idx == -1:
+                break
             corrections.append(
                 Correction(
                     original=src,
                     replacement=dst,
-                    position=out.find(src),
+                    position=idx,
                     rule="danda_normalize",
                 )
             )
-            out = new
+            start = idx + len(src)
+        out = new
     return out, corrections
 
 
