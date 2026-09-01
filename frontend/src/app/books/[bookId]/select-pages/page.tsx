@@ -2,18 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { useBookStore } from "@/stores/book-store";
-import { toast } from "sonner";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 import { SelectPagesSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card } from "@/components/shared/card";
-import { Button, LinkButton } from "@/components/shared/button";
+import { Button } from "@/components/shared/button";
 import Image from "next/image";
-import { Banner, EmptyState, ErrorState } from "@/components/shared/empty-state";
+import { EmptyState, ErrorState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +20,10 @@ export default function SelectPagesPage() {
   useDocumentTitle("Select pages");
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const bookId = params.bookId as string;
-  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setBookId: setWorkflowBookId, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
+  const { currentStep, completedStep, setBookId: setWorkflowBookId } = useWorkflowStore();
 
   const {
     data: book,
@@ -49,21 +46,18 @@ export default function SelectPagesPage() {
 
   const selectPagesMutation = useMutation({
     mutationFn: (pages: number[]) => selectPages(bookId, pages),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
-      setShowSuccessBanner(true);
-      toast.success(`${selectedCount} pages selected successfully`);
-      setWorkflowStep(3);
-      setCompletedStep(3);
-      clearSelection();
-      redirectTimeoutRef.current = setTimeout(() => {
-        router.push(`/books/${bookId}/preprocessing`);
-      }, 1500);
+    onSuccess: (_data, pages) => {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          `book:${bookId}:pendingPages`,
+          JSON.stringify(pages),
+        );
+      }
+      router.push(`/books/${bookId}/extracting-pages`);
     },
   });
 
   const ITEMS_PER_PAGE = 12;
-  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -77,13 +71,12 @@ export default function SelectPagesPage() {
     }
   }, [bookId, clearSelection]);
 
+  // Hydrate the workflow store's bookId once the book has loaded.
   useEffect(() => {
-    return () => {
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current);
-      }
-    };
-  }, []);
+    if (book && !useWorkflowStore.getState().bookId) {
+      setWorkflowBookId(bookId);
+    }
+  }, [book, bookId, setWorkflowBookId]);
 
   if (isLoadingBook) {
     return <SelectPagesSkeleton />;
@@ -154,74 +147,9 @@ export default function SelectPagesPage() {
     setImagesLoaded((prev) => new Set([...prev, pageNumber]));
   };
 
-  // Moved out of render body into a side-effect so the StrictMode
-  // double-invoke (and any re-render) doesn't trigger duplicate zustand
-  // state writes / localStorage persistence.
-  useEffect(() => {
-    if (book && !useWorkflowStore.getState().bookId) {
-      setWorkflowBookId(bookId);
-    }
-  }, [book, bookId, setWorkflowBookId]);
-
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <WorkflowStepper bookId={bookId} currentStep={currentStep < 2 ? 2 : currentStep} completedStep={completedStep} />
-
-      {showSuccessBanner && (
-        <div
-          className="border-b border-[var(--success-500)]/30 bg-[var(--success-50)] dark:bg-[var(--success-900)]/15 animate-fade-in"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-            <Banner tone="success" className="flex items-center justify-between bg-transparent border-0 p-0">
-              <div className="flex items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="flex size-7 items-center justify-center rounded-full bg-[var(--success-600)] text-[var(--text-inverse)] animate-success-glow"
-                >
-                  <svg
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="size-3.5 animate-step-check"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.704 5.296a1 1 0 010 1.408l-7.997 8a1 1 0 01-1.408 0l-3.999-4a1 1 0 011.408-1.408L8 12.59l7.296-7.294a1 1 0 011.408 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </span>
-                <div>
-                  <p className="text-[var(--text-sm)] font-semibold text-[var(--success-700)] dark:text-[var(--success-100)]">
-                    {selectedCount} pages selected
-                  </p>
-                  <p className="text-[var(--text-xs)] text-[var(--success-700)]/80 dark:text-[var(--success-100)]/80">
-                    Ready to preprocess. The next step runs image cleanup before OCR.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <LinkButton
-                  href={`/books/${bookId}/preprocessing`}
-                  variant="primary"
-                  size="sm"
-                >
-                  Continue to preprocessing
-                </LinkButton>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSuccessBanner(false)}
-                >
-                  Dismiss
-                </Button>
-              </div>
-            </Banner>
-          </div>
-        </div>
-      )}
 
       <PageContainer>
         <PageHeader

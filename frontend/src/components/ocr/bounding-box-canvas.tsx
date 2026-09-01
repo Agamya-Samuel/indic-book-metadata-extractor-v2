@@ -123,10 +123,15 @@ function BoundingBoxCanvas({
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width } = entry.contentRect;
-        const aspectRatio =
-          imgDims.naturalWidth / imgDims.naturalHeight || 0.75;
-        const height = Math.min(width / aspectRatio, 700);
-        setCanvasSize({ width: Math.floor(width), height: Math.floor(height) });
+        // Use natural image dimensions so the page is shown at its original
+        // pixel-to-pixel size. Clamp width to the container width so the
+        // Stage doesn't overflow horizontally; the surrounding scroll wrapper
+        // handles vertical overflow when the image is tall.
+        const naturalW = imgDims.naturalWidth || 1;
+        const naturalH = imgDims.naturalHeight || 1;
+        const displayW = Math.min(naturalW, Math.floor(width));
+        const displayH = Math.round((displayW / naturalW) * naturalH);
+        setCanvasSize({ width: displayW, height: displayH });
       }
     });
 
@@ -191,7 +196,7 @@ function BoundingBoxCanvas({
           : ""}
       </p>
 
-      <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-sunken)]">
+      <div className="overflow-auto rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-sunken)] max-h-[calc(100vh-280px)]">
         <Stage
           ref={stageRef}
           width={canvasSize.width}

@@ -25,7 +25,7 @@ from app.schemas.book import (
     PageSelectionResponse,
 )
 from app.schemas.job import JobResponse
-from app.services import pdf_service, storage
+from app.services import pdf_service, preprocessing, storage
 from app.services.ocr_service import LANGUAGE_MAP
 from app.services.search_service import SearchService
 from app.models.ocr_result import OcrResult
@@ -186,6 +186,7 @@ async def select_pages(
             book_id=book_id,
             page_number=pn,
             image_path=storage.relative(out),
+            preprocessing_config=preprocessing.DEFAULT_PREPROCESSING_CONFIG,
         )
         db.add(page)
 
