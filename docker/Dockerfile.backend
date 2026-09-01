@@ -15,20 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install indic-ocr tessdata — script-aware retrained models for Indic scripts.
-# The repo stores .traineddata files inside per-language subdirectories
-# (ben/, guj/, hin/, kan/, mal/, mni/, ori/, pan/, sat/, tam/, tel/), not at
-# the repository root. Pin via TESSDATA_REF (commit SHA) so builds are
-# reproducible. Override with --build-arg TESSDATA_REF=<sha> to roll forward.
-ARG TESSDATA_REF=master
-RUN mkdir -p /usr/share/tesseract-ocr/5/tessdata \
-    && cd /tmp \
-    && git clone --depth 1 --branch ${TESSDATA_REF} https://github.com/indic-ocr/tessdata.git indic-tessdata \
-    && find /tmp/indic-tessdata -name '*.traineddata' -exec cp {} /usr/share/tesseract-ocr/5/tessdata/ \; \
-    && rm -rf /tmp/indic-tessdata \
-    && ls /usr/share/tesseract-ocr/5/tessdata/
-
-ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+# Stock Tesseract models are installed via apt-get above (tesseract-ocr-tel, tesseract-ocr-hin, tesseract-ocr-eng).
+# No additional model installation needed - using the official Tesseract models.
 
 # Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh

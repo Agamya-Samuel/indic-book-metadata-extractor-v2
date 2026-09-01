@@ -4,10 +4,10 @@
 # Usage:
 #   ./scripts/train_tesseract_lstm.sh \
 #     --lang hin \
-#     --base-model /path/to/indic-ocr/hin.traineddata \
+#     --base-model /usr/share/tesseract-ocr/5/tessdata/hin.traineddata \
 #     --output-dir /app/storage/models/hin_v2 \
 #     --training-dir /app/storage/training_data/hin \
-#     --fonts "Noto Sans Devanagari, Mangal" \
+#     --fonts "NotoSansDevanagari, Mangal" \
 #     --epochs 200
 #
 # Prereqs:

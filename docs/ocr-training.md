@@ -15,8 +15,8 @@ Fine-tune a model when:
 - A new font / publisher's typeface dominates your new acquisitions.
 
 Don't fine-tune if your goal is "general-purpose accuracy on Hindi books
-already in the corpus" — first try the Tier 1 preprocessing and Tier 2
-`indic-ocr/tessdata` upgrades, which capture most of the win.
+already in the corpus" — first try the Tier 1 preprocessing, which captures
+most of the win.
 
 ## 1. Harvest corrections
 
