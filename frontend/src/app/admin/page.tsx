@@ -42,17 +42,58 @@ export default function AdminDashboardPage() {
     return Math.round((stats.jobs.completed_recent / total) * 100);
   }, [stats]);
 
+  const failedJobs = useMemo(
+    () => recentJobs?.items.filter((job) => job.status === "failed") ?? [],
+    [recentJobs],
+  );
+
   return (
     <PageContainer>
       {/*
-        The 8 signals are grouped into three purposeful collections so the
-        eye can rest on one subject at a time: Library (what the collection
-        holds), Pipeline (what's happening now), System (footprint and
-        language coverage). Each cluster sits on a Card so the grouping is
-        structural, not just spacing.
+        Monitor order: Pipeline first (what needs attention right now),
+        then Library holdings, then System footprint. Each cluster sits on
+        a titled Card so the grouping is structural, not just spacing.
       */}
       <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-        <Card>
+        <Card title="Pipeline" description="Live job activity">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
+            <AdminStatsCard
+              label="Running jobs"
+              value={stats?.jobs.running ?? "—"}
+              sublabel={`${stats?.jobs.queued ?? 0} queued`}
+              tone={stats && stats.jobs.running > 0 ? "info" : "neutral"}
+              flush
+            />
+            <AdminStatsCard
+              label="Completed (7d)"
+              value={stats?.jobs.completed_recent ?? "—"}
+              tone="success"
+              flush
+            />
+            <AdminStatsCard
+              label="Failed (7d)"
+              value={stats?.jobs.failed_recent ?? "—"}
+              sublabel={
+                completionRate !== null
+                  ? `${completionRate}% success rate (7d)`
+                  : "no activity"
+              }
+              tone={
+                stats && stats.jobs.failed_recent > 0 ? "warning" : "neutral"
+              }
+              flush
+            />
+          </div>
+        </Card>
+
+        <Card
+          title="Library"
+          description={
+            stats
+              ? `${stats.total_books} book${stats.total_books !== 1 ? "s" : ""} in the library · ${stats.books_with_metadata} with metadata extracted`
+              : "Loading…"
+          }
+        >
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
             <AdminStatsCard
               label="Total books"
@@ -85,38 +126,7 @@ export default function AdminDashboardPage() {
           </div>
         </Card>
 
-        <Card>
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
-            <AdminStatsCard
-              label="Running jobs"
-              value={stats?.jobs.running ?? "—"}
-              sublabel={`${stats?.jobs.queued ?? 0} queued`}
-              tone={stats && stats.jobs.running > 0 ? "info" : "neutral"}
-              flush
-            />
-            <AdminStatsCard
-              label="Completed (7d)"
-              value={stats?.jobs.completed_recent ?? "—"}
-              tone="success"
-              flush
-            />
-            <AdminStatsCard
-              label="Failed (7d)"
-              value={stats?.jobs.failed_recent ?? "—"}
-              sublabel={
-                completionRate !== null
-                  ? `${completionRate}% success rate (7d)`
-                  : "no activity"
-              }
-              tone={
-                stats && stats.jobs.failed_recent > 0 ? "warning" : "neutral"
-              }
-              flush
-            />
-          </div>
-        </Card>
-
-        <Card>
+        <Card title="System" description="Footprint and language coverage">
           <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
             <AdminStatsCard
               label="Disk usage"
@@ -205,57 +215,55 @@ export default function AdminDashboardPage() {
           )}
         </Card>
 
-        <Card title="Quick links">
-          <ul className="-mx-5 -my-4 divide-y divide-[var(--border)]">
-            {[
-              {
-                href: "/admin/books",
-                title: "Manage books",
-                description: "Delete, reset, or re-run processing for any book",
-              },
-              {
-                href: "/admin/jobs",
-                title: "All jobs",
-                description: "Inspect and cancel running or queued jobs",
-              },
-              {
-                href: "/bulk-operations",
-                title: "Bulk operations",
-                description: "Export and import metadata as CSV",
-              },
-            ].map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={cn(
-                    "group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[var(--surface-sunken)]/50",
-                    focusRingInset,
+        <Card
+          title="Needs attention"
+          description={
+            !recentJobs
+              ? "Checking recent activity…"
+              : failedJobs.length > 0
+                ? `${failedJobs.length} failed in the last 10 jobs`
+                : "Nothing failing in the last 10 jobs"
+          }
+        >
+          {!recentJobs ? (
+            <SkeletonTable rows={3} />
+          ) : failedJobs.length === 0 ? (
+            <p className="text-[var(--text-sm)] text-[var(--text-muted)] py-4">
+              All clear. Failed jobs will surface here with their error.
+            </p>
+          ) : (
+            <ul className="divide-y divide-[var(--border)]">
+              {failedJobs.slice(0, 4).map((job) => (
+                <li key={job.id} className="py-3 first:pt-0 last:pb-0">
+                  <p className="truncate text-[var(--text-sm)] font-medium text-[var(--text)]">
+                    <span className="uppercase tracking-wide text-[var(--text-xs)] text-[var(--text-muted)] mr-2">
+                      {job.job_type}
+                    </span>
+                    {job.book_title || job.book_filename}
+                  </p>
+                  {job.error_log && (
+                    <p
+                      className="mt-1 line-clamp-2 text-[var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-300)]"
+                      title={job.error_log}
+                    >
+                      {job.error_log}
+                    </p>
                   )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
-                      {link.title}
-                    </p>
-                    <p className="mt-0.5 text-[var(--text-xs)] text-[var(--text-muted)]">
-                      {link.description}
-                    </p>
-                  </div>
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="size-4 shrink-0 text-[var(--text-subtle)] transition-transform duration-[var(--duration-fast)] group-hover:translate-x-0.5 group-hover:text-[var(--text-muted)]"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  {job.book_id && (
+                    <Link
+                      href={`/library/${job.book_id}`}
+                      className={cn(
+                        "mt-1.5 inline-block text-[var(--text-sm)] font-medium text-[var(--accent)] hover:underline rounded-[var(--radius-xs)]",
+                        focusRingInset,
+                      )}
+                    >
+                      Open book →
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </PageContainer>
