@@ -53,6 +53,16 @@ export default function ConfirmDialog({
     }
   }, [open]);
 
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const isDark = document.documentElement.classList.contains("dark");
+    el.style.backgroundColor = isDark ? "var(--neutral-900)" : "var(--surface)";
+    el.style.color = isDark ? "var(--neutral-50)" : "var(--text)";
+    el.style.borderColor = isDark ? "var(--neutral-800)" : "var(--border)";
+    el.style.colorScheme = isDark ? "dark" : "light";
+  }, [open]);
+
   const handleConfirm = async () => {
     if (loading) return;
     if (requireTyped) {
