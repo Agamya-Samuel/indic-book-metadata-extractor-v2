@@ -12,9 +12,8 @@ import {
 import StatusBadge from "@/components/shared/status-badge";
 import { Button } from "@/components/shared/button";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
-import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { PageContainer, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
-import { SkeletonPageHeader } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
@@ -63,7 +62,7 @@ export default function AdminJobsPage() {
 
   const items = data?.items ?? [];
   const totalPages = data?.total_pages ?? 0;
-  const total = data?.total ?? 0;
+  const _total = data?.total ?? 0;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-jobs"] });
@@ -85,12 +84,6 @@ export default function AdminJobsPage() {
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Admin"
-        title="Jobs"
-        description={`${total} job${total !== 1 ? "s" : ""}`}
-      />
-
       <Card className="mb-4">
         <div>
           <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
@@ -134,9 +127,7 @@ export default function AdminJobsPage() {
       </Card>
 
       {isLoading ? (
-        <>
-          <SkeletonPageHeader />
-          <div className="mt-6 space-y-2">
+        <div className="mt-6 space-y-2">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
@@ -144,7 +135,6 @@ export default function AdminJobsPage() {
               />
             ))}
           </div>
-        </>
       ) : items.length === 0 ? (
         <EmptyState
           title="No jobs match your filters"
