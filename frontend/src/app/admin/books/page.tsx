@@ -17,9 +17,8 @@ import {
 import StatusBadge from "@/components/shared/status-badge";
 import { Button } from "@/components/shared/button";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
-import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { PageContainer, Card, Stack } from "@/components/shared/card";
 import { Field, Input, Select } from "@/components/shared/input";
-import { SkeletonPageHeader } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
@@ -128,7 +127,7 @@ export default function AdminBooksPage() {
 
   const items = data?.items ?? [];
   const totalPages = data?.total_pages ?? 0;
-  const total = data?.total ?? 0;
+  const _total = data?.total ?? 0;
 
   const allChecked = items.length > 0 && items.every((b) => selected.has(b.id));
   const someChecked = items.some((b) => selected.has(b.id));
@@ -240,12 +239,6 @@ export default function AdminBooksPage() {
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow="Admin"
-        title="Books"
-        description={`${total} book${total !== 1 ? "s" : ""} in the library`}
-      />
-
       <Card className="mb-4">
         <Stack gap={3}>
           <div>
@@ -343,9 +336,7 @@ export default function AdminBooksPage() {
       </Card>
 
       {isLoading ? (
-        <>
-          <SkeletonPageHeader />
-          <div className="mt-6 space-y-2">
+        <div className="mt-6 space-y-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
@@ -353,7 +344,6 @@ export default function AdminBooksPage() {
               />
             ))}
           </div>
-        </>
       ) : items.length === 0 ? (
         <EmptyState
           title="No books match your filters"

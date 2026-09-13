@@ -31,7 +31,7 @@ export default function AdminSidebar({
           <p className="hidden sm:block text-[var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Admin
           </p>
-          <ul className="flex gap-1 overflow-x-auto">
+          <ul className="flex gap-1 overflow-x-hidden">
             {links.map((link) => {
               const active = link.exact
                 ? pathname === link.href

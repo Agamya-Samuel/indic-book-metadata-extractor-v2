@@ -6,8 +6,8 @@ import { useMemo } from "react";
 import { getAdminStats, getAdminJobs } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import AdminStatsCard from "@/components/admin/admin-stats-card";
-import { PageContainer, PageHeader, Card } from "@/components/shared/card";
-import { SkeletonPageHeader, SkeletonTable } from "@/components/shared/skeleton";
+import { PageContainer, Card } from "@/components/shared/card";
+import { SkeletonTable } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 import { focusRingInset } from "@/lib/focus-ring";
@@ -20,7 +20,7 @@ function formatMb(mb: number) {
 export default function AdminDashboardPage() {
   useDocumentTitle("Admin · Dashboard");
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: _statsLoading } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: getAdminStats,
     staleTime: 15 * 1000,
@@ -44,20 +44,6 @@ export default function AdminDashboardPage() {
 
   return (
     <PageContainer>
-      {statsLoading ? (
-        <SkeletonPageHeader />
-      ) : (
-        <PageHeader
-          eyebrow="Admin"
-          title="Library dashboard"
-          description={
-            stats
-              ? `${stats.total_books} book${stats.total_books !== 1 ? "s" : ""} in the library · ${stats.books_with_metadata} with metadata extracted`
-              : "Loading…"
-          }
-        />
-      )}
-
       {/*
         The 8 signals are grouped into three purposeful collections so the
         eye can rest on one subject at a time: Library (what the collection
