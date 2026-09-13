@@ -48,7 +48,7 @@ export default function AdminSidebar({
                        "whitespace-nowrap rounded-t-[var(--radius-sm)]",
                        focusRing,
                       active
-                        ? "border-[var(--accent)] text-[var(--text)]"
+                        ? "border-[var(--accent)] text-[var(--text)] bg-[var(--accent-soft)]"
                         : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]",
                     )}
                   >
