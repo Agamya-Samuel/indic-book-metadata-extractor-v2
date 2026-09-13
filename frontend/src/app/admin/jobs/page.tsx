@@ -12,10 +12,12 @@ import {
 import StatusBadge from "@/components/shared/status-badge";
 import { Button } from "@/components/shared/button";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
+import Pagination from "@/components/shared/pagination";
 import { PageContainer, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { getErrorMessage } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
 
@@ -253,32 +255,11 @@ export default function AdminJobsPage() {
             </div>
           </div>
 
-          {totalPages > 1 && (
-            <nav
-              className="mt-6 flex flex-wrap items-center justify-center gap-2"
-              aria-label="Pagination"
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Previous
-              </Button>
-              <span className="px-3 text-[var(--text-sm)] text-[var(--text-muted)]">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                Next
-              </Button>
-            </nav>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </>
       )}
 
@@ -307,15 +288,4 @@ export default function AdminJobsPage() {
       />
     </PageContainer>
   );
-}
-
-function getErrorMessage(err: unknown): string {
-  if (err && typeof err === "object" && "response" in err) {
-    const r = (err as { response?: { data?: { detail?: unknown } } }).response;
-    if (r?.data?.detail) {
-      return typeof r.data.detail === "string" ? r.data.detail : JSON.stringify(r.data.detail);
-    }
-  }
-  if (err instanceof Error) return err.message;
-  return "Something went wrong.";
 }
