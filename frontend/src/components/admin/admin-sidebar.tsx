@@ -31,7 +31,7 @@ export default function AdminSidebar({
           <p className="hidden sm:block text-[var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Admin
           </p>
-          <ul className="flex gap-1 overflow-x-hidden">
+          <ul className="flex gap-1 overflow-hidden">
             {links.map((link) => {
               const active = link.exact
                 ? pathname === link.href
@@ -52,12 +52,6 @@ export default function AdminSidebar({
                         : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]",
                     )}
                   >
-                    {active && (
-                      <span
-                        aria-hidden="true"
-                        className="size-1.5 rounded-full bg-[var(--accent)]"
-                      />
-                    )}
                     {link.label}
                   </Link>
                 </li>
