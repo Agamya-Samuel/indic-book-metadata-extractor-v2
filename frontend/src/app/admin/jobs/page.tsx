@@ -18,6 +18,7 @@ import { SkeletonPageHeader } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 const STATUSES = ["queued", "running", "completed", "failed", "cancelled"];
 const JOB_TYPES = ["ocr", "llm", "preprocessing"];
@@ -185,7 +186,10 @@ export default function AdminJobsPage() {
                         {job.book_id ? (
                           <Link
                             href={`/library/${job.book_id}`}
-                            className="text-[var(--text-sm)] text-[var(--text)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-[var(--radius-xs)]"
+                            className={cn(
+                              "text-[var(--text-sm)] text-[var(--text)] hover:underline rounded-[var(--radius-xs)]",
+                              focusRing,
+                            )}
                           >
                             {job.book_title || job.book_filename}
                           </Link>

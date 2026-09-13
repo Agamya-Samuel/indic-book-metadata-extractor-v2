@@ -10,6 +10,7 @@ import { PageContainer, PageHeader, Card } from "@/components/shared/card";
 import { SkeletonPageHeader, SkeletonTable } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
+import { focusRingInset } from "@/lib/focus-ring";
 
 function formatMb(mb: number) {
   if (mb < 1024) return `${mb.toFixed(1)} MB`;
@@ -240,7 +241,10 @@ export default function AdminDashboardPage() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[var(--surface-sunken)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-inset"
+                  className={cn(
+                    "group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-[var(--surface-sunken)]/50",
+                    focusRingInset,
+                  )}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-[var(--text-sm)] font-semibold text-[var(--text)]">

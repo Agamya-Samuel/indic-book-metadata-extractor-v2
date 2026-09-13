@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 export type WorkflowStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -77,7 +78,7 @@ export default function WorkflowStepper({
                       "group inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-[var(--radius)] min-h-11",
                       "text-[var(--text-sm)] font-medium whitespace-nowrap",
                       "transition-colors duration-[var(--duration-fast)]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                      focusRing,
                       isCurrent
                         ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
                         : isCompleted

@@ -16,6 +16,7 @@ import { EmptyState, ErrorState } from "@/components/shared/empty-state";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 export default function SelectPagesPage() {
   useDocumentTitle("Select pages");
@@ -211,7 +212,8 @@ export default function SelectPagesPage() {
                   onClick={() => togglePageSelection(pageNumber)}
                   aria-pressed={isSelected}
                   className={cn(
-                    "relative bg-[var(--surface)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all hover:shadow-[var(--shadow-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                    "relative bg-[var(--surface)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all hover:shadow-[var(--shadow-md)]",
+                    focusRing,
                     isSelected
                       ? "border-2 border-[var(--accent)] shadow-[var(--shadow-md)]"
                       : "border-2 border-[var(--border)]"

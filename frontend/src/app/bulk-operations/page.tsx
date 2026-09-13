@@ -16,6 +16,7 @@ import { getLanguageName } from "@/lib/utils";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
+import { StepNumber } from "@/components/shared/step-number";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export default function BulkOperationsPage() {
@@ -206,12 +207,7 @@ export default function BulkOperationsPage() {
               <Card
                 title={
                   <span className="flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold tabular-nums text-[var(--text-inverse)]"
-                    >
-                      1
-                    </span>
+                    <StepNumber step={1} />
                     <span>Export to CSV</span>
                   </span>
                 }
@@ -262,12 +258,7 @@ export default function BulkOperationsPage() {
             <Card
               title={
                 <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold tabular-nums text-[var(--text-inverse)]"
-                  >
-                    2
-                  </span>
+                  <StepNumber step={2} />
                   <span>Import from CSV</span>
                 </span>
               }
@@ -331,12 +322,7 @@ export default function BulkOperationsPage() {
             <Card
               title={
                 <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold tabular-nums text-[var(--text-inverse)]"
-                  >
-                    3
-                  </span>
+                  <StepNumber step={3} />
                   <span>Wikibase export</span>
                 </span>
               }

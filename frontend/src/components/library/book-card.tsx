@@ -5,6 +5,7 @@ import Image from "next/image";
 import { getThumbnailUrl, type BookSearchResult } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -35,7 +36,7 @@ export default function BookCard({ book }: BookCardProps) {
         "hover:border-[var(--border-strong)]",
         "transition-[box-shadow,transform,border-color] duration-[var(--duration-fast)] ease-[var(--ease-out)]",
         "hover:-translate-y-0.5",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+        focusRing,
       )}
     >
       <div className="relative aspect-[3/4] bg-[var(--surface-sunken)]">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 import { useTheme } from "./theme-provider";
 
 const navLinks = [
@@ -24,7 +25,10 @@ export default function AppNavbar() {
       <div className="mx-auto flex h-14 w-full max-w-[var(--content-max)] items-center justify-between gap-3 sm:gap-4">
         <Link
           href="/"
-          className="group flex shrink-0 items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] rounded-[var(--radius-sm)]"
+          className={cn(
+            "group flex shrink-0 items-center gap-2.5 rounded-[var(--radius-sm)]",
+            focusRing,
+          )}
           aria-label="Indic Book Metadata Extractor — home"
         >
           <span aria-hidden="true" className="brand-mark">
@@ -75,7 +79,7 @@ export default function AppNavbar() {
               "text-[var(--text-muted)] hover:text-[var(--text)]",
               "hover:bg-[var(--surface-sunken)]",
               "transition-colors duration-[var(--duration-fast)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+              focusRing,
             )}
           >
             {theme === "dark" ? (

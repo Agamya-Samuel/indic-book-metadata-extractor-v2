@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 const links = [
   { href: "/admin", label: "Dashboard", exact: true },
@@ -44,7 +45,8 @@ export default function AdminSidebar({
                     className={cn(
                       "inline-flex min-h-11 items-center gap-2 px-3 sm:px-4 py-3 text-[var(--text-sm)] font-medium",
                       "border-b-2 -mb-px transition-colors duration-[var(--duration-fast)]",
-                      "whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] rounded-t-[var(--radius-sm)]",
+                       "whitespace-nowrap rounded-t-[var(--radius-sm)]",
+                       focusRing,
                       active
                         ? "border-[var(--accent)] text-[var(--text)]"
                         : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]",
