@@ -11,7 +11,7 @@ import { getLanguageName } from "@/lib/utils";
 import { createBookFuse, fuseSearch } from "@/lib/fuse-config";
 import BookCard from "@/components/library/book-card";
 import { LibrarySkeleton } from "@/components/shared/skeleton";
-import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { PageContainer, Card, Stack } from "@/components/shared/card";
 import { Field, Input, Select } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
 import { StepNumber } from "@/components/shared/step-number";
@@ -123,21 +123,20 @@ export default function LibraryPage() {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <PageContainer>
-        <PageHeader
-          title="Library"
-          description={
-            <>
-              {total} book{total !== 1 ? "s" : ""}{" "}
-              {useServerSearch && debouncedQuery
-                ? `matching "${debouncedQuery}"`
-                : "total"}
-            </>
-          }
-          actions={<LinkButton href="/upload">Upload New Book</LinkButton>}
-        />
-
-        <Card className="mb-6">
-          <Stack gap={3}>
+      <Card
+        className="mb-6"
+        title="Library"
+        description={
+          <>
+            {total} book{total !== 1 ? "s" : ""}{" "}
+            {useServerSearch && debouncedQuery
+              ? `matching "${debouncedQuery}"`
+              : "total"}
+          </>
+        }
+        headerAction={<LinkButton href="/upload">Upload Book</LinkButton>}
+      >
+        <Stack gap={3}>
             <div className="relative">
               <Input
                 type="text"
