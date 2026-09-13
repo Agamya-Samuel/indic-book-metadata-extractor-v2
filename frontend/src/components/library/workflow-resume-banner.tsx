@@ -10,6 +10,7 @@ import {
   DEFAULT_EXTRACTION_CONFIG,
 } from "@/lib/api";
 import { getResumeTarget, type ResumeTarget } from "@/lib/workflow-resume";
+import { getErrorMessage } from "@/lib/error-handler";
 import StatusBadge from "@/components/shared/status-badge";
 import { Button, LinkButton } from "@/components/shared/button";
 import { Progress } from "@/components/shared/empty-state";
@@ -232,17 +233,4 @@ export default function WorkflowResumeBanner({ detail }: Props) {
       </div>
     </section>
   );
-}
-
-function getErrorMessage(err: unknown): string {
-  if (err && typeof err === "object" && "response" in err) {
-    const r = (err as { response?: { data?: { detail?: unknown } } }).response;
-    if (r?.data?.detail) {
-      return typeof r.data.detail === "string"
-        ? r.data.detail
-        : JSON.stringify(r.data.detail);
-    }
-  }
-  if (err instanceof Error) return err.message;
-  return "Something went wrong.";
 }
