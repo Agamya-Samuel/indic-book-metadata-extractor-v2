@@ -348,6 +348,24 @@
   }
 }
 
+/* Ensure <dialog> in the top layer respects the current theme even when
+   Tailwind's `dark:` variant has trouble matching top-layer elements. */
+.dark dialog {
+  background-color: var(--neutral-900);
+  color: var(--neutral-50);
+  border-color: var(--neutral-800);
+}
+.dark dialog input,
+.dark dialog select,
+.dark dialog textarea {
+  background-color: var(--neutral-800);
+  color: var(--neutral-50);
+  border-color: var(--neutral-700);
+}
+.dark dialog button {
+  color: var(--btn-text);
+}
+
 /* --- 13. Component utilities (small, repeated) ---------------------------- */
 @layer components {
   /* Brand mark / wordmark used in nav and titles. */
