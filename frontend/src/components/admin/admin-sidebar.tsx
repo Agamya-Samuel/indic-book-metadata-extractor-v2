@@ -22,12 +22,12 @@ export default function AdminSidebar({
     <nav
       aria-label="Admin sections"
       className={cn(
-        "border-b border-[var(--border)] bg-[var(--surface)]",
+        "border-b border-[var(--border)] bg-[var(--surface)] overflow-x-hidden",
         className,
       )}
     >
-      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-6">
+      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 sm:px-6 lg:px-8 overflow-x-hidden">
+        <div className="flex items-center gap-6 overflow-x-hidden">
           <p className="hidden sm:block text-[var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Admin
           </p>
