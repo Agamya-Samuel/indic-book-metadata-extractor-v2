@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
+import { focusRingInset } from "@/lib/focus-ring";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -41,7 +42,7 @@ export default function CollapsibleSection({
         className={cn(
           "group flex w-full items-center justify-between gap-3 px-4 py-3 text-left",
           "hover:bg-[var(--surface-sunken)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-inset",
+          focusRingInset,
           "transition-colors duration-[var(--duration-fast)]",
         )}
       >

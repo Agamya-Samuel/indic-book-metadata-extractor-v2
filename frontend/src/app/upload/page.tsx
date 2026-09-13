@@ -12,6 +12,7 @@ import { Field, Input, Select } from "@/components/shared/input";
 import { ErrorState } from "@/components/shared/empty-state";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 const LANGUAGES = [
@@ -98,7 +99,7 @@ export default function UploadPage() {
                     "rounded-[var(--radius-lg)] border-2 border-dashed",
                     "px-6 py-10 text-center cursor-pointer",
                     "transition-colors duration-[var(--duration-fast)]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                    focusRing,
                     isDragActive
                       ? "border-[var(--accent)] bg-[var(--accent-soft)]"
                       : "border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)]",

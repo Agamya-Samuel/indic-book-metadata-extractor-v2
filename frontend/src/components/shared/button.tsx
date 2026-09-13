@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 type Variant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "link";
 type Size = "sm" | "md" | "lg";
@@ -14,9 +15,7 @@ const base =
   "duration-[var(--duration-fast)] ease-[var(--ease-out)] " +
   "active:translate-y-px " +
   "disabled:opacity-50 disabled:pointer-events-none " +
-  "focus-visible:outline-none focus-visible:ring-2 " +
-  "focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 " +
-  "focus-visible:ring-offset-[var(--background)]";
+  focusRing;
 
 const variants: Record<Variant, string> = {
   primary:
@@ -59,6 +58,17 @@ export function buttonClasses(
   return cn(base, variants[variant], sizes[size], className);
 }
 
+/** Forces white text on colored backgrounds (primary / danger) via inline style.
+ * CSS alone can't guarantee legibility across the OKLCH ramp, so we set
+ * `color: #fff` inline — used by both <Button> and <LinkButton>. */
+export function getPrimaryTextColorStyle(
+  variant: Variant,
+): React.CSSProperties | undefined {
+  return variant === "primary" || variant === "danger"
+    ? ({ color: "#fff" } as React.CSSProperties)
+    : undefined;
+}
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -84,17 +94,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const colorStyle =
-      variant === "primary" || variant === "danger"
-        ? ({ color: "#fff" } as React.CSSProperties)
-        : undefined;
-
     return (
       <button
         ref={ref}
         type={type}
         disabled={disabled || loading}
-        style={colorStyle}
+        style={getPrimaryTextColorStyle(variant)}
         className={buttonClasses(variant, size, className)}
         data-variant={variant}
         aria-busy={loading || undefined}
@@ -136,13 +141,8 @@ export function LinkButton({
   children,
   ...rest
 }: LinkButtonProps) {
-  const colorStyle =
-    variant === "primary" || variant === "danger"
-      ? ({ color: "#fff" } as React.CSSProperties)
-      : undefined;
-
   return (
-    <Link data-variant={variant} style={colorStyle} className={buttonClasses(variant, size, className)} {...rest}>
+    <Link data-variant={variant} style={getPrimaryTextColorStyle(variant)} className={buttonClasses(variant, size, className)} {...rest}>
       {leftIcon && <span className="shrink-0">{leftIcon}</span>}
       {children && <span className="truncate">{children}</span>}
       {rightIcon && <span className="shrink-0">{rightIcon}</span>}

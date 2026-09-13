@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error-handler";
 import { toast } from "sonner";
+import { focusRing } from "@/lib/focus-ring";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
 import { getLanguageName } from "@/lib/utils";
 import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
@@ -172,7 +173,8 @@ export default function PreprocessingPage() {
                     aria-label={`Select page ${page.page_number}`}
                     aria-current={idx === selectedPageIndex ? "true" : undefined}
                     className={cn(
-                      "relative aspect-[3/4] rounded-[var(--radius)] overflow-hidden border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+                      "relative aspect-[3/4] rounded-[var(--radius)] overflow-hidden border-2 transition-all",
+                      focusRing,
                       idx === selectedPageIndex
                         ? "border-[var(--accent)] ring-2 ring-[var(--accent-ring)]/30"
                         : "border-[var(--border)] hover:border-[var(--border-strong)]"

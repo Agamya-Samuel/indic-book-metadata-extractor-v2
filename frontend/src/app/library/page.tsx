@@ -14,6 +14,7 @@ import { LibrarySkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Input, Select } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
+import { StepNumber } from "@/components/shared/step-number";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -276,12 +277,7 @@ export default function LibraryPage() {
                         key={s.n}
                         className="flex items-center gap-2"
                       >
-                        <span
-                          aria-hidden="true"
-                          className="flex size-5 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[10px] font-semibold tabular-nums text-[var(--text-muted)]"
-                        >
-                          {s.n}
-                        </span>
+                        <StepNumber step={s.n} variant="outlined" />
                         <span>{s.t}</span>
                       </li>
                     ))}

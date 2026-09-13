@@ -5,6 +5,7 @@ import type { OcrWord } from "@/lib/api";
 import { Button } from "@/components/shared/button";
 import { Textarea } from "@/components/shared/input";
 import { cn } from "@/lib/utils";
+import { focusRingOffset1 } from "@/lib/focus-ring";
 
 interface OcrTextEditorProps {
   words: OcrWord[];
@@ -172,7 +173,7 @@ export default function OcrTextEditor({
                         "cursor-pointer rounded-[var(--radius-xs)] px-0.5",
                         "min-h-0 leading-inherit",
                         "transition-colors duration-[var(--duration-fast)]",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--background)]",
+                        focusRingOffset1,
                         isSelected
                           ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-1 ring-inset ring-[var(--accent-ring)]/40"
                           : isLowConf
