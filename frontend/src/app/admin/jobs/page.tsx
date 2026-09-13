@@ -62,7 +62,7 @@ export default function AdminJobsPage() {
 
   const items = data?.items ?? [];
   const totalPages = data?.total_pages ?? 0;
-  const _total = data?.total ?? 0;
+  const total = data?.total ?? 0;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-jobs"] });
@@ -84,7 +84,11 @@ export default function AdminJobsPage() {
 
   return (
     <PageContainer>
-      <Card className="mb-4">
+      <Card
+        className="mb-4"
+        title="Jobs"
+        description={`${total} job${total !== 1 ? "s" : ""}`}
+      >
         <div>
           <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
             Filters

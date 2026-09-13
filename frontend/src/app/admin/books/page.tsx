@@ -127,7 +127,7 @@ export default function AdminBooksPage() {
 
   const items = data?.items ?? [];
   const totalPages = data?.total_pages ?? 0;
-  const _total = data?.total ?? 0;
+  const total = data?.total ?? 0;
 
   const allChecked = items.length > 0 && items.every((b) => selected.has(b.id));
   const someChecked = items.some((b) => selected.has(b.id));
@@ -239,7 +239,16 @@ export default function AdminBooksPage() {
 
   return (
     <PageContainer>
-      <Card className="mb-4">
+      <Card
+        className="mb-4"
+        title="Books"
+        description={
+          <>
+            {total} book{total !== 1 ? "s" : ""} in the library
+            {selected.size > 0 && ` · ${selected.size} selected`}
+          </>
+        }
+      >
         <Stack gap={3}>
           <div>
             <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
