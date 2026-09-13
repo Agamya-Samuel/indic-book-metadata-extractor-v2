@@ -84,20 +84,20 @@ export default function ConfirmDialog({
       }}
       className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40 dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]"
     >
-      <div className="px-6 pt-5 pb-2">
-        <h2 className="text-[var(--text-md)] font-semibold text-[var(--text)] text-left">
+      <div className="px-6 pt-5 pb-2 text-left">
+        <h2 className="text-md font-semibold text-[var(--text)]">
           {title}
         </h2>
         {description && (
-          <div className="mt-2 text-[var(--text-sm)] text-[var(--text-muted)]">
+          <div className="mt-2 text-sm text-[var(--text-muted)]">
             {description}
           </div>
         )}
       </div>
 
       {requireTyped && (
-        <div className="px-6 pt-3">
-          <label className="block text-[var(--text-xs)] font-medium text-[var(--text-muted)] mb-1.5">
+        <div className="px-6 pt-3 text-left">
+          <label className="block text-[12px] font-medium text-[var(--text-muted)] mb-1.5">
             Type <span className="font-mono text-[var(--text)]">{requireTyped}</span> to confirm
           </label>
           {/* The key prop on the input causes it to remount whenever the dialog
@@ -109,7 +109,7 @@ export default function ConfirmDialog({
             defaultValue=""
             disabled={loading}
             autoFocus
-            className="block w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] placeholder:text-[var(--text-subtle)] px-3 h-10 text-base sm:text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-ring)] focus:ring-2 focus:ring-[var(--accent-ring)]/30 dark:bg-[var(--neutral-800)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-700)]"
+            className="block w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] placeholder:text-[var(--text-subtle)] px-3 h-10 text-base sm:text-sm focus:outline-none focus:border-[var(--accent-ring)] focus:ring-2 focus:ring-[var(--accent-ring)]/30 dark:bg-[var(--neutral-800)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-700)]"
           />
         </div>
       )}
