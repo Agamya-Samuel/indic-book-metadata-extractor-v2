@@ -68,5 +68,5 @@ export function useTheme() {
 
 /** Inline script for <head>: sets the `dark` class before paint to avoid FOUC. */
 export const themeInitScript = `
-(function(){try{var s=localStorage.getItem('${STORAGE_KEY}');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;var d=s?s==='dark':m;if(d){document.documentElement.classList.add('dark');}}catch(e){}})();
+(function(){try{var s=localStorage.getItem('${STORAGE_KEY}');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;var d=s?s==='dark':false;if(d){document.documentElement.classList.add('dark');}}catch(e){}})();
 `.trim();
