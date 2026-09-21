@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getBookDetail, getPageImageUrl } from "@/lib/api";
+import { getBookDetail, getPageImageUrl, getBookCurrentStages } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { BookDetailSkeleton } from "@/components/shared/skeleton";
@@ -145,6 +145,13 @@ export default function BookDetailPage() {
     gcTime: 5 * 60 * 1000,
   });
 
+  const { data: stages } = useQuery({
+    queryKey: ["book", bookId, "stages", "current"],
+    queryFn: () => getBookCurrentStages(bookId),
+    enabled: !!bookId,
+    staleTime: 5 * 1000,
+  });
+
   const bookTitle = detail?.book.title;
   useDocumentTitle(bookTitle ? `${bookTitle} · Library` : "Book");
 
@@ -220,7 +227,7 @@ export default function BookDetailPage() {
           title={book.title || metadataFields.label || book.filename}
           description={
             <span className="flex flex-wrap items-center gap-2 text-[var(--text-sm)] text-[var(--text-muted)]">
-              <StatusBadge status={book.status} />
+              <StatusBadge status={book.status} stageStatus={stages?.[0]?.status as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
               {book.total_pages && (
                 <>
                   <span aria-hidden="true">&bull;</span>

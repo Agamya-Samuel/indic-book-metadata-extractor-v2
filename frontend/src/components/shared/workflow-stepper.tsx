@@ -29,12 +29,14 @@ interface WorkflowStepperProps {
   bookId: string;
   currentStep: WorkflowStep;
   completedStep: WorkflowStep;
+  stages?: { stage_name: string; status: string }[];
 }
 
 export default function WorkflowStepper({
   bookId,
   currentStep,
   completedStep,
+  stages,
 }: WorkflowStepperProps) {
   return (
     <nav
@@ -91,6 +93,7 @@ export default function WorkflowStepper({
                       completed={isCompleted}
                       current={isCurrent}
                       requiresHumanReview={def.requiresHumanReview}
+                      stageStatus={stages?.find((s) => s.stage_name === def.label.toLowerCase().replace(/ /g, "_"))?.status}
                     />
                     <span className="hidden md:inline">{def.label}</span>
                     <span className="md:hidden">{def.shortLabel}</span>
@@ -116,6 +119,7 @@ export default function WorkflowStepper({
                       completed={false}
                       current={isCurrent}
                       requiresHumanReview={def.requiresHumanReview}
+                      stageStatus={stages?.find((s) => s.stage_name === def.label.toLowerCase().replace(/ /g, "_"))?.status}
                     />
                     <span className="hidden md:inline">{def.label}</span>
                     <span className="md:hidden">{def.shortLabel}</span>
@@ -138,11 +142,13 @@ function StepCircle({
   completed,
   current,
   requiresHumanReview,
+  stageStatus,
 }: {
   step: WorkflowStep;
   completed: boolean;
   current: boolean;
   requiresHumanReview?: boolean;
+  stageStatus?: string;
 }) {
   return (
     <span
@@ -154,7 +160,9 @@ function StepCircle({
           : current
             ? requiresHumanReview
               ? "bg-[var(--warning-500)] text-[var(--text-inverse)] animate-current-step"
-              : "bg-[var(--accent)] text-[var(--text-inverse)] animate-current-step"
+              : stageStatus === "failed"
+                ? "bg-[var(--danger-600)] text-[var(--text-inverse)]"
+                : "bg-[var(--accent)] text-[var(--text-inverse)] animate-current-step"
             : "bg-[var(--surface-sunken)] text-[var(--text-subtle)] border border-[var(--border)]",
       )}
     >
@@ -169,6 +177,11 @@ function StepCircle({
             d="M16.704 5.296a1 1 0 010 1.408l-7.997 8a1 1 0 01-1.408 0l-3.999-4a1 1 0 011.408-1.408L8 12.59l7.296-7.294a1 1 0 011.408 0z"
             clipRule="evenodd"
           />
+        </svg>
+      ) : stageStatus === "processing" ? (
+        <svg className="size-3 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
       ) : (
         step

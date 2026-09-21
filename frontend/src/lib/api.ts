@@ -17,10 +17,24 @@ export interface BookUploadResponse {
   created_at: string | null;
 }
 
+export interface BookStageResponse {
+  id: string;
+  book_id: string;
+  stage_name: string;
+  attempt: number;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_log: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface BookDetail extends BookUploadResponse {
   updated_at: string | null;
   needs_review?: boolean;
   low_confidence_count?: number;
+  stages?: BookStageResponse[];
 }
 
 export interface PageSelectionRequest {
@@ -144,6 +158,16 @@ export const uploadBook = async (
 
 export const getBook = async (bookId: string): Promise<BookDetail> => {
   const response = await api.get<BookDetail>(`/books/${bookId}`);
+  return response.data;
+};
+
+export const getBookStages = async (bookId: string): Promise<BookStageResponse[]> => {
+  const response = await api.get<BookStageResponse[]>(`/books/${bookId}/stages`);
+  return response.data;
+};
+
+export const getBookCurrentStages = async (bookId: string): Promise<BookStageResponse[]> => {
+  const response = await api.get<BookStageResponse[]>(`/books/${bookId}/stages/current`);
   return response.data;
 };
 

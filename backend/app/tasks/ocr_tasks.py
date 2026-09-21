@@ -13,6 +13,7 @@ from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services import ocr_service, ocr_postprocess, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
+from app.services.stage_manager import StageManager
 from app.tasks.async_utils import run_async, run_async_threadsafe
 from app.tasks.celery_app import celery_app
 
@@ -434,18 +435,22 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
                 job.status = JobStatus.FAILED
                 job.error_log = "All pages failed:\n" + "\n".join(errors)
                 if book:
-                    book.status = BookStatus.PAGES_SELECTED
+                    async with async_session_factory() as stage_db:
+                        await StageManager.fail_stage(stage_db, book_id, "ocr", job.error_log)
+                        await stage_db.commit()
             elif errors:
                 job.status = JobStatus.COMPLETED
                 job.error_log = "Some pages failed:\n" + "\n".join(errors)
                 if book:
-                    # Partial OCR — keep the book in PAGES_SELECTED so the
-                    # user must explicitly proceed.
-                    book.status = BookStatus.PAGES_SELECTED
+                    async with async_session_factory() as stage_db:
+                        await StageManager.fail_stage(stage_db, book_id, "ocr", job.error_log)
+                        await stage_db.commit()
             else:
                 job.status = JobStatus.COMPLETED
                 if book:
-                    book.status = BookStatus.OCR_COMPLETE
+                    async with async_session_factory() as stage_db:
+                        await StageManager.complete_stage(stage_db, book_id, "ocr")
+                        await stage_db.commit()
 
             job.progress = 100.0
             job.completed_at = datetime.now(timezone.utc)

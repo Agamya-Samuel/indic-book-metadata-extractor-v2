@@ -23,7 +23,10 @@ type SSEEventType =
   | "pipeline.completed"
   | "pipeline.failed"
   | "book.status_changed"
-  | "book.awaiting_review";
+  | "book.awaiting_review"
+  | "stage.started"
+  | "stage.completed"
+  | "stage.failed";
 
 interface SSEEvent {
   type: SSEEventType | string;
@@ -41,6 +44,7 @@ interface SSEEvent {
   from_status?: string;
   language?: string;
   selected_count?: number;
+  attempt?: number;
 }
 
 interface UseSSEOptions {
@@ -52,6 +56,7 @@ interface UseSSEOptions {
   onPipelineFailed?: (stage: string | undefined, error: string) => void;
   onAwaitingReview?: (lowConfidenceCount: number) => void;
   onBookStatusChanged?: (status: string) => void;
+  onStageStatusChanged?: (stage: string, status: string, attempt: number) => void;
 }
 
 // Event names the backend emits with a custom ``event:`` field. The
@@ -65,6 +70,9 @@ const NAMED_EVENTS = [
   "pipeline.completed",
   "pipeline.failed",
   "pipeline.stage_failed",
+  "stage.started",
+  "stage.completed",
+  "stage.failed",
 ] as const;
 
 export function useSSE({
@@ -76,6 +84,7 @@ export function useSSE({
   onPipelineFailed,
   onAwaitingReview,
   onBookStatusChanged,
+  onStageStatusChanged,
 }: UseSSEOptions) {
   const queryClient = useQueryClient();
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -89,7 +98,15 @@ export function useSSE({
   // Store callbacks in a ref so `connect` doesn't depend on them directly.
   // This prevents the SSE connection from being torn down and recreated on
   // every render when callers pass inline arrow functions.
-  const callbacksRef = useRef({
+  const callbacksRef = useRef<{
+    onJobComplete?: (jobId: string, jobType: string) => void;
+    onJobFailed?: (jobId: string, jobType: string, error: string) => void;
+    onPipelineComplete?: () => void;
+    onPipelineFailed?: (stage: string | undefined, error: string) => void;
+    onAwaitingReview?: (lowConfidenceCount: number) => void;
+    onBookStatusChanged?: (status: string) => void;
+    onStageStatusChanged?: (stage: string, status: string, attempt: number) => void;
+  }>({
     onJobComplete,
     onJobFailed,
     onPipelineComplete,
@@ -105,6 +122,7 @@ export function useSSE({
       onPipelineFailed,
       onAwaitingReview,
       onBookStatusChanged,
+      onStageStatusChanged,
     };
   });
 
@@ -232,6 +250,19 @@ export function useSSE({
 
     if (data.type === "book.status_changed" && cbs.onBookStatusChanged) {
       cbs.onBookStatusChanged(data.status || "");
+    }
+
+    if (
+      (data.type === "stage.started" ||
+        data.type === "stage.completed" ||
+        data.type === "stage.failed") &&
+      cbs.onStageStatusChanged
+    ) {
+      cbs.onStageStatusChanged(
+        data.stage || "",
+        data.status || "",
+        (data as { attempt?: number }).attempt ?? 1,
+      );
     }
   }, [bookId, queryClient]);
 

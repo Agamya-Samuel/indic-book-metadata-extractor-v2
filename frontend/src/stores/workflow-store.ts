@@ -9,11 +9,15 @@ interface WorkflowStore {
   bookId: string | null;
   currentStep: WorkflowStep;
   completedStep: WorkflowStep;
+  currentStage: string | null;
+  currentStageStatus: string | null;
   ocrJobId: string | null;
   ocrJobStatus: string | null;
   setBookId: (bookId: string | null) => void;
   setStep: (step: WorkflowStep) => void;
   setCompletedStep: (step: WorkflowStep) => void;
+  setCurrentStage: (stage: string | null) => void;
+  setCurrentStageStatus: (status: string | null) => void;
   nextStep: () => void;
   previousStep: () => void;
   setOcrJobId: (jobId: string | null) => void;
@@ -42,6 +46,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
       bookId: null,
       currentStep: 1,
       completedStep: 1,
+      currentStage: null,
+      currentStageStatus: null,
       ocrJobId: null,
       ocrJobStatus: null,
 
@@ -50,6 +56,10 @@ export const useWorkflowStore = create<WorkflowStore>()(
       setStep: (step) => set({ currentStep: step }),
 
       setCompletedStep: (step) => set({ completedStep: step }),
+
+      setCurrentStage: (currentStage) => set({ currentStage }),
+
+      setCurrentStageStatus: (currentStageStatus) => set({ currentStageStatus }),
 
       nextStep: () =>
         set((state) => {
@@ -77,6 +87,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
             bookId,
             currentStep: step,
             completedStep: step,
+            currentStage: book.stages?.[0]?.stage_name ?? null,
+            currentStageStatus: book.stages?.[0]?.status ?? null,
           });
         } catch {
           set({ bookId });
@@ -88,6 +100,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
           bookId: null,
           currentStep: 1,
           completedStep: 1,
+          currentStage: null,
+          currentStageStatus: null,
           ocrJobId: null,
           ocrJobStatus: null,
         }),
@@ -98,6 +112,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
         bookId: state.bookId,
         currentStep: state.currentStep,
         completedStep: state.completedStep,
+        currentStage: state.currentStage,
+        currentStageStatus: state.currentStageStatus,
       }),
     }
   )
