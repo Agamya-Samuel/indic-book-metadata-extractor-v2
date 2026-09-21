@@ -19,6 +19,7 @@ from app.services.llm_service import llm_service as llm_service_singleton
 from app.services.prompts import render_extraction_prompt
 from app.services.search_service import SearchService
 from app.services.sse_service import event_id, publish_sync
+from app.services.stage_manager import StageManager
 from app.tasks.async_utils import run_async
 from app.tasks.celery_app import celery_app
 
@@ -224,17 +225,17 @@ async def _persist_extraction_results(
             job.status = JobStatus.FAILED
             job.error_log = f"All batches failed: {', '.join(error_batches)}"
             if book:
-                book.status = BookStatus.OCR_COMPLETE
+                async with async_session_factory() as stage_db:
+                    await StageManager.fail_stage(stage_db, book_id, "llm_extraction", job.error_log)
+                    await stage_db.commit()
         elif error_batches:
             job.status = JobStatus.COMPLETED
             job.error_log = f"Partial failures: {', '.join(error_batches)}"
             if book:
-                book.status = BookStatus.AWAITING_REVIEW
+                async with async_session_factory() as stage_db:
+                    await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
+                    await stage_db.commit()
         elif empty_batches:
-            # Job technically completed but every "empty" batch produced no
-            # values — likely a context-length truncation problem. Surface
-            # this prominently in error_log so users aren't confused by a
-            # fully green job with zero extracted fields.
             job.status = JobStatus.COMPLETED
             job.error_log = (
                 f"LLM returned no values for {len(empty_batches)} "
@@ -242,11 +243,15 @@ async def _persist_extraction_results(
                 "Likely context-length truncation; check num_ctx and per-batch OCR cap."
             )
             if book:
-                book.status = BookStatus.AWAITING_REVIEW
+                async with async_session_factory() as stage_db:
+                    await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
+                    await stage_db.commit()
         else:
             job.status = JobStatus.COMPLETED
             if book:
-                book.status = BookStatus.AWAITING_REVIEW
+                async with async_session_factory() as stage_db:
+                    await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
+                    await stage_db.commit()
 
         job.progress = 100.0
         job.completed_at = datetime.now(timezone.utc)

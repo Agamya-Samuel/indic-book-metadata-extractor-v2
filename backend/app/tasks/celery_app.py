@@ -41,6 +41,7 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
         from app.models.book import Book, BookStatus
         from app.models.job import Job, JobStatus
         from app.services.sse_service import event_id, publish_sync
+        from app.services.stage_manager import StageManager
 
         try:
             async with async_session_factory() as db:
@@ -69,7 +70,9 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
                         BookStatus.OCR_RUNNING,
                         BookStatus.LLM_RUNNING,
                     ):
-                        book.status = BookStatus.OCR_COMPLETE
+                        async with async_session_factory() as stage_db:
+                            await StageManager.fail_stage(stage_db, book_id, "ocr", error[:1000])
+                            await stage_db.commit()
                     await db.commit()
                     publish_sync(
                         book_id,

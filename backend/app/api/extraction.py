@@ -5,17 +5,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_book_or_404
-from app.core.database import get_db
+from app.core.database import async_session_factory, get_db
 from app.models.book import BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.schemas.metadata import (
+    BATCH_FIELD_ORDER,
     ExtractionRequest,
     ExtractionResponse,
     ModelInfo,
 )
 from app.services.llm_service import llm_service
+from app.services.stage_manager import StageManager, StageStatus
 
 router = APIRouter()
 
@@ -90,6 +92,11 @@ async def run_extraction(
     await db.commit()
     await db.refresh(job)
 
+    async with async_session_factory() as stage_db:
+        await StageManager.initiate_stage(stage_db, book_id, "llm_extraction")
+        await StageManager.start_stage(stage_db, book_id, "llm_extraction")
+        await stage_db.commit()
+
     from app.tasks.llm_tasks import run_llm_extraction
 
     run_llm_extraction.delay(
@@ -128,6 +135,12 @@ async def retry_extraction(
             detail=f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'",
         )
 
-    book.status = BookStatus.OCR_COMPLETE
+    async with async_session_factory() as stage_db:
+        existing = await StageManager.get_stage(stage_db, book_id, "llm_extraction")
+        if existing and existing.status not in (
+            StageStatus.COMPLETED,
+        ):
+            await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
+        await stage_db.commit()
 
     return await run_extraction(book_id, body, db)

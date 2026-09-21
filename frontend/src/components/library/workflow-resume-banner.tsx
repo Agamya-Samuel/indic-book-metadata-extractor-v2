@@ -4,7 +4,7 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  getAdminJobs,
+  getBookCurrentStages,
   runOcr,
   runExtraction,
   DEFAULT_EXTRACTION_CONFIG,
@@ -58,32 +58,37 @@ export default function WorkflowResumeBanner({ detail }: Props) {
   // Pull all jobs (admin endpoint exposes them across all books; page_size 50
   // covers any reasonable book). We only need the most recent job of each
   // type, but fetching the first page keeps the call simple.
-  const { data: jobsData } = useQuery({
-    queryKey: ["library-resume-jobs", bookId],
-    queryFn: () => getAdminJobs({ book_id: bookId, page_size: 50 }),
+  const { data: stagesData } = useQuery({
+    queryKey: ["book", bookId, "stages", "current"],
+    queryFn: () => getBookCurrentStages(bookId),
     enabled: detail.status !== "complete",
     staleTime: 5 * 1000,
     refetchInterval: (q) => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") {
         return false;
       }
-      const items = q.state.data?.items ?? [];
+      const items = q.state.data ?? [];
       const live = items.some(
-        (j) => j.status === "running" || j.status === "queued",
+        (s) => s.status === "processing" || s.status === "initiated",
       );
       return live ? 3_000 : 15_000;
     },
   });
 
   const target = React.useMemo(
-    () => getResumeTarget(detail, jobsData?.items ?? []),
-    [detail, jobsData?.items],
+    () => getResumeTarget(detail, stagesData ?? []),
+    [detail, stagesData],
   );
+
+  const resolvedHref = React.useMemo(() => {
+    if (!target) return "";
+    return typeof target.href === "function" ? target.href(bookId) : target.href;
+  }, [target, bookId]);
 
   const invalidate = React.useCallback(() => {
     qc.invalidateQueries({ queryKey: ["book", bookId] });
-    qc.invalidateQueries({ queryKey: ["library-resume-jobs", bookId] });
-    qc.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
+    qc.invalidateQueries({ queryKey: ["book", bookId, "stages"] });
+    qc.invalidateQueries({ queryKey: ["book", bookId, "stages", "current"] });
     qc.invalidateQueries({ queryKey: ["library"] });
   }, [qc, bookId]);
 
@@ -111,33 +116,11 @@ export default function WorkflowResumeBanner({ detail }: Props) {
 
   if (!target) return null;
 
-  // Pull the live progress for whichever job type is currently relevant.
-  const items = jobsData?.items ?? [];
-  let liveProgress = null;
-  if (!target.failureContext && target.showProgress) {
-    const matchType =
-      detail.status === "ocr_running"
-        ? "ocr"
-        : detail.status === "llm_running"
-          ? "llm"
-          : null;
-    if (matchType) {
-      liveProgress =
-        items.find(
-          (j) =>
-            j.job_type === matchType &&
-            (j.status === "running" ||
-              j.status === "queued" ||
-              j.status === "completed"),
-        ) ?? null;
-    }
-  }
-
   const pending = rerunOcr.isPending || rerunExt.isPending;
 
   const onRerunClick = () => {
     if (!target.failureContext) return;
-    if (target.failureContext.jobType === "llm") {
+    if (target.failureContext.stage === "llm_extraction") {
       rerunExt.mutate();
     } else {
       // ocr + preprocessing both go through the OCR pipeline
@@ -192,18 +175,6 @@ export default function WorkflowResumeBanner({ detail }: Props) {
               {target.failureContext.error}
             </pre>
           )}
-
-          {liveProgress && (
-            <div className="mt-3 max-w-md">
-              <Progress
-                value={liveProgress.progress * 100}
-                tone={variantProgress[target.variant]}
-              />
-              <p className="mt-1 text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
-                {Math.round(liveProgress.progress * 100)}% complete
-              </p>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -217,13 +188,13 @@ export default function WorkflowResumeBanner({ detail }: Props) {
               >
                 {target.ctaLabel}
               </Button>
-              <LinkButton href={target.href} variant="outline">
+              <LinkButton href={resolvedHref} variant="outline">
                 View details
               </LinkButton>
             </>
           ) : (
             <LinkButton
-              href={target.href}
+              href={resolvedHref}
               variant="primary"
             >
               {target.ctaLabel}
