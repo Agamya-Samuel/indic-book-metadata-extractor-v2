@@ -51,7 +51,7 @@ def upgrade() -> None:
         SELECT bss.*
         FROM book_stage_status bss
         JOIN (
-            SELECT book_id, stage_name, MAX(attempt) AS max_attempt
+            SELECT book_id, stage_name, MAX(attempt) AS attempt
             FROM book_stage_status
             GROUP BY book_id, stage_name
         ) latest ON latest.book_id = bss.book_id
