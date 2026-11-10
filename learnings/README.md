@@ -16,3 +16,5 @@ Each learning document should include:
 7. **References** — links to sources, PRs, docs, code
 
 ## Current Learnings
+
+- [001 — Ground-Truth Dataset Feasibility & Source Survey](001-ground-truth-dataset-feasibility.md) — Schema is 49 fields (not 52); no drop-in Indic PDF+metadata dataset; build from Wikidata/Commons/Wikisource + s1.md seed + manual verification (CC/PD-only). Metrics, split, and phased PoC proposed.
