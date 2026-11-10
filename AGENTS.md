@@ -27,6 +27,7 @@ The core platform is implemented and deployed (staging + production via Dokploy)
 | `fixtures/` | Test data, sample inputs, ground truth | `XXX-fixtures-description.md` |
 | `learnings/` | Documented findings, conclusions | `XXX-finding-name.md` |
 | `todos/` | Project task tracking, long-running agent tasks | `XXX-todo-description.md` |
+| `infra/` | Cloud infrastructure inventory, live resource/task trackers | `descriptive-name.md` |
 
 **Numbering:** Three-digit sequential (`001-`, `002-`, etc.) across all folders.
 
@@ -53,6 +54,7 @@ The core platform is implemented and deployed (staging + production via Dokploy)
 ## Agent Coordination
 
 - Check `learnings/README.md` for completed studies before starting new work
+- Before creating or using any GCP/compute resource, read `infra/gcp-test-nodes.md` and claim a node in its live tracker
 - Post new findings to `learnings/` after each probing/PoC
 - Update relevant `plans/XXX-*.md` with results
 - No parallel work on dependent studies (see plan dependencies)
