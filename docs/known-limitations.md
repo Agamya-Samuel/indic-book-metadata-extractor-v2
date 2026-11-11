@@ -4,7 +4,7 @@ This document records honest, current limitations of the extraction pipeline.
 It exists so the team can prioritize the next sprint and so the OKI
 stakeholders know exactly what to expect at delivery.
 
-Last updated: 2026-08-28 (8-day sprint close-out).
+Last updated: 2026-11-11 (auth/RBAC milestone).
 
 ---
 
@@ -171,9 +171,14 @@ and should be prioritized for the next sprint:
 6. **Page-rotation detection** on the title page via `--psm 1` OSD.
 7. **Publisher whitelist expansion** beyond the ~30 currently
    included.
-8. **Auth/user accounts** — the system is single-user local. The
-   OKI contract says "no auth" so this is a future concern, but the
-   schema should add a `users` table when that changes.
+8. **Auth/user accounts** — ✅ **Done.** The system now has email+password
+   accounts with email verification, self-service password reset, two roles
+   (`user`/`admin`), user-owned books with a personal dashboard, an admin
+   dashboard with user management, and owner/admin authorization enforced on
+   every backend endpoint. The first admin is created via
+   `make create-admin`. Remaining gaps: no per-user quotas (any user can
+   upload/run unlimited jobs), email delivery depends on a configured SMTP
+   server, and rate limiting exists only on the auth endpoints.
 
 ---
 
