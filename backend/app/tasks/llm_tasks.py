@@ -221,20 +221,23 @@ async def _persist_extraction_results(
             if br.get("usage", {}).get("status") == "empty_response"
         ]
 
+        # Stage transitions run on THIS session, never a second one. The
+        # transaction above already inserted rows whose foreign keys reference
+        # books, taking a KEY SHARE lock on that row; a separate session asking
+        # for the same row with SELECT ... FOR UPDATE blocks on it, and since
+        # this coroutine is waiting on that session the two deadlock until the
+        # statement timeout. Same session means the lock is self-owned and the
+        # stage write commits atomically with the metadata it describes.
         if error_batches and len(error_batches) == len(batch_results):
             job.status = JobStatus.FAILED
             job.error_log = f"All batches failed: {', '.join(error_batches)}"
             if book:
-                async with async_session_factory() as stage_db:
-                    await StageManager.fail_stage(stage_db, book_id, "llm_extraction", job.error_log)
-                    await stage_db.commit()
+                await StageManager.fail_stage(db, book_id, "llm_extraction", job.error_log)
         elif error_batches:
             job.status = JobStatus.COMPLETED
             job.error_log = f"Partial failures: {', '.join(error_batches)}"
             if book:
-                async with async_session_factory() as stage_db:
-                    await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
-                    await stage_db.commit()
+                await StageManager.complete_stage(db, book_id, "llm_extraction")
         elif empty_batches:
             job.status = JobStatus.COMPLETED
             job.error_log = (
@@ -243,15 +246,11 @@ async def _persist_extraction_results(
                 "Likely context-length truncation; check num_ctx and per-batch OCR cap."
             )
             if book:
-                async with async_session_factory() as stage_db:
-                    await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
-                    await stage_db.commit()
+                await StageManager.complete_stage(db, book_id, "llm_extraction")
         else:
             job.status = JobStatus.COMPLETED
             if book:
-                async with async_session_factory() as stage_db:
-                    await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
-                    await stage_db.commit()
+                await StageManager.complete_stage(db, book_id, "llm_extraction")
 
         job.progress = 100.0
         job.completed_at = datetime.now(timezone.utc)
