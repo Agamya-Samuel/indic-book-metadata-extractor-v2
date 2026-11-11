@@ -136,10 +136,15 @@ async def lifespan(app: FastAPI):
     await llm_service.close()
 
 
+# /docs, /redoc and /openapi.json make the whole API surface enumerable, so
+# they stay off outside debug builds.
 app = FastAPI(
     title="Indic Book Metadata Extractor",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
 )
 
 # Initialise the New Relic agent if enabled.
