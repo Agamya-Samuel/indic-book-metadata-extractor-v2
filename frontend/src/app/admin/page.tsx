@@ -5,8 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { getAdminStats, getAdminJobs } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
-import AdminStatsCard from "@/components/admin/admin-stats-card";
-import { PageContainer, Card } from "@/components/shared/card";
+import AdminStatsCard from "@/components/shared/stat-card";
+import { PageContainer, Card, PageHeader } from "@/components/shared/card";
 import { SkeletonTable } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ function formatMb(mb: number) {
 }
 
 export default function AdminDashboardPage() {
-  useDocumentTitle("Admin · Dashboard");
+  useDocumentTitle("Admin · Operations");
 
   const { data: stats, isLoading: _statsLoading } = useQuery({
     queryKey: ["admin-stats"],
@@ -49,6 +49,11 @@ export default function AdminDashboardPage() {
 
   return (
     <PageContainer>
+      <PageHeader
+        eyebrow="Admin"
+        title="Operations"
+        description="Live queue activity, recent failures, and library health."
+      />
       {/*
         Monitor order: Pipeline first (what needs attention right now),
         then Library holdings, then System footprint. Each cluster sits on
@@ -127,7 +132,18 @@ export default function AdminDashboardPage() {
         </Card>
 
         <Card title="System" description="Footprint and language coverage">
-          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
+            <AdminStatsCard
+              label="Users"
+              value={stats?.users?.total ?? "—"}
+              sublabel={
+                stats?.users
+                  ? `${stats.users.active} active`
+                  : undefined
+              }
+              tone="info"
+              flush
+            />
             <AdminStatsCard
               label="Disk usage"
               value={stats ? formatMb(stats.disk_usage_mb) : "—"}
@@ -201,11 +217,11 @@ export default function AdminDashboardPage() {
                         "inline-flex h-1.5 w-24 overflow-hidden rounded-full",
                         "bg-[var(--surface-sunken)] border border-[var(--border)]",
                       )}
-                      aria-label={`${Math.round(job.progress * 100)}% complete`}
+                      aria-label={`${Math.round(job.progress)}% complete`}
                     >
                       <span
                         className="h-full bg-[var(--info-500)] transition-[width]"
-                        style={{ width: `${Math.round(job.progress * 100)}%` }}
+                        style={{ width: `${Math.round(job.progress)}%` }}
                       />
                     </span>
                   )}

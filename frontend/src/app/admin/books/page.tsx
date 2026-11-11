@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,9 +15,16 @@ import {
 } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import { Button } from "@/components/shared/button";
+import {
+  ActionMenu,
+  MenuButton,
+  MenuLink,
+  MenuSeparator,
+} from "@/components/shared/action-menu";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
+import OwnerFilter, { type OwnerSelection } from "@/components/admin/owner-filter";
 import Pagination from "@/components/shared/pagination";
-import { PageContainer, Card, Stack } from "@/components/shared/card";
+import { PageContainer, Card, PageHeader, Stack } from "@/components/shared/card";
 import { Field, Input, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -86,6 +92,7 @@ export default function AdminBooksPage() {
   const [language, setLanguage] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("");
   const [hasMetadataOnly, setHasMetadataOnly] = React.useState(false);
+  const [owner, setOwner] = React.useState<OwnerSelection | null>(null);
   const [page, setPage] = React.useState(1);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
@@ -111,12 +118,17 @@ export default function AdminBooksPage() {
     setHasMetadataOnly(v);
     resetPagination();
   };
+  const handleOwnerChange = (v: OwnerSelection | null) => {
+    setOwner(v);
+    resetPagination();
+  };
 
   const params = {
     query: debouncedSearch || undefined,
     language: language || undefined,
     status: statusFilter || undefined,
     has_metadata: hasMetadataOnly || undefined,
+    owner_id: owner?.id,
     page,
     page_size: 50,
   };
@@ -241,8 +253,8 @@ export default function AdminBooksPage() {
 
   return (
     <PageContainer>
-      <Card
-        className="mb-4"
+      <PageHeader
+        eyebrow="Admin"
         title="Books"
         description={
           <>
@@ -250,7 +262,8 @@ export default function AdminBooksPage() {
             {selected.size > 0 && ` · ${selected.size} selected`}
           </>
         }
-      >
+      />
+      <Card className="mb-4" title="Filters">
         <Stack gap={3}>
           <div>
             <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
@@ -306,6 +319,7 @@ export default function AdminBooksPage() {
                 />
                 Has metadata only
               </label>
+              <OwnerFilter value={owner} onChange={handleOwnerChange} id="admin-book-owner" />
             </div>
           </div>
 
@@ -380,6 +394,7 @@ export default function AdminBooksPage() {
                       />
                     </th>
                     <th className="px-3 py-2.5 text-left font-medium">Book</th>
+                    <th className="px-3 py-2.5 text-left font-medium hidden xl:table-cell">Owner</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Language</th>
                     <th className="px-3 py-2.5 text-left font-medium">Status</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden sm:table-cell">Pages</th>
@@ -441,54 +456,7 @@ function BookRow({
   onRerunExtraction: () => void;
   pending: boolean;
 }) {
-  const [menuOpen, setMenuOpen] = React.useState(false);
   const [confirm, setConfirm] = React.useState<null | "reset" | "delete">(null);
-  const buttonRef = React.useRef<HTMLButtonElement | null>(null);
-  const menuRef = React.useRef<HTMLDivElement | null>(null);
-  const [menuPos, setMenuPos] = React.useState<{ top: number; right: number } | null>(null);
-
-  React.useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(target)
-      ) {
-        setMenuOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
-
-  const openMenu = () => {
-    if (menuOpen) {
-      setMenuOpen(false);
-      return;
-    }
-    const btn = buttonRef.current;
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      // Anchor the menu's right edge to the button's right edge so the
-      // menu grows leftward into available space — this keeps the menu
-      // on-screen even when the row is near the viewport edge.
-      setMenuPos({
-        top: rect.bottom + 4,
-        right: window.innerWidth - rect.right,
-      });
-    }
-    setMenuOpen(true);
-  };
 
   const title = book.title || book.filename.replace(/\.pdf$/i, "");
 
@@ -537,6 +505,9 @@ function BookRow({
           </div>
         </div>
       </td>
+      <td className="px-3 py-2.5 align-middle hidden xl:table-cell text-[var(--text-sm)] text-[var(--text-muted)]">
+        {book.owner_display_name ?? "—"}
+      </td>
       <td className="px-3 py-2.5 align-middle hidden md:table-cell text-[var(--text-sm)] text-[var(--text-muted)]">
         {LANGUAGE_LABELS[book.language] || book.language}
       </td>
@@ -563,74 +534,29 @@ function BookRow({
         )}
       </td>
       <td className="px-3 py-2.5 align-middle text-right">
-        <Button
-          ref={buttonRef}
-          variant="outline"
-          size="sm"
-          onClick={openMenu}
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          disabled={pending}
-        >
-          Actions
-          <svg viewBox="0 0 20 20" fill="currentColor" className="size-3.5" aria-hidden="true">
-            <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" />
-          </svg>
-        </Button>
         {/*
-          The menu is rendered in a portal-equivalent (fixed position) so it
-          escapes any `overflow-x-auto` wrapping the table on narrow viewports.
-          Anchored to the button's bounding rect at the moment it opens.
+          The ActionMenu renders its panel in a portal-equivalent (fixed
+          position) so it escapes any `overflow-x-auto` wrapping the table
+          on narrow viewports. Anchored to the trigger's bounding rect at
+          the moment it opens.
         */}
-        {menuOpen && menuPos && (
-          <div
-            ref={menuRef}
-            role="menu"
-            style={{ top: menuPos.top, right: menuPos.right }}
-            className="fixed w-56 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] py-1 text-left z-50 animate-fade-in"
-          >
-            <MenuLink href={`/library/${book.id}`}>Open in library</MenuLink>
-            <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
-            <div className="my-1 border-t border-[var(--border)]" />
-            {canRerunOcr && (
-              <MenuButton
-                onClick={() => {
-                  setMenuOpen(false);
-                  onRerunOcr();
-                }}
-              >
-                Re-run OCR
-              </MenuButton>
-            )}
-            {canRerunExt && (
-              <MenuButton
-                onClick={() => {
-                  setMenuOpen(false);
-                  onRerunExtraction();
-                }}
-              >
-                Re-run extraction
-              </MenuButton>
-            )}
-            <MenuButton
-              onClick={() => {
-                setMenuOpen(false);
-                setConfirm("reset");
-              }}
-            >
-              Reset to uploaded…
-            </MenuButton>
-            <MenuButton
-              danger
-              onClick={() => {
-                setMenuOpen(false);
-                setConfirm("delete");
-              }}
-            >
-              Delete…
-            </MenuButton>
-          </div>
-        )}
+        <ActionMenu disabled={pending} ariaLabel={`Actions for ${title}`}>
+          <MenuLink href={`/library/${book.id}`}>Open in library</MenuLink>
+          <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
+          <MenuSeparator />
+          {canRerunOcr && (
+            <MenuButton onClick={onRerunOcr}>Re-run OCR</MenuButton>
+          )}
+          {canRerunExt && (
+            <MenuButton onClick={onRerunExtraction}>Re-run extraction</MenuButton>
+          )}
+          <MenuButton onClick={() => setConfirm("reset")}>
+            Reset to uploaded…
+          </MenuButton>
+          <MenuButton danger onClick={() => setConfirm("delete")}>
+            Delete…
+          </MenuButton>
+        </ActionMenu>
       </td>
 
       <ConfirmDialog
@@ -672,43 +598,5 @@ function BookRow({
         variant="warning"
       />
     </tr>
-  );
-}
-
-function MenuLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      role="menuitem"
-      className="block px-3 py-2 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none"
-    >
-      {children}
-    </Link>
-  );
-}
-
-function MenuButton({
-  onClick,
-  children,
-  danger,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      className={cn(
-        "block w-full text-left px-3 py-2 text-[var(--text-sm)] hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none",
-        danger
-          ? "text-[var(--danger-700)] dark:text-[var(--danger-300)]"
-          : "text-[var(--text)]",
-      )}
-    >
-      {children}
-    </button>
   );
 }
