@@ -21,7 +21,6 @@ from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
-from app.models.stage import StageStatus
 from app.models.user import User
 from app.services import storage
 from app.services.stage_manager import StageManager
@@ -314,9 +313,12 @@ async def rerun_ocr(
     await db.commit()
     await db.refresh(job)
 
-    existing = await StageManager.get_stage(db, book_id, "ocr")
-    if existing and existing.status in (StageStatus.INITIATED, StageStatus.PROCESSING):
-        await StageManager.cancel_stage(db, book_id, "ocr", "Superseded by rerun")
+    # Reset the whole chain from OCR onward, not just the OCR row. A downstream
+    # stage left in 'processing' by a worker that died (e.g. llm_extraction) is
+    # never terminalised, and the book status is derived from stage state — so
+    # leaving it behind wedges the book in llm_running with no way out, since
+    # both run-extraction and rerun-extraction refuse a running status.
+    await StageManager.reset_from_stage(db, book_id, "ocr", "Superseded by re-run OCR")
     await StageManager.initiate_stage(db, book_id, "ocr")
     await StageManager.start_stage(db, book_id, "ocr")
     await db.commit()
@@ -383,9 +385,11 @@ async def rerun_extraction(
     await db.commit()
     await db.refresh(job)
 
-    existing = await StageManager.get_stage(db, book_id, "llm_extraction")
-    if existing and existing.status in (StageStatus.INITIATED, StageStatus.PROCESSING):
-        await StageManager.cancel_stage(db, book_id, "llm_extraction", "Superseded by rerun")
+    # Same as rerun_ocr: release the downstream chain too, or an orphaned
+    # metadata_review row keeps the derived book status stuck at the old stage.
+    await StageManager.reset_from_stage(
+        db, book_id, "llm_extraction", "Superseded by re-run extraction"
+    )
     await StageManager.initiate_stage(db, book_id, "llm_extraction")
     await StageManager.start_stage(db, book_id, "llm_extraction")
     await db.commit()
