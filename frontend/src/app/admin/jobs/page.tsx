@@ -12,8 +12,9 @@ import {
 import StatusBadge from "@/components/shared/status-badge";
 import { Button } from "@/components/shared/button";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
+import OwnerFilter, { type OwnerSelection } from "@/components/admin/owner-filter";
 import Pagination from "@/components/shared/pagination";
-import { PageContainer, Card, Stack } from "@/components/shared/card";
+import { PageContainer, Card, PageHeader, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -31,6 +32,7 @@ export default function AdminJobsPage() {
 
   const [statusFilter, setStatusFilter] = React.useState("");
   const [typeFilter, setTypeFilter] = React.useState("");
+  const [owner, setOwner] = React.useState<OwnerSelection | null>(null);
   const [page, setPage] = React.useState(1);
 
   const handleStatusChange = (v: string) => {
@@ -45,6 +47,7 @@ export default function AdminJobsPage() {
   const params = {
     status: statusFilter || undefined,
     job_type: (typeFilter || undefined) as "ocr" | "llm" | "preprocessing" | undefined,
+    owner_id: owner?.id,
     page,
     page_size: 50,
   };
@@ -86,11 +89,12 @@ export default function AdminJobsPage() {
 
   return (
     <PageContainer>
-      <Card
-        className="mb-4"
+      <PageHeader
+        eyebrow="Admin"
         title="Jobs"
         description={`${total} job${total !== 1 ? "s" : ""}`}
-      >
+      />
+      <Card className="mb-4" title="Filters">
         <div>
           <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
             Filters
@@ -128,6 +132,14 @@ export default function AdminJobsPage() {
                 </Select>
               </Field>
             </div>
+            <OwnerFilter
+              value={owner}
+              onChange={(v) => {
+                setOwner(v);
+                setPage(1);
+              }}
+              id="admin-job-owner"
+            />
           </div>
         </div>
       </Card>
@@ -156,6 +168,7 @@ export default function AdminJobsPage() {
                     <th className="px-3 py-2.5 text-left font-medium">Type</th>
                     <th className="px-3 py-2.5 text-left font-medium">Status</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Book</th>
+                    <th className="px-3 py-2.5 text-left font-medium hidden xl:table-cell">Owner</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Progress</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Started</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Completed</th>
@@ -195,6 +208,18 @@ export default function AdminJobsPage() {
                           </span>
                         )}
                       </td>
+                      <td className="px-3 py-2.5 align-middle hidden xl:table-cell">
+                        <div className="flex flex-col">
+                          <span className="text-[var(--text-sm)] text-[var(--text)] truncate max-w-[10rem]" title={job.owner_display_name ?? undefined}>
+                            {job.owner_display_name ?? "—"}
+                          </span>
+                          {job.owner_email && (
+                            <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[10rem]" title={job.owner_email}>
+                              {job.owner_email}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-3 py-2.5 align-middle hidden lg:table-cell min-w-[140px]">
                         {job.status === "running" || job.status === "completed" ? (
                           <div className="flex items-center gap-2">
@@ -206,11 +231,11 @@ export default function AdminJobsPage() {
                                     ? "bg-[var(--success-500)]"
                                     : "bg-[var(--info-500)]",
                                 )}
-                                style={{ width: `${Math.round(job.progress * 100)}%` }}
+                                style={{ width: `${Math.round(job.progress)}%` }}
                               />
                             </div>
                             <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)] w-9 text-right">
-                              {Math.round(job.progress * 100)}%
+                              {Math.round(job.progress)}%
                             </span>
                           </div>
                         ) : (

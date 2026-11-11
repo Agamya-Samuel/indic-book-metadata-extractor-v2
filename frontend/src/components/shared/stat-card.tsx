@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-interface AdminStatsCardProps {
+interface StatCardProps {
   label: string;
   value: React.ReactNode;
   sublabel?: React.ReactNode;
@@ -11,7 +11,7 @@ interface AdminStatsCardProps {
   flush?: boolean;
 }
 
-const toneAccent: Record<NonNullable<AdminStatsCardProps["tone"]>, string> = {
+const toneAccent: Record<NonNullable<StatCardProps["tone"]>, string> = {
   neutral: "bg-[var(--text-muted)]",
   info: "bg-[var(--info-500)]",
   success: "bg-[var(--success-500)]",
@@ -19,14 +19,19 @@ const toneAccent: Record<NonNullable<AdminStatsCardProps["tone"]>, string> = {
   danger: "bg-[var(--danger-500)]",
 };
 
-export default function AdminStatsCard({
+/**
+ * Compact headline-number card. `flush` strips the border/box so the card
+ * can sit inside a titled <Card> with divide-x column styling (see the
+ * admin dashboard grid usage).
+ */
+export function StatCard({
   label,
   value,
   sublabel,
   tone = "neutral",
   className,
   flush = false,
-}: AdminStatsCardProps) {
+}: StatCardProps) {
   return (
     <div
       className={cn(
@@ -55,3 +60,5 @@ export default function AdminStatsCard({
     </div>
   );
 }
+
+export default StatCard;
