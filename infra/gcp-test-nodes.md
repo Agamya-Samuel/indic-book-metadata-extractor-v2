@@ -63,7 +63,7 @@ All three nodes are identical so results are comparable across them.
 
 | Node | Status | Current task | Owner | Since | Notes / results |
 |---|---|---|---|---|---|
-| test-node-1 | idle | unassigned | — | — | — |
+| test-node-1 | claimed | resource-profile | Qoder agent | 2026-11-10 | Peak CPU/RAM sampling of OCR+LLM pipeline; serial single-book config. Results → `learnings/`. |
 | test-node-2 | idle | unassigned | — | — | — |
 | test-node-3 | idle | unassigned | — | — | — |
 
