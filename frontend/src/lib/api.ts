@@ -196,6 +196,7 @@ export interface PageSelectionResponse {
   book_id: string;
   selected_count: number;
   status: string;
+  job_id: string | null;
 }
 
 export interface PageResponse {
@@ -393,6 +394,17 @@ export const previewPreprocessing = async (
 
 export const getPreprocessingPreviewUrl = (pageId: string): string => {
   return `${api.defaults.baseURL}/pages/${pageId}/preprocessing/preview`;
+};
+
+export const applyPreprocessingToAll = async (
+  bookId: string,
+  config: PreprocessingConfig,
+): Promise<JobResponse> => {
+  const response = await api.post<JobResponse>(
+    `/books/${bookId}/preprocessing`,
+    config,
+  );
+  return response.data;
 };
 
 export const getPageImageUrl = (pageId: string): string => {

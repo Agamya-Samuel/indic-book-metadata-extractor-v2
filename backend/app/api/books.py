@@ -26,7 +26,8 @@ from app.schemas.book import (
     PageSelectionResponse,
 )
 from app.schemas.job import JobResponse
-from app.services import pdf_service, preprocessing, storage
+from app.schemas.page import PreprocessingConfig
+from app.services import pdf_service, storage
 from app.services.ocr_service import LANGUAGE_MAP
 from app.services.search_service import SearchService
 from app.services.stage_manager import StageManager
@@ -163,7 +164,13 @@ async def select_pages(
     body: PageSelectionRequest,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> PageSelectionResponse:
+    """Select pages and enqueue a PAGE_EXTRACTION job to render them.
+
+    Rendering used to block this request. It now runs in the worker with
+    per-page progress and cancellation; the response carries the job id.
+    """
     book_id = book.id
     if not book.total_pages:
         raise HTTPException(status_code=400, detail="Book has no pages")
@@ -176,6 +183,24 @@ async def select_pages(
                 detail=f"Page {pn} out of range (1-{book.total_pages})",
             )
 
+    pdf_path = storage.original_pdf_path(str(book_id))
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Original PDF not found")
+
+    # Supersede any in-flight job for this book before mutating its pages.
+    active_jobs = await db.execute(
+        select(Job).where(
+            Job.book_id == book_id,
+            Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+        )
+    )
+    for job in active_jobs.scalars().all():
+        job.status = JobStatus.CANCELLED
+        job.completed_at = datetime.now(timezone.utc)
+        job.error_log = "Superseded by a new page selection"
+        admin_service._revoke_celery_task(job)
+    await db.flush()
+
     results = await db.execute(select(Page).where(Page.book_id == book_id))
     existing = results.scalars().all()
     for p in existing:
@@ -185,38 +210,78 @@ async def select_pages(
         await db.delete(p)
     await db.flush()
 
-    pdf_path = storage.original_pdf_path(str(book_id))
-    if not pdf_path.exists():
-        raise HTTPException(status_code=404, detail="Original PDF not found")
+    # Invalidate any downstream stage state from the previous page selection.
+    await StageManager.reset_from_stage(
+        db, book_id, "page_selection", "Superseded by a new page selection"
+    )
 
-    rendered_paths = {}
-    for pn in unique_pages:
-        out = storage.full_page_path(str(book_id), pn)
-        pdf_service.render_full_page(pdf_path, pn, out)
-        rendered_paths[pn] = out
-
-    for pn, out in rendered_paths.items():
-        page = Page(
-            book_id=book_id,
-            page_number=pn,
-            image_path=storage.relative(out),
-            preprocessing_config=preprocessing.DEFAULT_PREPROCESSING_CONFIG,
-        )
-        db.add(page)
-
+    job = Job(
+        book_id=book_id,
+        requested_by_id=user.id,
+        job_type=JobType.PAGE_EXTRACTION,
+        status=JobStatus.QUEUED,
+        progress=0.0,
+    )
+    db.add(job)
     book.status = BookStatus.PAGES_SELECTED
     await db.commit()
+    await db.refresh(job)
 
     await StageManager.initiate_stage(db, book_id, "page_selection")
     await StageManager.start_stage(db, book_id, "page_selection")
-    await StageManager.complete_stage(db, book_id, "page_selection")
     await db.commit()
+
+    from app.tasks.page_tasks import render_pages_for_book
+
+    render_pages_for_book.delay(str(job.id), str(book_id), unique_pages)
 
     return PageSelectionResponse(
         book_id=book_id,
         selected_count=len(unique_pages),
         status=book.status,
+        job_id=job.id,
     )
+
+
+@router.post(
+    "/{book_id}/preprocessing",
+    response_model=JobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def apply_preprocessing_all(
+    book_id: UUID,
+    config: PreprocessingConfig,
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> JobResponse:
+    """Apply one preprocessing config to every page as a background job.
+
+    Replaces the old UI loop that fired one blocking CPU request per page;
+    that saturated the API and gave no aggregate progress.
+    """
+    has_page = (
+        await db.execute(select(Page.id).where(Page.book_id == book.id).limit(1))
+    ).scalar_one_or_none()
+    if has_page is None:
+        raise HTTPException(status_code=400, detail="No pages selected for this book")
+
+    job = Job(
+        book_id=book.id,
+        requested_by_id=user.id,
+        job_type=JobType.PREPROCESSING,
+        status=JobStatus.QUEUED,
+        progress=0.0,
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    from app.tasks.page_tasks import apply_preprocessing_bulk
+
+    apply_preprocessing_bulk.delay(str(job.id), str(book.id), config.model_dump())
+
+    return JobResponse.model_validate(job)
 
 
 @router.get("/{book_id}/pages", response_model=list[PageResponse])

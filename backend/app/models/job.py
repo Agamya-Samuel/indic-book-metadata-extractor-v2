@@ -9,6 +9,7 @@ from app.models.base import Base, UUIDMixin
 
 
 class JobType(StrEnum):
+    PAGE_EXTRACTION = "page_extraction"
     OCR = "ocr"
     LLM = "llm"
     PREPROCESSING = "preprocessing"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,6 +12,7 @@ import {
   getPreprocessingPreviewUrl,
   getThumbnailUrl,
   runOcr,
+  applyPreprocessingToAll,
   DEFAULT_PREPROCESSING_CONFIG,
   type PageResponse,
   type PreprocessingConfig,
@@ -28,6 +29,8 @@ import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
 import { ErrorState } from "@/components/shared/empty-state";
+import JobProgressCard from "@/components/shared/job-progress-card";
+import { useJobProgress } from "@/hooks/use-job-progress";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
@@ -71,6 +74,15 @@ export default function PreprocessingPage() {
     "current",
   );
   const [confirmRerunOpen, setConfirmRerunOpen] = useState(false);
+  const [bulkStartedAt, setBulkStartedAt] = useState<string | null>(null);
+  const bulkCompletedRef = useRef(false);
+
+  const bulkProgress = useJobProgress({
+    bookId,
+    jobType: "preprocessing",
+    startedAt: bulkStartedAt,
+    enabled: !!bookId && !!bulkStartedAt,
+  });
 
   const currentPage = pages?.[selectedPageIndex];
   const baseConfig = mergeConfig(currentPage);
@@ -109,18 +121,33 @@ export default function PreprocessingPage() {
   });
 
   const applyToAllMutation = useMutation({
-    mutationFn: async () => {
-      if (!pages) return [];
-      return Promise.all(pages.map((p) => updatePreprocessing(p.id, config)));
+    mutationFn: () => applyPreprocessingToAll(bookId, config),
+    onMutate: () => {
+      bulkCompletedRef.current = false;
+      setBulkStartedAt(new Date().toISOString());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
-      toast.success("Settings applied to all pages");
+      toast.info("Applying settings to all pages…");
     },
     onError: (err) => {
+      setBulkStartedAt(null);
       toast.error(`Preprocessing failed: ${getErrorMessage(err)}`);
     },
   });
+
+  useEffect(() => {
+    if (!bulkStartedAt || !bulkProgress.isComplete || bulkCompletedRef.current) {
+      return;
+    }
+    bulkCompletedRef.current = true;
+    queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
+    toast.success("Settings applied to all pages");
+  }, [
+    bulkStartedAt,
+    bulkProgress.isComplete,
+    bookId,
+    queryClient,
+  ]);
 
   const runOcrMutation = useMutation({
     mutationFn: () => runOcr(bookId),
@@ -515,6 +542,20 @@ export default function PreprocessingPage() {
                   </Stack>
                 </CollapsibleSection>
 
+                {bulkStartedAt &&
+                  (bulkProgress.isRunning || bulkProgress.isFailed) && (
+                    <JobProgressCard
+                      title="Applying to all pages"
+                      progress={bulkProgress.progress}
+                      status={bulkProgress.job?.status ?? "queued"}
+                      phase={`Applying settings across ${pages.length} pages`}
+                      elapsedMs={bulkProgress.elapsedMs}
+                      error={bulkProgress.errorLog}
+                      onCancel={bulkProgress.cancel}
+                      cancelling={bulkProgress.cancelling}
+                    />
+                  )}
+
                 <div className="pt-3 border-t border-[var(--border)] space-y-3">
                   <Button
                     variant="outline"
@@ -550,11 +591,11 @@ export default function PreprocessingPage() {
                       variant="secondary"
                       size="sm"
                       onClick={() => applyToAllMutation.mutate()}
-                      disabled={applyToAllMutation.isPending}
-                      loading={applyToAllMutation.isPending}
+                      disabled={applyToAllMutation.isPending || bulkProgress.isRunning}
+                      loading={applyToAllMutation.isPending || bulkProgress.isRunning}
                       className="flex-1"
                     >
-                      {applyToAllMutation.isPending
+                      {applyToAllMutation.isPending || bulkProgress.isRunning
                         ? "Applying..."
                         : "Apply to all pages"}
                     </Button>

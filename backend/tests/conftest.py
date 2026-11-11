@@ -284,16 +284,39 @@ def make_book(client, sample_pdf, test_storage):
 
 
 @pytest.fixture
-def make_book_with_pages(client, make_book):
+def make_book_with_pages(client, make_book, db_session, sample_pdf, test_storage):
     async def _make(selected_pages: list[int] | None = None) -> dict:
+        from app.models.page import Page
+        from app.services import pdf_service, preprocessing, storage
+        from app.services.stage_manager import StageManager
+
         book = await make_book()
         book_id = book["id"]
         pages = selected_pages or [1, 2]
-        response = await client.post(
-            f"/api/books/{book_id}/pages",
-            json={"selected_pages": pages},
+        # Page rendering is asynchronous (PAGE_EXTRACTION job) in production;
+        # tests seed the rows and images directly so they stay deterministic.
+        for page_number in pages:
+            output_path = storage.full_page_path(book_id, page_number)
+            pdf_service.render_full_page(sample_pdf, page_number, output_path)
+            db_session.add(
+                Page(
+                    book_id=uuid.UUID(book_id),
+                    page_number=page_number,
+                    image_path=storage.relative(output_path),
+                    preprocessing_config=preprocessing.DEFAULT_PREPROCESSING_CONFIG,
+                )
+            )
+        await db_session.commit()
+
+        # Mirror the production end state of the asynchronous render task.
+        await StageManager.initiate_stage(
+            db_session, uuid.UUID(book_id), "page_selection"
         )
-        assert response.status_code == 200
+        await StageManager.start_stage(db_session, uuid.UUID(book_id), "page_selection")
+        await StageManager.complete_stage(
+            db_session, uuid.UUID(book_id), "page_selection"
+        )
+        await db_session.commit()
         return book
 
     return _make
