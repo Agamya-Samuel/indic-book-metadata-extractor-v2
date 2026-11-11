@@ -27,7 +27,7 @@ docker compose exec backend uv run pytest tests/integration/test_api_library.py 
 
 LLM metadata extraction runs entirely on CPU via Ollama. A full 52-field extraction (8 batches) takes approximately 10-20 minutes per book depending on CPU speed and OCR text length.
 
-**Mitigation**: The job runs in the background. Users can leave and return — progress is tracked via polling.
+**Mitigation**: The job runs in the background. Users can leave and return — progress streams over SSE (with polling fallback) and the job can be cancelled.
 
 ### Large PDF Rendering
 
@@ -53,12 +53,6 @@ Pages containing mixed languages (e.g., Telugu + English) use multi-language OCR
 
 ## Feature Gaps
 
-### No Book Deletion
-
-There is no `DELETE /api/books/{book_id}` endpoint. Books cannot be removed from the library through the UI or API.
-
-**Workaround**: Delete directly from the database or use `make reset-db` to clear all data.
-
 ### No Semantic Search
 
 The `embeddings` table with pgvector(768) exists in the schema, but no service populates or queries it. Semantic/similarity search is not implemented.
@@ -67,13 +61,27 @@ The `embeddings` table with pgvector(768) exists in the schema, but no service p
 
 CSS classes support dark mode theming, but there is no UI toggle to switch between light and dark themes.
 
-### No Authentication
+### Authentication
 
-The application has no authentication or authorization system. It is designed for single-user local deployment.
+The application has email+password authentication with two roles (`user`,
+`admin`), email verification, and per-user book ownership. Anonymous visitors
+can browse the public catalog; owners and admins manage everything else. The
+first admin must be created via `make create-admin`. See
+[api-reference.md](api-reference.md) for the auth endpoints.
 
-### No WebSocket/SSE
+### Server-Sent Events fall back to polling
 
-Job status updates use HTTP polling (every 2 seconds) rather than WebSocket or Server-Sent Events. This creates unnecessary network traffic but is simpler to implement and debug.
+Job status updates stream over SSE (`/api/sse/books/{id}/events`). If the
+stream drops or goes silent for ~25 seconds, the UI falls back to HTTP polling
+and shows a "using polling fallback" notice. This is intentional, but progress
+can lag by the polling interval until the stream reconnects.
+
+### Page extraction is still synchronous
+
+Page image rendering for the selected pages currently happens inside the
+`POST /books/{id}/pages` request. A Celery-backed page-extraction job with
+per-page progress and cancel is planned (see
+`plans/006-ui-ux-workflow-admin.md`, Phase 3.7) but not implemented yet.
 
 ---
 
@@ -87,4 +95,4 @@ Docker Desktop on Windows may experience slower file I/O with bind-mounted volum
 
 ### First Run Model Download
 
-On first startup, Ollama downloads the Airavata model (~4 GB). This can take several minutes depending on network speed. The `ollama` health check has a 60-second start period to accommodate this.
+On first startup, Ollama downloads the Qwen2.5 7B model (~4 GB). This can take several minutes depending on network speed. The `ollama` health check has a 60-second start period to accommodate this.
