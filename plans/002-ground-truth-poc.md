@@ -104,7 +104,7 @@ backend/tests/fixtures/ground_truth/
 
 ## Milestones (incremental; test/lint/typecheck each)
 
-1. Script: category enumeration + file info + GT scaffold (metadata-only). Lint + `--limit 1` smoke test.
+1. ✅ Script: category enumeration + file info + GT scaffold (metadata-only). Lint + `--limit 1` smoke test — **done, see Validation status**.
 2. Script: `--download` + provenance + manifest; gitignore PDFs. Fetch ~15 PDFs.
 3. Harness: `discover_ground_truth()` + `--ground-truth` flag; unit test discovery.
 4. Human verification of ~10 books (annotation guideline from s1.md columns).
@@ -121,14 +121,21 @@ backend/tests/fixtures/ground_truth/
 | Modern fields sparse on classical texts | User/product | Accept correct nulls; include CC BY-SA VBS JVV modern books for richer fields |
 | Network/API etiquette | Script | UA + delay + retry + limit; metadata-only default |
 | 52↔49 wording drift | Dev | GT uses canonical 49 from `ALL_METADATA_FIELDS`; reconcile docs separately |
-| Backend `.venv` HTTP stack broken | Dev | `httpcore.__file__ is None` (empty namespace pkg, no `ConnectionPool`) → `httpx.Client()` fails. Run `uv sync` to reinstall locked deps before the live fetch. Global `httpx` also hits a malformed proxy env var. **Blocks live run, not script logic.** |
+| Backend `.venv` HTTP stack broken | Dev | **Resolved.** Root cause was a half-written `httpcore` package (only `py.typed` + a stray `.tmp1oPSt5`, no `__init__.py`), i.e. an interrupted install, not a lockfile problem. Fixed with `uv sync --extra dev --reinstall-package httpcore`. Note: bare `uv sync` drops the `dev` extra (ruff/pytest/black) — always use `--extra dev`. |
 
 ## Validation status (2026-11-10)
 
 - `ruff check` + `ruff format --check`: **clean**.
 - `--help` under `uv run`: **OK** (imports `ALL_METADATA_FIELDS` → 49 keys).
 - **Offline logic test: PASS** — 49-field scaffold, prefill (author/title/label/description_work/language), HTML strip, license capture, Wikisource-link filter (kept `te.wikisource`, dropped `en.wikipedia`), slugify, JSON-serializable.
-- **Live metadata fetch: BLOCKED** by the venv `httpcore` fault above (environment, not script). Repair with `uv sync`, then re-run `--limit 1 --out /tmp/gt-smoke`.
+- **Live metadata fetch: PASS** (`--limit 1`, metadata-only, no PDFs):
+  - Enumeration: **56** PDFs in `PDF books in Telugu`, **193** in `Hindi-language books`.
+  - Scaffolds written: `tel/2015.328360.Andhra-Mahaniyulu`, `hin/1913_Ummed_Singh_Charitra_Hindi_PDF` + `manifest.jsonl`.
+  - Per book: **49/49** canonical fields present, **49** `field_status` entries, **6** prefilled (`label`, `author`, `title`, `description_work`, `language`, `original_language`); rest `empty_needs_annotation`.
+  - Devanagari + Telugu text round-trips correctly (`author` = `लज्जाराम शर्मा`); license captured as `Public domain`; mime/size/`download_url` recorded.
+- **Defect found and fixed during validation:** `wikisource_index_urls` captured every proofread subpage (`Page:….pdf/1…N`) — unbounded (50 URLs for a 90-page book). Now filtered structurally (proofread subpages are the only entries containing `/`, so localised `Index:`/`Page:` namespaces need no hardcoding) → **1** real Index page, provenance 17.2 KB → 6.6 KB. Raw `globalusage` capped at 25 entries + full count kept.
+- **Known gap (follow-up, not blocking):** `publication_date` stays empty even when the year is visible in title/description (`1952`, `1913`). Deliberate — naive year regex risks false positives; left for human annotation or a reviewed heuristic.
+
 
 ## Open questions (defaults assumed unless redirected)
 
