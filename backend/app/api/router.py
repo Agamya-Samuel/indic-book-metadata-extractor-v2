@@ -16,17 +16,20 @@ from app.api.stages import router as stages_router
 api_router = APIRouter()
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(library_router, prefix="/library", tags=["library"])
+# Include routers with static /books sub-paths (e.g. /books/models) before the
+# books router, whose /{book_id} route would otherwise shadow them and 422 on
+# UUID validation.
+api_router.include_router(
+    extraction_router,
+    prefix="/books",
+    tags=["extraction"],
+    dependencies=[Depends(get_current_user)],
+)
 api_router.include_router(books_router, prefix="/books", tags=["books"])
 api_router.include_router(
     pages_router,
     prefix="/pages",
     tags=["pages"],
-    dependencies=[Depends(get_current_user)],
-)
-api_router.include_router(
-    extraction_router,
-    prefix="/books",
-    tags=["extraction"],
     dependencies=[Depends(get_current_user)],
 )
 api_router.include_router(
