@@ -280,10 +280,10 @@ services:
       METADATA_CALLBACK: "false"
       QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-https://localhost}
     volumes:
-      - wikibase_config_v3:/config
+      - wikibase_config:/config
       - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
-      - wikibase_data_v2:/var/www/html/images
-      - quickstatements_data_v2:/quickstatements/data
+      - wikibase_data:/var/www/html/images
+      - quickstatements_data:/quickstatements/data
     healthcheck:
       test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost/w/api.php | grep -q '200'"]
       interval: 30s
@@ -307,10 +307,10 @@ services:
       wikibase:
         condition: service_healthy
     volumes:
-      - wikibase_config_v3:/config
+      - wikibase_config:/config
       - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
-      - wikibase_data_v2:/var/www/html/images
-      - quickstatements_data_v2:/quickstatements/data
+      - wikibase_data:/var/www/html/images
+      - quickstatements_data:/quickstatements/data
 
   wikibase-init:
     build:
@@ -324,7 +324,7 @@ services:
       MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
       MW_WG_SERVER: "${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}"
     volumes:
-      - wikibase_config_v3:/config
+      - wikibase_config:/config
     depends_on:
       wikibase:
         condition: service_healthy
@@ -338,7 +338,7 @@ services:
       QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-https://localhost}
       WIKIBASE_PUBLIC_URL: ${WIKIBASE_PUBLIC_URL:-${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}}
     volumes:
-      - quickstatements_data_v2:/quickstatements/data
+      - quickstatements_data:/quickstatements/data
     depends_on:
       wikibase:
         condition: service_healthy
@@ -352,7 +352,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data_v3:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
       - ./docker/mysql/init_wikibase.sql:/docker-entrypoint-initdb.d/01-init-wikibase.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
@@ -396,13 +396,8 @@ volumes:
   storage_data:
   backup_data:
   wikibase_config:
-  wikibase_config_v2:
-  wikibase_config_v3:
   wikibase_data:
-  wikibase_data_v2:
   mysql_data:
-  mysql_data_v2:
-  mysql_data_v3:
   elasticsearch_data:
   openrefine_data:
-  quickstatements_data_v2:
+  quickstatements_data:
