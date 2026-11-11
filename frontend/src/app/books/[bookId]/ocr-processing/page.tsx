@@ -8,8 +8,7 @@ import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { useSSE } from "@/hooks/use-sse";
 import { toast } from "sonner";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import WorkflowShell from "@/components/shared/workflow-shell";
 import { PageContainer } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
@@ -22,9 +21,6 @@ export default function OcrProcessingPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
-
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -68,15 +64,13 @@ export default function OcrProcessingPage() {
 
   useEffect(() => {
     if (isComplete) {
-      setWorkflowStep(4);
-      setCompletedStep(4);
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       // Small delay to allow SSE to update cache
       setTimeout(() => {
         router.push(`/books/${bookId}/ocr-review`);
       }, 500);
     }
-  }, [isComplete, bookId, router, setWorkflowStep, setCompletedStep, queryClient]);
+  }, [isComplete, bookId, router, queryClient]);
 
   if (isLoadingBook) {
     return (
@@ -96,11 +90,7 @@ export default function OcrProcessingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--background)]">
-      <WorkflowStepper
-        bookId={bookId}
-        currentStep={currentStep < 4 ? 4 : currentStep}
-        completedStep={completedStep}
-      />
+      <WorkflowShell bookId={bookId} />
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center max-w-md mx-auto">

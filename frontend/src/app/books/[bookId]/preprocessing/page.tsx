@@ -7,26 +7,37 @@ import {
   getBook,
   getBookPages,
   updatePreprocessing,
+  previewPreprocessing,
   getPageImageUrl,
+  getPreprocessingPreviewUrl,
   getThumbnailUrl,
   runOcr,
   DEFAULT_PREPROCESSING_CONFIG,
+  type PageResponse,
   type PreprocessingConfig,
 } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error-handler";
 import { toast } from "sonner";
 import { focusRing } from "@/lib/focus-ring";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
+import WorkflowShell from "@/components/shared/workflow-shell";
+import CollapsibleSection from "@/components/shared/collapsible-section";
 import { getLanguageName } from "@/lib/utils";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
 import { ErrorState } from "@/components/shared/empty-state";
+import ConfirmDialog from "@/components/admin/confirm-dialog";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
+
+function mergeConfig(page: PageResponse | undefined): PreprocessingConfig {
+  return {
+    ...DEFAULT_PREPROCESSING_CONFIG,
+    ...(page?.preprocessing_config ?? {}),
+  };
+}
 
 export default function PreprocessingPage() {
   useDocumentTitle("Preprocessing");
@@ -34,9 +45,6 @@ export default function PreprocessingPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
-
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -54,19 +62,46 @@ export default function PreprocessingPage() {
   });
 
   const [selectedPageIndex, setSelectedPageIndex] = useState(0);
-  const [config, setConfig] = useState<PreprocessingConfig>({
-    ...DEFAULT_PREPROCESSING_CONFIG,
-  });
-  const [previewKey, setPreviewKey] = useState(0);
+  // Null means "not edited yet" — the effective config is seeded from the
+  // selected page's persisted config. Editing sets a draft; switching pages
+  // clears it so each page shows its own settings.
+  const [draft, setDraft] = useState<PreprocessingConfig | null>(null);
+  const [previewVersion, setPreviewVersion] = useState(0);
+  const [compareMode, setCompareMode] = useState<"current" | "preview">(
+    "current",
+  );
+  const [confirmRerunOpen, setConfirmRerunOpen] = useState(false);
 
-  const preprocessingMutation = useMutation({
-    mutationFn: async (params: { pageId: string; cfg: PreprocessingConfig }) => {
-      return updatePreprocessing(params.pageId, params.cfg);
-    },
+  const currentPage = pages?.[selectedPageIndex];
+  const baseConfig = mergeConfig(currentPage);
+  const config = draft ?? baseConfig;
+  const isDirty =
+    draft !== null && JSON.stringify(draft) !== JSON.stringify(baseConfig);
+
+  const updateConfig = (patch: Partial<PreprocessingConfig>) => {
+    setDraft({ ...config, ...patch });
+  };
+
+  const previewMutation = useMutation({
+    mutationFn: () => previewPreprocessing(currentPage!.id, config),
     onSuccess: () => {
-      setPreviewKey((k) => k + 1);
+      setPreviewVersion((v) => v + 1);
+      setCompareMode("preview");
+      toast.success("Preview rendered (not saved yet)");
+    },
+    onError: (err) => {
+      toast.error(`Preview failed: ${getErrorMessage(err)}`);
+    },
+  });
+
+  const applyMutation = useMutation({
+    mutationFn: () => updatePreprocessing(currentPage!.id, config),
+    onSuccess: () => {
+      setDraft(null);
+      setPreviewVersion(0);
+      setCompareMode("current");
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
-      toast.success("Preprocessing applied to page");
+      toast.success(`Settings applied to page ${currentPage?.page_number}`);
     },
     onError: (err) => {
       toast.error(`Preprocessing failed: ${getErrorMessage(err)}`);
@@ -76,14 +111,11 @@ export default function PreprocessingPage() {
   const applyToAllMutation = useMutation({
     mutationFn: async () => {
       if (!pages) return [];
-      return Promise.all(
-        pages.map((p) => updatePreprocessing(p.id, config))
-      );
+      return Promise.all(pages.map((p) => updatePreprocessing(p.id, config)));
     },
     onSuccess: () => {
-      setPreviewKey((k) => k + 1);
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
-      toast.success("Preprocessing applied to all pages");
+      toast.success("Settings applied to all pages");
     },
     onError: (err) => {
       toast.error(`Preprocessing failed: ${getErrorMessage(err)}`);
@@ -95,8 +127,6 @@ export default function PreprocessingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       toast.info("OCR job started");
-      setWorkflowStep(4);
-      setCompletedStep(4);
       router.push(`/books/${bookId}/ocr-processing`);
     },
     onError: (err) => {
@@ -108,7 +138,7 @@ export default function PreprocessingPage() {
     return <WorkflowPageSkeleton />;
   }
 
-  if (!book || !pages || pages.length === 0) {
+  if (!book || !pages || pages.length === 0 || !currentPage) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <ErrorState
@@ -119,33 +149,37 @@ export default function PreprocessingPage() {
     );
   }
 
-  const currentPage = pages[selectedPageIndex];
+  const isRerun = [
+    "ocr_running",
+    "ocr_complete",
+    "llm_running",
+    "awaiting_review",
+    "complete",
+  ].includes(book.status);
 
-  const handleConfigChange = <K extends keyof PreprocessingConfig>(
-    key: K,
-    value: PreprocessingConfig[K]
-  ) => {
-    setConfig((prev) => ({ ...prev, [key]: value }));
+  const selectPage = (idx: number) => {
+    setSelectedPageIndex(idx);
+    setDraft(null);
+    setPreviewVersion(0);
+    setCompareMode("current");
   };
 
-  const handlePreview = () => {
-    if (!currentPage) return;
-    preprocessingMutation.mutate({ pageId: currentPage.id, cfg: config });
+  const handleRunOcr = () => {
+    if (isRerun) {
+      setConfirmRerunOpen(true);
+      return;
+    }
+    runOcrMutation.mutate();
   };
 
-  const handlePrevPage = () => {
-    setSelectedPageIndex((prev) => Math.max(0, prev - 1));
-    setPreviewKey((k) => k + 1);
-  };
-
-  const handleNextPage = () => {
-    setSelectedPageIndex((prev) => Math.min(pages.length - 1, prev + 1));
-    setPreviewKey((k) => k + 1);
-  };
+  const previewSrc =
+    compareMode === "preview" && previewVersion > 0
+      ? `${getPreprocessingPreviewUrl(currentPage.id)}?v=${previewVersion}`
+      : `${getPageImageUrl(currentPage.id)}?v=${previewVersion}`;
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowStepper bookId={bookId} currentStep={currentStep < 3 ? 3 : currentStep} completedStep={completedStep} />
+      <WorkflowShell bookId={bookId} />
 
       <PageContainer>
         <PageHeader
@@ -153,8 +187,8 @@ export default function PreprocessingPage() {
           title={book.title || book.filename}
           description={
             <>
-              Language: {getLanguageName(book.language)} &bull;{" "}
-              {pages.length} pages
+              Language: {getLanguageName(book.language)} &bull; {pages.length}{" "}
+              pages
             </>
           }
         />
@@ -163,33 +197,39 @@ export default function PreprocessingPage() {
           <div className="lg:col-span-2">
             <Card title="Pages" description="Click a thumbnail to preview." flush>
               <div className="grid grid-cols-3 lg:grid-cols-2 gap-2 max-h-[600px] overflow-y-auto">
-                {pages.map((page, idx) => (
-                  <button
-                    key={page.id}
-                    onClick={() => {
-                      setSelectedPageIndex(idx);
-                      setPreviewKey((k) => k + 1);
-                    }}
-                    aria-label={`Select page ${page.page_number}`}
-                    aria-current={idx === selectedPageIndex ? "true" : undefined}
-                    className={cn(
-                      "relative aspect-[3/4] rounded-[var(--radius)] overflow-hidden border-2 transition-all",
-                      focusRing,
-                      idx === selectedPageIndex
-                        ? "border-[var(--accent)] ring-2 ring-[var(--accent-ring)]/30"
-                        : "border-[var(--border)] hover:border-[var(--border-strong)]"
-                    )}
-                  >
-                    <Image
-                      src={getThumbnailUrl(bookId, page.page_number)}
-                      alt={`Page ${page.page_number}`}
-                      fill
-                      sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 50vw"
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </button>
-                ))}
+                {pages.map((page, idx) => {
+                  const processed =
+                    page.has_processed_image || !!page.preprocessing_config;
+                  return (
+                    <button
+                      key={page.id}
+                      onClick={() => selectPage(idx)}
+                      aria-label={`Select page ${page.page_number}${processed ? ", processed" : ""}`}
+                      aria-current={idx === selectedPageIndex ? "true" : undefined}
+                      className={cn(
+                        "relative aspect-[3/4] rounded-[var(--radius)] overflow-hidden border-2 transition-all",
+                        focusRing,
+                        idx === selectedPageIndex
+                          ? "border-[var(--accent)] ring-2 ring-[var(--accent-ring)]/30"
+                          : "border-[var(--border)] hover:border-[var(--border-strong)]",
+                      )}
+                    >
+                      <Image
+                        src={getThumbnailUrl(bookId, page.page_number)}
+                        alt={`Page ${page.page_number}`}
+                        fill
+                        sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 50vw"
+                        className="object-cover"
+                        unoptimized
+                      />
+                      {processed && (
+                        <span className="absolute top-1 right-1 rounded-full bg-[var(--success-600)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--text-inverse)]">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </Card>
           </div>
@@ -198,13 +238,32 @@ export default function PreprocessingPage() {
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                  Page {currentPage.page_number} &mdash; Preview
+                  Page {currentPage.page_number} &mdash;{" "}
+                  {compareMode === "preview" ? "Preview" : "Current"}
                 </h3>
                 <div className="flex items-center gap-2">
+                  {previewVersion > 0 && (
+                    <div className="flex rounded-[var(--radius)] border border-[var(--border)] p-0.5">
+                      <Button
+                        size="sm"
+                        variant={compareMode === "current" ? "secondary" : "ghost"}
+                        onClick={() => setCompareMode("current")}
+                      >
+                        Current
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={compareMode === "preview" ? "secondary" : "ghost"}
+                        onClick={() => setCompareMode("preview")}
+                      >
+                        Preview
+                      </Button>
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handlePrevPage}
+                    onClick={() => selectPage(Math.max(0, selectedPageIndex - 1))}
                     disabled={selectedPageIndex === 0}
                   >
                     Previous
@@ -215,7 +274,9 @@ export default function PreprocessingPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleNextPage}
+                    onClick={() =>
+                      selectPage(Math.min(pages.length - 1, selectedPageIndex + 1))
+                    }
                     disabled={selectedPageIndex === pages.length - 1}
                   >
                     Next
@@ -225,8 +286,8 @@ export default function PreprocessingPage() {
 
               <div className="border border-[var(--border)] rounded-[var(--radius)] bg-[var(--surface-sunken)] flex items-center justify-center min-h-[400px]">
                 <Image
-                  key={previewKey}
-                  src={`${getPageImageUrl(currentPage.id)}?v=${previewKey}`}
+                  key={previewSrc}
+                  src={previewSrc}
                   alt={`Page ${currentPage.page_number}`}
                   width={1200}
                   height={1600}
@@ -236,21 +297,92 @@ export default function PreprocessingPage() {
                 />
               </div>
 
-              {currentPage.preprocessing_config && (
+              {previewVersion > 0 && compareMode === "preview" && (
+                <p className="mt-2 text-[var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                  This preview is not saved. Click Apply to commit it to the
+                  page.
+                </p>
+              )}
+              {currentPage.has_processed_image && compareMode === "current" && (
                 <p className="mt-2 text-[var(--text-xs)] text-[var(--success-700)] dark:text-[var(--success-100)]">
-                  Custom preprocessing applied to this page
+                  This page has saved preprocessing applied.
                 </p>
               )}
             </Card>
           </div>
 
           <div className="lg:col-span-4">
-            <Card title="Preprocessing Settings" description="Tune the image processing pipeline.">
+            <Card
+              title="Preprocessing Settings"
+              description="Tune the image processing pipeline."
+              headerAction={
+                isDirty ? (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                    Unsaved
+                  </span>
+                ) : undefined
+              }
+            >
               <Stack gap={4}>
+                <div>
+                  <p className="mb-1 text-[var(--text-sm)] font-medium text-[var(--text)]">
+                    Rotation
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        updateConfig({
+                          rotation: (((config.rotation ?? 0) - 90) % 360 + 360) % 360,
+                        })
+                      }
+                      aria-label="Rotate 90 degrees counter-clockwise"
+                    >
+                      ↺ 90°
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        updateConfig({
+                          rotation: (((config.rotation ?? 0) + 90) % 360 + 360) % 360,
+                        })
+                      }
+                      aria-label="Rotate 90 degrees clockwise"
+                    >
+                      ↻ 90°
+                    </Button>
+                    <span className="text-[var(--text-sm)] text-[var(--text-muted)] tabular-nums">
+                      {(config.rotation ?? 0)}°
+                    </span>
+                    {!!config.rotation && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateConfig({ rotation: 0 })}
+                      >
+                        Reset rotation
+                      </Button>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <SliderControl
+                      label="Fine angle"
+                      value={config.rotation_angle ?? 0}
+                      min={-15}
+                      max={15}
+                      step={0.5}
+                      onChange={(v) => updateConfig({ rotation_angle: v })}
+                      formatValue={(v) => `${v.toFixed(1)}°`}
+                    />
+                  </div>
+                </div>
+
                 <ToggleControl
                   label="Grayscale"
                   checked={config.grayscale}
-                  onChange={(v) => handleConfigChange("grayscale", v)}
+                  onChange={(v) => updateConfig({ grayscale: v })}
                 />
 
                 <SliderControl
@@ -258,7 +390,7 @@ export default function PreprocessingPage() {
                   value={config.brightness}
                   min={-100}
                   max={100}
-                  onChange={(v) => handleConfigChange("brightness", v)}
+                  onChange={(v) => updateConfig({ brightness: v })}
                 />
 
                 <SliderControl
@@ -266,19 +398,19 @@ export default function PreprocessingPage() {
                   value={config.contrast}
                   min={-100}
                   max={100}
-                  onChange={(v) => handleConfigChange("contrast", v)}
+                  onChange={(v) => updateConfig({ contrast: v })}
                 />
 
                 <Field label="Binarization">
                   <Select
                     value={config.binarization || "none"}
                     onChange={(e) =>
-                      handleConfigChange(
-                        "binarization",
-                        e.target.value === "none"
-                          ? null
-                          : (e.target.value as "otsu" | "adaptive" | "sauvola")
-                      )
+                      updateConfig({
+                        binarization:
+                          e.target.value === "none"
+                            ? null
+                            : (e.target.value as "otsu" | "adaptive" | "sauvola"),
+                      })
                     }
                   >
                     <option value="none">None</option>
@@ -295,14 +427,36 @@ export default function PreprocessingPage() {
                       value={config.adaptive_block_size}
                       min={3}
                       max={51}
-                      onChange={(v) => handleConfigChange("adaptive_block_size", v)}
+                      onChange={(v) => updateConfig({ adaptive_block_size: v })}
                     />
                     <SliderControl
                       label="Adaptive C"
                       value={config.adaptive_c}
                       min={-10}
                       max={10}
-                      onChange={(v) => handleConfigChange("adaptive_c", v)}
+                      onChange={(v) => updateConfig({ adaptive_c: v })}
+                    />
+                  </>
+                )}
+
+                {config.binarization === "sauvola" && (
+                  <>
+                    <SliderControl
+                      label="Sauvola Window"
+                      value={config.sauvola_window ?? 25}
+                      min={3}
+                      max={75}
+                      step={2}
+                      onChange={(v) => updateConfig({ sauvola_window: v })}
+                    />
+                    <SliderControl
+                      label="Sauvola K"
+                      value={config.sauvola_k ?? 0.2}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(v) => updateConfig({ sauvola_k: v })}
+                      formatValue={(v) => v.toFixed(2)}
                     />
                   </>
                 )}
@@ -310,13 +464,13 @@ export default function PreprocessingPage() {
                 <ToggleControl
                   label="Deskew"
                   checked={config.deskew}
-                  onChange={(v) => handleConfigChange("deskew", v)}
+                  onChange={(v) => updateConfig({ deskew: v })}
                 />
 
                 <ToggleControl
                   label="Denoise"
                   checked={config.denoise}
-                  onChange={(v) => handleConfigChange("denoise", v)}
+                  onChange={(v) => updateConfig({ denoise: v })}
                 />
 
                 {config.denoise && (
@@ -325,43 +479,98 @@ export default function PreprocessingPage() {
                     value={config.denoise_strength}
                     min={1}
                     max={50}
-                    onChange={(v) => handleConfigChange("denoise_strength", v)}
+                    onChange={(v) => updateConfig({ denoise_strength: v })}
                   />
                 )}
 
+                <CollapsibleSection title="Advanced" defaultOpen={false}>
+                  <Stack gap={3}>
+                    <ToggleControl
+                      label="Upscale to 300 DPI"
+                      checked={config.upscale_to_300dpi ?? true}
+                      onChange={(v) => updateConfig({ upscale_to_300dpi: v })}
+                    />
+                    <ToggleControl
+                      label="Remove borders"
+                      checked={config.remove_borders ?? true}
+                      onChange={(v) => updateConfig({ remove_borders: v })}
+                    />
+                    {(config.remove_borders ?? true) && (
+                      <SliderControl
+                        label="Border content ratio"
+                        value={Math.round((config.border_content_ratio ?? 0.85) * 100)}
+                        min={50}
+                        max={100}
+                        onChange={(v) =>
+                          updateConfig({ border_content_ratio: v / 100 })
+                        }
+                        formatValue={(v) => `${v}%`}
+                      />
+                    )}
+                    <ToggleControl
+                      label="Auto preprocess"
+                      checked={config.auto_preprocess ?? true}
+                      onChange={(v) => updateConfig({ auto_preprocess: v })}
+                    />
+                  </Stack>
+                </CollapsibleSection>
+
                 <div className="pt-3 border-t border-[var(--border)] space-y-3">
                   <Button
-                    onClick={handlePreview}
-                    disabled={preprocessingMutation.isPending}
-                    loading={preprocessingMutation.isPending}
+                    variant="outline"
+                    onClick={() => previewMutation.mutate()}
+                    disabled={previewMutation.isPending}
+                    loading={previewMutation.isPending}
                     className="w-full"
                   >
-                    {preprocessingMutation.isPending
-                      ? "Processing..."
-                      : "Preview Current Page"}
+                    {previewMutation.isPending ? "Rendering..." : "Preview"}
                   </Button>
 
                   <Button
-                    variant="secondary"
-                    onClick={() => applyToAllMutation.mutate()}
-                    disabled={applyToAllMutation.isPending}
-                    loading={applyToAllMutation.isPending}
+                    onClick={() => applyMutation.mutate()}
+                    disabled={applyMutation.isPending || !isDirty}
+                    loading={applyMutation.isPending}
                     className="w-full"
                   >
-                    {applyToAllMutation.isPending
+                    {applyMutation.isPending
                       ? "Applying..."
-                      : "Apply to All Pages"}
+                      : "Apply to this page"}
                   </Button>
 
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDraft({ ...DEFAULT_PREPROCESSING_CONFIG })}
+                      className="flex-1"
+                    >
+                      Reset to defaults
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => applyToAllMutation.mutate()}
+                      disabled={applyToAllMutation.isPending}
+                      loading={applyToAllMutation.isPending}
+                      className="flex-1"
+                    >
+                      {applyToAllMutation.isPending
+                        ? "Applying..."
+                        : "Apply to all pages"}
+                    </Button>
+                  </div>
+
                   <Button
-                    onClick={() => runOcrMutation.mutate()}
+                    onClick={handleRunOcr}
                     disabled={runOcrMutation.isPending}
                     loading={runOcrMutation.isPending}
                     className="w-full"
                   >
                     {runOcrMutation.isPending
                       ? "Starting OCR..."
-                      : "Run OCR on All Pages"}
+                      : isRerun
+                        ? "Re-run OCR on All Pages"
+                        : "Run OCR on All Pages"}
                   </Button>
 
                   {runOcrMutation.isError && (
@@ -375,6 +584,35 @@ export default function PreprocessingPage() {
             </Card>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={confirmRerunOpen}
+          onClose={() => setConfirmRerunOpen(false)}
+          onConfirm={() => {
+            setConfirmRerunOpen(false);
+            runOcrMutation.mutate();
+          }}
+          title="Re-run OCR on all pages?"
+          description={
+            <ul className="list-disc pl-4 space-y-1">
+              <li>
+                Existing OCR text for {pages.length} page
+                {pages.length === 1 ? "" : "s"} will be discarded.
+              </li>
+              <li>
+                OCR review, LLM extraction, and metadata review will be reset.
+              </li>
+              <li>
+                Extracted metadata text is kept but marked out of date until you
+                re-run extraction.
+              </li>
+              <li>Your per-page preprocessing settings are kept.</li>
+            </ul>
+          }
+          confirmLabel="Re-run OCR"
+          variant="warning"
+          loading={runOcrMutation.isPending}
+        />
       </PageContainer>
     </div>
   );
@@ -385,26 +623,35 @@ function SliderControl({
   value,
   min,
   max,
+  step = 1,
   onChange,
+  formatValue,
 }: {
   label: string;
   value: number;
   min: number;
   max: number;
+  step?: number;
   onChange: (v: number) => void;
+  formatValue?: (v: number) => string;
 }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">{label}</label>
-        <span className="text-[var(--text-sm)] text-[var(--text-muted)] tabular-nums">{value}</span>
+        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          {label}
+        </label>
+        <span className="text-[var(--text-sm)] text-[var(--text-muted)] tabular-nums">
+          {formatValue ? formatValue(value) : value}
+        </span>
       </div>
       <input
         type="range"
         min={min}
         max={max}
+        step={step}
         value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
         aria-label={label}
         className="w-full accent-[var(--accent)]"
       />
@@ -423,7 +670,9 @@ function ToggleControl({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">{label}</label>
+      <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+        {label}
+      </label>
       <button
         type="button"
         role="switch"
@@ -432,13 +681,15 @@ function ToggleControl({
         onClick={() => onChange(!checked)}
         className={cn(
           "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-          checked ? "bg-[var(--accent)]" : "bg-[var(--surface-sunken)] border border-[var(--border)]"
+          checked
+            ? "bg-[var(--accent)]"
+            : "bg-[var(--surface-sunken)] border border-[var(--border)]",
         )}
       >
         <span
           className={cn(
             "inline-block h-4 w-4 transform rounded-full bg-[var(--surface)] shadow-[var(--shadow-xs)] transition-transform",
-            checked ? "translate-x-6" : "translate-x-1"
+            checked ? "translate-x-6" : "translate-x-1",
           )}
         />
       </button>

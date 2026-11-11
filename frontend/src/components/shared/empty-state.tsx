@@ -129,53 +129,8 @@ export function Banner({
   );
 }
 
-/** A linear progress bar. Indeterminate variant uses a sliding block. */
-export function Progress({
-  value,
-  max = 100,
-  indeterminate,
-  className,
-  tone = "accent",
-}: {
-  value?: number;
-  max?: number;
-  indeterminate?: boolean;
-  className?: string;
-  tone?: "accent" | "success" | "warning" | "danger";
-}) {
-  const pct =
-    typeof value === "number" ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
-  const fill = {
-    accent: "bg-[var(--accent)]",
-    success: "bg-[var(--success-600)]",
-    warning: "bg-[var(--warning-600)]",
-    danger: "bg-[var(--danger-600)]",
-  }[tone];
-  return (
-    <div
-      className={cn(
-        "h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-sunken)] border border-[var(--border)]",
-        className,
-      )}
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuenow={indeterminate ? undefined : value}
-    >
-      {indeterminate ? (
-        <div
-          className={cn(
-            "h-full w-1/3 rounded-full",
-            fill,
-            "animate-[progress-indet_1.4s_ease-in-out_infinite]",
-          )}
-        />
-      ) : (
-        <div
-          className={cn("h-full rounded-full transition-[width] duration-300", fill)}
-          style={{ width: `${pct}%` }}
-        />
-      )}
-    </div>
-  );
-}
+/**
+ * Re-exported for backwards compatibility. The canonical implementation lives
+ * in `progress.tsx` so there is a single 0–100 progress contract.
+ */
+export { Progress } from "./progress";

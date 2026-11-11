@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "@/lib/toast";
 
 interface ApiError {
   message: string;
@@ -75,4 +76,16 @@ export function parseApiError(error: unknown): ApiError {
 
 export function getErrorMessage(error: unknown): string {
   return parseApiError(error).message;
+}
+
+/**
+ * Surface an error once, as a toast, and return the message so callers can
+ * also keep it inline if they need to. Use this instead of hand-rolling
+ * `toast.error(getErrorMessage(err))` so error copy stays consistent.
+ */
+export function toastError(error: unknown, fallback?: string): string {
+  const parsed = parseApiError(error);
+  const message = parsed.message || fallback || "An unexpected error occurred.";
+  toast.error(message);
+  return message;
 }

@@ -13,7 +13,6 @@ import { getResumeTarget, type ResumeTarget } from "@/lib/workflow-resume";
 import { getErrorMessage } from "@/lib/error-handler";
 import StatusBadge from "@/components/shared/status-badge";
 import { Button, LinkButton } from "@/components/shared/button";
-import { Progress } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -38,16 +37,6 @@ const variantHeadline: Record<ResumeTarget["variant"], string> = {
   success: "text-[var(--success-700)] dark:text-[var(--success-100)]",
   warning: "text-[var(--warning-700)] dark:text-[var(--warning-100)]",
   danger: "text-[var(--danger-700)] dark:text-[var(--danger-100)]",
-};
-
-const variantProgress: Record<
-  ResumeTarget["variant"],
-  "accent" | "success" | "warning" | "danger"
-> = {
-  info: "accent",
-  success: "success",
-  warning: "warning",
-  danger: "danger",
 };
 
 export default function WorkflowResumeBanner({ detail }: Props) {

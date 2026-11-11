@@ -12,18 +12,22 @@ import {
   type OcrResultResponse,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/error-handler";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import OcrTextEditor from "@/components/ocr/text-editor";
 import { toast } from "sonner";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import WorkflowShell from "@/components/shared/workflow-shell";
 import { OcrReviewSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, Card } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import {
+  useUnsavedChanges,
+  confirmDiscard,
+} from "@/hooks/use-unsaved-changes";
 import { cn } from "@/lib/utils";
 
 export default function OcrReviewPage() {
@@ -34,11 +38,11 @@ export default function OcrReviewPage() {
   const bookId = params.bookId as string;
   const jobId = searchParams.get("jobId");
 
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep } = useWorkflowStore();
-
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | undefined>(undefined);
+  const [editorDirty, setEditorDirty] = useState(false);
+
+  useUnsavedChanges(editorDirty);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -76,12 +80,29 @@ export default function OcrReviewPage() {
     mutationFn: async ({ pageId, text }: { pageId: string; text: string }) => {
       return updateOcrCorrection(pageId, text);
     },
-    onSuccess: async (result: OcrResultResponse) => {
-      queryClient.setQueryData(["ocr", currentPage?.id], result);
-      // Invalidate the cached query so a page refresh re-fetches the latest
-      // state from the DB and avoids showing a stale `corrected_text`.
-      await queryClient.invalidateQueries({ queryKey: ["ocr", currentPage?.id] });
+    onMutate: async ({ pageId, text }) => {
+      await queryClient.cancelQueries({ queryKey: ["ocr", pageId] });
+      const previous = queryClient.getQueryData<OcrResultResponse>(["ocr", pageId]);
+      if (previous) {
+        queryClient.setQueryData<OcrResultResponse>(["ocr", pageId], {
+          ...previous,
+          corrected_text: text,
+        });
+      }
+      return { pageId, previous };
+    },
+    onSuccess: (result, { pageId }) => {
+      queryClient.setQueryData(["ocr", pageId], result);
       toast.success("OCR correction saved");
+    },
+    onError: (err, { pageId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["ocr", pageId], context.previous);
+      }
+      toast.error(`Could not save corrections: ${getErrorMessage(err)}`);
+    },
+    onSettled: (_result, _error, { pageId }) => {
+      void queryClient.invalidateQueries({ queryKey: ["ocr", pageId] });
     },
   });
 
@@ -101,21 +122,34 @@ export default function OcrReviewPage() {
     setSelectedWordIndex(index);
   }, []);
 
+  const canLeavePage = useCallback(() => {
+    if (!editorDirty) return true;
+    if (!confirmDiscard()) return false;
+    setEditorDirty(false);
+    return true;
+  }, [editorDirty]);
+
   const handlePrevPage = useCallback(() => {
+    if (!canLeavePage()) return;
     setCurrentPageIndex((prev) => Math.max(0, prev - 1));
     setSelectedWordIndex(undefined);
-  }, []);
+  }, [canLeavePage]);
 
   const handleNextPage = useCallback(() => {
     if (!pages) return;
+    if (!canLeavePage()) return;
     setCurrentPageIndex((prev) => Math.min(pages.length - 1, prev + 1));
     setSelectedWordIndex(undefined);
-  }, [pages]);
+  }, [pages, canLeavePage]);
 
-  const handlePageSelect = useCallback((idx: number) => {
-    setCurrentPageIndex(idx);
-    setSelectedWordIndex(undefined);
-  }, []);
+  const handlePageSelect = useCallback(
+    (idx: number) => {
+      if (!canLeavePage()) return;
+      setCurrentPageIndex(idx);
+      setSelectedWordIndex(undefined);
+    },
+    [canLeavePage],
+  );
 
   const getCachedOcrForPage = (pageId: string): OcrResultResponse | undefined => {
     return queryClient.getQueryData(["ocr", pageId]);
@@ -145,7 +179,7 @@ export default function OcrReviewPage() {
 
   return (
     <div className="h-screen bg-[var(--background)] flex flex-col overflow-hidden">
-      <WorkflowStepper bookId={bookId} currentStep={currentStep < 4 ? 4 : currentStep} completedStep={completedStep} />
+      <WorkflowShell bookId={bookId} />
 
       <div className="border-b border-[var(--border)] bg-[var(--surface)]">
         <PageContainer className="!py-4">
@@ -253,6 +287,7 @@ export default function OcrReviewPage() {
 
             <div className="w-full lg:w-[40%] border-l border-[var(--border)] bg-[var(--surface)] flex flex-col min-h-0">
               <OcrTextEditor
+                key={currentPage!.id}
                 words={ocrResult.bounding_boxes ?? []}
                 rawText={ocrResult.raw_text}
                 correctedText={ocrResult.corrected_text}
@@ -260,6 +295,7 @@ export default function OcrReviewPage() {
                 onWordClick={handleWordClick}
                 onSave={handleSave}
                 isSaving={saveMutation.isPending}
+                onDirtyChange={setEditorDirty}
               />
             </div>
           </>
