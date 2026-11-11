@@ -1,69 +1,88 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { STEP_ORDER, stepHref, stepMeta } from "@/lib/workflow-state";
+import type { StepKey, StepState, WorkflowStep } from "@/lib/workflow-state";
+
+function makeSteps(states: Partial<Record<StepKey, StepState>>): WorkflowStep[] {
+  return STEP_ORDER.map((key) => ({
+    key,
+    label: stepMeta(key).label,
+    shortLabel: stepMeta(key).shortLabel,
+    href: stepHref(key, "book-1"),
+    state: states[key] ?? "not_started",
+  }));
+}
 
 describe("WorkflowStepper", () => {
-  const defaultProps = {
-    bookId: "book-123",
-    currentStep: 3 as const,
-    completedStep: 3 as const,
-  };
-
   it("renders all 7 step labels", () => {
-    const { container } = render(<WorkflowStepper {...defaultProps} />);
-    const text = container.textContent ?? "";
-    expect(text).toContain("Upload");
-    expect(text).toContain("Select Pages");
-    expect(text).toContain("Preprocessing");
-    expect(text).toContain("OCR Review");
-    expect(text).toContain("LLM Config");
-    expect(text).toContain("Metadata Review");
-    expect(text).toContain("Complete");
-  });
-
-  it("highlights current step with blue styling", () => {
-    const { container } = render(<WorkflowStepper {...defaultProps} />);
-    const spans = container.querySelectorAll("span");
-    expect(spans.length).toBeGreaterThan(0);
-  });
-
-  it("renders with step 1", () => {
     const { container } = render(
-      <WorkflowStepper bookId="book-1" currentStep={1} completedStep={1} />
-    );
-    expect(container.textContent).toContain("Upload");
-  });
-
-  it("renders with all steps completed", () => {
-    const { container } = render(
-      <WorkflowStepper bookId="book-1" currentStep={7} completedStep={7} />
-    );
-    expect(container.textContent).toContain("Complete");
-  });
-
-  it("shows step numbers for future steps", () => {
-    const { container } = render(
-      <WorkflowStepper bookId="book-1" currentStep={2} completedStep={2} />
+      <WorkflowStepper steps={makeSteps({})} currentStep="pages" />,
     );
     const text = container.textContent ?? "";
-    expect(text).toContain("3");
-    expect(text).toContain("4");
-    expect(text).toContain("5");
+    for (const label of [
+      "Upload",
+      "Select Pages",
+      "Preprocessing",
+      "OCR",
+      "OCR Review",
+      "LLM Extraction",
+      "Metadata Review",
+    ]) {
+      expect(text).toContain(label);
+    }
   });
 
-  it("renders clickable links for completed steps", () => {
+  it("marks the current step with aria-current", () => {
     const { container } = render(
-      <WorkflowStepper bookId="book-1" currentStep={4} completedStep={4} />
+      <WorkflowStepper
+        steps={makeSteps({ upload: "complete", pages: "current" })}
+        currentStep="pages"
+      />,
     );
-    const links = container.querySelectorAll("a");
-    expect(links.length).toBeGreaterThan(0);
+    const current = container.querySelector('[aria-current="step"]');
+    expect(current).not.toBeNull();
+    expect(current?.getAttribute("data-state")).toBe("current");
   });
 
-  it("renders non-clickable spans for future steps", () => {
+  it("renders unlocked steps as links and locked steps as spans", () => {
+    const steps = makeSteps({
+      upload: "complete",
+      pages: "complete",
+      preprocessing: "current",
+    });
+    steps[5].state = "not_started";
     const { container } = render(
-      <WorkflowStepper bookId="book-1" currentStep={2} completedStep={2} />
+      <WorkflowStepper steps={steps} currentStep="preprocessing" />,
     );
-    const nonClickable = container.querySelectorAll("span.cursor-not-allowed");
-    expect(nonClickable.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("a").length).toBe(3);
+    const locked = container.querySelectorAll('[aria-disabled="true"]');
+    expect(locked.length).toBeGreaterThan(0);
+  });
+
+  it("marks failed and stale steps", () => {
+    const { container } = render(
+      <WorkflowStepper
+        steps={makeSteps({
+          upload: "complete",
+          pages: "complete",
+          preprocessing: "complete",
+          ocr: "failed",
+          llm: "stale",
+        })}
+        currentStep="ocr"
+      />,
+    );
+    expect(container.querySelector('[data-state="failed"]')).not.toBeNull();
+    expect(container.querySelector('[data-state="stale"]')).not.toBeNull();
+  });
+
+  it("renders a detail hint for running steps", () => {
+    const steps = makeSteps({ ocr: "current" });
+    steps[3].detail = "Reading pages…";
+    const { container } = render(
+      <WorkflowStepper steps={steps} currentStep="ocr" />,
+    );
+    expect(container.textContent).toContain("Reading pages…");
   });
 });

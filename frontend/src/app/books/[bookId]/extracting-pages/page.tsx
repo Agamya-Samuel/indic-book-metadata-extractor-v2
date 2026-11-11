@@ -6,8 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBook, selectPages } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { toast } from "sonner";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import WorkflowShell from "@/components/shared/workflow-shell";
 import { PageContainer } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
@@ -42,9 +41,6 @@ export default function ExtractingPagesPage() {
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
 
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
-
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
@@ -78,8 +74,6 @@ export default function ExtractingPagesPage() {
       }
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "pages"] });
-      setWorkflowStep(3);
-      setCompletedStep(3);
     },
   });
 
@@ -123,11 +117,7 @@ export default function ExtractingPagesPage() {
   if (storageState.status === "missing") {
     return (
       <div className="min-h-screen flex flex-col bg-[var(--background)]">
-        <WorkflowStepper
-          bookId={bookId}
-          currentStep={currentStep < 2 ? 2 : currentStep}
-          completedStep={completedStep}
-        />
+        <WorkflowShell bookId={bookId} />
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center max-w-md mx-auto">
             <h2 className="text-[var(--text-xl)] font-semibold text-[var(--text)] mb-2">
@@ -152,11 +142,7 @@ export default function ExtractingPagesPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--background)]">
-      <WorkflowStepper
-        bookId={bookId}
-        currentStep={currentStep < 3 ? 3 : currentStep}
-        completedStep={completedStep}
-      />
+      <WorkflowShell bookId={bookId} />
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center max-w-md mx-auto">

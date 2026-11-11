@@ -24,8 +24,7 @@ import MetadataForm from "@/components/metadata/metadata-form";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { MetadataReviewSkeleton } from "@/components/shared/skeleton";
 import { toast } from "sonner";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import WorkflowShell from "@/components/shared/workflow-shell";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress, EmptyState } from "@/components/shared/empty-state";
@@ -37,9 +36,6 @@ export default function MetadataReviewPage() {
   const params = useParams();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
-
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selectedBoxIndex, setSelectedBoxIndex] = useState<
@@ -201,7 +197,7 @@ export default function MetadataReviewPage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
-      <WorkflowStepper bookId={bookId} currentStep={currentStep < 6 ? 6 : currentStep} completedStep={completedStep} />
+      <WorkflowShell bookId={bookId} />
 
       <PageContainer className="flex-1 flex flex-col">
         <PageHeader

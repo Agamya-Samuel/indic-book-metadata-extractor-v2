@@ -1,4 +1,5 @@
 import type { BookDetail, BookStageResponse } from "./api";
+import type { StepKey, WorkflowState } from "./workflow-state";
 
 export type ResumeVariant = "info" | "success" | "warning" | "danger";
 
@@ -132,5 +133,80 @@ export function getResumeTarget(
     description: cta.description,
     variant: cta.variant,
     showProgress: cta.showProgress,
+  };
+}
+
+interface StepResumeCopy {
+  ctaLabel: string;
+  headline: string;
+  description: string;
+  variant: ResumeVariant;
+}
+
+const STEP_RESUME: Record<StepKey, StepResumeCopy> = {
+  upload: {
+    ctaLabel: "Upload a book",
+    headline: "Nothing uploaded yet",
+    description: "Upload a scanned PDF to begin processing.",
+    variant: "info",
+  },
+  pages: {
+    ctaLabel: "Select pages",
+    headline: "Choose pages to process",
+    description: "Pick the scanned pages that belong to this book.",
+    variant: "info",
+  },
+  preprocessing: {
+    ctaLabel: "Configure preprocessing",
+    headline: "Configure preprocessing",
+    description:
+      "Adjust cleanup settings, then run OCR. Pages keep their own settings.",
+    variant: "info",
+  },
+  ocr: {
+    ctaLabel: "View OCR progress",
+    headline: "OCR in progress",
+    description:
+      "Tesseract is reading the scanned pages. The job continues in the background.",
+    variant: "info",
+  },
+  ocr_review: {
+    ctaLabel: "Review OCR text",
+    headline: "Review OCR text",
+    description: "Correct any misread text before extracting metadata.",
+    variant: "info",
+  },
+  llm: {
+    ctaLabel: "Run extraction",
+    headline: "Extract metadata",
+    description: "Run the language model over the OCR text to extract metadata.",
+    variant: "info",
+  },
+  review: {
+    ctaLabel: "Review metadata",
+    headline: "Review metadata",
+    description: "Check the extracted metadata and mark the review complete.",
+    variant: "info",
+  },
+};
+
+/**
+ * Derive the resume banner from the same model the stepper uses, so the two
+ * can never disagree. Returns `null` when the workflow is complete.
+ */
+export function resumeTargetForState(state: WorkflowState): ResumeTarget | null {
+  if (state.steps.every((s) => s.state === "complete")) {
+    return null;
+  }
+  const current = state.byKey[state.currentStep];
+  const copy = STEP_RESUME[current.key];
+  if (!copy) return null;
+  return {
+    ctaLabel: copy.ctaLabel,
+    href: current.href,
+    headline: copy.headline,
+    description: copy.description,
+    variant: current.state === "failed" ? "danger" : copy.variant,
+    showProgress: current.state === "current" && state.processing !== null,
   };
 }

@@ -6,8 +6,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { useBookStore } from "@/stores/book-store";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import WorkflowShell from "@/components/shared/workflow-shell";
 import { SelectPagesSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card } from "@/components/shared/card";
 import { Button } from "@/components/shared/button";
@@ -23,9 +22,6 @@ export default function SelectPagesPage() {
   const params = useParams();
   const router = useRouter();
   const bookId = params.bookId as string;
-
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setBookId: setWorkflowBookId } = useWorkflowStore();
 
   const {
     data: book,
@@ -72,13 +68,6 @@ export default function SelectPagesPage() {
       prevBookIdRef.current = bookId;
     }
   }, [bookId, clearSelection]);
-
-  // Hydrate the workflow store's bookId once the book has loaded.
-  useEffect(() => {
-    if (book && !useWorkflowStore.getState().bookId) {
-      setWorkflowBookId(bookId);
-    }
-  }, [book, bookId, setWorkflowBookId]);
 
   if (isLoadingBook) {
     return <SelectPagesSkeleton />;
@@ -151,7 +140,7 @@ export default function SelectPagesPage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowStepper bookId={bookId} currentStep={currentStep < 2 ? 2 : currentStep} completedStep={completedStep} />
+      <WorkflowShell bookId={bookId} />
 
       <PageContainer>
         <PageHeader

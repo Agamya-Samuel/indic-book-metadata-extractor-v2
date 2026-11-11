@@ -66,12 +66,19 @@ describe("OcrTextEditor", () => {
     expect(screen.getByText(/OCR text/i)).toBeDefined();
   });
 
+  it("shows the read-only boxes notice", () => {
+    render(<OcrTextEditor {...defaultProps} />);
+    expect(
+      screen.getByText(/not updated by text edits/i),
+    ).toBeDefined();
+  });
+
   it("toggles to edit mode", () => {
     render(<OcrTextEditor {...defaultProps} />);
 
     fireEvent.click(screen.getByText(/^Edit text$/));
 
-    expect(screen.getByText(/^Cancel edit$/)).toBeDefined();
+    expect(screen.getByText(/^Cancel$/)).toBeDefined();
   });
 
   it("shows textarea in edit mode", () => {
@@ -84,21 +91,54 @@ describe("OcrTextEditor", () => {
     expect(textarea?.value).toBe("Hello World LowConf");
   });
 
-  it("calls onSave with corrected text", () => {
+  it("disables save when there are no edits", () => {
+    render(<OcrTextEditor {...defaultProps} />);
+    const save = screen.getByRole("button", {
+      name: /save corrections/i,
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+  });
+
+  it("calls onSave with edited text", () => {
     const onSave = vi.fn();
     render(<OcrTextEditor {...defaultProps} onSave={onSave} />);
 
+    fireEvent.click(screen.getByText(/^Edit text$/));
+    const textarea = document.querySelector("textarea")!;
+    fireEvent.change(textarea, { target: { value: "Edited text" } });
     fireEvent.click(screen.getByText(/^Save corrections$/));
-    expect(onSave).toHaveBeenCalledWith("Hello World LowConf");
+
+    expect(onSave).toHaveBeenCalledWith("Edited text");
+  });
+
+  it("allows clearing text to empty and saving it", () => {
+    const onSave = vi.fn();
+    render(<OcrTextEditor {...defaultProps} onSave={onSave} />);
+
+    fireEvent.click(screen.getByText(/^Edit text$/));
+    const textarea = document.querySelector("textarea")!;
+    fireEvent.change(textarea, { target: { value: "" } });
+    expect(textarea.value).toBe("");
+    fireEvent.click(screen.getByText(/^Save corrections$/));
+
+    expect(onSave).toHaveBeenCalledWith("");
+  });
+
+  it("notifies the parent when dirty state changes", () => {
+    const onDirtyChange = vi.fn();
+    render(
+      <OcrTextEditor {...defaultProps} onDirtyChange={onDirtyChange} />,
+    );
+
+    fireEvent.click(screen.getByText(/^Edit text$/));
+    const textarea = document.querySelector("textarea")!;
+    fireEvent.change(textarea, { target: { value: "Changed" } });
+
+    expect(onDirtyChange).toHaveBeenCalledWith(true);
   });
 
   it("shows Edited badge when correctedText differs from rawText", () => {
-    render(
-      <OcrTextEditor
-        {...defaultProps}
-        correctedText="Corrected text"
-      />
-    );
+    render(<OcrTextEditor {...defaultProps} correctedText="Corrected text" />);
     expect(screen.getByText("Edited")).toBeDefined();
   });
 
@@ -112,19 +152,26 @@ describe("OcrTextEditor", () => {
     expect(screen.getByText("Saving")).toBeDefined();
   });
 
-  it("returns from edit mode on Cancel edit", () => {
+  it("returns from edit mode on Cancel", () => {
     render(<OcrTextEditor {...defaultProps} />);
 
     fireEvent.click(screen.getByText(/^Edit text$/));
-    expect(screen.getByText(/^Cancel edit$/)).toBeDefined();
+    expect(screen.getByText(/^Cancel$/)).toBeDefined();
 
-    fireEvent.click(screen.getByText(/^Cancel edit$/));
+    fireEvent.click(screen.getByText(/^Cancel$/));
     expect(screen.getByText(/^Edit text$/)).toBeDefined();
     expect(screen.getByText("Hello")).toBeDefined();
   });
 
-  it("renders Save corrections button", () => {
-    render(<OcrTextEditor {...defaultProps} />);
-    expect(screen.getByText(/^Save corrections$/)).toBeDefined();
+  it("shows an empty-OCR hint when there is no text", () => {
+    render(
+      <OcrTextEditor
+        {...defaultProps}
+        words={[]}
+        rawText={null}
+        correctedText={null}
+      />,
+    );
+    expect(screen.getByText(/No OCR text was detected/i)).toBeDefined();
   });
 });

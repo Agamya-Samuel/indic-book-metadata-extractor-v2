@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
   getAvailableModels,
   getMetadataFieldDefinitions,
-  getBookJobs,
   runExtraction,
   retryExtraction,
   DEFAULT_EXTRACTION_CONFIG,
@@ -15,19 +14,18 @@ import {
   type MetadataFieldDefinition,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
-import { useJobPolling } from "@/hooks/use-job-polling";
-import { getErrorMessage } from "@/lib/error-handler";
+import { useJobProgress } from "@/hooks/use-job-progress";
+import { toastError } from "@/lib/error-handler";
+import { toast } from "sonner";
 import SliderControl from "@/components/shared/slider-control";
 import CollapsibleSection from "@/components/shared/collapsible-section";
-import { toast } from "sonner";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
-import { useWorkflowStore, useWorkflowHydration } from "@/stores/workflow-store";
+import WorkflowShell from "@/components/shared/workflow-shell";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select, Textarea } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
-import { ErrorState, Progress } from "@/components/shared/empty-state";
-import { Spinner } from "@/components/shared/spinner";
+import { ErrorState } from "@/components/shared/empty-state";
+import JobProgressCard from "@/components/shared/job-progress-card";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 const DEFAULT_SYSTEM_PROMPT = `You are an expert bibliographic metadata extractor specializing in {{language}} language books.
@@ -63,12 +61,8 @@ const BATCH_DISPLAY_NAMES: Record<string, string> = {
 export default function LlmConfigPage() {
   useDocumentTitle("LLM configuration");
   const params = useParams();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
-
-  useWorkflowHydration(bookId);
-  const { currentStep, completedStep, setStep: setWorkflowStep, setCompletedStep } = useWorkflowStore();
 
   const [config, setConfig] = useState<ExtractionRequest>({
     ...DEFAULT_EXTRACTION_CONFIG,
@@ -77,7 +71,9 @@ export default function LlmConfigPage() {
   const [extractionPrompt, setExtractionPrompt] = useState(
     DEFAULT_EXTRACTION_PROMPT
   );
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  // ISO timestamp of the current run. Scopes job lookups so a completed run
+  // from a previous attempt can never shadow the form.
+  const [startedAt, setStartedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
@@ -87,11 +83,16 @@ export default function LlmConfigPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: models, isLoading: isLoadingModels } = useQuery({
+  const {
+    data: models,
+    isLoading: isLoadingModels,
+    isError: modelsError,
+  } = useQuery({
     queryKey: ["models"],
     queryFn: getAvailableModels,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 1,
   });
 
   const { data: fieldDefs, isLoading: isLoadingFields } = useQuery({
@@ -101,13 +102,15 @@ export default function LlmConfigPage() {
     gcTime: 30 * 60 * 1000,
   });
 
-  const { isComplete, isFailed, progress, isPolling, errorLog, allJobs } =
-    useJobPolling({
-      bookId,
-      jobId: activeJobId ?? undefined,
-      jobType: "llm",
-      enabled: !!activeJobId || book?.status === "llm_running" || book?.status === "awaiting_review",
-    });
+  const progress = useJobProgress({
+    bookId,
+    jobType: "llm",
+    startedAt,
+    enabled: !!bookId,
+  });
+
+  const ollamaUnreachable =
+    modelsError || (models !== undefined && models.length === 0);
 
   const fieldsByBatch = useMemo(() => {
     if (!fieldDefs) return {};
@@ -121,9 +124,9 @@ export default function LlmConfigPage() {
     return grouped;
   }, [fieldDefs]);
 
-  const totalBatches = useMemo(() => {
-    return Math.ceil((fieldDefs?.length ?? 0) / config.fields_per_batch);
-  }, [fieldDefs, config.fields_per_batch]);
+  // The backend processes one call per batch_group, not per N fields.
+  const totalBatches = Object.keys(fieldsByBatch).length;
+  const totalFields = fieldDefs?.length ?? 0;
 
   const runMutation = useMutation({
     mutationFn: () => {
@@ -141,50 +144,33 @@ export default function LlmConfigPage() {
       }
       return runExtraction(bookId, payload);
     },
-    onSuccess: (result) => {
-      setActiveJobId(result.job_id);
+    onMutate: () => {
+      // Record the run start *before* the request so the new job is scoped in
+      // and any older job is scoped out.
+      setStartedAt(new Date().toISOString());
       setError(null);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
       toast.info("LLM extraction started");
-      setWorkflowStep(5);
-      setCompletedStep(5);
     },
     onError: (err) => {
-      const msg = getErrorMessage(err);
-      setError(msg);
-      toast.error(msg);
+      setStartedAt(null);
+      setError(toastError(err, "Could not start extraction"));
     },
   });
 
-  useEffect(() => {
-    if (isComplete && activeJobId) {
-      toast.success("LLM extraction completed successfully");
-      setWorkflowStep(6);
-      setCompletedStep(6);
-    }
-    if (isFailed && activeJobId && errorLog) {
-      toast.error("LLM extraction failed");
-    }
-  }, [isComplete, isFailed, activeJobId, errorLog, setWorkflowStep, setCompletedStep]);
-
-  // On page refresh, discover an in-flight LLM job so the progress view
-  // is restored instead of showing the config form. Skip terminal jobs
-  // (completed/failed/cancelled) so a cancelled run doesn't trap the user
-  // on the polling screen.
-  useEffect(() => {
-    if (!activeJobId && allJobs.length > 0) {
-      const llmJob = allJobs.find((j) => j.job_type === "llm");
-      if (
-        llmJob &&
-        llmJob.status !== "completed" &&
-        llmJob.status !== "failed" &&
-        llmJob.status !== "cancelled"
-      ) {
-        setActiveJobId(llmJob.id);
-      }
-    }
-  }, [activeJobId, allJobs]);
+  const hasPriorRun = progress.jobs.some(
+    (j) =>
+      j.job_type === "llm" &&
+      (j.status === "completed" ||
+        j.status === "failed" ||
+        j.status === "cancelled"),
+  );
+  const currentRunActive = Boolean(startedAt) && progress.isRunning;
+  const currentRunComplete = Boolean(startedAt) && progress.isComplete;
+  const currentRunFailed = Boolean(startedAt) && progress.isFailed;
 
   if (isLoadingBook || isLoadingModels || isLoadingFields) {
     return <WorkflowPageSkeleton />;
@@ -198,63 +184,9 @@ export default function LlmConfigPage() {
     );
   }
 
-  if (isPolling || isComplete) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <div className="text-center max-w-md mx-auto px-4">
-          <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)] mx-auto mb-4" />
-          <h2 className="text-[var(--text-lg)] font-semibold text-[var(--text)] mb-2">
-            {isComplete
-              ? "Extraction complete"
-              : isFailed
-                ? "Extraction failed"
-                : "Running LLM extraction"}
-          </h2>
-          {!isComplete && !isFailed && (
-            <>
-              <p className="text-[var(--text-muted)] text-[var(--text-sm)] mb-4">
-                {Math.round(progress)}% complete
-              </p>
-              <div className="mb-4">
-                <Progress value={progress} />
-              </div>
-              <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
-                Processing {totalBatches} batch groups of metadata fields
-              </p>
-            </>
-          )}
-          {isFailed && errorLog && (
-            <div className="mb-4 text-left">
-              <ErrorState title="Error" description={errorLog} />
-            </div>
-          )}
-          <div className="flex gap-3 justify-center mt-4">
-            {isComplete && (
-              <Button
-                onClick={() =>
-                  router.push(`/books/${bookId}/metadata-review`)
-                }
-              >
-                Review Metadata
-              </Button>
-            )}
-            {(isComplete || isFailed) && (
-              <Button
-                variant="outline"
-                onClick={() => setActiveJobId(null)}
-              >
-                Back to Config
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowStepper bookId={bookId} currentStep={currentStep < 5 ? 5 : currentStep} completedStep={completedStep} />
+      <WorkflowShell bookId={bookId} />
 
       <PageContainer>
         <PageHeader
@@ -262,11 +194,58 @@ export default function LlmConfigPage() {
           description={
             <>
               {book.title || book.filename} &bull;{" "}
-              {getLanguageName(book.language)} &bull; Configure
-              extraction parameters
+              {getLanguageName(book.language)} &bull; Configure extraction
+              parameters
             </>
           }
         />
+
+        {currentRunActive && (
+          <div className="mb-6">
+            <JobProgressCard
+              title="Running LLM extraction"
+              progress={progress.progress}
+              status={progress.job?.status}
+              phase={`Extracting ${totalBatches} batch groups of metadata fields`}
+              elapsedMs={progress.elapsedMs}
+              onCancel={progress.cancel}
+              cancelling={progress.cancelling}
+            />
+          </div>
+        )}
+
+        {currentRunComplete && (
+          <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--success-500)]/30 bg-[var(--success-50)] px-4 py-3 text-[var(--text-sm)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>Extraction complete.</span>
+              <LinkButton
+                href={`/books/${bookId}/metadata-review`}
+                size="sm"
+              >
+                Review metadata
+              </LinkButton>
+            </div>
+          </div>
+        )}
+
+        {currentRunFailed && (
+          <div className="mb-6">
+            <JobProgressCard
+              title="Extraction failed"
+              progress={progress.progress}
+              status="failed"
+              error={progress.errorLog ?? "The extraction job failed."}
+              onRetry={() => runMutation.mutate()}
+            />
+          </div>
+        )}
+
+        {ollamaUnreachable && (
+          <div className="mb-6 rounded-[var(--radius)] border border-[var(--warning-500)]/30 bg-[var(--warning-50)] px-4 py-3 text-[var(--text-sm)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]">
+            Ollama is unreachable or has no models installed. Start Ollama and
+            pull a model before running extraction.
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-3">
@@ -281,8 +260,8 @@ export default function LlmConfigPage() {
                       }
                     >
                       <option value="qwen2.5">qwen2.5 (default)</option>
-  {models
-    ?.filter((m) => m.name !== "qwen2.5")
+                      {models
+                        ?.filter((m) => m.name !== "qwen2.5")
                         .map((m) => (
                           <option key={m.name} value={m.name}>
                             {m.name}
@@ -291,12 +270,6 @@ export default function LlmConfigPage() {
                         ))}
                     </Select>
                   </Field>
-                  {models && models.length === 0 && (
-                    <p className="text-[var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
-                      No models detected. Ensure Ollama is running with a model
-                      pulled.
-                    </p>
-                  )}
 
                   <SliderControl
                     label="Temperature"
@@ -323,35 +296,35 @@ export default function LlmConfigPage() {
                 </Stack>
               </Card>
 
-              <Card title="Batching" description="How many fields per LLM call.">
+              <Card title="Batching" description="One call per field group.">
                 <Stack gap={3}>
-                  <SliderControl
-                    label="Fields per Batch"
-                    value={config.fields_per_batch}
-                    min={3}
-                    max={20}
-                    onChange={(v) =>
-                      setConfig((prev) => ({ ...prev, fields_per_batch: v }))
-                    }
-                  />
                   <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
                     {totalBatches} LLM call{totalBatches !== 1 ? "s" : ""} will be
-                    made ({fieldDefs?.length ?? 0} fields ÷ {config.fields_per_batch}{" "}
-                    per batch)
+                    made across {totalFields} fields (one per batch group).
                   </p>
 
                   <div className="pt-3 border-t border-[var(--border)] space-y-2">
+                    {hasPriorRun && (
+                      <p className="text-[var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                        A previous run exists. Running again replaces the
+                        extracted metadata.
+                      </p>
+                    )}
                     <Button
                       onClick={() => runMutation.mutate()}
                       disabled={
-                        runMutation.isPending || book.status === "llm_running"
+                        runMutation.isPending ||
+                        currentRunActive ||
+                        ollamaUnreachable
                       }
                       loading={runMutation.isPending}
                       className="w-full"
                     >
                       {runMutation.isPending
                         ? "Starting..."
-                        : "Run Extraction"}
+                        : hasPriorRun
+                          ? "Run again"
+                          : "Run Extraction"}
                     </Button>
 
                     {error && (

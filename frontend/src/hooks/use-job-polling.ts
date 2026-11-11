@@ -12,7 +12,7 @@ function isTerminalStatus(status: string): status is JobTerminalStatus {
 interface UseJobPollingOptions {
   bookId: string;
   jobId?: string;
-  jobType?: "ocr" | "llm" | "preprocessing";
+  jobType?: "ocr" | "llm" | "preprocessing" | "page_extraction";
   intervalMs?: number;
   enabled?: boolean;
 }
@@ -28,6 +28,8 @@ interface UseJobPollingReturn {
   progress: number;
   errorLog: string | null;
   isPolling: boolean;
+  isLoading: boolean;
+  refetch: () => void;
 }
 
 export function useJobPolling({
@@ -37,7 +39,7 @@ export function useJobPolling({
   intervalMs = 2000,
   enabled = true,
 }: UseJobPollingOptions): UseJobPollingReturn {
-  const { data: allJobs = [], isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ["book", bookId, "jobs"],
     queryFn: () => getBookJobs(bookId),
     refetchInterval: (query) => {
@@ -57,6 +59,7 @@ export function useJobPolling({
     },
     enabled: !!bookId && enabled,
   });
+  const { data: allJobs = [], isLoading } = query;
 
   // Filter jobs by type if specified
   const filteredJobs = jobType
@@ -86,5 +89,9 @@ export function useJobPolling({
     progress: job?.progress ?? 0,
     errorLog: job?.error_log ?? null,
     isPolling,
+    isLoading,
+    refetch: () => {
+      void query.refetch();
+    },
   };
 }

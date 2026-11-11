@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
@@ -69,7 +69,9 @@ export function useBookStatus({
     enabled: !!bookId,
     staleTime: 5_000,
   });
-  bookDataRef.current = bookQuery.data;
+  useEffect(() => {
+    bookDataRef.current = bookQuery.data;
+  }, [bookQuery.data]);
 
   const jobsQuery = useQuery({
     queryKey: ["book", bookId, "jobs"],
@@ -91,7 +93,9 @@ export function useBookStatus({
     },
     staleTime: 1_000,
   });
-  jobsDataRef.current = jobsQuery.data;
+  useEffect(() => {
+    jobsDataRef.current = jobsQuery.data;
+  }, [jobsQuery.data]);
 
   const handleJobComplete = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
@@ -125,7 +129,7 @@ export function useBookStatus({
     queryClient.invalidateQueries({ queryKey: ["book", bookId] });
   }, [queryClient, bookId]);
 
-  useSSE({
+  const { connectionMode: connectionModeFromSSE } = useSSE({
     bookId,
     enabled: !!bookId,
     onJobComplete: handleJobComplete,
@@ -159,7 +163,9 @@ export function useBookStatus({
     jobs.find((j) => j.status === "failed")?.error_log ??
     null;
 
-  const connectionMode: "sse" | "polling" | "idle" = isRunning ? "sse" : "idle";
+  const connectionMode: "sse" | "polling" | "idle" = isRunning
+    ? connectionModeFromSSE
+    : "idle";
 
   return {
     book,

@@ -44,9 +44,9 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: "min-h-11 min-w-11 h-8 px-3 text-[var(--text-sm)]",
-  md: "min-h-11 min-w-11 h-10 px-4 text-[var(--text-sm)]",
-  lg: "min-h-12 min-w-12 h-12 px-6 text-[var(--text-base)]",
+  sm: "h-8 px-3 text-[var(--text-sm)]",
+  md: "h-10 px-4 text-[var(--text-sm)]",
+  lg: "h-12 px-6 text-[var(--text-base)]",
 };
 
 /** Returns the className for a button — used by both <Button> and <LinkButton>. */

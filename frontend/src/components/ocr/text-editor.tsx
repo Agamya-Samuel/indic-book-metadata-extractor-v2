@@ -15,6 +15,8 @@ interface OcrTextEditorProps {
   onWordClick?: (index: number) => void;
   onSave?: (correctedText: string) => void;
   isSaving?: boolean;
+  /** Notifies the parent so it can install a navigation guard. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 interface WordGroup {
@@ -51,16 +53,20 @@ export default function OcrTextEditor({
   onWordClick,
   onSave,
   isSaving = false,
+  onDirtyChange,
 }: OcrTextEditorProps) {
   const [editMode, setEditMode] = useState(false);
-  const [editedText, setEditedText] = useState("");
+  const [draft, setDraft] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const wordRefs = useRef<Map<number, HTMLSpanElement>>(new Map());
 
   const displayText = correctedText ?? rawText ?? "";
   const hasCorrections = correctedText !== null && correctedText !== rawText;
 
-  const effectiveEditedText = editedText || displayText;
+  // The draft is only meaningful while editing. A cleared draft is a valid
+  // value (empty string), never a reason to fall back to the old text.
+  const effectiveText = editMode ? draft : displayText;
+  const isDirty = editMode && draft !== displayText;
 
   const grouped = useMemo(() => groupWordsByLine(words), [words]);
 
@@ -76,6 +82,10 @@ export default function OcrTextEditor({
     }
   }, [selectedIndex]);
 
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
   const handleWordClick = useCallback(
     (index: number) => {
       if (onWordClick) onWordClick(index);
@@ -84,16 +94,25 @@ export default function OcrTextEditor({
   );
 
   const handleSave = () => {
-    if (onSave) onSave(editMode ? editedText : displayText);
+    if (onSave) onSave(effectiveText);
   };
 
   const handleToggleEdit = () => {
     if (editMode) {
       setEditMode(false);
     } else {
-      setEditedText(displayText);
+      setDraft(displayText);
       setEditMode(true);
     }
+  };
+
+  const handleCancel = () => {
+    setDraft(displayText);
+    setEditMode(false);
+  };
+
+  const handleReset = () => {
+    setDraft(displayText);
   };
 
   return (
@@ -111,27 +130,53 @@ export default function OcrTextEditor({
               Edited
             </span>
           )}
+          {isDirty && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--warning-50)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--warning-700)] ring-1 ring-inset ring-[var(--warning-500)]/30 dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]">
+              Unsaved
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={editMode ? "secondary" : "outline"}
-            onClick={handleToggleEdit}
-          >
-            {editMode ? "Cancel edit" : "Edit text"}
-          </Button>
+          {editMode ? (
+            <>
+              {isDirty && (
+                <Button type="button" size="sm" variant="ghost" onClick={handleReset}>
+                  Reset
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="secondary" onClick={handleCancel}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleToggleEdit}
+            >
+              Edit text
+            </Button>
+          )}
           {onSave && (
             <Button
               type="button"
               size="sm"
               onClick={handleSave}
               loading={isSaving}
+              disabled={!isDirty}
             >
               {isSaving ? "Saving" : "Save corrections"}
             </Button>
           )}
         </div>
+      </div>
+
+      <div className="border-b border-[var(--border)] bg-[var(--surface-sunken)]/50 px-4 py-1.5">
+        <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+          Word boxes below are the original OCR layout — they are not updated by
+          text edits.
+        </p>
       </div>
 
       <div
@@ -142,51 +187,60 @@ export default function OcrTextEditor({
       >
         {editMode ? (
           <Textarea
-            value={effectiveEditedText}
-            onChange={(e) => setEditedText(e.target.value)}
+            value={effectiveText}
+            onChange={(e) => setDraft(e.target.value)}
             className="min-h-0 h-full font-mono text-[var(--text-sm)] resize-none"
             dir="auto"
             aria-label="Edit OCR text"
+            placeholder="No OCR text for this page. You can type the text here."
           />
         ) : (
           <div className="whitespace-pre-wrap" dir="auto">
-            {grouped.map((group) => (
-              <div
-                key={`block-${group.blockNum}-line-${group.lineNum}`}
-                className="mb-1"
-              >
-                {group.words.map(({ index, word }) => {
-                  const isSelected = index === selectedIndex;
-                  const isLowConf = word.confidence < 60;
+            {grouped.length === 0 ? (
+              <p className="text-[var(--text-muted)]">
+                No OCR text was detected for this page. Use{" "}
+                <span className="font-medium">Edit text</span> to enter it
+                manually.
+              </p>
+            ) : (
+              grouped.map((group) => (
+                <div
+                  key={`block-${group.blockNum}-line-${group.lineNum}`}
+                  className="mb-1"
+                >
+                  {group.words.map(({ index, word }) => {
+                    const isSelected = index === selectedIndex;
+                    const isLowConf = word.confidence < 60;
 
-                  return (
-                    <button
-                      key={`word-${index}`}
-                      type="button"
-                      ref={(el) => {
-                        if (el) wordRefs.current.set(index, el);
-                      }}
-                      onClick={() => handleWordClick(index)}
-                      aria-label={`${word.text}, confidence ${word.confidence} percent${isLowConf ? ", uncertain" : ""}`}
-                      aria-current={isSelected ? "true" : undefined}
-                      className={cn(
-                        "cursor-pointer rounded-[var(--radius-xs)] px-0.5",
-                        "min-h-0 leading-inherit",
-                        "transition-colors duration-[var(--duration-fast)]",
-                        focusRingOffset1,
-                        isSelected
-                          ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-1 ring-inset ring-[var(--accent-ring)]/40"
-                          : isLowConf
-                            ? "underline decoration-[var(--danger-500)] decoration-2 underline-offset-2 hover:bg-[var(--danger-50)] dark:hover:bg-[var(--danger-900)]/20"
-                            : "hover:bg-[var(--surface-sunken)]",
-                      )}
-                    >
-                      {word.text}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+                    return (
+                      <button
+                        key={`word-${index}`}
+                        type="button"
+                        ref={(el) => {
+                          if (el) wordRefs.current.set(index, el);
+                        }}
+                        onClick={() => handleWordClick(index)}
+                        aria-label={`${word.text}, confidence ${word.confidence} percent${isLowConf ? ", uncertain" : ""}`}
+                        aria-current={isSelected ? "true" : undefined}
+                        className={cn(
+                          "cursor-pointer rounded-[var(--radius-xs)] px-0.5",
+                          "min-h-0 leading-inherit",
+                          "transition-colors duration-[var(--duration-fast)]",
+                          focusRingOffset1,
+                          isSelected
+                            ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-1 ring-inset ring-[var(--accent-ring)]/40"
+                            : isLowConf
+                              ? "underline decoration-[var(--danger-500)] decoration-2 underline-offset-2 hover:bg-[var(--danger-50)] dark:hover:bg-[var(--danger-900)]/20"
+                              : "hover:bg-[var(--surface-sunken)]",
+                        )}
+                      >
+                        {word.text}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
