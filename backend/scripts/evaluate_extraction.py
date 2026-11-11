@@ -142,7 +142,7 @@ def load_expected(path: str) -> dict:
     return data
 
 
-def run_pipeline_on_pdf(pdf_path: str, model: str = "qwen2.5") -> dict:
+def run_pipeline_on_pdf(pdf_path: str, model: str = "qwen2.5", max_pages: int = 20, language: str = "tel") -> dict:
     """Run the full pipeline (preprocess + OCR + LLM extraction) on a PDF.
 
     This is a thin wrapper around the existing services. It uses
@@ -176,16 +176,16 @@ def run_pipeline_on_pdf(pdf_path: str, model: str = "qwen2.5") -> dict:
             total = get_page_count(pdf)
             tmpdir = Path(tempfile.mkdtemp(prefix="gteval_"))
             ocr_texts: list[PageText] = []
-            for pageno in range(1, min(total, 20) + 1):
+            for pageno in range(1, min(total, max_pages) + 1):
                 img = tmpdir / f"p{pageno:04d}.png"
                 render_full_page(pdf, pageno, img)
-                data = run_ocr(img, "tel", page_position=pageno - 1)
+                data = run_ocr(img, language, page_position=pageno - 1)
                 if data.get("full_text"):
                     ocr_texts.append(PageText(page_number=pageno, text=data["full_text"]))
 
             llm = LLMService()
             metadata, _, _ = await llm.run_hybrid_full_extraction(
-                ocr_text="", pages=ocr_texts, language="tel", model=model
+                ocr_text="", pages=ocr_texts, language=language, model=model
             )
             return metadata.model_dump()
 
@@ -231,6 +231,7 @@ def main() -> int:
     )
     parser.add_argument("--model", default="qwen2.5", help="Ollama model for extraction (default qwen2.5)")
     parser.add_argument("--limit", type=int, default=0, help="Max books to score (0 = all)")
+    parser.add_argument("--pages", type=int, default=20, help="Max pages to render/OCR per book (default 20)")
     parser.add_argument(
         "-v",
         "--verbose",
@@ -278,7 +279,11 @@ def main() -> int:
             predicted = {k: v for k, v in expected.items() if k in all_field_names}
         else:
             t0 = time.time()
-            predicted = run_pipeline_on_pdf(sample["pdf_path"], model=args.model)
+            env = json.loads(Path(sample["expected_path"]).read_text(encoding="utf-8"))
+            book_lang = env.get("language", "tel") if isinstance(env, dict) else "tel"
+            predicted = run_pipeline_on_pdf(
+                sample["pdf_path"], model=args.model, max_pages=args.pages, language=book_lang
+            )
             dt = time.time() - t0
             print(f"Pipeline took {dt:.1f}s")
 

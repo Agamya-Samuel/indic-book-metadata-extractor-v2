@@ -35,7 +35,13 @@ def gen(model, system_prompt, prompt, schema, think):
             {"role": "user", "content": prompt},
         ],
         "stream": False,
-        "options": {"num_ctx": 8192, "num_predict": 512, "temperature": 0},
+        "keep_alive": "30m",
+        "options": {
+            "num_ctx": 8192,
+            "num_predict": 1024,
+            "temperature": 0,
+            "repeat_penalty": 1.1,
+        },
     }
     if think:
         base["think"] = False
