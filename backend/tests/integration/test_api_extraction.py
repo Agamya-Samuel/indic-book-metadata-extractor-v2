@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
@@ -35,9 +33,13 @@ async def _create_book_with_ocr(client, make_book, db_session):
         )
         db_session.add(ocr)
 
-    book_result = await db_session.execute(select(Book).where(Book.id == book_id))
-    book_obj = book_result.scalar_one()
-    book_obj.status = BookStatus.OCR_COMPLETE
+    # Drive the OCR stage the way the pipeline does, so book.status is derived
+    # from stage state rather than assigned directly.
+    from app.services.stage_manager import StageManager
+
+    await StageManager.initiate_stage(db_session, book_id, "ocr")
+    await StageManager.start_stage(db_session, book_id, "ocr")
+    await StageManager.complete_stage(db_session, book_id, "ocr")
     await db_session.commit()
 
     return book

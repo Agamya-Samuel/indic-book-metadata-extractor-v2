@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -21,6 +21,7 @@ from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
+from app.models.stage import StageStatus
 from app.services import storage
 from app.services.stage_manager import StageManager
 
@@ -216,9 +217,8 @@ async def reset_book(db: AsyncSession, book_id: UUID) -> Book:
     await db.commit()
     await db.refresh(book)
 
-    async with async_session_factory() as stage_db:
-        await StageManager.reset_book(stage_db, book_id)
-        await stage_db.commit()
+    await StageManager.reset_book(db, book_id)
+    await db.commit()
 
     # Clean page-derived artifacts on disk (keep the original PDF)
     _purge_book_artifacts(book_id, keep_original=True)
@@ -282,13 +282,12 @@ async def rerun_ocr(db: AsyncSession, book_id: UUID) -> Job:
     await db.commit()
     await db.refresh(job)
 
-    async with async_session_factory() as stage_db:
-        existing = await StageManager.get_stage(stage_db, book_id, "ocr")
-        if existing and existing.status not in (StageStatus.COMPLETED,):
-            await StageManager.complete_stage(stage_db, book_id, "ocr")
-        await StageManager.initiate_stage(stage_db, book_id, "ocr")
-        await StageManager.start_stage(stage_db, book_id, "ocr")
-        await stage_db.commit()
+    existing = await StageManager.get_stage(db, book_id, "ocr")
+    if existing and existing.status in (StageStatus.INITIATED, StageStatus.PROCESSING):
+        await StageManager.cancel_stage(db, book_id, "ocr", "Superseded by rerun")
+    await StageManager.initiate_stage(db, book_id, "ocr")
+    await StageManager.start_stage(db, book_id, "ocr")
+    await db.commit()
 
     # Commit succeeded — now safe to unlink the processed images.
     for fp in files_to_unlink:
@@ -349,13 +348,12 @@ async def rerun_extraction(db: AsyncSession, book_id: UUID) -> Job:
     await db.commit()
     await db.refresh(job)
 
-    async with async_session_factory() as stage_db:
-        existing = await StageManager.get_stage(stage_db, book_id, "llm_extraction")
-        if existing and existing.status not in (StageStatus.COMPLETED,):
-            await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
-        await StageManager.initiate_stage(stage_db, book_id, "llm_extraction")
-        await StageManager.start_stage(stage_db, book_id, "llm_extraction")
-        await stage_db.commit()
+    existing = await StageManager.get_stage(db, book_id, "llm_extraction")
+    if existing and existing.status in (StageStatus.INITIATED, StageStatus.PROCESSING):
+        await StageManager.cancel_stage(db, book_id, "llm_extraction", "Superseded by rerun")
+    await StageManager.initiate_stage(db, book_id, "llm_extraction")
+    await StageManager.start_stage(db, book_id, "llm_extraction")
+    await db.commit()
 
     from app.tasks.llm_tasks import run_llm_extraction
     run_llm_extraction.delay(str(job.id), str(book_id))

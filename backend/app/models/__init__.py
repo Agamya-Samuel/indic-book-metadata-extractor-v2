@@ -7,11 +7,14 @@ from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
+from app.models.stage import BookStage, BookStageStatus, StageStatus
 
 __all__ = [
     "Base",
     "Book",
     "BookMetadata",
+    "BookStage",
+    "BookStageStatus",
     "BookStatus",
     "Embedding",
     "Job",
@@ -21,4 +24,5 @@ __all__ = [
     "MetadataFieldEvidence",
     "OcrResult",
     "Page",
+    "StageStatus",
 ]

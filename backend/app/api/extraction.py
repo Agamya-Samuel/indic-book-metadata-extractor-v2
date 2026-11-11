@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_book_or_404
-from app.core.database import async_session_factory, get_db
+from app.core.database import get_db
 from app.models.book import BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
@@ -40,10 +40,10 @@ async def run_extraction(
 ) -> ExtractionResponse:
     book = await get_book_or_404(book_id, db)
 
-    if book.status not in (BookStatus.OCR_COMPLETE,):
+    if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
         raise HTTPException(
             status_code=400,
-            detail=f"Book status must be 'ocr_complete', got '{book.status}'",
+            detail=f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'",
         )
 
     pages_result = await db.execute(
@@ -80,7 +80,6 @@ async def run_extraction(
             detail="An LLM extraction job is already running or queued for this book",
         )
 
-    from app.schemas.metadata import BATCH_FIELD_ORDER
 
     job = Job(
         book_id=book_id,
@@ -92,10 +91,9 @@ async def run_extraction(
     await db.commit()
     await db.refresh(job)
 
-    async with async_session_factory() as stage_db:
-        await StageManager.initiate_stage(stage_db, book_id, "llm_extraction")
-        await StageManager.start_stage(stage_db, book_id, "llm_extraction")
-        await stage_db.commit()
+    await StageManager.initiate_stage(db, book_id, "llm_extraction")
+    await StageManager.start_stage(db, book_id, "llm_extraction")
+    await db.commit()
 
     from app.tasks.llm_tasks import run_llm_extraction
 
@@ -135,12 +133,9 @@ async def retry_extraction(
             detail=f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'",
         )
 
-    async with async_session_factory() as stage_db:
-        existing = await StageManager.get_stage(stage_db, book_id, "llm_extraction")
-        if existing and existing.status not in (
-            StageStatus.COMPLETED,
-        ):
-            await StageManager.complete_stage(stage_db, book_id, "llm_extraction")
-        await stage_db.commit()
+    existing = await StageManager.get_stage(db, book_id, "llm_extraction")
+    if existing and existing.status in (StageStatus.INITIATED, StageStatus.PROCESSING):
+        await StageManager.cancel_stage(db, book_id, "llm_extraction", "Superseded by retry")
+        await db.commit()
 
     return await run_extraction(book_id, body, db)

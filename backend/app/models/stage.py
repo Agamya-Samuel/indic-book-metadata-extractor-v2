@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
-    Column,
     DateTime,
     ForeignKey,
     Integer,
