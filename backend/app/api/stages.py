@@ -1,13 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_book_or_404
 from app.core.database import get_db
-from app.models.book import Book
-from app.models.stage import BookStageStatus, get_current_stages, get_stage
+from app.models.stage import BookStageStatus, get_current_stages
 from app.schemas.stage import StageStatusResponse
 
 router = APIRouter()

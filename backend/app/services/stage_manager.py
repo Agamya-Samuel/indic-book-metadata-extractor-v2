@@ -3,17 +3,13 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
 
-from app.core.database import async_session_factory
-from app.models.base import uuid
 from app.models.book import Book, BookStatus
 from app.models.stage import (
     BookStage,
     BookStageStatus,
     StageStatus,
     STAGE_ORDER,
-    get_stage,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,8 +17,10 @@ logger = logging.getLogger(__name__)
 BOOK_STATUS_MAP = {
     (BookStage.UPLOAD, StageStatus.INITIATED): BookStatus.UPLOADED,
     (BookStage.UPLOAD, StageStatus.PROCESSING): BookStatus.UPLOADED,
+    (BookStage.UPLOAD, StageStatus.COMPLETED): BookStatus.UPLOADED,
     (BookStage.PAGE_SELECTION, StageStatus.INITIATED): BookStatus.PAGES_SELECTED,
     (BookStage.PAGE_SELECTION, StageStatus.PROCESSING): BookStatus.PAGES_SELECTED,
+    (BookStage.PAGE_SELECTION, StageStatus.COMPLETED): BookStatus.PAGES_SELECTED,
     (BookStage.OCR, StageStatus.INITIATED): BookStatus.OCR_RUNNING,
     (BookStage.OCR, StageStatus.PROCESSING): BookStatus.OCR_RUNNING,
     (BookStage.OCR, StageStatus.COMPLETED): BookStatus.OCR_COMPLETE,
@@ -31,6 +29,7 @@ BOOK_STATUS_MAP = {
     (BookStage.LLM_EXTRACTION, StageStatus.COMPLETED): BookStatus.AWAITING_REVIEW,
     (BookStage.HUMAN_REVIEW, StageStatus.INITIATED): BookStatus.AWAITING_REVIEW,
     (BookStage.HUMAN_REVIEW, StageStatus.PROCESSING): BookStatus.AWAITING_REVIEW,
+    (BookStage.HUMAN_REVIEW, StageStatus.COMPLETED): BookStatus.AWAITING_REVIEW,
     (BookStage.COMPLETION, StageStatus.COMPLETED): BookStatus.COMPLETE,
 }
 
@@ -108,7 +107,7 @@ class StageManager:
         has_failed_or_cancelled = any(s.status in (StageStatus.FAILED, StageStatus.CANCELLED) for s in stages)
 
         if has_failed_or_cancelled:
-            for stage in STAGE_ORDER:
+            for stage in reversed(STAGE_ORDER):
                 s = stage_map.get(stage)
                 if s and s.status in (StageStatus.COMPLETED, StageStatus.FAILED, StageStatus.CANCELLED):
                     derived = BOOK_STATUS_MAP.get((stage, s.status))
@@ -116,7 +115,7 @@ class StageManager:
                         return derived
             return BookStatus.UPLOADED
 
-        for stage in STAGE_ORDER:
+        for stage in reversed(STAGE_ORDER):
             s = stage_map.get(stage)
             if s:
                 derived = BOOK_STATUS_MAP.get((stage, s.status))
@@ -139,8 +138,13 @@ class StageManager:
         stage_idx = STAGE_ORDER.index(stage_name)
         if stage_idx == 0:
             return
+        # Books created before stage tracking was introduced have no stage
+        # rows at all. Treat them as legacy and let the transition through
+        # rather than locking existing books out of the pipeline.
+        if not await StageManager.get_current_stages(db, book_id):
+            return
         prior_stage = STAGE_ORDER[stage_idx - 1]
-        prior = await get_stage(db, book_id, prior_stage)
+        prior = await StageManager.get_stage(db, book_id, prior_stage)
         if prior is None or prior.status not in TERMINAL_STATUSES:
             raise StageTransitionError(
                 f"Cannot initiate '{stage_name}': prior stage '{prior_stage}' is not completed (status={prior.status if prior else 'missing'})"
@@ -151,7 +155,7 @@ class StageManager:
         await StageManager._validate_sequential(db, book_id, stage_name)
 
         max_attempt = 1
-        existing = await get_stage(db, book_id, stage_name)
+        existing = await StageManager.get_stage(db, book_id, stage_name)
         if existing is not None:
             max_attempt = existing.attempt + 1
 
@@ -168,7 +172,7 @@ class StageManager:
 
     @staticmethod
     async def start_stage(db, book_id: UUID, stage_name: str, attempt: int | None = None) -> BookStageStatus:
-        row = await get_stage(db, book_id, stage_name, attempt)
+        row = await StageManager.get_stage(db, book_id, stage_name, attempt)
         if row is None:
             raise StageTransitionError(f"Stage '{stage_name}' not found for book {book_id}")
         row = await StageManager._lock_stage(db, book_id, stage_name, row.attempt)
@@ -182,7 +186,7 @@ class StageManager:
 
     @staticmethod
     async def complete_stage(db, book_id: UUID, stage_name: str, attempt: int | None = None) -> BookStageStatus:
-        row = await get_stage(db, book_id, stage_name, attempt)
+        row = await StageManager.get_stage(db, book_id, stage_name, attempt)
         if row is None:
             raise StageTransitionError(f"Stage '{stage_name}' not found for book {book_id}")
         row = await StageManager._lock_stage(db, book_id, stage_name, row.attempt)
@@ -196,7 +200,7 @@ class StageManager:
 
     @staticmethod
     async def fail_stage(db, book_id: UUID, stage_name: str, error_log: str = "", attempt: int | None = None) -> BookStageStatus:
-        row = await get_stage(db, book_id, stage_name, attempt)
+        row = await StageManager.get_stage(db, book_id, stage_name, attempt)
         if row is None:
             raise StageTransitionError(f"Stage '{stage_name}' not found for book {book_id}")
         row = await StageManager._lock_stage(db, book_id, stage_name, row.attempt)
@@ -211,7 +215,7 @@ class StageManager:
 
     @staticmethod
     async def cancel_stage(db, book_id: UUID, stage_name: str, error_log: str = "", attempt: int | None = None) -> BookStageStatus:
-        row = await get_stage(db, book_id, stage_name, attempt)
+        row = await StageManager.get_stage(db, book_id, stage_name, attempt)
         if row is None:
             raise StageTransitionError(f"Stage '{stage_name}' not found for book {book_id}")
         row = await StageManager._lock_stage(db, book_id, stage_name, row.attempt)

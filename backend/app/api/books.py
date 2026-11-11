@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.database import async_session_factory, get_db
+from app.core.database import get_db
 from app.models.base import uuid
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobType, JobStatus
@@ -29,7 +29,7 @@ from app.schemas.job import JobResponse
 from app.services import pdf_service, preprocessing, storage
 from app.services.ocr_service import LANGUAGE_MAP
 from app.services.search_service import SearchService
-from app.services.stage_manager import StageManager, StageTransitionError
+from app.services.stage_manager import StageManager
 from app.api.deps import get_book_or_404
 
 VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
@@ -100,10 +100,10 @@ async def upload_book(
     await db.commit()
     await db.refresh(book)
 
-    async with async_session_factory() as stage_db:
-        await StageManager.initiate_stage(stage_db, book.id, "upload")
-        await StageManager.complete_stage(stage_db, book.id, "upload")
-        await stage_db.commit()
+    await StageManager.initiate_stage(db, book.id, "upload")
+    await StageManager.start_stage(db, book.id, "upload")
+    await StageManager.complete_stage(db, book.id, "upload")
+    await db.commit()
 
     background_tasks.add_task(_pre_render_thumbnails, str(book_id), pdf_path, page_count)
 
@@ -198,9 +198,10 @@ async def select_pages(
     book.status = BookStatus.PAGES_SELECTED
     await db.commit()
 
-    async with async_session_factory() as stage_db:
-        await StageManager.complete_stage(stage_db, book_id, "page_selection")
-        await stage_db.commit()
+    await StageManager.initiate_stage(db, book_id, "page_selection")
+    await StageManager.start_stage(db, book_id, "page_selection")
+    await StageManager.complete_stage(db, book_id, "page_selection")
+    await db.commit()
 
     return PageSelectionResponse(
         book_id=book_id,
@@ -264,10 +265,9 @@ async def run_ocr(
     await db.commit()
     await db.refresh(job)
 
-    async with async_session_factory() as stage_db:
-        await StageManager.initiate_stage(stage_db, book_id, "ocr")
-        await StageManager.start_stage(stage_db, book_id, "ocr")
-        await stage_db.commit()
+    await StageManager.initiate_stage(db, book_id, "ocr")
+    await StageManager.start_stage(db, book_id, "ocr")
+    await db.commit()
 
     from app.tasks.ocr_tasks import preprocess_pages_for_book
 

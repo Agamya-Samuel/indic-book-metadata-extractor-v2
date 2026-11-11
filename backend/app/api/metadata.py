@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.api.deps import get_book_or_404
-from app.core.database import async_session_factory, get_db
+from app.core.database import get_db
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobType
 from app.models.llm_run import LlmRun
@@ -87,12 +87,13 @@ async def update_metadata(
     book_result = await db.execute(select(Book).where(Book.id == book_id))
     book = book_result.scalar_one_or_none()
     if book is not None and book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):
-        async with async_session_factory() as stage_db:
-            await StageManager.initiate_stage(stage_db, book_id, "human_review")
-            await StageManager.complete_stage(stage_db, book_id, "human_review")
-            await StageManager.initiate_stage(stage_db, book_id, "completion")
-            await StageManager.complete_stage(stage_db, book_id, "completion")
-            await stage_db.commit()
+        await StageManager.initiate_stage(db, book_id, "human_review")
+        await StageManager.start_stage(db, book_id, "human_review")
+        await StageManager.complete_stage(db, book_id, "human_review")
+        await StageManager.initiate_stage(db, book_id, "completion")
+        await StageManager.start_stage(db, book_id, "completion")
+        await StageManager.complete_stage(db, book_id, "completion")
+        await db.commit()
 
     await db.commit()
     await db.refresh(metadata)
