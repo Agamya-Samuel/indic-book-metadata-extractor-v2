@@ -64,8 +64,8 @@ All three nodes are identical so results are comparable across them.
 | Node | Status | Current task | Owner | Since | Notes / results |
 |---|---|---|---|---|---|
 | test-node-1 | claimed | resource-profile | Qoder agent | 2026-11-10 | Peak CPU/RAM sampling of OCR+LLM pipeline; serial single-book config. Results → `learnings/`. |
-| test-node-2 | idle | unassigned | — | — | — |
-| test-node-3 | idle | unassigned | — | — | — |
+| test-node-2 | idle | unassigned | — | 2026-11-11 | `llm-model-eval` done: resource/speed/JSON sweep (7 models) + accuracy on verified Telugu Athma — `gemma4:e4b` 0.636 › `qwen3.5:4b` 0.545 › `qwen3:4b-2507` 0.182 › `qwen2.5:7b` 0.091 → [learnings/005](../learnings/005-llm-model-evaluation.md). Node **stopped** (spend guardrail); Ollama container + models persist on disk for restart. |
+| test-node-3 | idle | unassigned | — | 2026-11-11 | GT accuracy eval done — 8 books, `qwen2.5:3b`, micro-F1 **0.308** → [learnings/006](../learnings/006-first-real-accuracy.md); report `backend/reports/gt-eval-qwen2.5-3b.json`. **Node stopped** (disk retains code+GT+models for fast restart). |
 
 Status values: `idle` · `claimed` (setup) · `running` · `blocked`.
 Keep this table and the instance `task` label in sync.
