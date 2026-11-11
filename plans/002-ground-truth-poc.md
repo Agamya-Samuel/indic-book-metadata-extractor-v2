@@ -143,6 +143,26 @@ backend/tests/fixtures/ground_truth/
 - PoC languages: Telugu + Hindi (current pipeline). Default `--limit 5`, metadata-only.
 - Hindi pool: direct PDFs of `Hindi-language books` + `--recurse` into Tarun Bharat Sangh/Premchand if needed.
 
+## Round 1 result (2026-11-11) — dataset expanded + enriched
+
+- Books: **6 → 14** (9 Telugu, 5 Hindi), all CC/PD; PDFs downloaded with `--max-size-mb 40` (~245 MB total, git-ignored; only the JSON is tracked).
+- New script: [enrich_ground_truth.py](../backend/scripts/enrich_ground_truth.py) — merges metadata from **(1) `te.wikisource` Index headers** and **(2) Internet Archive metadata**; every value `prefilled_needs_verification`; records `field_source`.
+- Coverage: **4–11 / 49** fields per book. Remaining fields genuinely absent for pre-ISBN-era books (correct `null`).
+- Findings: [learnings/002](../learnings/002-gt-enrichment-sources.md) (hi.wikisource has no proofreading namespace; Commons files carry no wikibase link; te.wikisource has 500+ Index pages).
+- Env: run the scripts with `NO_PROXY` cleared (a bracketed `[::1]` entry makes `httpx.Client` raise `Invalid port`).
+
+Success-criteria status: #1 (≥15 books) **not yet met** (14); human verification (#2) and the first scored run (#3–4) still pending.
+
+## Round 2 result (2026-11-11) — Wikisource seeder + harness wired
+
+- **New seeder:** [fetch_from_wikisource.py](../backend/scripts/fetch_from_wikisource.py) enumerates `te.wikisource` Index pages → Commons PDF → GT book dir (metadata from the Index header). +5 Telugu books → corpus **19** (14 tel / 5 hin).
+- **OCR GT:** reused [fetch_wikisource_gt.py](../backend/scripts/fetch_wikisource_gt.py) → `wikisource_gt.json` for **14 Telugu books** (SHA1-verified page alignment, level 3/4 text).
+- **Harness:** `evaluate_extraction.py --ground-truth [DIR] [--include-unverified]` scores the per-book corpus via `extraction_validator` (unchanged). A `--stub` run over 19 books wrote `/tmp/gt-report.json` (wiring validated; F1=1.0 by construction).
+- **Blocker for real numbers:** Ollama + Postgres are not running, so `run_pipeline_on_pdf` is unavailable. Run `--ground-truth --verified-only` once they are up.
+- Detail: [learnings/003](../learnings/003-harness-and-wikisource-scaling.md).
+
+Success-criteria status: #1 (≥15 books) **met** (19 books; 14 with OCR GT). #2 human verification **pending**. #3–4 (real scored report, attribution) **blocked** on Ollama+Postgres.
+
 ## References
 
 - Feasibility: [learnings/001](../learnings/001-ground-truth-dataset-feasibility.md)
