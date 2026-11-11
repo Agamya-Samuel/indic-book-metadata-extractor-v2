@@ -380,6 +380,21 @@ export const updatePreprocessing = async (
   return response.data;
 };
 
+export const previewPreprocessing = async (
+  pageId: string,
+  config: PreprocessingConfig
+): Promise<PreprocessingPreviewResponse> => {
+  const response = await api.post<PreprocessingPreviewResponse>(
+    `/pages/${pageId}/preprocessing/preview`,
+    config
+  );
+  return response.data;
+};
+
+export const getPreprocessingPreviewUrl = (pageId: string): string => {
+  return `${api.defaults.baseURL}/pages/${pageId}/preprocessing/preview`;
+};
+
 export const getPageImageUrl = (pageId: string): string => {
   return `${api.defaults.baseURL}/pages/${pageId}/image`;
 };
