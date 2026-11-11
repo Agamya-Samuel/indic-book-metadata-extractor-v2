@@ -41,6 +41,7 @@ from app.services.extraction_validator import (
 logger = logging.getLogger(__name__)
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "samples"
+GT_ROOT = FIXTURE_ROOT.parent / "ground_truth"
 
 
 def discover_samples(quality: str = "clean") -> list[dict]:
@@ -78,6 +79,58 @@ def discover_samples(quality: str = "clean") -> list[dict]:
                 "expected_path": str(expected_path),
             }
         )
+    return samples
+
+
+def discover_ground_truth(root: Path | None = None, only_verified: bool = True) -> list[dict]:
+    """Find per-book ground truth under ``ground_truth/{lang}/{slug}/``.
+
+    Unlike :func:`discover_samples`, which supports a single book per
+    ``{lang}/{quality}/`` directory, this layout keeps one directory per
+    book so the Commons corpus can grow without restructuring.
+
+    Only books with ``verification_status == "verified"`` are scored by
+    default: Commons-prefilled metadata is a scaffold, not ground truth.
+    A bare expectation dict (no envelope) is treated as already verified.
+    """
+    root = root or GT_ROOT
+    samples: list[dict] = []
+    if not root.exists():
+        return samples
+    for lang_dir in sorted(root.iterdir()):
+        if not lang_dir.is_dir():
+            continue
+        for book_dir in sorted(lang_dir.iterdir()):
+            if not book_dir.is_dir():
+                continue
+            expected_path = book_dir / "expected_metadata.json"
+            if not expected_path.exists():
+                logger.info("Skipping %s (no expected_metadata.json)", book_dir)
+                continue
+            if only_verified:
+                try:
+                    envelope = json.loads(expected_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    logger.warning("Skipping %s (unreadable GT: %s)", expected_path, exc)
+                    continue
+                status = envelope.get("verification_status") if isinstance(envelope, dict) else None
+                if status is not None and status != "verified":
+                    logger.info("Skipping %s (verification_status=%s)", book_dir.name, status)
+                    continue
+            pdf_path = book_dir / "original.pdf"
+            if not pdf_path.exists():
+                pdfs = sorted(book_dir.glob("*.pdf"))
+                pdf_path = pdfs[0] if pdfs else None
+            if pdf_path is None:
+                logger.info("Skipping %s (no PDF present)", book_dir)
+                continue
+            samples.append(
+                {
+                    "sample_id": f"{lang_dir.name}/{book_dir.name}",
+                    "pdf_path": str(pdf_path),
+                    "expected_path": str(expected_path),
+                }
+            )
     return samples
 
 
@@ -212,6 +265,22 @@ def main() -> int:
         help="Use stub predictions (for testing the diff logic without running the pipeline)",
     )
     parser.add_argument(
+        "--ground-truth",
+        nargs="?",
+        const=str(GT_ROOT),
+        default=None,
+        metavar="DIR",
+        help=(
+            "Score the per-book Commons corpus under ground_truth/{lang}/{slug}/ "
+            f"instead of fixtures/samples (default dir: {GT_ROOT})"
+        ),
+    )
+    parser.add_argument(
+        "--include-unverified",
+        action="store_true",
+        help="With --ground-truth, also include books whose metadata is still an unverified scaffold",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -223,9 +292,22 @@ def main() -> int:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    samples = discover_samples(quality=args.quality)
+    if args.ground_truth:
+        samples = discover_ground_truth(
+            Path(args.ground_truth),
+            only_verified=not args.include_unverified,
+        )
+    else:
+        samples = discover_samples(quality=args.quality)
     if not samples:
-        print("No samples with PDFs found. Add PDFs to fixtures or run --stub.", file=sys.stderr)
+        if args.ground_truth:
+            print(
+                "No verified ground-truth books with PDFs found. "
+                "Verify a book (verification_status=verified) or pass --include-unverified.",
+                file=sys.stderr,
+            )
+        else:
+            print("No samples with PDFs found. Add PDFs to fixtures or run --stub.", file=sys.stderr)
         return 1
 
     print(f"Found {len(samples)} samples with PDFs:")
