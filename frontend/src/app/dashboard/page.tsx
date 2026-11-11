@@ -37,7 +37,7 @@ import { getErrorMessage } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 
 const JOB_STATUSES = ["queued", "running", "completed", "failed", "cancelled"];
-const JOB_TYPES = ["ocr", "llm", "preprocessing"];
+const JOB_TYPES = ["page_extraction", "ocr", "llm", "preprocessing"];
 
 const PAGE_SIZE = 20;
 
@@ -116,7 +116,12 @@ export default function DashboardPage() {
 
   const jobsParams = {
     status: statusFilter || undefined,
-    job_type: (typeFilter || undefined) as "ocr" | "llm" | "preprocessing" | undefined,
+    job_type: (typeFilter || undefined) as
+      | "page_extraction"
+      | "ocr"
+      | "llm"
+      | "preprocessing"
+      | undefined,
     page: jobPage,
     page_size: PAGE_SIZE,
   };

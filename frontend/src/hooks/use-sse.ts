@@ -344,7 +344,9 @@ export function useSSE({
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
     const url = `${apiUrl}/sse/books/${bookId}/events`;
 
-    const eventSource = new EventSource(url);
+    // `withCredentials` is required for the cross-origin dev setup
+    // (localhost:3000 -> localhost:8000) so the auth cookie is sent.
+    const eventSource = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
