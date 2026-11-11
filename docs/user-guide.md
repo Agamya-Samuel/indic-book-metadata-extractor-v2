@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Indic Book Metadata Extractor is a web application that helps you extract structured bibliographic metadata from scanned PDFs of books in Telugu and Hindi. The application uses Tesseract OCR to read text from scanned pages, then uses a locally-hosted AI model (Airavata 7B) to extract 52 metadata fields.
+Indic Book Metadata Extractor is a web application that helps you extract structured bibliographic metadata from scanned PDFs of books in Telugu and Hindi. The application uses Tesseract OCR to read text from scanned pages, then uses a locally-hosted AI model (Qwen2.5 7B by default) to extract 52 metadata fields.
 
 **Browser requirements**: Any modern browser (Chrome, Firefox, Edge, Safari).
 
@@ -13,6 +13,60 @@ Indic Book Metadata Extractor is a web application that helps you extract struct
 1. Ensure the application is running (see the [README](../README.md) for setup instructions)
 2. Open **http://localhost:3000** in your browser
 3. You'll see the home page with two options: **Upload a Book** and **Browse Library**
+
+You can browse the Library without an account, but uploading a book and
+everything else in the workflow requires a sign-in.
+
+---
+
+## Accounts
+
+### Creating an account
+
+1. Click **Register** in the navbar (or **Create an account** on the login page)
+2. Enter a display name, email address, and a password (minimum 10 characters)
+3. Check your inbox for the verification email and click the link
+4. The account is now active — log in with your email and password
+
+The verification link expires after 24 hours. If it expires, use **Resend
+verification** on the login page.
+
+### Signing in and out
+
+- **Log in** with your email address and password from the navbar or
+  `http://localhost:3000/login`
+- **Forgot password?** — request a reset link on the login page; the link
+  expires after one hour and can be used once
+- **Log out** from the user menu (display name) in the navbar
+
+Sessions last 7 days. If you are signed out unexpectedly on many devices, an
+administrator may have reset your password or deactivated your account.
+
+### What each role can do
+
+| | Visitor | User | Admin |
+|---|---|---|---|
+| Browse the public Library | ✅ | ✅ | ✅ |
+| See page images, OCR text and job history of a book | — | Own books only | Any book |
+| Upload books, run the pipeline, edit metadata | — | Own books | Any book |
+| Personal dashboard with own books/jobs and queue position | — | ✅ | ✅ |
+| Manage users (create, roles, deactivate, reset password, delete) | — | — | ✅ |
+| Bulk operations (OpenRefine / Wikibase export) | — | — | ✅ |
+
+### Your dashboard
+
+**Dashboard** in the navbar shows everything you own:
+
+- **Your books** — total, complete, and awaiting review counts; each book row
+  has an **Actions** menu (open, jump to the current step, re-run OCR,
+  re-run extraction, reset, delete)
+- **Your jobs** — OCR and extraction jobs with status, progress and
+  **queue position** ("Next up", "N ahead", "Running now"); you can cancel
+  your own queued/running jobs
+
+The **Admin** section (admins only) additionally shows every book and job
+across all users, with an owner filter, plus the **Users** page for account
+administration.
 
 ---
 
@@ -46,18 +100,28 @@ The system will render high-resolution images of the selected pages.
 
 ## Step 3: Image Preprocessing
 
-1. For each selected page, you can tune image settings to improve OCR accuracy:
+1. Settings are seeded from the selected page's saved configuration, so each
+   page keeps its own tuning. Changing a control marks the page **Unsaved**.
+2. Controls:
+   - **Rotation**: ↺/↻ 90° steps, plus a fine-angle slider (±15°) applied after
+     automatic deskew
    - **Grayscale**: Convert to grayscale (recommended)
-   - **Brightness**: Adjust brightness (-100 to +100)
-   - **Contrast**: Adjust contrast (-100 to +100)
-   - **Binarization**: Choose Otsu or Adaptive thresholding
+   - **Brightness / Contrast**: -100 to +100
+   - **Binarization**: None, Otsu, Adaptive, or Sauvola (with window/k controls)
    - **Deskew**: Auto-correct page rotation (recommended)
-   - **Denoise**: Remove noise from scanned images
-2. Click **Preview** to see the processed result before applying
-3. Use **Apply to All** to apply the same settings to all pages
-4. Click **Run OCR** to start the OCR process
+   - **Denoise**: Remove noise; strength is adjustable
+   - **Advanced**: upscale to 300 DPI, border removal, auto-preprocess
+3. **Preview** renders a temporary image *without saving*. Use the
+   Current/Preview toggle to compare before committing.
+4. **Apply to this page** writes the processed image and configuration.
+   **Reset to defaults** restores the backend defaults.
+5. **Apply to all pages** applies the current settings to every page.
+6. **Run OCR** starts the OCR job. If OCR has already run, the button becomes
+   **Re-run OCR** and asks for confirmation first — it lists exactly what will
+   be discarded and what will be kept.
 
-OCR runs as a background task. You'll see a progress indicator while it processes each page.
+Applied pages show a ✓ badge in the thumbnail rail. OCR runs as a background
+task with live progress.
 
 ---
 
@@ -71,9 +135,14 @@ OCR runs as a background task. You'll see a progress indicator while it processe
    - **Green**: High confidence (>80%)
    - **Yellow**: Medium confidence (60-80%)
    - **Red**: Low confidence (<60%)
-4. Edit the text in the right panel to correct any OCR errors
-5. Use **Previous** / **Next** to navigate between pages
-6. Click **Save Corrections** to save your changes
+4. Click **Edit text**, correct any OCR errors, then **Save corrections**. The
+   save button stays disabled until the text actually changes, and clearing the
+   text to empty is allowed. Edits are tracked per page: switching pages or
+   navigating away with unsaved changes asks for confirmation.
+5. The word boxes on the image are the **original OCR layout** — they are not
+   updated by text edits.
+6. Use **Previous** / **Next** and the page strip to navigate between pages.
+7. Use **Save corrections** to save your changes.
 
 > **Tip**: OCR accuracy on Indic scripts varies. Focus on correcting key fields like title, author, and publisher — these are what the LLM uses for metadata extraction.
 
@@ -81,17 +150,23 @@ OCR runs as a background task. You'll see a progress indicator while it processe
 
 ## Step 5: LLM Configuration & Metadata Extraction
 
-1. Navigate to the **LLM Config** step
+1. Navigate to the **LLM Config** step. The configuration form is always
+   available — a running job shows as a progress card above the form instead
+   of replacing it.
 2. Configure extraction settings:
-   - **Model**: Choose from available Ollama models (Airavata recommended for Indic languages)
+   - **Model**: Choose from available Ollama models (Qwen2.5 7B is the default)
    - **Temperature**: Controls randomness (0.3 recommended for factual extraction)
    - **Max Tokens**: Maximum response length per batch
    - **System Prompt**: The instruction given to the model (editable)
    - **Extraction Prompt**: The prompt template used for each batch (editable)
-3. View the list of 52 metadata fields organized into 8 batches
-4. Click **Run Extraction** to start the LLM processing
+3. The batch count is derived from the backend's `batch_group` routing — one
+   LLM call per field group — rather than a raw field count.
+4. If Ollama is unreachable or has no models, a warning appears and the run
+   button is disabled.
+5. Click **Run Extraction** to start. If a previous run exists, the button
+   reads **Run again** and warns that extracted metadata will be replaced.
 
-> **Note**: On CPU, extraction takes 10-20 minutes per book. The job runs in the background — you can leave and return later.
+> **Note**: On CPU, extraction takes 10-20 minutes per book. The job runs in the background — you can leave and return later. A completed run never traps you on a progress screen.
 
 ---
 
@@ -104,7 +179,13 @@ OCR runs as a background task. You'll see a progress indicator while it processe
    - All fields are editable inline
 2. The page image viewer at the top lets you reference the original scan
 3. Edit any field values as needed
-4. Click **Save Metadata** to finalize
+4. Click **Save Metadata** to save. **Saving no longer completes the book** —
+   it stays in review so you can keep editing.
+5. When you are finished, click **Mark review complete**. It confirms first and
+   lists any empty or low-confidence fields. This is the only action that
+   completes the workflow.
+6. If you re-run OCR later, extracted metadata text is kept but marked out of
+   date until extraction is re-run.
 
 ---
 
@@ -127,16 +208,22 @@ The Library page shows all processed books in a card-based layout.
 ### Book Detail
 - Click any book card to see its complete metadata record, all page images, OCR text, and LLM run history
 - From the detail view, you can return to editing metadata if needed
+- For books uploaded by someone else you see the **public entry only** —
+  bibliographic metadata and the uploader's display name. Page images, OCR
+  text, and processing history stay with the owner and administrators
 
 ---
 
 ## Job Queue Dashboard
 
-The **Jobs** page shows all background jobs (OCR and LLM) with:
+Your own jobs are on the **Dashboard** page (queue position, cancel). The
+admin **Jobs** page shows all background jobs (OCR, LLM, page extraction) with:
 - **Status badges**: Queued (blue), Running (yellow), Completed (green), Failed (red)
-- **Progress tracking**: Current progress percentage for active jobs
+- **Progress tracking**: 0–100% progress for active jobs
+- **Cancel**: Cancel a queued/running job from its own row
 - **Retry**: Re-run failed jobs with one click
-- **Auto-refresh**: The page polls for updates every 2 seconds
+- **Live updates**: Server-Sent Events push progress; if the stream drops, the
+  UI falls back to polling and says so
 
 You can safely leave the page and return — all jobs persist in the database.
 
@@ -157,6 +244,20 @@ For detailed instructions, see the [Bulk Operations Guide](bulk-operations.md).
 ---
 
 ## Troubleshooting
+
+### Verification email never arrives
+- Registration works without SMTP, but then the link is only written to the
+  **backend log**: `make logs-backend` and look for "SMTP disabled"
+- For real delivery set `SMTP_ENABLED=true` plus `SMTP_HOST`, `SMTP_PORT`,
+  `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` in `.env` and restart
+- Verification links expire after 24 hours — request a new one from the login
+  page (**Resend verification**)
+
+### Cannot log in
+- The account must be **verified** and **active** — a deactivated account
+  cannot sign in (admins can reactivate it from **Admin → Users**)
+- Password rules: minimum 10 characters (`PASSWORD_MIN_LENGTH`)
+- Use **Forgot password?** for a self-service reset; the link expires after one hour
 
 ### Ollama model not loading
 - Check Docker logs: `make logs` and look for the `ollama` service
