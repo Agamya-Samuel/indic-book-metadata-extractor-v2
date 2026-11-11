@@ -55,8 +55,11 @@ async def _create_book_with_ocr(client, make_book, db_session):
 
 class TestListModels:
     async def test_list_models(self, client):
+        # Regression: /books/models must not be shadowed by /books/{book_id}
+        # (which would 422 on UUID validation).
         response = await client.get("/api/books/models")
-        assert response.status_code in (200, 404, 422)
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
 
 
 class TestRunExtraction:
