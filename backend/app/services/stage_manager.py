@@ -229,6 +229,31 @@ class StageManager:
         return row
 
     @staticmethod
+    async def reset_from_stage(
+        db, book_id: UUID, stage_name: str, reason: str = "Superseded by re-run"
+    ) -> None:
+        """Cancel the given stage and every stage after it.
+
+        Used when an upstream stage is re-run: downstream stages keep their
+        rows but are marked cancelled so the workflow no longer treats them as
+        complete. The re-run then initiates a fresh attempt of ``stage_name``.
+        """
+        if stage_name not in STAGE_ORDER:
+            raise StageTransitionError(f"Unknown stage '{stage_name}'")
+        idx = STAGE_ORDER.index(stage_name)
+        for name in STAGE_ORDER[idx:]:
+            row = await StageManager.get_stage(db, book_id, name)
+            if row is None:
+                continue
+            await StageManager._lock_stage(db, book_id, name, row.attempt)
+            if row.status != StageStatus.CANCELLED:
+                row.status = StageStatus.CANCELLED
+                row.completed_at = datetime.now(timezone.utc)
+                row.error_log = reason[:2000]
+        await db.flush()
+        await StageManager._update_book_status(db, book_id)
+
+    @staticmethod
     async def reset_book(db, book_id: UUID) -> None:
         await StageManager._lock_book(db, book_id)
         existing = await db.execute(

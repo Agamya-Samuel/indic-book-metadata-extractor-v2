@@ -1,4 +1,4 @@
-"""Admin HTTP endpoints: library stats, book CRUD, cross-book job control."""
+"""Admin HTTP endpoints: users, library stats, book CRUD, cross-book job control."""
 from __future__ import annotations
 
 import math
@@ -7,12 +7,142 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import require_admin
 from app.core.database import get_db
+from app.models.user import User
+from app.schemas.auth import (
+    AdminPasswordResetRequest,
+    AdminUserCreateRequest,
+    AdminUserDetailResponse,
+    AdminUserUpdateRequest,
+    UserListResponse,
+    UserResponse,
+)
 from app.schemas.book import BookListResponse, BookSearchResult
-from app.services import admin_service
+from app.services import admin_service, auth_service
+from app.services.auth_service import AuthError
 from app.services.search_service import SearchService
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
+
+
+def _auth_http_error(exc: AuthError) -> HTTPException:
+    return HTTPException(status_code=exc.status_code, detail=exc.detail)
+
+
+async def _get_user_or_404(db: AsyncSession, user_id: UUID) -> User:
+    user = await auth_service.get_user_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+@router.get("/users", response_model=UserListResponse)
+async def admin_list_users(
+    query: str | None = Query(default=None),
+    role: str | None = Query(default=None),
+    is_active: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> UserListResponse:
+    users, total = await auth_service.list_users(
+        db,
+        query=query,
+        role=role,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+    )
+    return UserListResponse(
+        items=[UserResponse.model_validate(u) for u in users],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if total > 0 else 0,
+    )
+
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    body: AdminUserCreateRequest,
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    try:
+        user = await auth_service.create_user(
+            db,
+            email=body.email,
+            display_name=body.display_name,
+            password=body.password,
+            role=body.role,
+            verified=True,
+        )
+    except AuthError as exc:
+        raise _auth_http_error(exc)
+    return UserResponse.model_validate(user)
+
+
+@router.get("/users/{user_id}", response_model=AdminUserDetailResponse)
+async def admin_get_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> AdminUserDetailResponse:
+    user = await _get_user_or_404(db, user_id)
+    book_count, active_jobs = await auth_service.get_user_counts(db, user_id)
+    return AdminUserDetailResponse(
+        **UserResponse.model_validate(user).model_dump(),
+        book_count=book_count,
+        active_job_count=active_jobs,
+    )
+
+
+@router.patch("/users/{user_id}", response_model=UserResponse)
+async def admin_update_user(
+    user_id: UUID,
+    body: AdminUserUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> UserResponse:
+    target = await _get_user_or_404(db, user_id)
+    try:
+        user = await auth_service.update_user_admin(
+            db,
+            admin,
+            target,
+            display_name=body.display_name,
+            role=body.role.value if body.role is not None else None,
+            is_active=body.is_active,
+        )
+    except AuthError as exc:
+        raise _auth_http_error(exc)
+    return UserResponse.model_validate(user)
+
+
+@router.post("/users/{user_id}/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_reset_user_password(
+    user_id: UUID,
+    body: AdminPasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    target = await _get_user_or_404(db, user_id)
+    await auth_service.reset_user_password_admin(db, target, body.new_password)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> None:
+    target = await _get_user_or_404(db, user_id)
+    try:
+        await auth_service.delete_user_admin(db, admin, target)
+    except AuthError as exc:
+        raise _auth_http_error(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -22,6 +152,7 @@ router = APIRouter()
 @router.get("/stats")
 async def admin_stats(db: AsyncSession = Depends(get_db)) -> dict:
     return await admin_service.get_admin_stats(db)
+
 
 
 # ---------------------------------------------------------------------------
@@ -34,27 +165,36 @@ async def admin_list_books(
     language: str | None = Query(default=None),
     status_: str | None = Query(default=None, alias="status"),
     has_metadata: bool | None = Query(default=None),
+    owner_id: UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> BookListResponse:
     items_raw, total = await SearchService.list_books(
-        db, language=language, status=status_, page=page, page_size=page_size,
+        db,
+        language=language,
+        status=status_,
+        page=page,
+        page_size=page_size,
+        owner_id=owner_id,
+        has_metadata=has_metadata,
     )
 
     if query and query.strip():
         # When a search term is provided, switch to similarity search.
         items_raw, total = await SearchService.search_books(
-            db, q=query.strip(), language=language, status=status_,
-            page=page, page_size=page_size,
+            db,
+            q=query.strip(),
+            language=language,
+            status=status_,
+            page=page,
+            page_size=page_size,
+            owner_id=owner_id,
+            has_metadata=has_metadata,
         )
 
     items = []
     for item in items_raw:
-        if has_metadata is True and not item.get("metadata_fields"):
-            continue
-        if has_metadata is False and item.get("metadata_fields"):
-            continue
         thumb = f"/api/books/{item['id']}/pages/1/thumbnail"
         items.append(BookSearchResult(
             id=item["id"],
@@ -66,9 +206,11 @@ async def admin_list_books(
             created_at=item["created_at"],
             metadata_fields=item["metadata_fields"],
             thumbnail_url=thumb,
+            owner_id=item.get("owner_id"),
+            owner_display_name=item.get("owner_display_name"),
+            owner_email=item.get("owner_email"),
         ))
 
-    total = len(items) if has_metadata is not None else total
     return BookListResponse(
         items=items,
         total=total,
@@ -105,9 +247,12 @@ async def admin_reset_book(
 async def admin_rerun_ocr(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
 ) -> dict:
     try:
-        job = await admin_service.rerun_ocr(db, book_id)
+        job = await admin_service.rerun_ocr(
+            db, book_id, requested_by_id=admin.id
+        )
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
@@ -123,9 +268,12 @@ async def admin_rerun_ocr(
 async def admin_rerun_extraction(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
 ) -> dict:
     try:
-        job = await admin_service.rerun_extraction(db, book_id)
+        job = await admin_service.rerun_extraction(
+            db, book_id, requested_by_id=admin.id
+        )
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
@@ -146,13 +294,19 @@ async def admin_list_jobs(
     status: str | None = Query(default=None),
     job_type: str | None = Query(default=None, alias="job_type"),
     book_id: UUID | None = Query(default=None),
+    owner_id: UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     items, total = await admin_service.list_admin_jobs(
-        db, status=status, job_type=job_type, book_id=book_id,
-        page=page, page_size=page_size,
+        db,
+        status=status,
+        job_type=job_type,
+        book_id=book_id,
+        owner_id=owner_id,
+        page=page,
+        page_size=page_size,
     )
     return {
         "items": items,

@@ -14,6 +14,8 @@ class BookUploadResponse(BaseModel):
     total_pages: int | None
     status: str
     created_at: datetime.datetime | None
+    owner_id: uuid.UUID | None = None
+    owner_display_name: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -22,6 +24,7 @@ class BookDetail(BookUploadResponse):
     updated_at: datetime.datetime | None = None
     needs_review: bool = False
     low_confidence_count: int = 0
+    owner_email: str | None = None
 
 
 class PageSelectionRequest(BaseModel):
@@ -39,6 +42,7 @@ class PageResponse(BaseModel):
     page_number: int
     image_path: str | None
     preprocessing_config: dict | None
+    has_processed_image: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -68,6 +72,9 @@ class BookSearchResult(BaseModel):
     created_at: datetime.datetime | None
     metadata_fields: dict | None = None
     thumbnail_url: str | None = None
+    owner_id: uuid.UUID | None = None
+    owner_display_name: str | None = None
+    owner_email: str | None = None
 
 
 class BookListResponse(BaseModel):
@@ -90,9 +97,11 @@ class BookDetailResponse(BaseModel):
     book: BookDetail
     metadata: dict | None = None
     metadata_updated_at: datetime.datetime | None = None
-    pages: list[BookDetailPage]
-    llm_runs: list[dict]
-    jobs: list[dict]
+    pages: list[BookDetailPage] = []
+    llm_runs: list[dict] = []
+    jobs: list[dict] = []
+    can_view_full: bool = False
+    owner_display_name: str | None = None
 
 
 class FilterOptionsResponse(BaseModel):

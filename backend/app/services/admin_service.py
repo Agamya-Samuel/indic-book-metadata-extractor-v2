@@ -22,6 +22,7 @@ from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.models.stage import StageStatus
+from app.models.user import User
 from app.services import storage
 from app.services.stage_manager import StageManager
 
@@ -66,6 +67,11 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     disk_usage_bytes = _storage_disk_usage_bytes()
     disk_usage_mb = round(disk_usage_bytes / (1024 * 1024), 2)
 
+    total_users = await db.scalar(select(func.count(User.id))) or 0
+    active_users = await db.scalar(
+        select(func.count(User.id)).where(User.is_active.is_(True))
+    ) or 0
+
     return {
         "total_books": total_books,
         "books_with_metadata": books_with_metadata,
@@ -76,6 +82,10 @@ async def get_admin_stats(db: AsyncSession) -> dict:
             "running": running,
             "failed_recent": failed_recent,
             "completed_recent": completed_recent,
+        },
+        "users": {
+            "total": total_users,
+            "active": active_users,
         },
         "disk_usage_mb": disk_usage_mb,
     }
@@ -88,9 +98,21 @@ async def list_admin_jobs(
     book_id: UUID | None,
     page: int,
     page_size: int,
+    owner_id: UUID | None = None,
 ) -> tuple[list[dict], int]:
-    query = select(Job, Book.title, Book.filename).outerjoin(
-        Book, Job.book_id == Book.id
+    query = (
+        select(
+            Job,
+            Book.title,
+            Book.filename,
+            User.display_name.label("owner_display_name"),
+            User.email.label("owner_email"),
+        )
+        .outerjoin(Book, Job.book_id == Book.id)
+        .outerjoin(
+            User,
+            User.id == func.coalesce(Job.requested_by_id, Book.owner_id),
+        )
     )
 
     if status:
@@ -99,6 +121,10 @@ async def list_admin_jobs(
         query = query.where(Job.job_type == job_type)
     if book_id:
         query = query.where(Job.book_id == book_id)
+    if owner_id is not None:
+        query = query.where(
+            func.coalesce(Job.requested_by_id, Book.owner_id) == owner_id
+        )
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
@@ -109,12 +135,15 @@ async def list_admin_jobs(
     rows = (await db.execute(query)).all()
 
     items = []
-    for job, book_title, book_filename in rows:
+    for job, book_title, book_filename, owner_display_name, owner_email in rows:
         items.append({
             "id": str(job.id),
             "book_id": str(job.book_id) if job.book_id else None,
+            "requested_by_id": str(job.requested_by_id) if job.requested_by_id else None,
             "book_title": book_title,
             "book_filename": book_filename or "(deleted book)",
+            "owner_display_name": owner_display_name,
+            "owner_email": owner_email,
             "job_type": job.job_type,
             "status": job.status,
             "progress": job.progress,
@@ -127,7 +156,7 @@ async def list_admin_jobs(
     return items, total
 
 
-async def cancel_job(db: AsyncSession, job_id: UUID) -> Job:
+async def cancel_job(db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled by admin") -> Job:
     job = await db.get(Job, job_id)
     if job is None:
         raise LookupError("Job not found")
@@ -135,7 +164,7 @@ async def cancel_job(db: AsyncSession, job_id: UUID) -> Job:
         raise ValueError(f"Cannot cancel job in status '{job.status}'")
     job.status = JobStatus.CANCELLED
     job.completed_at = datetime.now(timezone.utc)
-    job.error_log = "Cancelled by admin"
+    job.error_log = reason
 
     # Roll the book back to the stage that immediately precedes this job
     # type, so the UI re-enables the relevant "Run" button. Only do this
@@ -226,7 +255,9 @@ async def reset_book(db: AsyncSession, book_id: UUID) -> Book:
     return book
 
 
-async def rerun_ocr(db: AsyncSession, book_id: UUID) -> Job:
+async def rerun_ocr(
+    db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None
+) -> Job:
     """Cancel active jobs, clear OCR outputs, then dispatch a fresh OCR job.
 
     Mirrors the semantics of POST /api/books/{id}/run-ocr but is safe to
@@ -273,6 +304,7 @@ async def rerun_ocr(db: AsyncSession, book_id: UUID) -> Job:
     # Create new OCR job
     job = Job(
         book_id=book_id,
+        requested_by_id=requested_by_id,
         job_type=JobType.OCR,
         status=JobStatus.QUEUED,
         progress=0.0,
@@ -302,7 +334,9 @@ async def rerun_ocr(db: AsyncSession, book_id: UUID) -> Job:
     return job
 
 
-async def rerun_extraction(db: AsyncSession, book_id: UUID) -> Job:
+async def rerun_extraction(
+    db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None
+) -> Job:
     """Re-run LLM extraction on existing OCR outputs with default config."""
     book = await db.get(Book, book_id)
     if book is None:
@@ -340,6 +374,7 @@ async def rerun_extraction(db: AsyncSession, book_id: UUID) -> Job:
 
     job = Job(
         book_id=book_id,
+        requested_by_id=requested_by_id,
         job_type=JobType.LLM,
         status=JobStatus.QUEUED,
         progress=0.0,

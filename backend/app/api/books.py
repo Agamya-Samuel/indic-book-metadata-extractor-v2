@@ -30,7 +30,13 @@ from app.services import pdf_service, preprocessing, storage
 from app.services.ocr_service import LANGUAGE_MAP
 from app.services.search_service import SearchService
 from app.services.stage_manager import StageManager
-from app.api.deps import get_book_or_404
+from app.api.deps import (
+    get_current_user,
+    get_owned_book_or_404,
+    get_visible_book_or_404,
+)
+from app.models.user import User
+from app.services import admin_service
 
 VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
 logger = logging.getLogger(__name__)
@@ -55,6 +61,7 @@ async def upload_book(
     title: str | None = Form(None),
     language: str = Form("tel"),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> BookUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
@@ -95,6 +102,7 @@ async def upload_book(
         language=language,
         total_pages=page_count,
         status=BookStatus.UPLOADED,
+        owner_id=user.id,
     )
     db.add(book)
     await db.commit()
@@ -111,8 +119,11 @@ async def upload_book(
 
 
 @router.get("/{book_id}", response_model=BookDetail)
-async def get_book(book_id: UUID, db: AsyncSession = Depends(get_db)) -> BookDetail:
-    book = await get_book_or_404(book_id, db)
+async def get_book(
+    book_id: UUID,
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+) -> BookDetail:
     low_conf_count = await SearchService.count_low_confidence_fields(
         db, book_id, settings.low_confidence_threshold
     )
@@ -127,17 +138,15 @@ async def get_book(book_id: UUID, db: AsyncSession = Depends(get_db)) -> BookDet
 
 @router.get("/{book_id}/pages/{page_number}/thumbnail")
 async def get_thumbnail(
-    book_id: UUID,
     page_number: int,
-    db: AsyncSession = Depends(get_db),
+    book: Book = Depends(get_visible_book_or_404),
 ) -> FileResponse:
-    book = await get_book_or_404(book_id, db)
     if page_number < 1 or (book.total_pages and page_number > book.total_pages):
         raise HTTPException(status_code=404, detail="Page number out of range")
 
-    thumb_path = storage.thumbnail_path(str(book_id), page_number)
+    thumb_path = storage.thumbnail_path(str(book.id), page_number)
     if not thumb_path.exists():
-        pdf_path = storage.original_pdf_path(str(book_id))
+        pdf_path = storage.original_pdf_path(str(book.id))
         if not pdf_path.exists():
             raise HTTPException(status_code=404, detail="Original PDF not found")
         try:
@@ -151,11 +160,11 @@ async def get_thumbnail(
 
 @router.post("/{book_id}/pages", response_model=PageSelectionResponse)
 async def select_pages(
-    book_id: UUID,
     body: PageSelectionRequest,
+    book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> PageSelectionResponse:
-    book = await get_book_or_404(book_id, db)
+    book_id = book.id
     if not book.total_pages:
         raise HTTPException(status_code=400, detail="Book has no pages")
 
@@ -211,10 +220,12 @@ async def select_pages(
 
 
 @router.get("/{book_id}/pages", response_model=list[PageResponse])
-async def list_pages(book_id: UUID, db: AsyncSession = Depends(get_db)) -> list[PageResponse]:
-    await get_book_or_404(book_id, db)
+async def list_pages(
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+) -> list[PageResponse]:
     result = await db.execute(
-        select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
+        select(Page).where(Page.book_id == book.id).order_by(Page.page_number)
     )
     pages = result.scalars().all()
     return [PageResponse.model_validate(p) for p in pages]
@@ -222,10 +233,11 @@ async def list_pages(book_id: UUID, db: AsyncSession = Depends(get_db)) -> list[
 
 @router.post("/{book_id}/run-ocr", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def run_ocr(
-    book_id: UUID,
+    book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> JobResponse:
-    book = await get_book_or_404(book_id, db)
+    book_id = book.id
 
     if book.status not in (BookStatus.PAGES_SELECTED,):
         raise HTTPException(
@@ -255,6 +267,7 @@ async def run_ocr(
 
     job = Job(
         book_id=book_id,
+        requested_by_id=user.id,
         job_type=JobType.OCR,
         status=JobStatus.QUEUED,
         progress=0.0,
@@ -278,10 +291,10 @@ async def run_ocr(
 
 @router.get("/{book_id}/ocr-status", response_model=OcrStatusResponse)
 async def get_ocr_status(
-    book_id: UUID,
+    book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> OcrStatusResponse:
-    await get_book_or_404(book_id, db)
+    book_id = book.id
 
     pages_result = await db.execute(
         select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
@@ -326,14 +339,80 @@ async def get_ocr_status(
 
 @router.get("/{book_id}/jobs", response_model=list[JobResponse])
 async def list_jobs(
-    book_id: UUID,
+    book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> list[JobResponse]:
-    await get_book_or_404(book_id, db)
     result = await db.execute(
         select(Job)
-        .where(Job.book_id == book_id)
+        .where(Job.book_id == book.id)
         .order_by(Job.created_at.desc())
     )
     jobs = result.scalars().all()
     return [JobResponse.model_validate(j) for j in jobs]
+
+
+# ---------------------------------------------------------------------------
+# Owner-scoped book management
+# ---------------------------------------------------------------------------
+
+@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_own_book(
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    try:
+        await admin_service.delete_book(db, book.id)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+
+@router.post("/{book_id}/reset")
+async def reset_own_book(
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    try:
+        updated = await admin_service.reset_book(db, book.id)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return {"id": str(updated.id), "status": updated.status}
+
+
+@router.post("/{book_id}/rerun-ocr", status_code=status.HTTP_201_CREATED)
+async def rerun_own_ocr(
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    try:
+        job = await admin_service.rerun_ocr(db, book.id, requested_by_id=user.id)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "job_id": str(job.id),
+        "book_id": str(book.id),
+        "status": job.status,
+    }
+
+
+@router.post("/{book_id}/rerun-extraction", status_code=status.HTTP_201_CREATED)
+async def rerun_own_extraction(
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    try:
+        job = await admin_service.rerun_extraction(
+            db, book.id, requested_by_id=user.id
+        )
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Book not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "job_id": str(job.id),
+        "book_id": str(book.id),
+        "status": job.status,
+    }

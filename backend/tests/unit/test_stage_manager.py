@@ -13,6 +13,7 @@ import pytest
 
 from app.models.book import Book, BookStatus
 from app.models.stage import StageStatus
+from app.models.user import User
 from app.services.stage_manager import StageManager, StageTransitionError
 
 UPLOAD = "upload"
@@ -26,6 +27,14 @@ FULL_ORDER = [UPLOAD, PAGE_SELECTION, OCR, LLM, HUMAN_REVIEW, COMPLETION]
 
 
 async def _make_book(db_session, status: BookStatus = BookStatus.UPLOADED) -> uuid.UUID:
+    owner = User(
+        email=f"{uuid.uuid4().hex}@example.com",
+        display_name="Test Owner",
+        password_hash="not-a-real-hash",
+    )
+    db_session.add(owner)
+    await db_session.flush()
+
     book = Book(
         id=uuid.uuid4(),
         title="Test",
@@ -33,6 +42,7 @@ async def _make_book(db_session, status: BookStatus = BookStatus.UPLOADED) -> uu
         language="tel",
         total_pages=3,
         status=status,
+        owner_id=owner.id,
     )
     db_session.add(book)
     await db_session.commit()

@@ -60,6 +60,11 @@ def processed_image_path(book_id: str, page_number: int) -> Path:
     return processed_dir(book_id) / f"p{page_number:04d}_processed.png"
 
 
+def preview_image_path(book_id: str, page_id: str) -> Path:
+    """Temporary preview PNG for a page (overwritten on each preview)."""
+    return processed_dir(book_id) / f"{page_id}_preview.png"
+
+
 def relative(path: Path) -> str:
     base = _base()
     resolved = path.resolve()
