@@ -269,9 +269,13 @@ def clean_page_text(wikitext: str) -> str:
     for line in text.splitlines():
         stripped = line.strip()
         # Header/footer templates sit alone on a line ({{rh|...}}, {{running header|...}}).
-        if stripped.startswith("{{") and stripped.endswith("}}") and stripped.count("{{") == stripped.count("}}"):
-            if re.match(r"\{\{\s*(rh|running header|rh/|header)\s*[|}]", stripped, re.IGNORECASE):
-                continue
+        if (
+            stripped.startswith("{{")
+            and stripped.endswith("}}")
+            and stripped.count("{{") == stripped.count("}}")
+            and re.match(r"\{\{\s*(rh|running header|rh/|header)\s*[|}]", stripped, re.IGNORECASE)
+        ):
+            continue
         kept.append(stripped)
     text = "\n".join(kept)
 
@@ -405,7 +409,11 @@ def main() -> int:
 
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
     file_title: str = provenance["commons_title"]
-    host = args.wiki or ("te.wikisource.org" if provenance.get("source_category", "").lower().find("telugu") >= 0 else None)
+    host = (
+        args.wiki
+        or provenance.get("wiki")
+        or ("te.wikisource.org" if "telugu" in provenance.get("source_category", "").lower() else None)
+    )
     if not host:
         print("cannot infer wiki host; pass --wiki", file=sys.stderr)
         return 2

@@ -225,6 +225,12 @@ def main() -> int:
     parser.add_argument("--recurse", action="store_true", help="Walk subcategories (useful for Hindi)")
     parser.add_argument("--depth", type=int, default=2, help="Subcategory recursion depth (default 2)")
     parser.add_argument("--delay", type=float, default=0.5, help="Seconds between API calls (default 0.5)")
+    parser.add_argument(
+        "--max-size-mb",
+        type=float,
+        default=60.0,
+        help="Skip books whose PDF exceeds this size in MB (default 60)",
+    )
     parser.add_argument("--lang", default=None, choices=["tel", "hin"], help="Override language hint")
     parser.add_argument("--overwrite", action="store_true", help="Rewrite existing GT scaffolds")
     args = parser.parse_args()
@@ -254,6 +260,10 @@ def main() -> int:
                 try:
                     info = file_info(client, title, args.delay)
                     expected, status, provenance, license_short = prefill(info, lang, category)
+                    size_mb = (info["imageinfo"].get("size") or 0) / 1_000_000
+                    if args.download and args.max_size_mb and size_mb > args.max_size_mb:
+                        print(f"  skip (size {size_mb:.0f}MB > {args.max_size_mb:.0f}MB): {slug}")
+                        continue
                     if args.download and provenance.get("download_url"):
                         download_pdf(client, provenance["download_url"], book_dir / "original.pdf", args.delay)
                 except Exception as e:  # noqa: BLE001 - per-file failures must not abort the batch
