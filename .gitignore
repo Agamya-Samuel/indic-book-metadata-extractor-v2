@@ -71,3 +71,4 @@ project-update.html
 .commandcode/
 
 reference/
+infra/gcp-test-nodes.md
