@@ -3,14 +3,16 @@
 # =============================================================================
 # Full self-contained compose file for the PRODUCTION environment on Dokploy.
 #
-# This is a copy of docker-compose.dokploy.yml with production-specific
-# settings baked in (DEBUG=false, HTTPS Wikibase, prod memory limits).
-# It is kept in sync with docker-compose.staging.yml — run
+# Production-specific settings baked in (DEBUG=false, HTTPS Wikibase,
+# prod memory limits). It is kept in sync with docker-compose.staging.yml —
+# run
 #   make check-compose-drift
 # to verify they haven't diverged unexpectedly.
 #
 # Dokploy setup: Service → "Compose Path" = "docker-compose.production.yml"
 #                Environment → paste contents of .env.production
+#                Domains → frontend "/" :3000 and backend "/api" :8000 on the
+#                SAME host. Internal services get no domain.
 # =============================================================================
 
 services:
@@ -214,10 +216,13 @@ services:
   # Celery Flower (task monitor)
   # ─────────────────────────────────────────────────────────────────────────────
   flower:
-    image: mher/flower:latest
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
     expose:
       - "5555"
+    command: ["uv", "run", "--with", "flower", "celery", "-A", "app.tasks.celery_app", "flower", "--port=5555"]
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1

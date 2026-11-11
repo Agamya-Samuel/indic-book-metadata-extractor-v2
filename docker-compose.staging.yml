@@ -3,15 +3,17 @@
 # =============================================================================
 # Full self-contained compose file for the STAGING environment on Dokploy.
 #
-# This is a copy of docker-compose.dokploy.yml with staging-specific
-# settings baked in (DEBUG=true, smaller memory limits, HTTP Wikibase OK).
-# It is kept in sync with docker-compose.production.yml — run
+# Staging-specific settings baked in (DEBUG=true, smaller memory limits,
+# HTTP Wikibase OK). It is kept in sync with docker-compose.production.yml —
+# run
 #   make check-compose-drift
 # to verify they haven't diverged unexpectedly.
 #
 # Dokploy setup: Service → "Compose Path" = "docker-compose.staging.yml"
 #                Project Name: indic-books-staging  (MUST differ from prod)
 #                Environment → paste contents of .env.staging
+#                Domains → frontend "/" :3000 and backend "/api" :8000 on the
+#                SAME host. Internal services get no domain.
 #
 # The distinct Project Name prevents volume name collisions with production
 # (e.g. pgdata, redis_data) which would otherwise cause silent data corruption.
@@ -218,10 +220,13 @@ services:
   # Celery Flower (task monitor)
   # ─────────────────────────────────────────────────────────────────────────────
   flower:
-    image: mher/flower:latest
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
     expose:
       - "5555"
+    command: ["uv", "run", "--with", "flower", "celery", "-A", "app.tasks.celery_app", "flower", "--port=5555"]
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
