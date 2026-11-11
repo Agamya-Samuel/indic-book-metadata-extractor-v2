@@ -7,7 +7,7 @@ import newrelic.agent
 from sqlalchemy import exc as sa_exc, select
 from app.core.config import settings
 from app.core.database import async_session_factory
-from app.models.book import Book, BookStatus
+from app.models.book import Book
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
@@ -189,22 +189,26 @@ def _publish_job_terminal(
     )
 
 
-def _has_active_job_for_book(book_id: uuid.UUID) -> bool:
-    """Return True if the book already has a queued/running OCR or PREPROCESSING job."""
+def _has_active_job_for_book(
+    book_id: uuid.UUID, exclude_job_id: uuid.UUID | None = None
+) -> bool:
+    """Return True if the book already has a queued/running OCR or PREPROCESSING job.
+
+    ``exclude_job_id`` skips the job that dispatched this task — the API creates
+    the OCR job as QUEUED before dispatching preprocessing, so without the
+    exclusion the caller would always match itself and skip the whole run.
+    """
 
     async def _check():
         async with async_session_factory() as db:
-            result = await db.execute(
-                select(Job.id)
-                .where(
-                    Job.book_id == book_id,
-                    Job.status.in_((JobStatus.QUEUED, JobStatus.RUNNING)),
-                    Job.job_type.in_(
-                        (JobType.OCR, JobType.PREPROCESSING)
-                    ),
-                )
-                .limit(1)
+            query = select(Job.id).where(
+                Job.book_id == book_id,
+                Job.status.in_((JobStatus.QUEUED, JobStatus.RUNNING)),
+                Job.job_type.in_((JobType.OCR, JobType.PREPROCESSING)),
             )
+            if exclude_job_id is not None:
+                query = query.where(Job.id != exclude_job_id)
+            result = await db.execute(query.limit(1))
             return result.scalar_one_or_none() is not None
 
     try:
@@ -234,7 +238,7 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
 
     book_uuid = uuid.UUID(book_id_str)
-    if _has_active_job_for_book(book_uuid):
+    if _has_active_job_for_book(book_uuid, uuid.UUID(job_id_str)):
         logger.info(
             "Skipping preprocessing for book %s — another active job exists",
             book_id_str,
