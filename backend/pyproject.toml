@@ -37,6 +37,10 @@ dependencies = [
     "jinja2>=3.1",
     # Monitoring
     "newrelic>=10.0",
+    "pyjwt>=2.9",
+    "argon2-cffi>=23.1",
+    "aiosmtplib>=3.0",
+    "email-validator>=2.2",
 ]
 
 [project.optional-dependencies]

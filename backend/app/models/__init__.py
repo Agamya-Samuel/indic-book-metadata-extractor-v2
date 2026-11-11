@@ -8,6 +8,7 @@ from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.models.stage import BookStage, BookStageStatus, StageStatus
+from app.models.user import EmailToken, EmailTokenPurpose, RefreshToken, User, UserRole
 
 __all__ = [
     "Base",
@@ -16,6 +17,8 @@ __all__ = [
     "BookStage",
     "BookStageStatus",
     "BookStatus",
+    "EmailToken",
+    "EmailTokenPurpose",
     "Embedding",
     "Job",
     "JobStatus",
@@ -24,5 +27,8 @@ __all__ = [
     "MetadataFieldEvidence",
     "OcrResult",
     "Page",
+    "RefreshToken",
     "StageStatus",
+    "User",
+    "UserRole",
 ]

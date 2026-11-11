@@ -26,6 +26,29 @@ class Settings(BaseSettings):
     # Upload limits
     max_upload_size_mb: int = 200
 
+    # Authentication
+    jwt_secret_key: str = "dev-insecure-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 7
+    email_verification_expire_hours: int = 24
+    password_reset_expire_minutes: int = 60
+    password_min_length: int = 10
+    cookie_secure: bool = False
+    cookie_domain: str = ""
+    frontend_url: str = "http://localhost:3000"
+
+    # Email delivery (SMTP)
+    smtp_enabled: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+    smtp_use_tls: bool = False
+    smtp_timeout: int = 15
+
     # OCR
     tesseract_cmd: str = "tesseract"
     tesseract_oem: int = 1

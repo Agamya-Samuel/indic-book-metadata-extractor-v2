@@ -16,6 +16,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.api.deps import require_admin
 from app.models.book import Book
 from app.models.metadata import BookMetadata
 from app.schemas.bulk import (
@@ -26,7 +27,7 @@ from app.schemas.metadata import FIELD_WIKIDATA, FullMetadata
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 # Ordered list of metadata columns for CSV export (book_id first, then all fields)
 METADATA_COLUMNS = ["book_id", "title", "language", "filename"] + [

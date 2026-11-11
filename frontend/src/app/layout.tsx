@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import AppNavbar from "@/components/shared/app-navbar";
+import { RouteGuard } from "@/components/auth/route-guard";
 import { themeInitScript } from "@/components/shared/theme-provider";
 
 const geistSans = Geist({
@@ -131,7 +132,7 @@ export default function RootLayout({
         <Providers>
           <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
             <AppNavbar />
-            {children}
+            <RouteGuard>{children}</RouteGuard>
           </div>
         </Providers>
       </body>

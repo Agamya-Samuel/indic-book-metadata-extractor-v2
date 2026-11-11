@@ -12,7 +12,23 @@
 
 ### Authentication
 
-None. The application is designed for single-user local deployment.
+Cookie-based JWT sessions with role-based access control. There are two
+roles: `user` and `admin`.
+
+- **Login**: `POST /api/auth/login` sets HttpOnly `access_token` (15 min) and
+  `refresh_token` (7 days) cookies. A readable `csrf_token` cookie is also set;
+  every state-changing request (`POST`/`PUT`/`PATCH`/`DELETE`) must echo it in
+  the `X-CSRF-Token` header.
+- **Access expiry**: when the access token expires, endpoints return `401`.
+  Clients should call `POST /api/auth/refresh` once and replay the request.
+- **Registration**: open self-registration. Accounts must verify their email
+  (link expires in 24 hours) before logging in.
+- **Authorization**: every book/page/OCR/metadata/job endpoint requires the
+  owner or an admin. The public catalog (`/api/library/*`) exposes only books
+  in `complete` or `awaiting_review` status, with metadata-only detail for
+  non-owners. Admin endpoints (`/api/admin/*`, `/api/bulk/*`) require `admin`.
+- **Anonymous access**: the public catalog and thumbnails of public books work
+  without a session.
 
 ### Pagination
 
@@ -38,10 +54,128 @@ Common HTTP status codes:
 | Code | Meaning |
 |------|---------|
 | 400 | Bad request (invalid state, missing data) |
+| 401 | Not authenticated (expired/missing session — try refreshing) |
+| 403 | Forbidden (authenticated but not owner/admin, or missing CSRF header) |
 | 404 | Resource not found |
 | 409 | Conflict (duplicate operation) |
 | 413 | File too large |
 | 422 | Validation error |
+| 429 | Rate limit exceeded (auth endpoints have stricter limits) |
+
+---
+
+## Authentication API
+
+All endpoints are under `/api/auth`. Login, verify-email, and reset-password
+start a session (set cookies) on success.
+
+### Register
+
+```
+POST /api/auth/register
+```
+
+```json
+{ "email": "reader@example.com", "display_name": "Ada", "password": "long-enough-password" }
+```
+
+Password minimum length is configurable (`PASSWORD_MIN_LENGTH`, default 10).
+Returns `201` with `{ "message", "email" }`. A verification email is sent; the
+account cannot log in until verified.
+
+### Verify email
+
+```
+POST /api/auth/verify-email
+```
+
+```json
+{ "token": "<token from the email link>" }
+```
+
+Returns the user object and starts a session. Invalid/expired tokens return
+`400`.
+
+### Resend verification
+
+```
+POST /api/auth/resend-verification
+```
+
+```json
+{ "email": "reader@example.com" }
+```
+
+Returns `202` with a generic message (does not reveal whether the account
+exists).
+
+### Log in
+
+```
+POST /api/auth/login
+```
+
+```json
+{ "email": "reader@example.com", "password": "..." }
+```
+
+Returns the user object; sets the session cookies.
+
+### Current user
+
+```
+GET /api/auth/me
+```
+
+Returns the authenticated user (401 when anonymous):
+
+```json
+{
+  "id": "…", "email": "reader@example.com", "display_name": "Ada",
+  "role": "user", "is_active": true,
+  "email_verified_at": "…", "last_login_at": "…", "created_at": "…"
+}
+```
+
+### Refresh session
+
+```
+POST /api/auth/refresh
+```
+
+Rotates the refresh cookie (single use; reuse is detected and revokes the
+session) and returns a new user object.
+
+### Log out
+
+```
+POST /api/auth/logout
+```
+
+Revokes the refresh token and clears cookies.
+
+### Forgot / reset password
+
+```
+POST /api/auth/forgot-password   { "email": "reader@example.com" }
+POST /api/auth/reset-password    { "token": "<from email>", "new_password": "..." }
+```
+
+Both return generic responses; reset tokens are single-use and expire in one
+hour. A successful reset signs the user in and revokes all previous sessions.
+
+### Change password
+
+```
+POST /api/auth/change-password   (authenticated)
+```
+
+```json
+{ "current_password": "...", "new_password": "..." }
+```
+
+Revokes all other sessions and clears the cookies (the client must log in
+again).
 
 ---
 
@@ -250,6 +384,116 @@ GET /api/books/{book_id}/jobs
   }
 ]
 ```
+
+### Delete a Book (owner or admin)
+
+```
+DELETE /api/books/{book_id}
+```
+
+Owner or admin only. Permanently deletes the book, its pages, OCR results,
+metadata, jobs, and uploaded files.
+
+### Reset a Book (owner or admin)
+
+```
+POST /api/books/{book_id}/reset
+```
+
+Removes pages, OCR results, metadata, and jobs; keeps the original PDF so
+processing can restart. Returns `{ "id", "status" }`.
+
+### Re-run OCR (owner or admin)
+
+```
+POST /api/books/{book_id}/rerun-ocr
+```
+
+Cancels active jobs, drops OCR results and processed images, and queues a new
+OCR job. Returns `{ "job_id", "book_id", "status" }`. `400` when no pages are
+selected.
+
+### Re-run Extraction (owner or admin)
+
+```
+POST /api/books/{book_id}/rerun-extraction
+```
+
+Queues a new LLM extraction job on the current OCR output with default
+settings. `400` when OCR has not run or an extraction job is already
+active.
+
+---
+
+## Dashboard API
+
+Per-user dashboard: your books, your jobs, and queue position. All endpoints
+require authentication.
+
+### `GET /api/dashboard/summary`
+
+```json
+{
+  "books": { "total": 3, "by_status": { "complete": 1, "awaiting_review": 1, "uploaded": 1 } },
+  "jobs": { "total": 12, "queued": 1, "running": 1, "completed": 9, "failed": 1, "cancelled": 0 },
+  "queue": { "ocr": 2, "llm": 0 }
+}
+```
+
+`queue` counts queued jobs per worker queue (`ocr` covers preprocessing and
+OCR jobs; `llm` covers extraction).
+
+### `GET /api/dashboard/books`
+
+Own books, paginated. Supports `status`, `page`, `page_size`.
+
+### `GET /api/dashboard/jobs`
+
+Own jobs (requested by the user or attached to an owned book), paginated.
+Supports `status`, `job_type`, `page`, `page_size`. Each row includes
+`queue_ahead` — the estimated number of queued jobs in the same worker queue
+created earlier (`0` when running; `null` when not queued).
+
+### `POST /api/jobs/{job_id}/cancel`
+
+Cancels a queued/running job. Owners may cancel their own jobs; admins may
+cancel any. Returns `{ "id", "status" }`; `400` when the job is already in a
+terminal state.
+
+---
+
+## Admin API
+
+All `/api/admin/*` endpoints require the `admin` role.
+
+### Users
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/admin/users` | List users. Filters: `query` (name/email), `role`, `is_active`, pagination. |
+| `POST /api/admin/users` | Create a user (`email`, `display_name`, `password`, `role`). Created verified and active. |
+| `GET /api/admin/users/{user_id}` | User detail incl. `book_count` and `active_job_count`. |
+| `PATCH /api/admin/users/{user_id}` | Update `display_name`, `role`, and/or `is_active`. |
+| `POST /api/admin/users/{user_id}/reset-password` | Set a new password (`new_password`); revokes the user's sessions. |
+| `DELETE /api/admin/users/{user_id}` | Delete a user. Blocked for self, the last admin, and users who still own books. |
+
+Role changes, deactivation, and password resets revoke the target user's
+sessions. The last active admin cannot be demoted or deactivated.
+
+### Books and jobs (global)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/admin/books` | All books. Filters: `query`, `language`, `status`, `has_metadata`, `owner_id`, pagination. Rows include `owner_display_name`. |
+| `DELETE /api/admin/books/{book_id}` | Delete any book. |
+| `POST /api/admin/books/{book_id}/reset` | Reset any book. |
+| `POST /api/admin/books/{book_id}/rerun-ocr` | Re-run OCR on any book. |
+| `POST /api/admin/books/{book_id}/rerun-extraction` | Re-run extraction on any book. |
+| `GET /api/admin/jobs` | All jobs. Filters: `status`, `job_type`, `book_id`, `owner_id`, pagination. Rows include owner display name and email. |
+| `POST /api/admin/jobs/{job_id}/cancel` | Cancel any queued/running job. |
+
+`GET /api/admin/stats` includes a `users` block (`{ "total", "active" }`)
+alongside the existing book/job/storage metrics.
 
 ---
 
@@ -621,7 +865,13 @@ Returns available filter values from the database.
 GET /api/library/books/{book_id}/detail
 ```
 
-Returns comprehensive book detail including pages, OCR text, metadata, jobs, and LLM runs.
+Returns comprehensive book detail. **Scope depends on the caller**: owners and
+admins receive the full record (pages, OCR text, jobs, LLM runs); anonymous
+visitors and non-owner users receive a metadata-only view — `pages`,
+`llm_runs`, and `jobs` are empty arrays and workflow fields are omitted.
+
+The public catalog exposes only books in `complete` or `awaiting_review`
+status; other statuses return `404` to non-owners.
 
 **Response** (`200 OK`):
 ```json
@@ -641,6 +891,8 @@ Returns comprehensive book detail including pages, OCR text, metadata, jobs, and
     "author": "రచయిత పేరు"
   },
   "metadata_updated_at": "2026-05-23T03:00:00Z",
+  "can_view_full": true,
+  "owner_display_name": "Ada Lovelace",
   "pages": [
     {
       "id": "660e8400-...",
@@ -654,6 +906,11 @@ Returns comprehensive book detail including pages, OCR text, metadata, jobs, and
   "jobs": []
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `can_view_full` | `true` when the caller is the owner or an admin. When `false`, `pages`/`llm_runs`/`jobs` are empty and review CTAs should be hidden. |
+| `owner_display_name` | Public uploader name (shown on cards and detail pages). The owner's email is never exposed here — admins can see it via `/api/admin/users`. |
 
 ---
 

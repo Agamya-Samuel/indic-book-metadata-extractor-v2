@@ -98,6 +98,33 @@ The application guides users through a 7-step pipeline:
 
 ---
 
+## Accounts & Access
+
+The app uses cookie-based sessions with two roles:
+
+- **Users** register with email + password and must verify their email before
+  logging in. Each user sees a personal dashboard (`/dashboard`) with their
+  books, jobs, and queue position, and manages only books they uploaded.
+- **Admins** additionally see all books/jobs with an owner filter, manage
+  users at `/admin/users` (create, change role, activate/deactivate, reset
+  password, delete), and can operate any book or job.
+- **Anonymous visitors** can browse the public catalog (`/library`) — books in
+  `complete` or `awaiting_review` status — but see metadata only; page images,
+  OCR text, and processing history are restricted to the owner and admins.
+- **The first admin** is created via the CLI (no admin can self-register):
+
+  ```sh
+  make create-admin EMAIL=admin@example.com DISPLAY_NAME="Admin"
+  # Password is prompted for when omitted.
+  ```
+
+  Run this once after the first `make up` / `make migrate`.
+
+Email delivery (verification, password resets) requires SMTP configuration —
+see [DEPLOY.md](DEPLOY.md) and `.env.example` for the variables.
+
+---
+
 ## Makefile Commands
 
 | Command | Description |
@@ -114,6 +141,7 @@ The application guides users through a 7-step pipeline:
 | `make logs-worker-llm` | Tail LLM worker logs |
 | `make migrate` | Run database migrations |
 | `make reset-db` | Reset database (destroys data!) |
+| `make create-admin` | Create the first administrator (`EMAIL=... DISPLAY_NAME=... [PASSWORD=...]`) |
 | `make download-model` | Download Airavata model to Ollama |
 | `make test-e2e` | Run E2E smoke test |
 | `make shell-backend` | Open shell in backend container |
@@ -159,7 +187,9 @@ All fields are mapped to Wikidata properties where applicable.
 - **CPU-only inference**: LLM extraction takes 10-20 minutes per book on CPU (no GPU required)
 - **Languages**: MVP supports Telugu and Hindi; additional Indic languages require Tesseract packs
 - **OCR accuracy**: Tesseract accuracy on Indic scripts varies; the OCR review step is essential
-- **No authentication**: Single-user local deployment (no auth/authorization)
+- **No per-user quotas**: any registered user can upload unlimited books and run unlimited jobs
+- **SMTP dependency**: email verification and password resets need SMTP (`SMTP_ENABLED=true` + credentials in production). Without SMTP the links are logged to the backend log instead — workable locally, not for real users
+- **Rate limiting**: request rate limits exist only on the auth endpoints, not on upload/job endpoints
 - **pgvector embeddings**: Schema exists but semantic search is not yet implemented
 - **1 test skipped**: Library filter options test requires PostgreSQL (not compatible with SQLite test runner)
 

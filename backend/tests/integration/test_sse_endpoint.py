@@ -18,7 +18,9 @@ from app.models.book import Book, BookStatus
 from app.services import sse_service as sse_service_module
 
 
-async def _seed_book(db_session, status: BookStatus = BookStatus.UPLOADED) -> Book:
+async def _seed_book(
+    db_session, owner_id: uuid.UUID, status: BookStatus = BookStatus.UPLOADED
+) -> Book:
     book = Book(
         id=uuid.uuid4(),
         title="t",
@@ -26,6 +28,7 @@ async def _seed_book(db_session, status: BookStatus = BookStatus.UPLOADED) -> Bo
         language="tel",
         total_pages=1,
         status=status,
+        owner_id=owner_id,
     )
     db_session.add(book)
     await db_session.commit()
@@ -111,7 +114,7 @@ async def test_in_memory_pubsub_fanout():
 
 
 @pytest.mark.asyncio
-async def test_snapshot_includes_book_and_jobs(db_session):
+async def test_snapshot_includes_book_and_jobs(db_session, regular_user):
     """A snapshot of the SSE service should include the current book
     state and any jobs. Build the snapshot manually here since we can't
     easily run the full streaming response in tests."""
@@ -121,7 +124,7 @@ async def test_snapshot_includes_book_and_jobs(db_session):
     from app.models.job import Job, JobStatus, JobType
     from tests.conftest import TestSessionFactory
 
-    book = await _seed_book(db_session, BookStatus.OCR_RUNNING)
+    book = await _seed_book(db_session, regular_user.id, BookStatus.OCR_RUNNING)
     async with TestSessionFactory() as db:
         db.add(
             Job(

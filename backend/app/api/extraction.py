@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_book_or_404
+from app.api.deps import get_current_user, get_owned_book_or_404
 from app.core.database import get_db
-from app.models.book import BookStatus
+from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
+from app.models.user import User
 from app.schemas.metadata import (
     BATCH_FIELD_ORDER,
     ExtractionRequest,
@@ -23,7 +24,9 @@ router = APIRouter()
 
 
 @router.get("/models", response_model=list[ModelInfo])
-async def list_models() -> list[ModelInfo]:
+async def list_models(
+    _user: User = Depends(get_current_user),
+) -> list[ModelInfo]:
     models = await llm_service.list_available_models()
     return [ModelInfo(**m) for m in models]
 
@@ -36,10 +39,10 @@ async def list_models() -> list[ModelInfo]:
 async def run_extraction(
     book_id: UUID,
     body: ExtractionRequest,
+    book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> ExtractionResponse:
-    book = await get_book_or_404(book_id, db)
-
     if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
         raise HTTPException(
             status_code=400,
@@ -82,7 +85,8 @@ async def run_extraction(
 
 
     job = Job(
-        book_id=book_id,
+        book_id=book.id,
+        requested_by_id=user.id,
         job_type=JobType.LLM,
         status=JobStatus.QUEUED,
         progress=0.0,
@@ -123,10 +127,10 @@ async def run_extraction(
 async def retry_extraction(
     book_id: UUID,
     body: ExtractionRequest,
+    book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> ExtractionResponse:
-    book = await get_book_or_404(book_id, db)
-
     if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
         raise HTTPException(
             status_code=400,
@@ -138,4 +142,4 @@ async def retry_extraction(
         await StageManager.cancel_stage(db, book_id, "llm_extraction", "Superseded by retry")
         await db.commit()
 
-    return await run_extraction(book_id, body, db)
+    return await run_extraction(book_id, body, book=book, db=db, user=user)

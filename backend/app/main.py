@@ -25,6 +25,19 @@ logger = logging.getLogger(__name__)
 RATE_LIMIT_REQUESTS = 60  # max requests per window
 RATE_LIMIT_WINDOW = 60  # seconds
 
+# Credential endpoints get a stricter per-IP budget.
+AUTH_RATE_LIMIT_REQUESTS = 10
+AUTH_RATE_LIMIT_WINDOW = 60
+AUTH_RATE_LIMIT_PATHS = frozenset(
+    {
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password",
+        "/api/auth/resend-verification",
+    }
+)
+
 _redis_pool: aioredis.Redis | None = None
 
 
@@ -55,9 +68,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         client_ip = request.client.host if request.client else "unknown"
 
-        key = f"rate_limit:{client_ip}"
+        is_auth = request.url.path in AUTH_RATE_LIMIT_PATHS
+        limit = AUTH_RATE_LIMIT_REQUESTS if is_auth else RATE_LIMIT_REQUESTS
+        window = AUTH_RATE_LIMIT_WINDOW if is_auth else RATE_LIMIT_WINDOW
+        scope = "auth" if is_auth else "global"
+
+        key = f"rate_limit:{scope}:{client_ip}"
         now = time.time()
-        window_start = now - RATE_LIMIT_WINDOW
+        window_start = now - window
         # Use a unique member per request to avoid collisions under concurrency
         member = f"{now}:{_uuid.uuid4().hex[:8]}"
 
@@ -66,15 +84,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             pipe.zremrangebyscore(key, 0, window_start)
             pipe.zadd(key, {member: now})
             pipe.zcard(key)
-            pipe.expire(key, RATE_LIMIT_WINDOW)
+            pipe.expire(key, window)
             results = await pipe.execute()
 
             request_count = results[2]
-            if request_count > RATE_LIMIT_REQUESTS:
+            if request_count > limit:
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Too many requests. Please try again later."},
-                    headers={"Retry-After": str(RATE_LIMIT_WINDOW)},
+                    headers={"Retry-After": str(window)},
                 )
         except Exception:
             # If Redis is down, allow the request through

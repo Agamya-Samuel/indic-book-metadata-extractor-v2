@@ -21,8 +21,8 @@ class TestListLibraryBooks:
         assert data["total_pages"] == 0
 
     async def test_list_books_with_data(self, client, make_book):
-        await make_book()
-        await make_book()
+        await make_book(status="awaiting_review")
+        await make_book(status="awaiting_review")
 
         response = await client.get("/api/library/books")
         assert response.status_code == 200
@@ -31,8 +31,8 @@ class TestListLibraryBooks:
         assert len(data["items"]) == 2
 
     async def test_list_books_filter_language(self, client, make_book):
-        await make_book(language="tel")
-        await make_book(language="hin")
+        await make_book(language="tel", status="awaiting_review")
+        await make_book(language="hin", status="awaiting_review")
 
         response = await client.get("/api/library/books?language=tel")
         assert response.status_code == 200
@@ -42,7 +42,7 @@ class TestListLibraryBooks:
 
     async def test_list_books_pagination(self, client, make_book):
         for i in range(5):
-            await make_book()
+            await make_book(status="awaiting_review")
 
         response = await client.get("/api/library/books?page=1&page_size=2")
         assert response.status_code == 200
