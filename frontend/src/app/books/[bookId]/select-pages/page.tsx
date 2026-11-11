@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { useBookStore } from "@/stores/book-store";
@@ -21,6 +21,7 @@ export default function SelectPagesPage() {
   useDocumentTitle("Select pages");
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const bookId = params.bookId as string;
 
   const {
@@ -44,14 +45,12 @@ export default function SelectPagesPage() {
 
   const selectPagesMutation = useMutation({
     mutationFn: (pages: number[]) => selectPages(bookId, pages),
-    onSuccess: (_data, pages) => {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(
-          `book:${bookId}:pendingPages`,
-          JSON.stringify(pages),
-        );
-      }
-      router.push(`/books/${bookId}/extracting-pages`);
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
+      router.push(
+        `/books/${bookId}/extracting-pages?job=${data.job_id ?? ""}`,
+      );
     },
   });
 
@@ -176,7 +175,7 @@ export default function SelectPagesPage() {
                 loading={selectPagesMutation.isPending}
               >
                 {selectPagesMutation.isPending
-                  ? "Processing..."
+                  ? "Starting..."
                   : `Confirm ${selectedCount} pages`}
               </Button>
             </div>

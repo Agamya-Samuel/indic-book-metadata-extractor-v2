@@ -10,10 +10,12 @@ from app.tasks.ocr_tasks import (
     preprocess_pages_for_book,
     run_ocr_for_book,
 )
+from app.tasks.page_tasks import render_pages_for_book
 
 __all__ = [
     "celery_app",
     "preprocess_pages_for_book",
+    "render_pages_for_book",
     "run_ocr_for_book",
     "run_llm_extraction",
 ]

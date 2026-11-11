@@ -13,16 +13,28 @@ async def _create_book_with_ocr(client, make_book, db_session):
     book = await make_book()
     book_id = uuid.UUID(book["id"])
 
-    await client.post(
-        f"/api/books/{book['id']}/pages",
-        json={"selected_pages": [1, 2]},
-    )
+    # Page rendering is asynchronous in production; seed the page rows and OCR
+    # results directly so extraction tests stay deterministic.
+    pages = [
+        Page(
+            book_id=book_id,
+            page_number=page_number,
+            image_path=f"pages/{book_id}/{page_number}.png",
+            preprocessing_config={},
+        )
+        for page_number in (1, 2)
+    ]
+    db_session.add_all(pages)
 
-    from sqlalchemy import select
-    pages_result = await db_session.execute(
-        select(Page).where(Page.book_id == book_id)
-    )
-    pages = pages_result.scalars().all()
+    # Drive the stages the way the pipeline does, so book.status is derived
+    # from stage state rather than assigned directly.
+    from app.services.stage_manager import StageManager
+
+    await db_session.flush()
+
+    await StageManager.initiate_stage(db_session, book_id, "page_selection")
+    await StageManager.start_stage(db_session, book_id, "page_selection")
+    await StageManager.complete_stage(db_session, book_id, "page_selection")
 
     for page in pages:
         ocr = OcrResult(
@@ -32,10 +44,6 @@ async def _create_book_with_ocr(client, make_book, db_session):
             language_detected="tel",
         )
         db_session.add(ocr)
-
-    # Drive the OCR stage the way the pipeline does, so book.status is derived
-    # from stage state rather than assigned directly.
-    from app.services.stage_manager import StageManager
 
     await StageManager.initiate_stage(db_session, book_id, "ocr")
     await StageManager.start_stage(db_session, book_id, "ocr")

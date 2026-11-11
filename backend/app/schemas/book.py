@@ -35,6 +35,7 @@ class PageSelectionResponse(BaseModel):
     book_id: uuid.UUID
     selected_count: int
     status: str
+    job_id: uuid.UUID | None = None
 
 
 class PageResponse(BaseModel):
