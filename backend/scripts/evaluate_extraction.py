@@ -27,13 +27,12 @@ import logging
 import sys
 import time
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.schemas.metadata import ALL_METADATA_FIELDS
 from app.services.extraction_validator import (
     BookEvaluation,
-    FieldResult,
     OverallEvaluation,
     evaluate_book,
 )
@@ -41,6 +40,7 @@ from app.services.extraction_validator import (
 logger = logging.getLogger(__name__)
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "samples"
+GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
 GT_ROOT = FIXTURE_ROOT.parent / "ground_truth"
 
 
@@ -142,7 +142,7 @@ def load_expected(path: str) -> dict:
     return data
 
 
-def run_pipeline_on_pdf(pdf_path: str) -> dict:
+def run_pipeline_on_pdf(pdf_path: str, model: str = "qwen2.5") -> dict:
     """Run the full pipeline (preprocess + OCR + LLM extraction) on a PDF.
 
     This is a thin wrapper around the existing services. It uses
@@ -157,91 +157,40 @@ def run_pipeline_on_pdf(pdf_path: str) -> dict:
     try:
         # Lazy imports so unit tests that only need the validator can
         # import this module without pulling the OCR / LLM stack.
-        from app.services.llm_service import LLMService  # noqa: F401
-        from app.services.pdf_service import PDFService  # noqa: F401
-    except Exception as e:
+        from app.services.llm_service import LLMService
+        from app.services.pdf_service import get_page_count, render_full_page
+    except Exception as e:  # noqa: BLE001 - degrade to stub when the stack is absent
         logger.warning("Pipeline services unavailable: %s", e)
         return {"_stub": "pipeline_unavailable", "_error": str(e)}
 
     try:
         import asyncio
-        import uuid
+        import tempfile
 
-        from app.core.database import async_session_factory
-        from app.models.book import Book
-        from app.models.metadata import BookMetadata
-        from app.models.metadata_field_evidence import MetadataFieldEvidence
-        from app.models.ocr_result import OcrResult
-        from app.models.page import Page
         from app.services.batch_routing import PageText
         from app.services.llm_service import LLMService
         from app.services.ocr_service import run_ocr
-        from app.services.pdf_service import PDFService
-        from app.services.storage import StorageService
-        from sqlalchemy import select
 
         async def _run() -> dict:
             pdf = Path(pdf_path)
-            pdf_service = PDFService()
-            image_paths = pdf_service.render_pages(pdf, max_pages=20)
-            storage = StorageService()
+            total = get_page_count(pdf)
+            tmpdir = Path(tempfile.mkdtemp(prefix="gteval_"))
+            ocr_texts: list[PageText] = []
+            for pageno in range(1, min(total, 20) + 1):
+                img = tmpdir / f"p{pageno:04d}.png"
+                render_full_page(pdf, pageno, img)
+                data = run_ocr(img, "tel", page_position=pageno - 1)
+                if data.get("full_text"):
+                    ocr_texts.append(PageText(page_number=pageno, text=data["full_text"]))
 
-            async with async_session_factory() as db:
-                book = Book(
-                    id=uuid.uuid4(),
-                    filename=pdf.name,
-                    language="tel",
-                    total_pages=len(image_paths),
-                )
-                db.add(book)
-                await db.flush()
-                page_records = []
-                for i, img_path in enumerate(image_paths):
-                    rel = storage.relative(img_path)
-                    page = Page(
-                        book_id=book.id,
-                        page_number=i + 1,
-                        image_path=rel,
-                    )
-                    db.add(page)
-                    page_records.append((page, img_path))
-                await db.commit()
-
-                # OCR each page synchronously. This avoids depending on
-                # Celery/Redis being up; the harness is meant to measure
-                # what the system actually produces.
-                ocr_texts: list[PageText] = []
-                for page, img_path in page_records:
-                    ocr_data = run_ocr(Path(img_path), "tel", page_position=page.page_number - 1)
-                    db.add(
-                        OcrResult(
-                            page_id=page.id,
-                            raw_text=ocr_data.get("full_text"),
-                            confidence=ocr_data.get("avg_confidence"),
-                            language_detected="tel",
-                            bounding_boxes={"words": ocr_data.get("words", [])},
-                        )
-                    )
-                    if ocr_data.get("full_text"):
-                        ocr_texts.append(
-                            PageText(
-                                page_number=page.page_number,
-                                text=ocr_data["full_text"],
-                            )
-                        )
-                await db.commit()
-
-                # Run the hybrid LLM extraction synchronously.
-                llm = LLMService()
-                metadata, _, _ = await llm.run_hybrid_full_extraction(
-                    ocr_text="",
-                    pages=ocr_texts,
-                    language="tel",
-                )
-                return metadata.model_dump()
+            llm = LLMService()
+            metadata, _, _ = await llm.run_hybrid_full_extraction(
+                ocr_text="", pages=ocr_texts, language="tel", model=model
+            )
+            return metadata.model_dump()
 
         return asyncio.run(_run())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - report any pipeline failure as a stub result
         logger.error("Pipeline run failed: %s", e)
         return {"_stub": "pipeline_error", "_error": str(e)}
 
@@ -280,6 +229,8 @@ def main() -> int:
         action="store_true",
         help="With --ground-truth, also include books whose metadata is still an unverified scaffold",
     )
+    parser.add_argument("--model", default="qwen2.5", help="Ollama model for extraction (default qwen2.5)")
+    parser.add_argument("--limit", type=int, default=0, help="Max books to score (0 = all)")
     parser.add_argument(
         "-v",
         "--verbose",
@@ -299,6 +250,8 @@ def main() -> int:
         )
     else:
         samples = discover_samples(quality=args.quality)
+    if args.limit:
+        samples = samples[: args.limit]
     if not samples:
         if args.ground_truth:
             print(
@@ -325,7 +278,7 @@ def main() -> int:
             predicted = {k: v for k, v in expected.items() if k in all_field_names}
         else:
             t0 = time.time()
-            predicted = run_pipeline_on_pdf(sample["pdf_path"])
+            predicted = run_pipeline_on_pdf(sample["pdf_path"], model=args.model)
             dt = time.time() - t0
             print(f"Pipeline took {dt:.1f}s")
 
@@ -355,14 +308,12 @@ def main() -> int:
     per_field = overall.per_field_f1()
     print("\n=== Per-field F1 (sorted) ===")
     for name, m in sorted(per_field.items(), key=lambda kv: -kv[1]["f1"]):
-        print(
-            f"  {name:35s} P={m['precision']:.2f} R={m['recall']:.2f} F1={m['f1']:.2f}  (n={m['support']})"
-        )
+        print(f"  {name:35s} P={m['precision']:.2f} R={m['recall']:.2f} F1={m['f1']:.2f}  (n={m['support']})")
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         report = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "samples": [s["sample_id"] for s in samples],
             "overall": {
                 "micro_precision": overall.micro_precision(),
