@@ -78,6 +78,13 @@ cp .env.example .env
 
 The default `.env` values are configured for Docker Compose and work out of the box. No edits required.
 
+**Authentication note**: email verification and password resets are sent via
+SMTP. With the default `SMTP_ENABLED=false`, the emails are **not sent** — the
+verification/reset links are logged to the backend log (`make logs-backend`),
+which is convenient for local development. For real email delivery set
+`SMTP_ENABLED=true` plus `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`,
+`SMTP_PASSWORD`, and `SMTP_FROM` in `.env` (see `.env.example`).
+
 ### Step 4: Start All Services
 
 ```bash
@@ -99,6 +106,19 @@ You can watch progress with:
 ```bash
 make logs
 ```
+
+### Step 5b: Create the First Admin Account
+
+The app has open self-registration (email-verified), but the first **admin**
+must be created from the CLI:
+
+```bash
+make create-admin EMAIL=admin@example.com DISPLAY_NAME="Admin"
+# Password is prompted for when omitted (or pass PASSWORD=...).
+```
+
+The account is created verified and active — log in at
+http://localhost:3000, then use **Admin → Users** to manage further users.
 
 ### Step 6: Access the Application
 

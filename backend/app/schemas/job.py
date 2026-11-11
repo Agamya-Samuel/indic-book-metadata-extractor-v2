@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class JobResponse(BaseModel):
     id: uuid.UUID
     book_id: uuid.UUID | None
+    requested_by_id: uuid.UUID | None = None
     job_type: str
     status: str
     progress: float

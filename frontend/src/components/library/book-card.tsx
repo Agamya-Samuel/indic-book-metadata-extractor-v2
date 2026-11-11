@@ -118,6 +118,11 @@ export default function BookCard({ book }: BookCardProps) {
             {author}
           </p>
         )}
+        {book.owner_display_name && (
+          <p className="text-[var(--text-xs)] text-[var(--text-subtle)] line-clamp-1">
+            Uploaded by {book.owner_display_name}
+          </p>
+        )}
         <div className="mt-auto flex items-center gap-1.5 pt-1">
           <span
             className={cn(

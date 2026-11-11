@@ -87,4 +87,16 @@ describe("BookCard", () => {
     const { container } = render(<BookCard book={noAuthorBook} />);
     expect(container.textContent).not.toContain("Test Author");
   });
+
+  it("renders uploader display name when present", () => {
+    const ownedBook = { ...baseBook, owner_display_name: "Ada Lovelace" };
+    const { container } = render(<BookCard book={ownedBook} />);
+    expect(container.textContent).toContain("Uploaded by Ada Lovelace");
+  });
+
+  it("omits uploader line when owner display name is absent", () => {
+    const anonymousBook = { ...baseBook, owner_display_name: null };
+    const { container } = render(<BookCard book={anonymousBook} />);
+    expect(container.textContent).not.toContain("Uploaded by");
+  });
 });

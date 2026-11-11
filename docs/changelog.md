@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+**Authentication & Roles**
+- Email + password accounts with open self-registration, email verification (24 h token), and self-service password reset (1 h single-use token)
+- Two roles (`user` / `admin`) with backend-enforced authorization on every book/page/job endpoint (owner or admin); first admin via `make create-admin`
+- Personal dashboard (`/dashboard`): own books, own jobs, queue position (`queue_ahead`), cancel own queued/running jobs
+- Admin user management (`/admin/users`): create, change role, activate/deactivate, reset password, delete — with self/last-admin/owns-books protections
+- Admin books/jobs pages gained owner columns and a free-text owner filter; global stats include user counts
+- Public catalog gating: anonymous and non-owner users see metadata-only book detail (`can_view_full`); only `complete`/`awaiting_review` books are listed; uploader display name is public, email is admin-only
+- Job cancellation endpoint with owner/admin rules; book delete/reset/re-run endpoints now owner-scoped
+
+**Infrastructure**
+- Alembic migration `012_auth_rbac`: `users` table, session refresh-token table, `books.owner_id` (non-nullable — refuses to run on databases that already contain books)
+- SMTP transactional email service (verification, password reset); with `SMTP_ENABLED=false` links are logged instead of sent
+- Rate limiting on auth endpoints; CSRF (`X-CSRF-Token`) required on state-changing requests
+
+---
+
 ## [0.1.0] — 2026-05-29
 
 ### Added

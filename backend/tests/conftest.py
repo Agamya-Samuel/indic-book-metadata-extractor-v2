@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import uuid
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -15,7 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.security import create_access_token, hash_password
 from app.models.base import Base
+from app.models.book import Book
+from app.models.user import User, UserRole
 
 
 def create_test_pdf(path: Path, num_pages: int = 2, text_per_page: dict[int, str] | None = None) -> Path:
@@ -58,6 +62,22 @@ async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+CSRF_HEADER = "X-CSRF-Token"
+_TEST_CSRF = "test-csrf-token"
+
+
+def _authenticate(ac: AsyncClient, user: User) -> None:
+    """Attach session cookies and the CSRF header to a test client."""
+    token = create_access_token(
+        user_id=str(user.id),
+        role=user.role,
+        token_version=user.token_version,
+    )
+    ac.cookies.set("access_token", token)
+    ac.cookies.set("csrf_token", _TEST_CSRF)
+    ac.headers[CSRF_HEADER] = _TEST_CSRF
+
+
 def _create_test_app() -> FastAPI:
     from app.main import app
 
@@ -89,10 +109,95 @@ def test_app(setup_database):
 
 
 @pytest.fixture
-async def client(test_app) -> AsyncGenerator[AsyncClient, None]:
+async def client(test_app, regular_user) -> AsyncGenerator[AsyncClient, None]:
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        _authenticate(ac, regular_user)
+        yield ac
+
+
+@pytest.fixture
+async def anon_client(test_app) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac
+
+
+@pytest.fixture
+async def admin_client(test_app, admin_user) -> AsyncGenerator[AsyncClient, None]:
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        _authenticate(ac, admin_user)
+        yield ac
+
+
+def _user_factory():
+    async def _create(
+        *,
+        email: str | None = None,
+        display_name: str = "Test User",
+        role: str = UserRole.USER,
+        is_active: bool = True,
+        verified: bool = True,
+        password: str = "correct horse battery staple",
+    ) -> User:
+        async with TestSessionFactory() as session:
+            user = User(
+                email=email or f"{uuid.uuid4().hex[:12]}@example.com",
+                display_name=display_name,
+                password_hash=hash_password(password),
+                role=role,
+                is_active=is_active,
+                email_verified_at=(
+                    datetime.now(timezone.utc) if verified else None
+                ),
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    return _create
+
+
+@pytest.fixture
+def create_user(test_app):
+    return _user_factory()
+
+
+@pytest.fixture
+async def regular_user(test_app) -> User:
+    return await _user_factory()(
+        email="user@example.com", display_name="Regular User"
+    )
+
+
+@pytest.fixture
+async def admin_user(test_app) -> User:
+    return await _user_factory()(
+        email="admin@example.com",
+        display_name="Admin User",
+        role=UserRole.ADMIN,
+    )
+
+
+@pytest.fixture
+async def auth_client(test_app) -> AsyncGenerator:
+    """Factory that returns an authenticated client for a given user."""
+    clients: list[AsyncClient] = []
+
+    async def _make(user: User) -> AsyncClient:
+        transport = ASGITransport(app=test_app)
+        ac = AsyncClient(transport=transport, base_url="http://testserver")
+        _authenticate(ac, user)
+        clients.append(ac)
+        return ac
+
+    try:
+        yield _make
+    finally:
+        for ac in clients:
+            await ac.aclose()
 
 
 def _make_celery_mocks():
@@ -156,6 +261,7 @@ def test_storage(tmp_path, monkeypatch):
 def make_book(client, sample_pdf, test_storage):
     async def _make_book(
         language: str = "tel",
+        status: str | None = None,
     ) -> dict:
         pdf_bytes = sample_pdf.read_bytes()
         response = await client.post(
@@ -164,7 +270,15 @@ def make_book(client, sample_pdf, test_storage):
             data={"language": language},
         )
         assert response.status_code == 201
-        return response.json()
+        book = response.json()
+        if status is not None:
+            async with TestSessionFactory() as session:
+                row = await session.get(Book, uuid.UUID(book["id"]))
+                assert row is not None
+                row.status = status
+                await session.commit()
+            book["status"] = status
+        return book
 
     return _make_book
 

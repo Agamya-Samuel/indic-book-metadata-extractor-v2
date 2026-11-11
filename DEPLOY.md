@@ -25,6 +25,16 @@ In the service → **Environment** tab, add these variables:
 | `NEXT_PUBLIC_API_URL` | `https://YOUR_DOMAIN/api` | ✅ Yes |
 | `CORS_ORIGINS` | `https://YOUR_DOMAIN` | Recommended |
 | `FLOWER_BASIC_AUTH` | `admin:<password>` | Recommended |
+| `SMTP_ENABLED` | `true` (required for account emails in production) | ✅ Yes (accounts) |
+| `SMTP_HOST` | e.g. `mx.msgwing.com` | ✅ Yes (accounts) |
+| `SMTP_PORT` | `587` (STARTTLS) or `465` (SSL) | ✅ Yes (accounts) |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | SMTP login credentials | ✅ Yes (accounts) |
+| `SMTP_FROM` | e.g. `northcay@msgwing.com` | ✅ Yes (accounts) |
+| `PASSWORD_MIN_LENGTH` | Default `10` | Optional |
+
+SMTP is required for the email-verification and password-reset emails that
+account registration depends on. Keep the real credentials in the
+git-ignored `.env` (or the Dokploy environment tab) — never commit them.
 
 Everything else has working defaults.
 
@@ -43,6 +53,24 @@ Enable HTTPS (Let's Encrypt) for each.
 ### 4. Deploy
 
 Click **Deploy**. First deploy takes ~15 min (Ollama downloads the Airavata 7B model).
+
+### 5. Create the first admin
+
+Registration is open but new accounts must verify their email, and nobody can
+self-register as an admin. Create the first administrator once, from the
+server, after the stack is up:
+
+```bash
+make create-admin EMAIL=admin@YOUR_DOMAIN DISPLAY_NAME="Admin"
+# Password is prompted for when omitted (or pass PASSWORD=...).
+```
+
+That account is created verified and active — log in at the frontend and use
+**Admin → Users** to create or promote further admins.
+
+> Note: migration `012` (users/roles/ownership) refuses to run on a database
+> that already contains books — the production DB is reset on this deploy, so
+> books are re-uploaded under their owners afterwards.
 
 ---
 

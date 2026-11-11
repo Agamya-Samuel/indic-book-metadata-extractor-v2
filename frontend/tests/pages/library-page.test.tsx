@@ -127,9 +127,9 @@ describe("LibraryPage", () => {
     expect(screen.getByText("All Statuses")).toBeDefined();
   });
 
-  it("renders Upload New Book button", () => {
+  it("renders Upload Book button", () => {
     render(<LibraryPage />, { wrapper: createWrapper() });
-    expect(screen.getByText("Upload New Book")).toBeDefined();
+    expect(screen.getByText("Upload Book")).toBeDefined();
   });
 
   it("renders Search button", () => {

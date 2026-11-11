@@ -1,16 +1,172 @@
+from __future__ import annotations
+
+import hmac
 from uuid import UUID
 
-from fastapi import Depends, HTTPException
+import jwt
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.book import Book
+from app.core.security import (
+    ACCESS_TOKEN_COOKIE,
+    CSRF_COOKIE,
+    CSRF_HEADER,
+    decode_access_token,
+)
+from app.models.book import Book, BookStatus, PUBLIC_BOOK_STATUSES
+from app.models.job import Job
+from app.models.user import User, UserRole
+
+_MUTATION_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def _unauthorized(detail: str = "Not authenticated") -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _extract_token(request: Request) -> tuple[str | None, bool]:
+    """Return the token and whether it came from the cookie."""
+    cookie_token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    if cookie_token:
+        return cookie_token, True
+    header = request.headers.get("Authorization", "")
+    if header.lower().startswith("bearer "):
+        return header[7:].strip(), False
+    return None, False
+
+
+def _check_csrf(request: Request) -> None:
+    cookie_token = request.cookies.get(CSRF_COOKIE)
+    header_token = request.headers.get(CSRF_HEADER)
+    if not cookie_token or not header_token or not hmac.compare_digest(
+        cookie_token, header_token
+    ):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+
+async def _user_from_token(db: AsyncSession, token: str) -> User | None:
+    try:
+        payload = decode_access_token(token)
+        user_id = UUID(payload["sub"])
+    except (jwt.InvalidTokenError, KeyError, TypeError, ValueError):
+        return None
+
+    user = await db.get(User, user_id)
+    if user is None or not user.is_active:
+        return None
+    if user.email_verified_at is None:
+        return None
+    if int(payload.get("tv", -1)) != user.token_version:
+        return None
+    if payload.get("role") != user.role:
+        return None
+    return user
+
+
+async def get_current_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    token, from_cookie = _extract_token(request)
+    if not token:
+        raise _unauthorized()
+
+    user = await _user_from_token(db, token)
+    if user is None:
+        raise _unauthorized("Invalid or expired session")
+
+    if from_cookie and request.method in _MUTATION_METHODS:
+        _check_csrf(request)
+
+    return user
+
+
+async def get_optional_current_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Resolve a user for public endpoints without rejecting anonymous access."""
+    token, _ = _extract_token(request)
+    if not token:
+        return None
+    return await _user_from_token(db, token)
+
+
+async def require_admin(
+    user: User = Depends(get_current_user),
+) -> User:
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Administrator access required")
+    return user
+
+
+def can_view_full_book(book: Book, user: User | None) -> bool:
+    if user is None:
+        return False
+    return user.role == UserRole.ADMIN or book.owner_id == user.id
+
+
+def is_public_book(book: Book) -> bool:
+    return book.status in PUBLIC_BOOK_STATUSES
 
 
 async def get_book_or_404(book_id: UUID, db: AsyncSession = Depends(get_db)) -> Book:
+    """Compatibility helper for internal callers; does not authorize."""
     result = await db.execute(select(Book).where(Book.id == book_id))
     book = result.scalar_one_or_none()
     if book is None:
         raise HTTPException(status_code=404, detail="Book not found")
     return book
+
+
+async def get_owned_book_or_404(
+    book_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Book:
+    """Return a book only when the caller owns it or is an administrator."""
+    book = await db.get(Book, book_id)
+    if book is None or not can_view_full_book(book, user):
+        # 404 rather than 403: do not confirm that another user's book exists.
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
+
+
+async def get_visible_book_or_404(
+    book_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_current_user),
+) -> Book:
+    """Return a public book, or a private one when the caller may see it."""
+    book = await db.get(Book, book_id)
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+    if is_public_book(book) or can_view_full_book(book, user):
+        return book
+    raise HTTPException(status_code=404, detail="Book not found")
+
+
+async def get_job_for_user_or_404(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Job:
+    """Return a job when the caller requested it, owns its book, or is an admin."""
+    job = await db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if user.role == UserRole.ADMIN:
+        return job
+    if job.requested_by_id == user.id:
+        return job
+    if job.book_id is not None:
+        book = await db.get(Book, job.book_id)
+        if book is not None and book.owner_id == user.id:
+            return job
+    raise HTTPException(status_code=404, detail="Job not found")

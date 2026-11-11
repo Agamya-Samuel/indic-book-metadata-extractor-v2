@@ -23,8 +23,22 @@ class ResizeObserverMock {
 }
 global.ResizeObserver = ResizeObserverMock;
 
-HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
-  fillRect: vi.fn(),
+// jsdom does not implement the <dialog> element's modal API. The app's
+// ConfirmDialog / create-user dialogs rely on showModal(); emulate it by
+// toggling the open attribute so portal-style dialog content is queryable.
+if (
+  typeof HTMLDialogElement !== "undefined" &&
+  !HTMLDialogElement.prototype.showModal
+) {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
+}
+
+HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({  fillRect: vi.fn(),
   clearRect: vi.fn(),
   getImageData: vi.fn(),
   putImageData: vi.fn(),
@@ -67,14 +81,21 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
     const { src, alt, ...rest } = props;
-    return React.createElement("img", { src, alt, ...(rest as any) });
+    return React.createElement(
+      "img",
+      { src, alt, ...rest } as React.ComponentProps<"img">,
+    );
   },
 }));
 
 vi.mock("next/link", () => ({
   default: (props: Record<string, unknown>) => {
     const { href, children, ...rest } = props;
-    return React.createElement("a", { href, ...(rest as any) }, children as any);
+    return React.createElement(
+      "a",
+      { href, ...rest } as React.ComponentProps<"a">,
+      children as React.ReactNode,
+    );
   },
 }));
 

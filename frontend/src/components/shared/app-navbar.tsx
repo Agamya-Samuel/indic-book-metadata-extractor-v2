@@ -1,24 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
 import { useTheme } from "./theme-provider";
+import { useAuth } from "@/components/auth/auth-provider";
 
 const navLinks = [
-  { href: "/library", label: "Library", shortLabel: "Library" },
+  { href: "/library", label: "Library", shortLabel: "Library", scope: "all" },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    shortLabel: "Home",
+    scope: "auth",
+  },
+  { href: "/upload", label: "Upload", shortLabel: "Upload", scope: "auth" },
   {
     href: "/bulk-operations",
     label: "Bulk operations",
     shortLabel: "Bulk",
+    scope: "admin",
   },
-  { href: "/admin", label: "Admin", shortLabel: "Admin" },
-];
+  { href: "/admin", label: "Admin", shortLabel: "Admin", scope: "admin" },
+] as const;
 
 export default function AppNavbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggle } = useTheme();
+  const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
+
+  const visibleLinks = navLinks.filter((link) => {
+    if (link.scope === "admin") return isAdmin;
+    if (link.scope === "auth") return isAuthenticated;
+    return true;
+  });
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/70 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
@@ -48,7 +70,7 @@ export default function AppNavbar() {
         </Link>
 
         <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1" aria-label="Primary">
-          {navLinks.map((link) => {
+          {visibleLinks.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
@@ -69,6 +91,95 @@ export default function AppNavbar() {
               </Link>
             );
           })}
+
+          {!loading && !isAuthenticated && (
+            <div className="ml-1 flex items-center gap-1">
+              <Link
+                href="/login"
+                className={cn(
+                  "inline-flex min-h-11 items-center px-2.5 sm:px-3 py-1.5 text-[var(--text-sm)] font-medium rounded-[var(--radius)]",
+                  "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-sunken)]",
+                  focusRing,
+                )}
+              >
+                Log in
+              </Link>
+              <Link
+                href="/register"
+                className={cn(
+                  "hidden sm:inline-flex min-h-11 items-center px-2.5 sm:px-3 py-1.5 text-[var(--text-sm)] font-medium rounded-[var(--radius)]",
+                  "text-[var(--accent)] hover:bg-[var(--accent-soft)]",
+                  focusRing,
+                )}
+              >
+                Register
+              </Link>
+            </div>
+          )}
+
+          {isAuthenticated && user && (
+            <details className="relative ml-1">
+              <summary
+                className={cn(
+                  "flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[var(--radius)] px-2.5 py-1.5",
+                  "text-[var(--text-sm)] font-medium text-[var(--text-muted)]",
+                  "hover:bg-[var(--surface-sunken)] hover:text-[var(--text)]",
+                  focusRing,
+                )}
+                aria-label="Account menu"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex size-6 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent-soft-text)]"
+                >
+                  {user.display_name.slice(0, 1).toUpperCase()}
+                </span>
+                <span className="hidden max-w-[8rem] truncate sm:inline">
+                  {user.display_name}
+                </span>
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                  className="size-3.5"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </summary>
+              <div className="absolute right-0 mt-2 w-60 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+                <div className="border-b border-[var(--border)] px-4 py-3">
+                  <p className="truncate text-[var(--text-sm)] font-semibold text-[var(--text)]">
+                    {user.display_name}
+                  </p>
+                  <p className="truncate text-[var(--text-xs)] text-[var(--text-muted)]">
+                    {user.email}
+                  </p>
+                  {isAdmin && (
+                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-[var(--accent)]">
+                      Administrator
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="block px-4 py-2.5 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="block w-full px-4 py-2.5 text-left text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]"
+                >
+                  Log out
+                </button>
+              </div>
+            </details>
+          )}
 
           <button
             type="button"

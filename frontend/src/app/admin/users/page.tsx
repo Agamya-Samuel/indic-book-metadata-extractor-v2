@@ -1,0 +1,765 @@
+"use client";
+
+import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  getAdminUsers,
+  createAdminUser,
+  updateAdminUser,
+  resetAdminUserPassword,
+  deleteAdminUser,
+  type AdminUser,
+} from "@/lib/api";
+import { useAuth } from "@/components/auth/auth-provider";
+import { ActionMenu, MenuButton, MenuSeparator } from "@/components/shared/action-menu";
+import ConfirmDialog from "@/components/admin/confirm-dialog";
+import Pagination from "@/components/shared/pagination";
+import { PageContainer, Card } from "@/components/shared/card";
+import { Field, Input, Select } from "@/components/shared/input";
+import { Button } from "@/components/shared/button";
+import { EmptyState } from "@/components/shared/empty-state";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { getErrorMessage } from "@/lib/error-handler";
+import { cn } from "@/lib/utils";
+
+const MIN_PASSWORD_LENGTH = 10;
+
+type PendingAction =
+  | { type: "role"; user: AdminUser; role: "user" | "admin" }
+  | { type: "active"; user: AdminUser; isActive: boolean }
+  | { type: "delete"; user: AdminUser }
+  | { type: "reset-password"; user: AdminUser }
+  | null;
+
+function RoleBadge({ role }: { role: "user" | "admin" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ring-1 ring-inset",
+        role === "admin"
+          ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)] ring-[var(--accent)]/30"
+          : "bg-[var(--neutral-100)] dark:bg-[var(--neutral-800)] text-[var(--text-muted)] ring-[var(--border)]",
+      )}
+    >
+      {role}
+    </span>
+  );
+}
+
+export default function AdminUsersPage() {
+  useDocumentTitle("Admin · Users");
+
+  const qc = useQueryClient();
+  const { user: currentUser } = useAuth();
+
+  const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
+  const [roleFilter, setRoleFilter] = React.useState("");
+  const [activeFilter, setActiveFilter] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
+  const [createOpen, setCreateOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const params = {
+    query: debouncedSearch || undefined,
+    role: (roleFilter || undefined) as "user" | "admin" | undefined,
+    is_active:
+      activeFilter === ""
+        ? undefined
+        : activeFilter === "true",
+    page,
+    page_size: 50,
+  };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-users", params],
+    queryFn: () => getAdminUsers(params),
+    staleTime: 15 * 1000,
+  });
+
+  const items = data?.items ?? [];
+  const totalPages = data?.total_pages ?? 0;
+  const total = data?.total ?? 0;
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin-users"] });
+    qc.invalidateQueries({ queryKey: ["admin-stats"] });
+  };
+
+  const updateOne = useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: { display_name?: string; role?: "user" | "admin"; is_active?: boolean };
+    }) => updateAdminUser(id, payload),
+    onSuccess: (_data, variables) => {
+      if (variables.payload.role) {
+        toast.success(`Role changed to ${variables.payload.role}`);
+      } else if (typeof variables.payload.is_active === "boolean") {
+        toast.success(
+          variables.payload.is_active ? "User activated" : "User deactivated",
+        );
+      }
+      invalidate();
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  });
+
+  const deleteOne = useMutation({
+    mutationFn: (id: string) => deleteAdminUser(id),
+    onSuccess: () => {
+      toast.success("User deleted");
+      invalidate();
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      resetAdminUserPassword(id, password),
+    onSuccess: () => {
+      toast.success("Password reset — the user's other sessions were signed out");
+      invalidate();
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  });
+
+  const createOne = useMutation({
+    mutationFn: createAdminUser,
+    onSuccess: () => {
+      toast.success("User created");
+      invalidate();
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  });
+
+  const handleConfirm = async () => {
+    if (!pendingAction) return;
+    switch (pendingAction.type) {
+      case "role":
+        await updateOne.mutateAsync({
+          id: pendingAction.user.id,
+          payload: { role: pendingAction.role },
+        });
+        break;
+      case "active":
+        await updateOne.mutateAsync({
+          id: pendingAction.user.id,
+          payload: { is_active: pendingAction.isActive },
+        });
+        break;
+      case "delete":
+        await deleteOne.mutateAsync(pendingAction.user.id);
+        break;
+      case "reset-password":
+        // The dialog resolves the mutation itself before closing.
+        break;
+    }
+    setPendingAction(null);
+  };
+
+  const isSelf = (user: AdminUser) => user.id === currentUser?.id;
+
+  return (
+    <PageContainer>
+      <Card
+        className="mb-4"
+        title="Users"
+        description={`${total} user${total !== 1 ? "s" : ""} registered`}
+        headerAction={
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            Add user
+          </Button>
+        }
+      >
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[220px]">
+            <Field label="Search" htmlFor="admin-user-search">
+              <Input
+                id="admin-user-search"
+                type="text"
+                placeholder="Name or email…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </Field>
+          </div>
+          <div className="w-40">
+            <Field label="Role" htmlFor="admin-user-role">
+              <Select
+                id="admin-user-role"
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">All</option>
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </Select>
+            </Field>
+          </div>
+          <div className="w-40">
+            <Field label="Status" htmlFor="admin-user-active">
+              <Select
+                id="admin-user-active"
+                value={activeFilter}
+                onChange={(e) => {
+                  setActiveFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">All</option>
+                <option value="true">Active</option>
+                <option value="false">Deactivated</option>
+              </Select>
+            </Field>
+          </div>
+        </div>
+      </Card>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-16 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-sunken)] animate-pulse"
+            />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          title="No users match your filters"
+          description="Try adjusting the search or clearing filters."
+        />
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
+                  <tr>
+                    <th className="px-3 py-2.5 text-left font-medium">User</th>
+                    <th className="px-3 py-2.5 text-left font-medium">Role</th>
+                    <th className="px-3 py-2.5 text-left font-medium">Status</th>
+                    <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Verified</th>
+                    <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Last login</th>
+                    <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Created</th>
+                    <th className="px-3 py-2.5 text-right font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {items.map((user) => (
+                    <tr
+                      key={user.id}
+                      className={cn(
+                        "hover:bg-[var(--surface-sunken)]/40",
+                        !user.is_active && "opacity-60",
+                      )}
+                    >
+                      <td className="px-3 py-2.5 align-middle">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-[var(--text)]">
+                            {user.display_name}
+                            {isSelf(user) && (
+                              <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                                (you)
+                              </span>
+                            )}
+                          </p>
+                          <p
+                            className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+                            title={user.email}
+                          >
+                            {user.email}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 align-middle">
+                        <RoleBadge role={user.role} />
+                      </td>
+                      <td className="px-3 py-2.5 align-middle text-[var(--text-sm)]">
+                        {user.is_active ? (
+                          <span className="text-[var(--success-700)] dark:text-[var(--success-100)]">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="text-[var(--danger-700)] dark:text-[var(--danger-300)]">
+                            Deactivated
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 align-middle hidden md:table-cell text-[var(--text-sm)] text-[var(--text-muted)]">
+                        {user.email_verified_at ? "Yes" : "No"}
+                      </td>
+                      <td className="px-3 py-2.5 align-middle hidden lg:table-cell text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
+                        {user.last_login_at
+                          ? new Date(user.last_login_at).toLocaleString()
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 align-middle hidden lg:table-cell text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
+                        {user.created_at
+                          ? new Date(user.created_at).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 align-middle text-right">
+                        <ActionMenu
+                          ariaLabel={`Actions for ${user.display_name}`}
+                          label="Actions"
+                        >
+                          {user.role === "admin" ? (
+                            <MenuButton
+                              disabled={isSelf(user)}
+                              onClick={() =>
+                                setPendingAction({
+                                  type: "role",
+                                  user,
+                                  role: "user",
+                                })
+                              }
+                            >
+                              Change role to user
+                            </MenuButton>
+                          ) : (
+                            <MenuButton
+                              onClick={() =>
+                                setPendingAction({
+                                  type: "role",
+                                  user,
+                                  role: "admin",
+                                })
+                              }
+                            >
+                              Change role to admin
+                            </MenuButton>
+                          )}
+                          {user.is_active ? (
+                            <MenuButton
+                              disabled={isSelf(user)}
+                              onClick={() =>
+                                setPendingAction({
+                                  type: "active",
+                                  user,
+                                  isActive: false,
+                                })
+                              }
+                            >
+                              Deactivate
+                            </MenuButton>
+                          ) : (
+                            <MenuButton
+                              onClick={() =>
+                                setPendingAction({
+                                  type: "active",
+                                  user,
+                                  isActive: true,
+                                })
+                              }
+                            >
+                              Activate
+                            </MenuButton>
+                          )}
+                          <MenuButton
+                            onClick={() =>
+                              setPendingAction({
+                                type: "reset-password",
+                                user,
+                              })
+                            }
+                          >
+                            Reset password…
+                          </MenuButton>
+                          <MenuSeparator />
+                          <MenuButton
+                            danger
+                            disabled={isSelf(user)}
+                            onClick={() =>
+                              setPendingAction({ type: "delete", user })
+                            }
+                          >
+                            Delete…
+                          </MenuButton>
+                        </ActionMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      )}
+
+      <CreateUserDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={async (payload) => {
+          await createOne.mutateAsync(payload);
+          setCreateOpen(false);
+        }}
+        loading={createOne.isPending}
+      />
+
+      {/* Role change */}
+      <ConfirmDialog
+        open={pendingAction?.type === "role"}
+        onClose={() => setPendingAction(null)}
+        onConfirm={handleConfirm}
+        title={
+          pendingAction?.type === "role" && pendingAction.role === "admin"
+            ? "Grant admin access?"
+            : "Revoke admin access?"
+        }
+        description={
+          pendingAction?.type === "role" ? (
+            <span>
+              {pendingAction.role === "admin"
+                ? `${pendingAction.user.display_name} will be able to manage all books, jobs, and users.`
+                : `${pendingAction.user.display_name} will lose access to the admin area and global operations.`}
+            </span>
+          ) : null
+        }
+        confirmLabel={
+          pendingAction?.type === "role" && pendingAction.role === "admin"
+            ? "Make admin"
+            : "Make user"
+        }
+        variant="warning"
+        loading={updateOne.isPending}
+      />
+
+      {/* Activate / deactivate */}
+      <ConfirmDialog
+        open={pendingAction?.type === "active"}
+        onClose={() => setPendingAction(null)}
+        onConfirm={handleConfirm}
+        title={
+          pendingAction?.type === "active" && pendingAction.isActive
+            ? "Activate this user?"
+            : "Deactivate this user?"
+        }
+        description={
+          pendingAction?.type === "active" ? (
+            <span>
+              {pendingAction.isActive
+                ? `${pendingAction.user.display_name} will be able to log in again.`
+                : `${pendingAction.user.display_name} will be signed out and unable to log in. Their books are kept.`}
+            </span>
+          ) : null
+        }
+        confirmLabel={
+          pendingAction?.type === "active" && pendingAction.isActive
+            ? "Activate"
+            : "Deactivate"
+        }
+        variant="warning"
+        loading={updateOne.isPending}
+      />
+
+      {/* Delete */}
+      <ConfirmDialog
+        open={pendingAction?.type === "delete"}
+        onClose={() => setPendingAction(null)}
+        onConfirm={handleConfirm}
+        title="Delete this user?"
+        description={
+          pendingAction?.type === "delete" ? (
+            <span>
+              This permanently removes{" "}
+              <strong className="font-semibold text-[var(--text)]">
+                {pendingAction.user.display_name}
+              </strong>{" "}
+              and their sessions. Users who still own books cannot be deleted —
+              delete or reassign their books first.
+            </span>
+          ) : null
+        }
+        confirmLabel="Delete user"
+        requireTyped="delete"
+        loading={deleteOne.isPending}
+      />
+
+      {/* Password reset */}
+      {pendingAction?.type === "reset-password" && (
+        <ResetPasswordDialog
+          user={pendingAction.user}
+          onClose={() => setPendingAction(null)}
+          onSubmit={async (password) => {
+            await resetPassword.mutateAsync({
+              id: pendingAction.user.id,
+              password,
+            });
+            setPendingAction(null);
+          }}
+          loading={resetPassword.isPending}
+        />
+      )}
+    </PageContainer>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Create user dialog
+// ---------------------------------------------------------------------------
+
+function CreateUserDialog({
+  open,
+  onClose,
+  onSubmit,
+  loading,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (payload: {
+    email: string;
+    display_name: string;
+    password: string;
+    role: "user" | "admin";
+  }) => Promise<void>;
+  loading: boolean;
+}) {
+  const ref = React.useRef<HTMLDialogElement | null>(null);
+  const [email, setEmail] = React.useState("");
+  const [displayName, setDisplayName] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [role, setRole] = React.useState<"user" | "admin">("user");
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (open && !el.open) el.showModal();
+    else if (!open && el.open) el.close();
+  }, [open]);
+
+  const reset = () => {
+    setEmail("");
+    setDisplayName("");
+    setPassword("");
+    setRole("user");
+    setError(null);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    try {
+      await onSubmit({ email, display_name: displayName, password, role });
+      reset();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <dialog
+      ref={ref}
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!loading) onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === ref.current && !loading) onClose();
+      }}
+      className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40 dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]"
+    >
+      <div className="px-6 pt-5 pb-2">
+        <h2 className="text-md font-semibold text-[var(--text)]">Add user</h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          Admin-created accounts are email-verified immediately and can log in
+          right away.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="px-6 pb-5 space-y-4" noValidate>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
+          >
+            {error}
+          </p>
+        )}
+        <Field label="Display name" htmlFor="new-user-name">
+          <Input
+            id="new-user-name"
+            required
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+        </Field>
+        <Field label="Email" htmlFor="new-user-email">
+          <Input
+            id="new-user-email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </Field>
+        <Field
+          label="Password"
+          htmlFor="new-user-password"
+          hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+        >
+          <Input
+            id="new-user-password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        <Field label="Role" htmlFor="new-user-role">
+          <Select
+            id="new-user-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as "user" | "admin")}
+          >
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+          </Select>
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={loading}>
+            Create user
+          </Button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Password reset dialog
+// ---------------------------------------------------------------------------
+
+function ResetPasswordDialog({
+  user,
+  onClose,
+  onSubmit,
+  loading,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onSubmit: (password: string) => Promise<void>;
+  loading: boolean;
+}) {
+  const ref = React.useRef<HTMLDialogElement | null>(null);
+  const [password, setPassword] = React.useState("");
+  const [confirm, setConfirm] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (el && !el.open) el.showModal();
+    return () => el?.close();
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    try {
+      await onSubmit(password);
+      setPassword("");
+      setConfirm("");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <dialog
+      ref={ref}
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!loading) onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === ref.current && !loading) onClose();
+      }}
+      className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40 dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]"
+    >
+      <div className="px-6 pt-5 pb-2">
+        <h2 className="text-md font-semibold text-[var(--text)]">
+          Reset password
+        </h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          Set a new password for {user.display_name}. All of their sessions
+          will be signed out.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="px-6 pb-5 space-y-4" noValidate>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
+          >
+            {error}
+          </p>
+        )}
+        <Field
+          label="New password"
+          htmlFor="reset-user-password"
+          hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+        >
+          <Input
+            id="reset-user-password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        <Field label="Confirm password" htmlFor="reset-user-confirm">
+          <Input
+            id="reset-user-confirm"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={loading}>
+            Set password
+          </Button>
+        </div>
+      </form>
+    </dialog>
+  );
+}

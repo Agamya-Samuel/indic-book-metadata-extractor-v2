@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init check-compose-drift
+.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init check-compose-drift create-admin
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -15,6 +15,8 @@ help:
 	@echo "  make logs-worker-ocr  Tail OCR worker logs"
 	@echo "  make logs-worker-llm  Tail LLM worker logs"
 	@echo "  make migrate         Run database migrations"
+	@echo "  make create-admin    Create the first administrator account"
+	@echo "                       (EMAIL=... DISPLAY_NAME=... [PASSWORD=...])"
 	@echo "  make reset-db        Reset database (destroys data!)"
 	@echo "  make download-model  Download Qwen2.5 7B model to Ollama"
 	@echo "  make test-e2e        Run end-to-end smoke test"
@@ -79,6 +81,14 @@ logs-worker-llm:
 migrate:
 	@echo "Running database migrations..."
 	docker compose exec backend uv run alembic upgrade head
+
+create-admin:
+	@test -n "$(EMAIL)" || { echo "EMAIL is required: make create-admin EMAIL=... DISPLAY_NAME=..."; exit 1; }
+	@test -n "$(DISPLAY_NAME)" || { echo "DISPLAY_NAME is required: make create-admin EMAIL=... DISPLAY_NAME=..."; exit 1; }
+	docker compose exec backend uv run python scripts/create_admin.py \
+		--email "$(EMAIL)" \
+		--display-name "$(DISPLAY_NAME)" \
+		$(if $(PASSWORD),--password "$(PASSWORD)",)
 
 reset-db:
 	@echo "WARNING: This will destroy all database data!"

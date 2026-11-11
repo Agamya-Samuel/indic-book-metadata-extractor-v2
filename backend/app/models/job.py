@@ -28,6 +28,9 @@ class Job(UUIDMixin, Base):
     book_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("books.id", ondelete="SET NULL")
     )
+    requested_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
     job_type: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default=JobStatus.QUEUED)
     progress: Mapped[float] = mapped_column(Float, default=0.0)
@@ -40,4 +43,5 @@ class Job(UUIDMixin, Base):
     celery_task_id: Mapped[str | None] = mapped_column(String(64), index=True)
 
     book = relationship("Book", back_populates="jobs")
+    requested_by = relationship("User", back_populates="jobs")
     llm_runs = relationship("LlmRun", back_populates="job", cascade="all, delete-orphan")
