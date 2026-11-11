@@ -7,7 +7,7 @@ import newrelic.agent
 from sqlalchemy import exc as sa_exc, select
 from app.core.config import settings
 from app.core.database import async_session_factory
-from app.models.book import Book
+from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
@@ -474,22 +474,34 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
 def _mark_job_failed(job_id_str: str, book_id: uuid.UUID, error: str):
     """Mark a job as failed in the database and publish a terminal SSE event."""
 
-    async def _do():
+    async def _do() -> bool:
         async with async_session_factory() as db:
             job_result = await db.execute(
                 select(Job).where(Job.id == uuid.UUID(job_id_str))
             )
             job = job_result.scalar_one_or_none()
             if not job:
-                return
+                return False
             job.status = JobStatus.FAILED
             job.error_log = error
             job.completed_at = datetime.now(timezone.utc)
-            await db.commit()
 
-        _publish_job_terminal(book_id, uuid.UUID(job_id_str), JobStatus.FAILED, error)
+            # Never leave the book wedged in OCR_RUNNING. Both run-ocr and
+            # run-extraction refuse to start from a running status, so a failed
+            # run would be a dead end that no UI action could clear. Release it
+            # the same way _finalize_job does for partial runs.
+            book = await db.get(Book, book_id)
+            released = book is not None and book.status == BookStatus.OCR_RUNNING
+            if released:
+                book.status = BookStatus.PAGES_SELECTED
+
+            await db.commit()
+            return released
 
     try:
-        run_async(_do())
+        released = run_async(_do())
+        _publish_job_terminal(book_id, uuid.UUID(job_id_str), JobStatus.FAILED, error)
+        if released:
+            _publish_book_status(book_id, BookStatus.PAGES_SELECTED, uuid.UUID(job_id_str))
     except Exception as e:
         logger.error("Failed to mark job %s as FAILED: %s", job_id_str, e)

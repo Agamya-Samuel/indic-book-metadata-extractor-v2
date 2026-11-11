@@ -12,6 +12,7 @@ import {
   getPreprocessingPreviewUrl,
   getThumbnailUrl,
   runOcr,
+  rerunOcr,
   applyPreprocessingToAll,
   DEFAULT_PREPROCESSING_CONFIG,
   type PageResponse,
@@ -150,7 +151,16 @@ export default function PreprocessingPage() {
   ]);
 
   const runOcrMutation = useMutation({
-    mutationFn: () => runOcr(bookId),
+    // `run-ocr` only accepts a book in `pages_selected`; re-running an
+    // already-OCR'd book must go to `rerun-ocr`, which resets the downstream
+    // stages. Sending both to `run-ocr` made every re-run fail with 400.
+    mutationFn: async () => {
+      if (isRerun) {
+        await rerunOcr(bookId);
+        return;
+      }
+      await runOcr(bookId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       toast.info("OCR job started");
