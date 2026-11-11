@@ -1,7 +1,7 @@
 # 004 — Evaluation Plan: LLM Selection for Indic Metadata Extraction (49 fields)
 
 - **Date:** 2026-11-11
-- **Status:** **In progress** — resource/speed/JSON-validity arm **measured** on test-node-2 (4 vCPU / 16 GB); accuracy arm has **first provisional data** (1 Telugu book); the **full** accuracy arm remains gated on ground-truth verification. Results: [learnings/005](../learnings/005-llm-model-evaluation.md).
+- **Status:** **In progress** — resource/speed/JSON arm **measured**; accuracy arm **measured on 1 verified Telugu book (provisional)**; wider accuracy (more books/languages, noisy OCR) pending. Provisional winner **`gemma4:e4b` (`think:false`)**. Results: [learnings/005](../learnings/005-llm-model-evaluation.md).
 - **Depends on:** [plans/002-ground-truth-poc.md](002-ground-truth-poc.md) — supplies the 6-book corpus with `expected_metadata.json` (marked `unverified`) under `backend/tests/fixtures/ground_truth/`. **This plan consumes metadata GT, not OCR-text GT**, so it needs 002's metadata arm specifically — the inverse of 003. Soft dependency on [plans/003-ocr-engine-evaluation.md](003-ocr-engine-evaluation.md): the LLM's input is OCR text, so the winning engine changes the input distribution — evaluate on today's Tesseract output now, then re-validate after 003 lands.
 - **Relationship:** replaces the qualitative "switch to a higher-quality model" note in [docs/llm-extraction-zero-fields-investigation.md](../docs/llm-extraction-zero-fields-investigation.md) (line 331) and the untested Airavata→Qwen rationale in [`docker/Modelfile.qwen2.5`](../docker/Modelfile.qwen2.5) with a **measured** decision. Closes the "default LLM" line in [AGENTS.md](../AGENTS.md).
 
@@ -12,7 +12,7 @@
 - **`qwen3:4b-instruct-2507`** — valid JSON, 2.97 GiB resident, 3.34 tok/s, 108.9 s/batch: the safest drop-in (~½ the RAM, ~1.6× the speed of the current `qwen2.5:7b` at 4.72 GiB / 2.73 tok/s / 172.8 s).
 - **`qwen3.5:4b`** — fastest **only with `think:false`** (82.6 s/batch); the default returns **0 chars** (output budget spent on the thinking channel).
 - The same thinking trap hits `gemma4:e4b`, `qwen3:8b`, `qwen3.5:9b` defaults → must pin `think:false`.
-- **First accuracy data (provisional, Telugu Athma, 2 batches):** `qwen3.5:4b` (`think:false`) F1 **0.50** — extracted correct title/date/place/publisher; the `qwen2.5:7b` baseline returned only the title; `qwen3:4b-instruct-2507` returned invalid (truncated) JSON. Provisional front-runner: **`qwen3.5:4b` (`think:false`)**. Full arm still gated on GT verification.
+- **Accuracy (Telugu Athma, 2 batches, verified GT):** `gemma4:e4b` (`think:false`) F1 **0.636** (also fastest, 182 s, ~1.8 GiB) › `qwen3.5:4b` (`think:false`) **0.545** (292 s) › `qwen3:4b-instruct-2507` 0.182 (fails JSON) › `qwen2.5:7b` 0.091 (title only). **Provisional winner: `gemma4:e4b` (`think:false`)**, runner-up `qwen3.5:4b`. Evidence: one book so far.
 
 **Accuracy arm pending — and now better-quantified:** all ground-truth books are `verification_status: unverified`, and a corroboration audit ([audit_ground_truth.py](../backend/scripts/audit_ground_truth.py)) found only **50 of 140** prefilled values are actually present in the source text (90 not found; Latin-transliteration vs Indic-script mismatches + Commons/IA-sourced fields). **GT must be fixed before absolute accuracy scoring is meaningful.** Harness ready: [make_eval_bundle.py](../backend/scripts/make_eval_bundle.py) → [node_acc.py](../backend/scripts/node_acc.py).
 

@@ -6,7 +6,7 @@
 
 ## Summary
 
-On a real 4 vCPU / 16 GB node the **resource arm is complete**: `qwen3:4b-instruct-2507` and `qwen3.5:4b` run at ~½ the RAM and ~1.6× the speed of the current `qwen2.5:7b`; **thinking-capable models must set `think:false`** or they silently return empty output. **First accuracy data (provisional):** on a Telugu book `qwen3.5:4b` (`think:false`) scored token-F1 **0.50** and extracted the correct title, date, place and publisher, while the `qwen2.5:7b` baseline returned **only the title** from the same batch, and `qwen3:4b-instruct-2507` hit a **JSON truncation failure**. **No model is locked** — `qwen3.5:4b` (`think:false`) is the provisional front-runner, pending ground-truth verification.
+On a real 4 vCPU / 16 GB node, the measured comparison points to **`gemma4:e4b` with `think:false`** as the best extractor: highest token-F1 (**0.636**) on a verified Telugu book — just ahead of `qwen3.5:4b` (**0.545**) — and also the fastest (182 s / 2 batches) and lightest (~1.8 GiB). The current production **`qwen2.5:7b` (F1 0.091, title only)** and **`qwen3:4b-instruct-2507` (0.182, fails structured JSON)** are unsuitable. **Thinking-capable models must set `think:false`** or they return empty output. Provisional pick: **`gemma4:e4b` (`think:false`)** — evidence is one book so far.
 
 ## Key findings
 
@@ -43,17 +43,22 @@ A 7B Q4 model peaks at ~6.1 GiB of host RAM; the 4B models peak at ~4.6–4.8 Gi
 
 A mechanical corroboration pass ([`audit_ground_truth.py`](../backend/scripts/audit_ground_truth.py)) checked whether each prefilled value actually appears in the book's proofread Wikisource text: only **50 of 140** non-null checkable values matched; 90 were not found — mainly because (a) the scaffold stores **Latin transliterations** (e.g. author "Rayasam Venkata Shivudu") while the body is **Telugu script**, and (b) several fields come from **Commons / Internet-Archive metadata** that is not in the book body at all. **Conclusion: the GT is not trustworthy enough for absolute accuracy scoring.** It must be human-verified (or rebuilt from the proofread text) before the accuracy arm is meaningful; a model-vs-model comparison against this same scaffold is still possible but must be reported as **provisional / relative-only**.
 
+**Two books now `verified` (2026-11-11):** `tel/2015.373190.Athma-Charitramu` and `tel/2015.328360.Andhra-Mahaniyulu` — front-matter identity fields (title/label, publisher, place, date, language) checked against their proofread title pages. Athma's `publisher` was corrected from `null` to `ఆంధ్ర పత్రికా ముద్రాలయము`; `author` is kept as the Latin transliteration (source is Telugu script).
+
 ### 4c. Accuracy — first measurements (provisional, 2026-11-11)
 
-Method: 2 batches (`core_identity`, `publication`) on the Telugu Athma book, **clean Wikisource front-matter text**, `think:false`, `num_ctx=8192`, `temp=0`, via [`node_acc.py`](../backend/scripts/node_acc.py); scored with [`score_acc.py`](../backend/scripts/score_acc.py). Ground truth is unverified (§4b), so these are **relative, not absolute**, numbers.
+Method: 2 batches (`core_identity`, `publication`) on the Telugu Athma book, **clean Wikisource front-matter text**, `num_ctx=8192`, `temp=0`, `think:false` for reasoning models, via [`node_acc.py`](../backend/scripts/node_acc.py); scored with [`score_acc.py`](../backend/scripts/score_acc.py) against the now-**verified** Athma GT (§4b). Re-run 2026-11-11 with a hardened runner (`num_predict=1024`, `repeat_penalty=1.1`, `keep_alive`).
 
-| Model | TP | FP | FN | mean token-F1 | Notes |
-|---|---|---|---|---|---|
-| `qwen3.5:4b` (`think:false`) | 8 | 2 | 2 | **0.500** | Correct: title, language, original_language, publication_date (1933), place_of_publication (మద్రాసు). The 2 "hallucinations" are `publisher`/`publisher_telugu` values the model read straight from the title page that GT left null; `author` was correct in Telugu script but GT stores Latin transliteration. |
-| `qwen2.5:7b` (baseline) | 1 | 0 | — | — | `core_identity` returned only `{"title": "ఆత్మచరిత్రము"}` (34 tokens) in 224 s — correct but very sparse. `publication` batch not captured (run stalled; node went SSH-unresponsive under load). |
-| `qwen3:4b-instruct-2507` | — | — | — | — | `core_identity` returned **truncated, unparseable JSON** (`eval_count=512`, repeated text loop) in 421 s. A repetition/truncation failure mode under this prompt; re-run pending. |
+| Model | Fields returned | TP | FP | FN | mean token-F1 | Exact | Halluc. | 2-batch wall |
+|---|---|---|---|---|---|---|---|---|
+| **`gemma4:e4b` (`think:false`)** | 9 | 8 | 1 | 3 | **0.636** | 0.636 | 1/38 | **182 s** (fastest) |
+| **`qwen3.5:4b` (`think:false`)** | 9 | 8 | 1 | 3 | 0.545 | 0.545 | 1/38 | 292 s |
+| `qwen3:4b-instruct-2507` | 3 | 2 | 1 | 9 | 0.182 | 0.182 | 1/38 | 978 s; `core_identity` **invalid** (wrote Telugu prose, not JSON) |
+| `qwen2.5:7b` (baseline) | 1 | 1 | 0 | 10 | 0.091 | 0.091 | 0/38 | 732 s; title only; `publication` all-null |
 
-Takeaway: on the same Telugu input, **`qwen3.5:4b` extracted 8 fields (F1 0.50), the `qwen2.5:7b` baseline returned only the title, and `qwen3:4b-instruct-2507` failed to emit valid JSON** — the smaller non-thinking 4B is the stronger *extractor* here, and JSON robustness varies sharply by model. GT gaps and script mismatches still dominate the absolute score (the model correctly read the publisher from the title page; GT left it null).
+Both leaders correctly extracted title, publication_date (1933), publisher, place_of_publication (మద్రాసు), language and original_language; `gemma4:e4b` additionally got `label`. The remaining `author` miss is a **GT artifact** (the model returns Telugu script రాయసము వెంకటశివుఁడు; GT stores the Latin transliteration), and the single "hallucination" is `publisher_telugu` — a value the model read from the title page that GT leaves empty.
+
+Takeaway: the current production `qwen2.5:7b` and the `qwen3:4b-instruct-2507` fallback are **both unsuitable** here — the 7B returns almost nothing and the 4B-2507 fails structured output. The two reasoning-capable 4B models **with `think:false`** are the only credible extractors, and `gemma4:e4b` leads on F1, speed and RAM. **Provisional winner: `gemma4:e4b` (`think:false`)**, narrowly ahead of `qwen3.5:4b`.
 
 ### 5. Decision models (Jev-class)
 
@@ -61,9 +66,9 @@ Confirmed from desk research: decision models (Jev, Kev, JevAlt/Deem) classify i
 
 ## Recommendation (provisional — resource arm only)
 
-- **Provisional front-runner:** **`qwen3.5:4b` with `think:false` enforced** — fastest measured (82.6 s/batch vs 172.8 s for the 7B) and the only model on the measured Telugu batch to return the correct title, date, place and publisher (F1 0.50, provisional). The `think:false` requirement MUST be pinned in the Modelfile/config — the default silently returns empty output.
-- **Runner-up, with a caveat:** **`qwen3:4b-instruct-2507`** — valid JSON and ~½ the RAM of the 7B in the speed sweep, but it hit a JSON truncation/repetition failure in the accuracy run; re-test before adopting.
-- **Keep** `qwen2.5:7b` as the regression baseline (sparse: returned only the title on the measured batch).
+- **Provisional winner:** **`gemma4:e4b` with `think:false`** — best measured token-F1 (0.636) and the fastest/lightest (182 s / 2 batches, ~1.8 GiB resident). The `think:false` requirement MUST be pinned in the Modelfile/config — the default returns empty output. Needs Ollama ≥0.20.6 / llama.cpp ≥v2.11.
+- **Runner-up:** **`qwen3.5:4b` with `think:false`** — F1 0.545, 292 s / 2 batches; its hybrid linear-attention keeps the KV cache small for longer inputs.
+- **Not suitable:** `qwen2.5:7b` (current production; F1 0.091) and `qwen3:4b-instruct-2507` (F1 0.182; fails structured JSON).
 - **No-go on defaults:** do not ship any thinking-capable model without `think:false` or a bigger output budget.
 - **Decision models:** not pursued.
 
