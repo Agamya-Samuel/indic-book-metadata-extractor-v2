@@ -2,18 +2,23 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import can_view_full_book, get_current_user
 from app.core.config import settings
 from app.core.database import get_db
+from app.models.book import Book
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
+from app.models.user import User
 from app.schemas.page import (
     OcrCorrectionRequest,
     OcrResultResponse,
     PreprocessingConfig,
+    PreprocessingPreviewResponse,
     PreprocessingResponse,
 )
 from app.services import storage
@@ -22,10 +27,13 @@ from app.services import preprocessing as prep_svc
 router = APIRouter()
 
 
-async def _get_page(page_id: UUID, db: AsyncSession) -> Page:
+async def _get_page(page_id: UUID, db: AsyncSession, user: User) -> Page:
     result = await db.execute(select(Page).where(Page.id == page_id))
     page = result.scalar_one_or_none()
     if page is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+    book = await db.get(Book, page.book_id)
+    if book is None or not can_view_full_book(book, user):
         raise HTTPException(status_code=404, detail="Page not found")
     return page
 
@@ -35,8 +43,9 @@ async def update_preprocessing(
     page_id: UUID,
     config: PreprocessingConfig,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> PreprocessingResponse:
-    page = await _get_page(page_id, db)
+    page = await _get_page(page_id, db, user)
 
     if not page.image_path:
         raise HTTPException(status_code=400, detail="Page has no source image")
@@ -47,7 +56,9 @@ async def update_preprocessing(
 
     output_path = storage.processed_image_path(str(page.book_id), page.page_number)
     try:
-        prep_svc.run_pipeline(source_image, config.model_dump(), output_path)
+        await run_in_threadpool(
+            prep_svc.run_pipeline, source_image, config.model_dump(), output_path
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preprocessing failed: {e}")
 
@@ -65,12 +76,65 @@ async def update_preprocessing(
     )
 
 
+@router.post(
+    "/{page_id}/preprocessing/preview",
+    response_model=PreprocessingPreviewResponse,
+)
+async def preview_preprocessing(
+    page_id: UUID,
+    config: PreprocessingConfig,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> PreprocessingPreviewResponse:
+    """Render a temporary preview without touching the database.
+
+    Nothing is committed: the preview PNG is written to the page's processed
+    directory and served until Apply overwrites the real processed image.
+    """
+    page = await _get_page(page_id, db, user)
+
+    if not page.image_path:
+        raise HTTPException(status_code=400, detail="Page has no source image")
+
+    source_image = Path(settings.storage_path) / page.image_path
+    if not source_image.exists():
+        raise HTTPException(status_code=404, detail="Source image file not found")
+
+    preview_path = storage.preview_image_path(str(page.book_id), str(page.id))
+    preview_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        await run_in_threadpool(
+            prep_svc.run_pipeline, source_image, config.model_dump(), preview_path
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preprocessing failed: {e}")
+
+    return PreprocessingPreviewResponse(
+        page_id=page.id,
+        preview_url=f"/api/pages/{page_id}/preprocessing/preview",
+    )
+
+
+@router.get("/{page_id}/preprocessing/preview")
+async def get_preprocessing_preview(
+    page_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> FileResponse:
+    page = await _get_page(page_id, db, user)
+    preview_path = storage.preview_image_path(str(page.book_id), str(page.id))
+    if not preview_path.exists():
+        raise HTTPException(status_code=404, detail="No preview available")
+    return FileResponse(preview_path, media_type="image/png")
+
+
 @router.get("/{page_id}/image")
 async def get_page_image(
     page_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> FileResponse:
-    page = await _get_page(page_id, db)
+    page = await _get_page(page_id, db, user)
 
     if page.processed_image_path:
         processed = Path(settings.storage_path) / page.processed_image_path
@@ -89,8 +153,9 @@ async def get_page_image(
 async def get_ocr_result(
     page_id: UUID,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> OcrResultResponse:
-    page = await _get_page(page_id, db)
+    page = await _get_page(page_id, db, user)
 
     result = await db.execute(select(OcrResult).where(OcrResult.page_id == page_id))
     ocr = result.scalar_one_or_none()
@@ -116,8 +181,9 @@ async def update_ocr_correction(
     page_id: UUID,
     body: OcrCorrectionRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> OcrResultResponse:
-    page = await _get_page(page_id, db)
+    page = await _get_page(page_id, db, user)
 
     # Row lock to prevent concurrent OCR re-runs from silently overwriting
     # a user correction. The lock is released at the end of the transaction.

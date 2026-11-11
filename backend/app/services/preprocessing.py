@@ -20,6 +20,8 @@ DEFAULT_PREPROCESSING_CONFIG = {
     "remove_borders": True,
     "border_content_ratio": 0.85,
     "auto_preprocess": True,
+    "rotation": 0,
+    "rotation_angle": 0.0,
 }
 
 
@@ -195,6 +197,40 @@ def deskew(image: np.ndarray) -> np.ndarray:
     return rotated
 
 
+def rotate_coarse(image: np.ndarray, degrees: int) -> np.ndarray:
+    """Rotate by a multiple of 90 degrees (0/90/180/270)."""
+    d = int(degrees) % 360
+    if d == 90:
+        return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    if d == 180:
+        return cv2.rotate(image, cv2.ROTATE_180)
+    if d == 270:
+        return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return image
+
+
+def rotate_fine(image: np.ndarray, degrees: float) -> np.ndarray:
+    """Rotate by a small angle, expanding the canvas so nothing is clipped."""
+    if abs(degrees) < 0.01:
+        return image
+    h, w = image.shape[:2]
+    center = (w // 2, h // 2)
+    matrix = cv2.getRotationMatrix2D(center, degrees, 1.0)
+    cos = abs(matrix[0, 0])
+    sin = abs(matrix[0, 1])
+    new_w = int(h * sin + w * cos)
+    new_h = int(h * cos + w * sin)
+    matrix[0, 2] += new_w / 2 - center[0]
+    matrix[1, 2] += new_h / 2 - center[1]
+    return cv2.warpAffine(
+        image,
+        matrix,
+        (new_w, new_h),
+        flags=cv2.INTER_CUBIC,
+        borderMode=cv2.BORDER_REPLICATE,
+    )
+
+
 def denoise(image: np.ndarray, strength: int = 7) -> np.ndarray:
     """Non-local means denoising.
 
@@ -213,6 +249,9 @@ def run_pipeline(image_path: Path, config: dict, output_path: Path) -> Path:
     image = cv2.imread(str(image_path))
     if image is None:
         raise ValueError(f"Cannot read image: {image_path}")
+
+    # Manual coarse rotation first, so every later step sees the upright page.
+    image = rotate_coarse(image, int(merged.get("rotation", 0) or 0))
 
     if merged.get("upscale_to_300dpi"):
         image = upscale_to_dpi(image, current_dpi=200, target_dpi=300)
@@ -246,6 +285,11 @@ def run_pipeline(image_path: Path, config: dict, output_path: Path) -> Path:
 
     if merged.get("deskew"):
         image = deskew(image)
+
+    # Fine manual rotation last, clamped to the schema's ±15°.
+    fine_angle = float(merged.get("rotation_angle", 0) or 0)
+    if fine_angle:
+        image = rotate_fine(image, max(-15.0, min(15.0, fine_angle)))
 
     if merged.get("remove_borders"):
         image = remove_borders(image, merged.get("border_content_ratio", 0.85))
