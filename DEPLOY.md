@@ -12,7 +12,7 @@ Dokploy Dashboard
     → Source: Git Repository
     → Repository URL: https://github.com/YOUR_USER/Indic-Book-Metadata-Extractor.git
     → Branch: main
-    → Compose Path: docker-compose.dokploy.yml     ← IMPORTANT: use this file
+    → Compose Path: docker-compose.production.yml     ← IMPORTANT: use this file
 ```
 
 ### 2. Set Environment Variables
@@ -22,7 +22,9 @@ In the service → **Environment** tab, add these variables:
 | Variable | Value | Required |
 |----------|-------|----------|
 | `POSTGRES_PASSWORD` | `<strong-random-password>` | ✅ Yes |
-| `NEXT_PUBLIC_API_URL` | `https://YOUR_DOMAIN/api` | ✅ Yes |
+| `JWT_SECRET_KEY` | `openssl rand -hex 32` | ✅ Yes |
+| `FRONTEND_URL` | `https://YOUR_DOMAIN` (used in email links) | ✅ Yes |
+| `NEXT_PUBLIC_API_URL` | `/api` — relative, one public origin | ✅ Yes |
 | `CORS_ORIGINS` | `https://YOUR_DOMAIN` | Recommended |
 | `FLOWER_BASIC_AUTH` | `admin:<password>` | Recommended |
 | `SMTP_ENABLED` | `true` (required for account emails in production) | ✅ Yes (accounts) |
@@ -32,6 +34,10 @@ In the service → **Environment** tab, add these variables:
 | `SMTP_FROM` | e.g. `northcay@msgwing.com` | ✅ Yes (accounts) |
 | `PASSWORD_MIN_LENGTH` | Default `10` | Optional |
 
+`POSTGRES_PASSWORD`, `JWT_SECRET_KEY` and `FRONTEND_URL` are declared with
+`:?` in `docker-compose.production.yml`, so a deploy **aborts at interpolation**
+if any is missing — with no containers replaced.
+
 SMTP is required for the email-verification and password-reset emails that
 account registration depends on. Keep the real credentials in the
 git-ignored `.env` (or the Dokploy environment tab) — never commit them.
@@ -40,15 +46,29 @@ Everything else has working defaults.
 
 ### 3. Configure Domains
 
+The frontend domain is the **only** public entry point. Internal services
+(postgres, redis, ollama, worker, flower, mysql, elasticsearch, backup) have
+**no** domains — they communicate over the Docker network by service name.
+
 In the service → **Domains** tab:
 
-| Service | Domain | Port |
-|---------|--------|------|
-| `backend` | `YOUR_DOMAIN` | 8000 |
-| `frontend` | `YOUR_DOMAIN` or `app.YOUR_DOMAIN` | 3000 |
-| `flower` | `flower.YOUR_DOMAIN` (optional) | 5555 |
+| Service | Domain | Path | Port |
+|---------|--------|------|------|
+| `frontend` | `YOUR_DOMAIN` | `/` | 3000 |
+| `backend` | `YOUR_DOMAIN` | `/api` | 8000 |
+| `openrefine` | `openrefine.YOUR_DOMAIN` (operator tool) | `/` | 3333 |
+| `wikibase` | `wikibase.YOUR_DOMAIN` (publish target) | `/` | 80 |
 
+Leave **Strip Path** off for the backend so `/api/...` reaches the app unchanged.
 Enable HTTPS (Let's Encrypt) for each.
+
+Do **not** give the backend its own hostname (e.g. `api.YOUR_DOMAIN`): the CSRF
+cookie is host-only, so a split origin makes the frontend unable to read it and
+every mutation fails with `403 CSRF validation failed`.
+
+Dokploy's own panel (port 3000) and Traefik's API (port 8080) are published on
+the host by Dokploy itself. Keep them off the public internet — reach them over
+an SSH tunnel (`ssh -L 3000:localhost:3000 oki`) or firewall them.
 
 ### 4. Deploy
 
@@ -157,7 +177,7 @@ You can host both environments on a single Dokploy server using **two full stand
 ### File layout
 
 ```
-docker-compose.dokploy.yml        # base — also usable for ad-hoc / dev (already exists)
+docker-compose.yml                # dev / ad-hoc local stack
 docker-compose.production.yml     # full standalone, production-tuned
 docker-compose.staging.yml        # full standalone, staging-tuned
 .env.production.example           # production env template
@@ -166,7 +186,10 @@ docker-compose.staging.yml        # full standalone, staging-tuned
 .env.staging                      # real secrets (gitignored)
 ```
 
-`docker-compose.dokploy.yml` remains as a reference / base for ad-hoc dev. The two envs that actually run on Dokploy are the standalone files. QuickStatements is now `expose: 80` in all of them so Traefik routes it — the old `9191:80` host-port binding would have prevented a second environment from starting.
+The two environments that run on Dokploy are the standalone files (`docker-compose.production.yml`
+and `docker-compose.staging.yml`); `docker-compose.yml` is the local dev stack. QuickStatements is
+`expose: 80` in all of them so Traefik routes it — the old `9191:80` host-port binding would have
+prevented a second environment from starting.
 
 ### Step 1 — Create two Dokploy Compose services
 
@@ -188,14 +211,17 @@ The **Project Name** is critical. If both services use the same project name, th
 
 ### Step 2 — Use distinct domains
 
-| Service | Production domain | Staging domain |
-|---------|-------------------|----------------|
-| Frontend | `YOUR_DOMAIN` | `staging.YOUR_DOMAIN` |
-| Backend | `api.YOUR_DOMAIN` | `staging-api.YOUR_DOMAIN` |
+The frontend host is the only public entry point in each environment; the API
+is a path on that same host (`/api`), never its own subdomain.
+
+| Service | Production | Staging |
+|---------|------------|---------|
+| Frontend | `YOUR_DOMAIN` `/` | `staging.YOUR_DOMAIN` `/` |
+| Backend | `YOUR_DOMAIN` `/api` | `staging.YOUR_DOMAIN` `/api` |
 | OpenRefine | `openrefine.YOUR_DOMAIN` | `staging-openrefine.YOUR_DOMAIN` |
 | Wikibase | `wikibase.YOUR_DOMAIN` | `staging-wikibase.YOUR_DOMAIN` |
-| QuickStatements | `quickstatements.YOUR_DOMAIN` | `staging-quickstatements.YOUR_DOMAIN` |
-| Flower | `flower.YOUR_DOMAIN` | `staging-flower.YOUR_DOMAIN` |
+| QuickStatements | *(internal unless you use its UI)* | *(internal)* |
+| Flower | *(internal)* | *(internal)* |
 
 **Never reuse a production domain on staging.** Traefik routes by hostname and Let's Encrypt will refuse to issue a duplicate cert.
 

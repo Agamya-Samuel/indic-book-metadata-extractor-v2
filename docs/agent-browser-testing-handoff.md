@@ -5,37 +5,33 @@ Takeover doc for the **UI/UX + workflow/admin overhaul** (see `plans/006-ui-ux-w
 The implementation is written and unit/integration-tested; this document is the
 **browser-testing plan** plus everything a takeover agent needs.
 
-> ## ⚠️ Deploy status — BLOCKING (read first)
+> ## ⚠️ Deploy status — RESOLVED
 >
-> Commit `531cf39` (with all the workflow/admin code) is **pushed to
-> `origin/main`**. As of this handoff the deployed host is **down**:
+> The deployed host is **up** (`/` and `/login` → 200, API `/health` → 200) and
+> serves commit `24a3d49`. Two deploy-time defects were found and fixed:
 >
-> ```
-> curl -o /dev/null -w '%{http_code}' https://indic-book-metadata-extractor.agamya.us.kg/        → 404
-> curl -o /dev/null -w '%{http_code}' https://indic-book-metadata-extractor.agamya.us.kg/login   → 404
-> curl -o /dev/null -w '%{http_code}' https://indic-book-metadata-extractor.agamya.us.kg/health  → 404
-> ```
+> 1. **Every deploy since the auth/RBAC commit aborted at interpolation.**
+>    `docker-compose.production.yml` declares `JWT_SECRET_KEY` and
+>    `FRONTEND_URL` with `:?`, and the Dokploy environment had neither, so
+>    `docker compose up` died in ~3s and Traefik had no route (404 on `/`,
+>    `/login` and `/health`). Both variables are now set in the Dokploy
+>    environment.
+> 2. **Cross-subdomain API broke CSRF.** The API had its own host
+>    (`*-api.agamya.us.kg`). The `csrf_token` cookie is host-only, so the
+>    frontend could not read it, sent no `X-CSRF-Token`, and every
+>    cookie-authenticated mutation (upload first) returned
+>    `403 CSRF validation failed`. The API is now a **path on the frontend
+>    host**: `NEXT_PUBLIC_API_URL=/api` with Traefik
+>    `Host(domain) && PathPrefix(/api)` → `backend:8000`.
 >
-> A `404` on `/`, `/login` **and** `/health` means Traefik has **no healthy
-> route** for the domain — the service is not serving, not that a page is
-> missing. Before browser testing, resolve deployment:
+> Only the **frontend host is public**. Backend, worker, postgres, redis,
+> ollama, mysql, elasticsearch, flower and backup are internal (`expose`, no
+> domains, addressed by service name). OpenRefine and Wikibase keep their own
+> hosts as operator tools. Dokploy's panel (:3000) and Traefik's API (:8080)
+> are firewalled off — reach them over an SSH tunnel.
 >
-> 1. In Dokploy, open the production service for this project. Confirm it points
->    at branch **`main`** and compose path **`docker-compose.production.yml`**
->    (see `DEPLOY.md` §"Environments"; `docker-compose.dokploy.yml` is **not
->    tracked** in this repo, so a service configured against it will not build).
-> 2. Confirm a deployment was actually triggered for commit **`531cf39`**. If the
->    service does not auto-deploy on push, click **Deploy** manually.
-> 3. Read the deployment/build logs. Likely failure points: the frontend Docker
->    build arg `NEXT_PUBLIC_API_URL` must be `https://<domain>/api`; the backend
->    image must build `app/tasks/page_tasks.py`; env vars `POSTGRES_PASSWORD`,
->    `NEXT_PUBLIC_API_URL`, `CORS_ORIGINS` must be set.
-> 4. Confirm the domain is attached to the **frontend** (port 3000) and that the
->    `backend` is reachable at `<domain>/api` (reverse-proxy path).
->
-> Until the host serves `/login` with HTTP 200, do **not** start §6 — there is
-> nothing to test against. Local testing (§1 fallback) works today and was used
-> to produce the evidence in §5.
+> Until the single-origin deploy is live, §6.2–6.7 and §6.9 cannot be exercised:
+> every save/apply/complete button 403s.
 
 Prefer testing against the **deployed `oki` host**, not the local PC (see §1).
 
@@ -43,7 +39,7 @@ Prefer testing against the **deployed `oki` host**, not the local PC (see §1).
 
 ## 0. TL;DR for the takeover agent
 
-1. Deploy is driven by **push to `main`** (Dokploy builds `docker-compose.dokploy.yml`).
+1. Deploy is driven by **push to `main`** (Dokploy builds `docker-compose.production.yml`).
    Push, wait for the deploy, then test at
    `https://indic-book-metadata-extractor.agamya.us.kg/`.
 2. You need a **verified admin account** on the deployed host (§2). Registration
@@ -61,15 +57,15 @@ Prefer testing against the **deployed `oki` host**, not the local PC (see §1).
 
 - URL: `https://indic-book-metadata-extractor.agamya.us.kg/`
 - Deploy: **commit + push to `main`** then a Dokploy build. The production
-  service uses **`docker-compose.production.yml`** (per `DEPLOY.md` §Environments;
-  `docker-compose.dokploy.yml` is referenced as a base but is **not in the repo**).
-  First deploy is slow (Ollama pulls the model); later deploys are incremental.
-  If the site is not up ~2 min after the push, check the Dokploy deployment logs —
-  see the ⚠️ Deploy status box above; the host was 404 at handoff time.
-- The deployed stack should have `SMTP_ENABLED=true` so registration/verification
+  service uses **`docker-compose.production.yml`**. First deploy is slow (Ollama
+  pulls the model); later deploys are incremental. If the site is not up ~2 min
+  after the push, check the Dokploy deployment logs — see the ⚠️ Deploy status
+  box above for the two failure modes that were fixed.
+- The deployed stack has `SMTP_ENABLED=true` so registration/verification
   emails work; if not, create the admin directly (§2).
-- Same-origin in production (frontend + `/api` behind one domain), so cookies and
-  SSE "just work" there. Most cross-origin caveats in §3/§7 are **local-only**.
+- Same-origin in production (frontend and `/api` behind one host), so cookies
+  and SSE work without cross-origin caveats. The cross-origin notes in §3/§7
+  are **local-only**.
 
 ### Local fallback (only if the deployed host is unavailable)
 
