@@ -221,6 +221,17 @@ export default function AdminBooksPage() {
     },
   });
 
+  // Only the row whose action is in flight shows a pending state.
+  const pendingId: string | null = deleteOne.isPending
+    ? deleteOne.variables ?? null
+    : resetOne.isPending
+      ? resetOne.variables ?? null
+      : rerunOcr.isPending
+        ? rerunOcr.variables ?? null
+        : rerunExt.isPending
+          ? rerunExt.variables ?? null
+          : null;
+
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => {
       for (const id of ids) {
@@ -413,12 +424,7 @@ export default function AdminBooksPage() {
                       onDelete={() => deleteOne.mutate(book.id)}
                       onRerunOcr={() => rerunOcr.mutate(book.id)}
                       onRerunExtraction={() => rerunExt.mutate(book.id)}
-                      pending={
-                        deleteOne.isPending ||
-                        resetOne.isPending ||
-                        rerunOcr.isPending ||
-                        rerunExt.isPending
-                      }
+                      pending={pendingId === book.id}
                     />
                   ))}
                 </tbody>

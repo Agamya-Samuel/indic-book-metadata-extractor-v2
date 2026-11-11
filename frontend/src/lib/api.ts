@@ -807,7 +807,7 @@ export interface AdminJobRow {
   book_filename: string;
   owner_display_name?: string | null;
   owner_email?: string | null;
-  job_type: "ocr" | "llm" | "preprocessing";
+  job_type: "page_extraction" | "ocr" | "llm" | "preprocessing";
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   progress: number;
   created_at: string | null;
@@ -826,7 +826,7 @@ export interface AdminJobsResponse {
 
 export interface AdminJobsParams {
   status?: string;
-  job_type?: "ocr" | "llm" | "preprocessing";
+  job_type?: "page_extraction" | "ocr" | "llm" | "preprocessing";
   book_id?: string;
   owner_id?: string;
   page?: number;
