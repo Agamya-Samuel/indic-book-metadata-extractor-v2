@@ -435,26 +435,23 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             book_result = await db.execute(select(Book).where(Book.id == book_id))
             book = book_result.scalar_one_or_none()
 
+            # Stage transitions run on THIS session, never a second one: the
+            # other session's SELECT ... FOR UPDATE on the book row would block
+            # against any flushed write of ours that references it.
             if errors and len(errors) == total_pages:
                 job.status = JobStatus.FAILED
                 job.error_log = "All pages failed:\n" + "\n".join(errors)
                 if book:
-                    async with async_session_factory() as stage_db:
-                        await StageManager.fail_stage(stage_db, book_id, "ocr", job.error_log)
-                        await stage_db.commit()
+                    await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
             elif errors:
                 job.status = JobStatus.COMPLETED
                 job.error_log = "Some pages failed:\n" + "\n".join(errors)
                 if book:
-                    async with async_session_factory() as stage_db:
-                        await StageManager.fail_stage(stage_db, book_id, "ocr", job.error_log)
-                        await stage_db.commit()
+                    await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
             else:
                 job.status = JobStatus.COMPLETED
                 if book:
-                    async with async_session_factory() as stage_db:
-                        await StageManager.complete_stage(stage_db, book_id, "ocr")
-                        await stage_db.commit()
+                    await StageManager.complete_stage(db, book_id, "ocr")
 
             job.progress = 100.0
             job.completed_at = datetime.now(timezone.utc)
