@@ -93,12 +93,14 @@ DELETE /api/books/{id}             POST /api/books/{id}/reset|rerun-ocr|rerun-ex
 | Check | Command | Result |
 |---|---|---|
 | Backend tests | `cd backend && uv run pytest -q` | **272 passed, 1 skipped** (skip = `SearchService.get_filter_options`, needs Postgres `.astext`) |
-| Frontend typecheck | `cd frontend && npx tsc --noEmit` | **5 errors, all in the other workstream's files** (see §6.2) — no error in an auth-owned file |
-| Frontend tests | `cd frontend && npm test` | **191 passed / 22 files** (includes the parallel UI/UX workstream's files) |
-| Frontend lint | `cd frontend && npm run lint` | 1 **error** — also in the other workstream's file (`metadata-review/page.tsx`, `'WorkflowStepper' is not defined`) |
+| Frontend typecheck | `cd frontend && npx tsc --noEmit` | **clean** (0 errors) — re-verified 2026-11-11 19:27 after the other workstream's commits landed |
+| Frontend tests | `cd frontend && npm test` | **191 passed / 22 files** |
+| Frontend lint | `cd frontend && npm run lint` | **0 errors** (5 pre-existing warnings) |
 
-Auth-owned files are green on every check. The tree-wide failures belong to
-the parallel UI/UX workstream, which was mid-edit when the session ended.
+The whole tree is green. The window where the tree was red (see §6) closed
+when the other workstream committed its work (`2465730`, `ba8540c`, `46dcac1`,
+`11fd26f`): the two missing `api.ts` preview helpers and the `metadata-review`
+workflow-shell migration were the last gaps and are now resolved (`c314021`).
 
 Re-run these three commands before any commit; they are the acceptance gate
 for the auth milestone.
@@ -167,6 +169,12 @@ for the auth milestone.
 
 ## 6. ⚠ Concurrent workstream in the same working tree
 
+> **Resolved (2026-11-11 19:2x).** The parallel UI/UX workstream committed its
+> work — `2465730` (backend hardening), `ba8540c` (workflow UI), `46dcac1`
+> (admin sidebar/headers), `11fd26f` (docs) — and the auth milestone followed
+> as `79f1035`. The tree is green; the notes below are retained as a record of
+> the hazard and the staging rules that applied.
+
 The repository has **uncommitted, unrelated work** in the same tree:
 
 | Workstream | Tracking | Files |
@@ -224,6 +232,11 @@ rewriting `api.ts`, or the two changes will conflict.
 ## 7. Remaining work — do these in order
 
 ### 7.1 Commit the milestone (nothing is committed yet)
+
+> **Done (2026-11-11):** committed as `79f1035` — *feat(auth): add
+> email/password auth, RBAC, and per-user book ownership*. Two follow-ups were
+> made afterwards: `c314021` (the `api.ts` preview helpers) and the
+> `docs(known-limitations)` update. The plan below is kept for reference.
 
 Suggested logical commit order (small commits, heading + descriptive body,
 **no co-author lines**):
@@ -336,7 +349,7 @@ backend auth + RBAC (DONE)
    ├─► frontend auth pages / route guards (DONE)
    │      └─► /dashboard, /admin/users, library gating (DONE)
    │             └─► docs (DONE)
-   │                    └─► commits (PENDING — §7.1)
+   │                    └─► commits (DONE — `79f1035` + follow-ups)
    └─► migration 012 + create-admin CLI (DONE)
           ├─► deploy: reset DB → migrate → create-admin → SMTP (OPERATOR, §7.4)
           └─► manual end-to-end check: register → verify → login → upload →
