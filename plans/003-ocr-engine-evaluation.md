@@ -58,8 +58,8 @@ From learnings/001 §Tier B, page/line OCR **text** GT exists and can be aligned
 
 | Book (002 corpus) | Wikisource Index page | Proofread-page levels measured |
 |---|---|---|
-| `tel/2015.373190.Athma-Charitramu` | `సూచిక:…` | **6 × level 3, 806 × level 4 → 812 verified pages** |
-| `tel/2015.328360.Andhra-Mahaniyulu` | `సూచిక:…` | **53 × level 3, 33 × level 4 → 86 verified pages** |
+| `tel/2015.373190.Athma-Charitramu` | `సూచిక:…` | **4 × level 3, 669 × level 4 → 673 verified pages** (691 pages, 691 records) |
+| `tel/2015.328360.Andhra-Mahaniyulu` | `సూచిక:…` | **52 × level 3, 32 × level 4 → 84 verified pages** (90 pages, 90 records) |
 | `hin/1913_Ummed_Singh_Charitra` | `विषयसूची:1913 Ummed Singh Charitra Hindi PDF.pdf` | 258 × level 1, **4 × level 3** → ~4 usable pages |
 | `hin/2015.263752.Sadhu-Aur` | `विषयसूची:2015.263752.Sadhu-Aur.pdf` | pagelist empty → **0 pages** |
 | `hin/19140101_Priyapravaas` | not found | — |
@@ -67,7 +67,7 @@ From learnings/001 §Tier B, page/line OCR **text** GT exists and can be aligned
 
 Consequences, and they are unequal:
 
-- **Telugu: GT is effectively free.** 898 verified pages already exist across two fetched books, so CER/WER at scale needs **no hand transcription** — milestone 1 can start on `Athma-Charitramu` immediately.
+- **Telugu: GT is effectively free, and now built.** **757** verified pages across two fetched books (673 + 84 — the earlier 812/86/898 figures came from Index-page HTML and double-counted), both confirmed byte-identical to their Commons files with 100% page coverage. CER/WER at scale needs **no hand transcription**; the extractor is [`fetch_wikisource_gt.py`](../backend/scripts/fetch_wikisource_gt.py) and the artefacts are `wikisource_gt.json` per book. See [poc/004](../poc/004-poc-telugu-wikisource-gt.md).
 - **Hindi: there is no free verified text.** hi.wikisource book bodies are ~entirely level 1 (unproofread); only 4 verified pages exist in the whole sampled set. So the Hindi arm must use one of:
   1. **Hand-transcribe metadata front-matter only** — 2–4 pages per book × ≥ 2 books ≈ **4–8 pages**. Small, bounded, and it *is* the decision-4a target, so the effort measures exactly what we care about rather than being waste.
   2. **IndicVisionBench Hindi subset** (level-4 verified, 10 scripts) — valid for engine-vs-engine comparison, but the page images are not our Commons scans, so it cannot validate the metadata-region hypothesis (H3).
@@ -111,14 +111,14 @@ There are also 27 `original.pdf` files under `backend/storage/uploads/` (plus 23
 ## Success criteria (study gate — all must pass)
 
 1. Harness runs **≥ 3 engines × 2 languages** on real Commons scans and emits a reproducible CER/WER + resource table; where a reviewer touches PoC pages, the **raw→corrected edit-rate** (§Methodology 5) is recorded alongside it.
-2. Ground truth established for **≥ 20 verified pages per language** with provenance, **by the language-appropriate route**: Telugu = Wikisource level 3–4 (898 pages already available, alignment validated); Hindi = hand-transcribed metadata front-matter (≥ 2 books) **plus** IndicVisionBench Hindi cross-check. Alignment validated on one book per language.
+2. Ground truth established for **≥ 20 verified pages per language** with provenance, **by the language-appropriate route**: Telugu = Wikisource level 3–4 ✅ **done** (757 verified pages across 2 books, alignment validated by SHA1 identity + 100% record coverage + visual checks — [poc/004](../poc/004-poc-telugu-wikisource-gt.md)); Hindi = hand-transcribed metadata front-matter (≥ 2 books) **plus** IndicVisionBench Hindi cross-check — still open. Alignment validated on one book per language.
 3. A recommendation with **measured** per-language engine choice + a defined fallback (or a justified single engine, if H1 is false).
 4. Integration + **license** assessment for the winner(s) (offline deploy, hosting/commercial terms cleared for our use).
 5. Findings written to `learnings/` (next free number; 002 reserves `learnings/003` for its own results) and this plan updated with results + go/no-go.
 
 ## Milestones (incremental; test/lint/typecheck each)
 
-1. Corpus + GT alignment validated: **Telugu** on `Athma-Charitramu` (812 verified pages available) — PDF page → `Page:` ns alignment/offset check; **Hindi** on ≥ 2 books via hand-transcribed metadata front-matter. Per-wiki Index/Page namespaces must be resolved (te 106/104, hi 252/250), not assumed.
+1. ✅ **Telugu done.** Corpus + GT alignment validated on `Athma-Charitramu` (673 verified) and `Andhra-Mahaniyulu` (84 verified): SHA1 identity vs Commons, full `Page:` coverage, visual spot checks on title/verse/body pages ([poc/004](../poc/004-poc-telugu-wikisource-gt.md)). Artifact: [`fetch_wikisource_gt.py`](../backend/scripts/fetch_wikisource_gt.py) → `wikisource_gt.json` per book. **Hindi still open** (≥ 2 books, hand-transcribed metadata front-matter). Per-wiki Index/Page namespaces resolved at runtime (te 106/104, hi 252/250), never assumed.
 2. Harness: PDF→render→engine→CER/WER + RSS/time. Two existing seeds, both verified: [`eval_model.py`](../backend/scripts/eval_model.py) already computes **CER via Levenshtein** over a `<image_path>\t<ground_truth_text>` TSV (the same manifest format `generate_training_data.py` consumes) with a regression-gate pattern (non-zero exit on CER degradation) — reuse its `_edit_distance` + TSV convention; and [`test_ocr_accuracy.py`](../backend/scripts/test_ocr_accuracy.py) already drives PDFs through the live API across a **preprocessing-config sweep**, but scores `avg_confidence` only — reuse its sweep/batch structure and add CER/WER/GT scoring.
 3. Tesseract baseline recorded (current prod config) — the number to beat.
 4. PaddleOCR PP-OCRv5 (devanagari + te) recorded.
@@ -136,6 +136,8 @@ There are also 27 `original.pdf` files under `backend/storage/uploads/` (plus 23
 | **Hindi has no free Wikisource GT** — hi.ws bodies are ~all level 1; only 4 verified pages in the sampled set (measured) | Dev | Scope Hindi GT to hand-transcribed metadata front-matter (the 4a target anyway) + IndicVisionBench cross-check; don't budget Telugu-scale automation for Hindi |
 | Index/Page namespace IDs differ per wiki (te Index=106/Page=104, hi Index=252/Page=250); the 102/104 defaults silently return the wrong pages | Dev | Resolve namespaces from `siteinfo` at runtime; never hard-code 102/104 |
 | 002's `wikisource_index_urls` reports 0 for all Hindi books although Index pages exist (Commons `globalusage` misses them) | Dev | Query the target Wikisource directly in the harness; treat Commons usage as a hint, not the source of truth |
+| Level-4 "verified" pages can still be image-only, and overlaid stamps ("Donated in memory of…") are absent from GT, so engines are penalised for text GT never had | Dev | Filter on text-present before scoring; report metadata CER with the stamp caveat (it hits every engine equally, so ranking survives, absolutes do not) |
+| Duplicate scans in the source PDF (Athma pp.3 = pp.5, identical GT) | Dev | De-duplicate identical GT text before reporting per-page distributions |
 | Wikisource level 1–2 (unverified) text contaminates GT | Dev | Filter to level 3–4 only; record level per page |
 | Synthetic-render benchmarks mislead (again) | Dev | Only accept **real-scan** measurements for the decision |
 | Surya weights license (OpenRAIL-M, <$5M) blocks commercial use | User | Treat as reference only; note before any product use |
