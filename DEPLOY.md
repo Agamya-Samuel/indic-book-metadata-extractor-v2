@@ -67,8 +67,11 @@ cookie is host-only, so a split origin makes the frontend unable to read it and
 every mutation fails with `403 CSRF validation failed`.
 
 Dokploy's own panel (port 3000) and Traefik's API (port 8080) are published on
-the host by Dokploy itself. Keep them off the public internet — reach them over
-an SSH tunnel (`ssh -L 3000:localhost:3000 oki`) or firewall them.
+the host by Dokploy itself and are **left reachable at the server IP** — that is
+the operator's normal way in. If you ever want them closed, use `DOCKER-USER`
+(not `ufw`; Docker bypasses it) and make sure you have an SSH tunnel open first:
+`ssh -N -L 3000:localhost:3000 oki`. Blocking `:3000` **locks you out of the
+Dokploy panel**, so treat it as a deliberate loss of IP access, not a free win.
 
 ### 4. Deploy
 

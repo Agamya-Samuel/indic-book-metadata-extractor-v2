@@ -89,7 +89,28 @@ Host(app)                      →  frontend:3000
 - Backend, worker, postgres, redis, ollama, mysql, elasticsearch, flower and backup stay
   internal-only. OpenRefine and Wikibase keep public hosts as operator tools.
 - `/docs`, `/redoc` and `/openapi.json` now return `None` unless `DEBUG` is on.
-- Dokploy panel (`:3000`) and Traefik API (`:8080`) are firewalled off; reach them over an SSH tunnel.
+- Dokploy panel (`:3000`) and Traefik API (`:8080`) stay **published at the server IP**. They were
+  briefly blocked with a `DOCKER-USER` DROP, but `:3000` *is* the Dokploy panel, so that locked the
+  operator out of his own control plane; it was reverted. Reach them via `ssh -N -L 3000:localhost:3000 oki`
+  if you want an encrypted path, but do not close them without accepting the loss of IP access.
+
+### 4. Production bind-mounted the application source out of Dokploy's working copy
+
+Symptom: OCR died with `ModuleNotFoundError: No module named 'app.services.metrics'` from
+`app/tasks/ocr_tasks.py:384`, while `metrics.py` is tracked in git, absent from `.gitignore` and
+present in the built image.
+
+- `docker-compose.production.yml` (and staging) mounted `./backend/app:/app/app`,
+  `./backend/alembic:/app/alembic`, `./backend/alembic.ini:/app/alembic.ini` for the **backend and
+  worker**. Every Dokploy deploy re-clones `code/`, replacing those directories.
+- A container that survives a deploy (the worker, last recreated 22:27:38) keeps the *old inode*:
+  host `backend/app` and the recreated backend were inode `1310807`, the running worker `1310812` —
+  an orphaned, empty directory. The image's baked code was shadowed and `app` had no `services`
+  package. The backend, recreated in the same deploy at 22:30:14, was fine.
+- The image already `COPY`s `app/`, `alembic/` and `alembic.ini`, so the mounts were redundant as
+  well as broken. Removed from production and staging; `docker-compose.yml` (dev) keeps them on
+  purpose. Only `./docker/scripts/backend-entrypoint.sh:/entrypoint.sh:ro` remains (the image does
+  not bake the entrypoint), which is read once at startup.
 
 **Rollout order matters:** the frontend API URL is baked at build time, so the `/api` domain must be
 added and the env updated **before** the deploy that rebuilds the frontend. Delete the `-api` /
@@ -99,10 +120,10 @@ added and the env updated **before** the deploy that rebuilds the frontend. Dele
 
 ## Next steps
 
-1. Verify single-origin end to end (login → upload → SSE → page images) on the deployed host.
-2. Resume the §6 browser matrix — it was blocked at §6.2 by the 403.
-3. Persist the host firewall rule across reboots (Docker bypasses `ufw`; the rule lives in
-   `DOCKER-USER`).
+1. Verify single-origin end to end (login → upload → SSE → page images) on the deployed host. **Done.**
+2. Resume the §6 browser matrix — it was blocked at §6.2 by the 403, then at §6.3 by the OCR import error.
+3. Consider baking `backend-entrypoint.sh` into the image (it is the last source bind; doing so means
+   moving the script inside the `backend/` build context or switching the context to the repo root).
 
 ## References
 
