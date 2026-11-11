@@ -542,6 +542,15 @@ export const getMetadataFieldDefinitions = async (
   return response.data;
 };
 
+export const completeReview = async (
+  bookId: string
+): Promise<MetadataResponse> => {
+  const response = await api.post<MetadataResponse>(
+    `/books/${bookId}/review/complete`
+  );
+  return response.data;
+};
+
 export interface FieldEvidence {
   field_name: string;
   value: string | null;

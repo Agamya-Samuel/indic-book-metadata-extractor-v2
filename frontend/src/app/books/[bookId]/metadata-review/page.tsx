@@ -13,6 +13,7 @@ import {
   getMetadataFieldDefinitions,
   getMetadataEvidence,
   getLlmRuns,
+  completeReview,
   type MetadataResponse,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
@@ -28,6 +29,7 @@ import WorkflowShell from "@/components/shared/workflow-shell";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, Progress, EmptyState } from "@/components/shared/empty-state";
+import ConfirmDialog from "@/components/admin/confirm-dialog";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -42,6 +44,7 @@ export default function MetadataReviewPage() {
     number | undefined
   >(undefined);
   const [showLlmHistory, setShowLlmHistory] = useState(false);
+  const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -159,6 +162,21 @@ export default function MetadataReviewPage() {
     navigator.clipboard.writeText(text);
   }, []);
 
+  const completeMutation = useMutation({
+    mutationFn: () => completeReview(bookId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["book", bookId, "stages"] });
+      queryClient.invalidateQueries({
+        queryKey: ["book", bookId, "stages", "current"],
+      });
+      toast.success("Review marked complete");
+    },
+    onError: (err) => {
+      toast.error(`Could not complete review: ${getErrorMessage(err)}`);
+    },
+  });
+
   if (isLoadingBook || isLoadingPages || isLoadingMetadata || isLoadingFields) {
     return <MetadataReviewSkeleton />;
   }
@@ -195,6 +213,15 @@ export default function MetadataReviewPage() {
 
   const metadataValues = metadata?.fields ?? {};
 
+  const emptyFieldCount = (fieldDefs ?? []).filter((f) => {
+    const v = metadataValues[f.field_name];
+    return v === undefined || v === null || String(v).trim() === "";
+  }).length;
+  const lowConfidenceFieldCount = Object.values(confidenceByField).filter(
+    (e) => e.confidence !== null && e.confidence < 0.5,
+  ).length;
+  const alreadyComplete = book.status === "complete";
+
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col">
       <WorkflowShell bookId={bookId} />
@@ -223,6 +250,13 @@ export default function MetadataReviewPage() {
               >
                 Back to LLM Config
               </LinkButton>
+              <Button
+                onClick={() => setConfirmCompleteOpen(true)}
+                disabled={completeMutation.isPending || alreadyComplete}
+                loading={completeMutation.isPending}
+              >
+                {alreadyComplete ? "Review complete" : "Mark review complete"}
+              </Button>
             </div>
           }
         />
@@ -401,6 +435,44 @@ export default function MetadataReviewPage() {
             </LinkButton>
           </div>
         </Stack>
+
+        <ConfirmDialog
+          open={confirmCompleteOpen}
+          onClose={() => setConfirmCompleteOpen(false)}
+          onConfirm={() => {
+            setConfirmCompleteOpen(false);
+            completeMutation.mutate();
+          }}
+          title="Mark review complete?"
+          description={
+            <div className="space-y-2">
+              <p>
+                This finalizes the book and completes the workflow. Saving
+                metadata no longer completes a book automatically.
+              </p>
+              {(emptyFieldCount > 0 || lowConfidenceFieldCount > 0) && (
+                <ul className="list-disc pl-4 space-y-1 text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                  {emptyFieldCount > 0 && (
+                    <li>
+                      {emptyFieldCount} field{emptyFieldCount === 1 ? "" : "s"}{" "}
+                      {emptyFieldCount === 1 ? "is" : "are"} still empty.
+                    </li>
+                  )}
+                  {lowConfidenceFieldCount > 0 && (
+                    <li>
+                      {lowConfidenceFieldCount} field
+                      {lowConfidenceFieldCount === 1 ? " has" : "s have"} low
+                      confidence — consider reviewing the evidence.
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          }
+          confirmLabel="Mark complete"
+          variant="warning"
+          loading={completeMutation.isPending}
+        />
       </PageContainer>
     </div>
   );
