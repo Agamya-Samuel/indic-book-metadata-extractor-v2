@@ -130,9 +130,10 @@ services:
       NEW_RELIC_DEVELOPER_MODE: ${NEW_RELIC_DEVELOPER_MODE:-false}
     volumes:
       - storage_data:/app/storage
-      - ./backend/app:/app/app
-      - ./backend/alembic:/app/alembic
-      - ./backend/alembic.ini:/app/alembic.ini
+      # Run the code baked into the image — never bind-mount the source out of
+      # Dokploy's working copy. That directory is replaced on every deploy, so a
+      # container that survives a deploy keeps the orphaned (now empty) inode
+      # and silently loses its code mid-flight.
       - ./docker/scripts/backend-entrypoint.sh:/entrypoint.sh:ro
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -176,9 +177,6 @@ services:
       NEW_RELIC_DEVELOPER_MODE: ${NEW_RELIC_DEVELOPER_MODE:-false}
     volumes:
       - storage_data:/app/storage
-      - ./backend/app:/app/app
-      - ./backend/alembic:/app/alembic
-      - ./backend/alembic.ini:/app/alembic.ini
     depends_on:
       postgres:
         condition: service_healthy
