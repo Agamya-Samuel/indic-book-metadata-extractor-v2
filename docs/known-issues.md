@@ -64,10 +64,19 @@ CSS classes support dark mode theming, but there is no UI toggle to switch betwe
 ### Authentication
 
 The application has email+password authentication with two roles (`user`,
-`admin`), email verification, and per-user book ownership. Anonymous visitors
-can browse the public catalog; owners and admins manage everything else. The
-first admin must be created via `make create-admin`. See
-[api-reference.md](api-reference.md) for the auth endpoints.
+`admin`), email verification, **admin-approved registration**, and per-user book
+ownership. There is no anonymous or guest access: every page and API except the
+signup/login/verify/reset endpoints requires a session, and `pending`/`rejected`
+accounts reach only the `/pending-approval` holding screen. The Library is
+admin-only; regular users use the owner-scoped Dashboard. The first admin must
+be created via `make create-admin` (admin-created and CLI accounts are
+`approved`). See [api-reference.md](api-reference.md) for the auth endpoints.
+
+### Admin notification of new signups is in-app only
+
+New `pending` accounts are surfaced as a count badge on the admin nav and via
+the `account_status` filter at `/admin/users`. There is no email to admins, so
+approval depends on an admin checking the app.
 
 ### Server-Sent Events fall back to polling
 

@@ -21,14 +21,20 @@ roles: `user` and `admin`.
   the `X-CSRF-Token` header.
 - **Access expiry**: when the access token expires, endpoints return `401`.
   Clients should call `POST /api/auth/refresh` once and replay the request.
-- **Registration**: open self-registration. Accounts must verify their email
-  (link expires in 24 hours) before logging in.
+- **Registration**: moderated by default. Accounts must verify their email
+  (link expires in 24 hours) and then be approved by an admin before they can
+  use the app. Set `REGISTRATION_REQUIRES_APPROVAL=false` to auto-approve new
+  signups (open registration).
+- **Account status**: each user has `account_status` (`pending` / `approved` /
+  `rejected`). `pending` and `rejected` users can authenticate (so the frontend
+  can show a holding screen) but every non-`/auth` endpoint returns `403`
+  (`account_pending` / `account_rejected`).
 - **Authorization**: every book/page/OCR/metadata/job endpoint requires the
-  owner or an admin. The public catalog (`/api/library/*`) exposes only books
-  in `complete` or `awaiting_review` status, with metadata-only detail for
-  non-owners. Admin endpoints (`/api/admin/*`, `/api/bulk/*`) require `admin`.
-- **Anonymous access**: the public catalog and thumbnails of public books work
-  without a session.
+  owner or an admin. `GET /api/library/*` listing/search endpoints are
+  admin-only and span all users; book detail is owner-or-admin. Admin endpoints
+  (`/api/admin/*`, `/api/bulk/*`) require `admin`.
+- **Anonymous access**: none. Every route except `/api/auth/*` and `/health`
+  returns `401` without a session. The public catalog has been removed.
 
 ### Pagination
 
@@ -81,7 +87,8 @@ POST /api/auth/register
 
 Password minimum length is configurable (`PASSWORD_MIN_LENGTH`, default 10).
 Returns `201` with `{ "message", "email" }`. A verification email is sent; the
-account cannot log in until verified.
+account cannot log in until verified. When `REGISTRATION_REQUIRES_APPROVAL` is
+true (default) the new account starts `pending` and also needs admin approval.
 
 ### Verify email
 
@@ -131,9 +138,10 @@ Returns the authenticated user (401 when anonymous):
 
 ```json
 {
-  "id": "…", "email": "reader@example.com", "display_name": "Ada",
-  "role": "user", "is_active": true,
-  "email_verified_at": "…", "last_login_at": "…", "created_at": "…"
+  "id": "...", "email": "reader@example.com", "display_name": "Ada",
+  "role": "user", "is_active": true, "account_status": "approved",
+  "rejection_reason": null,
+  "email_verified_at": "...", "last_login_at": "...", "created_at": "..."
 }
 ```
 
@@ -470,15 +478,18 @@ All `/api/admin/*` endpoints require the `admin` role.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/admin/users` | List users. Filters: `query` (name/email), `role`, `is_active`, pagination. |
-| `POST /api/admin/users` | Create a user (`email`, `display_name`, `password`, `role`). Created verified and active. |
+| `GET /api/admin/users` | List users. Filters: `query` (name/email), `role`, `is_active`, `account_status`, pagination. |
+| `POST /api/admin/users` | Create a user (`email`, `display_name`, `password`, `role`). Created verified, active, and approved. |
 | `GET /api/admin/users/{user_id}` | User detail incl. `book_count` and `active_job_count`. |
-| `PATCH /api/admin/users/{user_id}` | Update `display_name`, `role`, and/or `is_active`. |
+| `PATCH /api/admin/users/{user_id}` | Update `display_name`, `role`, `is_active`, and/or `account_status`. |
+| `POST /api/admin/users/{user_id}/approve` | Approve a `pending`/`rejected` account. |
+| `POST /api/admin/users/{user_id}/reject` | Reject an account; optional `rejection_reason` (≤ 500 chars). Shown to the user. |
 | `POST /api/admin/users/{user_id}/reset-password` | Set a new password (`new_password`); revokes the user's sessions. |
 | `DELETE /api/admin/users/{user_id}` | Delete a user. Blocked for self, the last admin, and users who still own books. |
 
-Role changes, deactivation, and password resets revoke the target user's
-sessions. The last active admin cannot be demoted or deactivated.
+Role changes, deactivation, rejection, and password resets revoke the target
+user's sessions. The last active admin cannot be demoted or deactivated, and an
+admin cannot reject or delete their own account.
 
 ### Books and jobs (global)
 
@@ -492,7 +503,8 @@ sessions. The last active admin cannot be demoted or deactivated.
 | `GET /api/admin/jobs` | All jobs. Filters: `status`, `job_type`, `book_id`, `owner_id`, pagination. Rows include owner display name and email. |
 | `POST /api/admin/jobs/{job_id}/cancel` | Cancel any queued/running job. |
 
-`GET /api/admin/stats` includes a `users` block (`{ "total", "active" }`)
+`GET /api/admin/stats` includes a `users` block
+(`{ "total", "active", "pending" }`) and a top-level `pending_user_count`
 alongside the existing book/job/storage metrics.
 
 ---
@@ -772,11 +784,17 @@ Returns all LLM extraction runs for a book, including prompts and raw responses.
 
 ## Library API
 
+All `/api/library/*` endpoints require an approved session. The listing,
+search, and filter endpoints are **admin-only** and span all users' books; the
+book detail endpoint is **owner-or-admin**. There is no anonymous catalog.
+
 ### List Library Books
 
 ```
 GET /api/library/books
 ```
+
+**Auth**: admin.
 
 **Query Parameters**:
 
@@ -825,6 +843,8 @@ GET /api/library/books
 GET /api/library/search?q={query}
 ```
 
+**Auth**: admin.
+
 Fuzzy search across title, filename, and metadata JSONB fields using pg_trgm similarity.
 
 **Query Parameters**:
@@ -844,6 +864,8 @@ Fuzzy search across title, filename, and metadata JSONB fields using pg_trgm sim
 ```
 GET /api/library/filters
 ```
+
+**Auth**: admin.
 
 Returns available filter values from the database.
 
@@ -865,13 +887,9 @@ Returns available filter values from the database.
 GET /api/library/books/{book_id}/detail
 ```
 
-Returns comprehensive book detail. **Scope depends on the caller**: owners and
-admins receive the full record (pages, OCR text, jobs, LLM runs); anonymous
-visitors and non-owner users receive a metadata-only view — `pages`,
-`llm_runs`, and `jobs` are empty arrays and workflow fields are omitted.
-
-The public catalog exposes only books in `complete` or `awaiting_review`
-status; other statuses return `404` to non-owners.
+**Auth**: owner or admin. Returns the full record (pages, OCR text, jobs, LLM
+runs). Any other caller — including any non-owner and all anonymous requests —
+receives `404`, so the existence of another user's book is never revealed.
 
 **Response** (`200 OK`):
 ```json
