@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": null,
     "author": "Ramnarayan \"Yadavendu\"",
@@ -164,7 +164,165 @@
     "sources": [
       "https://hi.wikisource.org/wiki/%E0%A4%85%E0%A4%82%E0%A4%A4%E0%A4%B0%E0%A5%8D%E0%A4%B0%E0%A4%BE%E0%A4%B7%E0%A5%8D%E0%A4%9F%E0%A5%8D%E0%A4%B0%E0%A5%80%E0%A4%AF_%E0%A4%9C%E0%A5%8D%E0%A4%9E%E0%A4%BE%E0%A4%A8%E0%A4%95%E0%A5%8B%E0%A4%B6"
     ],
-    "enriched_at": "2026-11-11T08:36:00.585840+00:00",
+    "enriched_at": "2026-11-12T08:34:42.211396+00:00",
     "prefilled_fields": 4
+  },
+  "verification": {
+    "checked_at": "2026-11-12T08:36:57.764092+00:00",
+    "prefilled": 4,
+    "scan_confirmed": 0,
+    "fields": {
+      "label": {
+        "status": "empty"
+      },
+      "author": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "description_work": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "description_edition": {
+        "status": "empty"
+      },
+      "translator": {
+        "status": "empty"
+      },
+      "editor": {
+        "status": "empty"
+      },
+      "compiler": {
+        "status": "empty"
+      },
+      "inception": {
+        "status": "empty"
+      },
+      "form_of_creative_work": {
+        "status": "empty"
+      },
+      "genre": {
+        "status": "empty"
+      },
+      "subject": {
+        "status": "empty"
+      },
+      "original_language": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "edition_or_translation_of": {
+        "status": "empty"
+      },
+      "based_on": {
+        "status": "empty"
+      },
+      "inspired_by": {
+        "status": "empty"
+      },
+      "volume": {
+        "status": "empty"
+      },
+      "edition_number": {
+        "status": "empty"
+      },
+      "publication_date": {
+        "status": "empty"
+      },
+      "publisher": {
+        "status": "empty"
+      },
+      "place_of_publication": {
+        "status": "empty"
+      },
+      "printer": {
+        "status": "empty"
+      },
+      "place_of_printing": {
+        "status": "empty"
+      },
+      "language": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "cover_artist": {
+        "status": "empty"
+      },
+      "cover_page_designer": {
+        "status": "empty"
+      },
+      "typesetting_by": {
+        "status": "empty"
+      },
+      "typing_by": {
+        "status": "empty"
+      },
+      "book_designer": {
+        "status": "empty"
+      },
+      "distributors": {
+        "status": "empty"
+      },
+      "pages": {
+        "status": "empty"
+      },
+      "dedication": {
+        "status": "empty"
+      },
+      "dedication_verbatim": {
+        "status": "empty"
+      },
+      "part_of_series": {
+        "status": "empty"
+      },
+      "serial_number_in_series": {
+        "status": "empty"
+      },
+      "part_of_the_set": {
+        "status": "empty"
+      },
+      "illustrators": {
+        "status": "empty"
+      },
+      "isbn": {
+        "status": "empty"
+      },
+      "title": {
+        "status": "empty"
+      },
+      "subtitle": {
+        "status": "empty"
+      },
+      "awards": {
+        "status": "empty"
+      },
+      "context": {
+        "status": "empty"
+      },
+      "publisher_telugu": {
+        "status": "empty"
+      },
+      "sponsor": {
+        "status": "empty"
+      },
+      "first_published_in": {
+        "status": "empty"
+      },
+      "forewords": {
+        "status": "empty"
+      },
+      "abbreviations": {
+        "status": "empty"
+      },
+      "authors_in_compilation": {
+        "status": "empty"
+      },
+      "opinions_messages": {
+        "status": "empty"
+      },
+      "scribes": {
+        "status": "empty"
+      }
+    }
   }
 }

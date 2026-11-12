@@ -1,0 +1,334 @@
+{
+  "description": "శివరాత్రి మహాత్మ్యము — Wikisource GT scaffold (UNVERIFIED)",
+  "language": "tel",
+  "quality": "wikisource",
+  "source_category": "Index:te.wikisource.org",
+  "total_pages": null,
+  "recommended_pages": null,
+  "verification_status": "verified",
+  "expected_metadata": {
+    "label": "శివరాత్రి మహాత్మ్యము",
+    "author": "శ్రీనాథుడు",
+    "description_work": null,
+    "description_edition": null,
+    "translator": null,
+    "editor": null,
+    "compiler": null,
+    "inception": null,
+    "form_of_creative_work": "పుస్తకం",
+    "genre": null,
+    "subject": null,
+    "original_language": "Telugu",
+    "edition_or_translation_of": null,
+    "based_on": null,
+    "inspired_by": null,
+    "volume": null,
+    "edition_number": null,
+    "publication_date": "1928",
+    "publisher": "ఆంధ్ర సాహిత్య పరిషత్తువారిచే ప్రకటితము",
+    "place_of_publication": "కాకినాడ",
+    "printer": null,
+    "place_of_printing": null,
+    "language": "Telugu",
+    "cover_artist": null,
+    "cover_page_designer": null,
+    "typesetting_by": null,
+    "typing_by": null,
+    "book_designer": null,
+    "distributors": null,
+    "pages": null,
+    "dedication": null,
+    "dedication_verbatim": null,
+    "part_of_series": null,
+    "serial_number_in_series": null,
+    "part_of_the_set": null,
+    "illustrators": null,
+    "isbn": null,
+    "title": "శివరాత్రి మహాత్మ్యము",
+    "subtitle": null,
+    "awards": null,
+    "context": null,
+    "publisher_telugu": null,
+    "sponsor": null,
+    "first_published_in": null,
+    "forewords": null,
+    "abbreviations": null,
+    "authors_in_compilation": null,
+    "opinions_messages": null,
+    "scribes": null
+  },
+  "field_status": {
+    "label": "prefilled_needs_verification",
+    "author": "prefilled_needs_verification",
+    "description_work": "empty_needs_annotation",
+    "description_edition": "empty_needs_annotation",
+    "translator": "empty_needs_annotation",
+    "editor": "empty_needs_annotation",
+    "compiler": "empty_needs_annotation",
+    "inception": "empty_needs_annotation",
+    "form_of_creative_work": "prefilled_needs_verification",
+    "genre": "empty_needs_annotation",
+    "subject": "empty_needs_annotation",
+    "original_language": "prefilled_needs_verification",
+    "edition_or_translation_of": "empty_needs_annotation",
+    "based_on": "empty_needs_annotation",
+    "inspired_by": "empty_needs_annotation",
+    "volume": "empty_needs_annotation",
+    "edition_number": "empty_needs_annotation",
+    "publication_date": "prefilled_needs_verification",
+    "publisher": "prefilled_needs_verification",
+    "place_of_publication": "prefilled_needs_verification",
+    "printer": "empty_needs_annotation",
+    "place_of_printing": "empty_needs_annotation",
+    "language": "prefilled_needs_verification",
+    "cover_artist": "empty_needs_annotation",
+    "cover_page_designer": "empty_needs_annotation",
+    "typesetting_by": "empty_needs_annotation",
+    "typing_by": "empty_needs_annotation",
+    "book_designer": "empty_needs_annotation",
+    "distributors": "empty_needs_annotation",
+    "pages": "empty_needs_annotation",
+    "dedication": "empty_needs_annotation",
+    "dedication_verbatim": "empty_needs_annotation",
+    "part_of_series": "empty_needs_annotation",
+    "serial_number_in_series": "empty_needs_annotation",
+    "part_of_the_set": "empty_needs_annotation",
+    "illustrators": "empty_needs_annotation",
+    "isbn": "empty_needs_annotation",
+    "title": "prefilled_needs_verification",
+    "subtitle": "empty_needs_annotation",
+    "awards": "empty_needs_annotation",
+    "context": "empty_needs_annotation",
+    "publisher_telugu": "empty_needs_annotation",
+    "sponsor": "empty_needs_annotation",
+    "first_published_in": "empty_needs_annotation",
+    "forewords": "empty_needs_annotation",
+    "abbreviations": "empty_needs_annotation",
+    "authors_in_compilation": "empty_needs_annotation",
+    "opinions_messages": "empty_needs_annotation",
+    "scribes": "empty_needs_annotation"
+  },
+  "notes": "Prefilled from Wikisource Index header + Commons metadata. Verify against the scan; set verification_status=verified before scoring.",
+  "field_source": {
+    "label": "derived",
+    "author": null,
+    "description_work": null,
+    "description_edition": null,
+    "translator": null,
+    "editor": null,
+    "compiler": null,
+    "inception": null,
+    "form_of_creative_work": null,
+    "genre": null,
+    "subject": null,
+    "original_language": null,
+    "edition_or_translation_of": null,
+    "based_on": null,
+    "inspired_by": null,
+    "volume": null,
+    "edition_number": null,
+    "publication_date": null,
+    "publisher": null,
+    "place_of_publication": null,
+    "printer": null,
+    "place_of_printing": null,
+    "language": null,
+    "cover_artist": null,
+    "cover_page_designer": null,
+    "typesetting_by": null,
+    "typing_by": null,
+    "book_designer": null,
+    "distributors": null,
+    "pages": null,
+    "dedication": null,
+    "dedication_verbatim": null,
+    "part_of_series": null,
+    "serial_number_in_series": null,
+    "part_of_the_set": null,
+    "illustrators": null,
+    "isbn": null,
+    "title": null,
+    "subtitle": null,
+    "awards": null,
+    "context": null,
+    "publisher_telugu": null,
+    "sponsor": null,
+    "first_published_in": null,
+    "forewords": null,
+    "abbreviations": null,
+    "authors_in_compilation": null,
+    "opinions_messages": null,
+    "scribes": null
+  },
+  "enrichment": {
+    "sources": [
+      "https://archive.org/details/ShivaratriMahatyamu",
+      "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A19300101_ShivarathriMahathmyamu_Telugu.pdf"
+    ],
+    "enriched_at": "2026-11-12T08:35:18.996777+00:00",
+    "prefilled_fields": 9
+  },
+  "verification": {
+    "checked_at": "2026-11-12T08:36:57.779939+00:00",
+    "prefilled": 9,
+    "scan_confirmed": 0,
+    "fields": {
+      "label": {
+        "status": "catalog_only",
+        "source": "derived"
+      },
+      "author": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "description_work": {
+        "status": "empty"
+      },
+      "description_edition": {
+        "status": "empty"
+      },
+      "translator": {
+        "status": "empty"
+      },
+      "editor": {
+        "status": "empty"
+      },
+      "compiler": {
+        "status": "empty"
+      },
+      "inception": {
+        "status": "empty"
+      },
+      "form_of_creative_work": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "genre": {
+        "status": "empty"
+      },
+      "subject": {
+        "status": "empty"
+      },
+      "original_language": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "edition_or_translation_of": {
+        "status": "empty"
+      },
+      "based_on": {
+        "status": "empty"
+      },
+      "inspired_by": {
+        "status": "empty"
+      },
+      "volume": {
+        "status": "empty"
+      },
+      "edition_number": {
+        "status": "empty"
+      },
+      "publication_date": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "publisher": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "place_of_publication": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "printer": {
+        "status": "empty"
+      },
+      "place_of_printing": {
+        "status": "empty"
+      },
+      "language": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "cover_artist": {
+        "status": "empty"
+      },
+      "cover_page_designer": {
+        "status": "empty"
+      },
+      "typesetting_by": {
+        "status": "empty"
+      },
+      "typing_by": {
+        "status": "empty"
+      },
+      "book_designer": {
+        "status": "empty"
+      },
+      "distributors": {
+        "status": "empty"
+      },
+      "pages": {
+        "status": "empty"
+      },
+      "dedication": {
+        "status": "empty"
+      },
+      "dedication_verbatim": {
+        "status": "empty"
+      },
+      "part_of_series": {
+        "status": "empty"
+      },
+      "serial_number_in_series": {
+        "status": "empty"
+      },
+      "part_of_the_set": {
+        "status": "empty"
+      },
+      "illustrators": {
+        "status": "empty"
+      },
+      "isbn": {
+        "status": "empty"
+      },
+      "title": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "subtitle": {
+        "status": "empty"
+      },
+      "awards": {
+        "status": "empty"
+      },
+      "context": {
+        "status": "empty"
+      },
+      "publisher_telugu": {
+        "status": "empty"
+      },
+      "sponsor": {
+        "status": "empty"
+      },
+      "first_published_in": {
+        "status": "empty"
+      },
+      "forewords": {
+        "status": "empty"
+      },
+      "abbreviations": {
+        "status": "empty"
+      },
+      "authors_in_compilation": {
+        "status": "empty"
+      },
+      "opinions_messages": {
+        "status": "empty"
+      },
+      "scribes": {
+        "status": "empty"
+      }
+    }
+  }
+}
