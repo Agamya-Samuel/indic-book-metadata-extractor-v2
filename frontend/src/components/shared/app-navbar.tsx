@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
+import { getPendingUserCount } from "@/lib/api";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 
 const navLinks = [
-  { href: "/library", label: "Library", shortLabel: "Library", scope: "all" },
+  { href: "/library", label: "Library", shortLabel: "Library", scope: "admin" },
   {
     href: "/dashboard",
     label: "Dashboard",
@@ -30,6 +32,13 @@ export default function AppNavbar() {
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
+
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ["admin-pending-count"],
+    queryFn: getPendingUserCount,
+    enabled: isAdmin,
+    staleTime: 60 * 1000,
+  });
 
   const visibleLinks = navLinks.filter((link) => {
     if (link.scope === "admin") return isAdmin;
@@ -73,13 +82,20 @@ export default function AppNavbar() {
           {visibleLinks.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const badge =
+              link.href === "/admin" && pendingCount > 0 ? pendingCount : 0;
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
+                aria-label={
+                  badge > 0
+                    ? `${link.label}, ${badge} pending approval${badge !== 1 ? "s" : ""}`
+                    : undefined
+                }
                 className={cn(
-                  "inline-flex min-h-11 items-center px-2.5 sm:px-3 py-1.5 text-[var(--text-sm)] font-medium rounded-[var(--radius)]",
+                  "inline-flex min-h-11 items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[var(--text-sm)] font-medium rounded-[var(--radius)]",
                   "transition-colors duration-[var(--duration-fast)]",
                   active
                     ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
@@ -88,6 +104,14 @@ export default function AppNavbar() {
               >
                 <span className="sm:hidden">{link.shortLabel}</span>
                 <span className="hidden sm:inline">{link.label}</span>
+                {badge > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[10px] font-semibold leading-5 text-white"
+                  >
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}

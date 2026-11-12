@@ -59,8 +59,12 @@ export default function RegisterPage() {
       >
         <div className="space-y-3 text-[var(--text-sm)] text-[var(--text-muted)]">
           <p>
-            Open the link in your inbox to activate your account. The link
+            Open the link in your inbox to verify your email address. The link
             expires in 24 hours.
+          </p>
+          <p>
+            After you verify your email, an administrator reviews your account.
+            You will get access once it is approved.
           </p>
           <p>
             Didn&apos;t receive it? Check your spam folder, or request another

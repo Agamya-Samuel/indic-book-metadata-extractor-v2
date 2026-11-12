@@ -17,7 +17,7 @@ export function AuthCard({
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link
-            href="/library"
+            href="/"
             className="text-[var(--text-xs)] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)] hover:text-[var(--text)]"
           >
             Indic Books

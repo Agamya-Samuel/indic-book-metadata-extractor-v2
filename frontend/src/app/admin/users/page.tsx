@@ -9,14 +9,17 @@ import {
   updateAdminUser,
   resetAdminUserPassword,
   deleteAdminUser,
+  approveAdminUser,
+  rejectAdminUser,
   type AdminUser,
+  type AccountStatus,
 } from "@/lib/api";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ActionMenu, MenuButton, MenuSeparator } from "@/components/shared/action-menu";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
 import Pagination from "@/components/shared/pagination";
 import { PageContainer, Card } from "@/components/shared/card";
-import { Field, Input, Select } from "@/components/shared/input";
+import { Field, Input, Select, Textarea } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -30,6 +33,8 @@ type PendingAction =
   | { type: "active"; user: AdminUser; isActive: boolean }
   | { type: "delete"; user: AdminUser }
   | { type: "reset-password"; user: AdminUser }
+  | { type: "approve"; user: AdminUser }
+  | { type: "reject"; user: AdminUser }
   | null;
 
 function RoleBadge({ role }: { role: "user" | "admin" }) {
@@ -47,6 +52,30 @@ function RoleBadge({ role }: { role: "user" | "admin" }) {
   );
 }
 
+const STATUS_LABEL: Record<AccountStatus, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+function AccountStatusBadge({ status }: { status: AccountStatus }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+        status === "approved" &&
+          "bg-[var(--success-50)] dark:bg-[var(--success-900)]/20 text-[var(--success-700)] dark:text-[var(--success-100)] ring-[var(--success-500)]/30",
+        status === "pending" &&
+          "bg-[var(--warning-50)] dark:bg-[var(--warning-900)]/20 text-[var(--warning-700)] dark:text-[var(--warning-100)] ring-[var(--warning-500)]/30",
+        status === "rejected" &&
+          "bg-[var(--danger-50)] dark:bg-[var(--danger-900)]/20 text-[var(--danger-700)] dark:text-[var(--danger-100)] ring-[var(--danger-500)]/30",
+      )}
+    >
+      {STATUS_LABEL[status]}
+    </span>
+  );
+}
+
 export default function AdminUsersPage() {
   useDocumentTitle("Admin · Users");
 
@@ -57,6 +86,7 @@ export default function AdminUsersPage() {
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("");
   const [activeFilter, setActiveFilter] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -73,6 +103,7 @@ export default function AdminUsersPage() {
       activeFilter === ""
         ? undefined
         : activeFilter === "true",
+    account_status: (statusFilter || undefined) as AccountStatus | undefined,
     page,
     page_size: 50,
   };
@@ -90,6 +121,7 @@ export default function AdminUsersPage() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-users"] });
     qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    qc.invalidateQueries({ queryKey: ["admin-pending-count"] });
   };
 
   const updateOne = useMutation({
@@ -141,6 +173,25 @@ export default function AdminUsersPage() {
     onError: (err: unknown) => toast.error(getErrorMessage(err)),
   });
 
+  const approveOne = useMutation({
+    mutationFn: (id: string) => approveAdminUser(id),
+    onSuccess: () => {
+      toast.success("Account approved");
+      invalidate();
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  });
+
+  const rejectOne = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      rejectAdminUser(id, reason || undefined),
+    onSuccess: () => {
+      toast.success("Account rejected");
+      invalidate();
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err)),
+  });
+
   const handleConfirm = async () => {
     if (!pendingAction) return;
     switch (pendingAction.type) {
@@ -158,6 +209,12 @@ export default function AdminUsersPage() {
         break;
       case "delete":
         await deleteOne.mutateAsync(pendingAction.user.id);
+        break;
+      case "approve":
+        await approveOne.mutateAsync(pendingAction.user.id);
+        break;
+      case "reject":
+        // The reject dialog resolves its own mutation before closing.
         break;
       case "reset-password":
         // The dialog resolves the mutation itself before closing.
@@ -227,6 +284,23 @@ export default function AdminUsersPage() {
               </Select>
             </Field>
           </div>
+          <div className="w-40">
+            <Field label="Approval" htmlFor="admin-user-approval">
+              <Select
+                id="admin-user-approval"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </Select>
+            </Field>
+          </div>
         </div>
       </Card>
 
@@ -253,6 +327,7 @@ export default function AdminUsersPage() {
                   <tr>
                     <th className="px-3 py-2.5 text-left font-medium">User</th>
                     <th className="px-3 py-2.5 text-left font-medium">Role</th>
+                    <th className="px-3 py-2.5 text-left font-medium">Approval</th>
                     <th className="px-3 py-2.5 text-left font-medium">Status</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Verified</th>
                     <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Last login</th>
@@ -290,6 +365,9 @@ export default function AdminUsersPage() {
                       <td className="px-3 py-2.5 align-middle">
                         <RoleBadge role={user.role} />
                       </td>
+                      <td className="px-3 py-2.5 align-middle">
+                        <AccountStatusBadge status={user.account_status} />
+                      </td>
                       <td className="px-3 py-2.5 align-middle text-[var(--text-sm)]">
                         {user.is_active ? (
                           <span className="text-[var(--success-700)] dark:text-[var(--success-100)]">
@@ -319,6 +397,27 @@ export default function AdminUsersPage() {
                           ariaLabel={`Actions for ${user.display_name}`}
                           label="Actions"
                         >
+                          {user.account_status !== "approved" && (
+                            <MenuButton
+                              disabled={isSelf(user)}
+                              onClick={() =>
+                                setPendingAction({ type: "approve", user })
+                              }
+                            >
+                              Approve account
+                            </MenuButton>
+                          )}
+                          {user.account_status !== "rejected" && (
+                            <MenuButton
+                              disabled={isSelf(user)}
+                              onClick={() =>
+                                setPendingAction({ type: "reject", user })
+                              }
+                            >
+                              Reject account...
+                            </MenuButton>
+                          )}
+                          <MenuSeparator />
                           {user.role === "admin" ? (
                             <MenuButton
                               disabled={isSelf(user)}
@@ -469,6 +568,40 @@ export default function AdminUsersPage() {
         variant="warning"
         loading={updateOne.isPending}
       />
+
+      {/* Approve account */}
+      <ConfirmDialog
+        open={pendingAction?.type === "approve"}
+        onClose={() => setPendingAction(null)}
+        onConfirm={handleConfirm}
+        title="Approve this account?"
+        description={
+          pendingAction?.type === "approve" ? (
+            <span>
+              <strong className="font-semibold text-[var(--text)]">
+                {pendingAction.user.display_name}
+              </strong>{" "}
+              will be able to log in and use the application.
+            </span>
+          ) : null
+        }
+        confirmLabel="Approve"
+        variant="warning"
+        loading={approveOne.isPending}
+      />
+
+      {/* Reject account */}
+      {pendingAction?.type === "reject" && (
+        <RejectAccountDialog
+          user={pendingAction.user}
+          onClose={() => setPendingAction(null)}
+          onSubmit={async (reason) => {
+            await rejectOne.mutateAsync({ id: pendingAction.user.id, reason });
+            setPendingAction(null);
+          }}
+          loading={rejectOne.isPending}
+        />
+      )}
 
       {/* Delete */}
       <ConfirmDialog
@@ -757,6 +890,98 @@ function ResetPasswordDialog({
           </Button>
           <Button type="submit" loading={loading}>
             Set password
+          </Button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reject account dialog
+// ---------------------------------------------------------------------------
+
+function RejectAccountDialog({
+  user,
+  onClose,
+  onSubmit,
+  loading,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onSubmit: (reason: string) => Promise<void>;
+  loading: boolean;
+}) {
+  const ref = React.useRef<HTMLDialogElement | null>(null);
+  const [reason, setReason] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (el && !el.open) el.showModal();
+    return () => el?.close();
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    try {
+      await onSubmit(reason.trim());
+      setReason("");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <dialog
+      ref={ref}
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!loading) onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === ref.current && !loading) onClose();
+      }}
+      className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40 dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]"
+    >
+      <div className="px-6 pt-5 pb-2">
+        <h2 className="text-md font-semibold text-[var(--text)]">
+          Reject this account?
+        </h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          {user.display_name} will be signed out and cannot use the application.
+          They can still log in to see that their registration was not approved.
+          An administrator can approve them later.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="px-6 pb-5 space-y-4" noValidate>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
+          >
+            {error}
+          </p>
+        )}
+        <Field
+          label="Reason (optional)"
+          htmlFor="reject-user-reason"
+          hint="Shown to the user on the registration-not-approved screen."
+        >
+          <Textarea
+            id="reject-user-reason"
+            maxLength={500}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </Field>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="danger" loading={loading}>
+            Reject account
           </Button>
         </div>
       </form>
