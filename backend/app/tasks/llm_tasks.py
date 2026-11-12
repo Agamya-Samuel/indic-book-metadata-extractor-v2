@@ -195,7 +195,7 @@ async def _persist_extraction_results(
                 )
             llm_run = LlmRun(
                 job_id=job_id,
-                model=br.get("model", "qwen2.5"),
+                model=br.get("model", "phi4-mini"),
                 prompt_template=prompt_template,
                 batch_config={"batch_name": br["batch_name"]},
                 raw_response=br.get("raw_response"),
@@ -310,7 +310,7 @@ def run_llm_extraction(
     self,
     job_id_str: str,
     book_id_str: str,
-    model: str = "qwen2.5",
+    model: str = "phi4-mini",
     temperature: float = 0.3,
     max_tokens: int = 512,
     system_prompt_override: str | None = None,
