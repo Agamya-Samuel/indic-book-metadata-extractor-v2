@@ -303,7 +303,7 @@ test.describe("Full Workflow - Mocked API", () => {
       });
     });
 
-    await page.route("**/api/library/books*", async (route) => {
+    await page.route("**/api/admin/books*", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -332,7 +332,7 @@ test.describe("Full Workflow - Mocked API", () => {
       });
     });
 
-    await page.route("**/api/library/filters", async (route) => {
+    await page.route("**/api/admin/filters", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -346,7 +346,7 @@ test.describe("Full Workflow - Mocked API", () => {
     });
 
     await page.route(
-      `**/api/library/books/${BOOK_ID}/detail`,
+      `**/api/books/${BOOK_ID}/detail`,
       async (route) => {
         await route.fulfill({
           status: 200,

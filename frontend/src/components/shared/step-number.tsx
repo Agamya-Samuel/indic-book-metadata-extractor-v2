@@ -17,10 +17,10 @@ export interface StepNumberProps
 /**
  * A small numbered circle used to mark steps in a sequence — pipeline steps,
  * numbered lists, workflow cards. Replaces the duplicated 4-instance pattern
- * across bulk-operations cards and the library empty-state number list.
+ * across bulk operations cards and the library empty-state number list.
  *
  * Two variants:
- * - `filled`: solid accent background, inverse text (bulk-operations step cards)
+ * - `filled`: solid accent background, inverse text (bulk operations step cards)
  * - `outlined`: neutral border + surface background, muted text (library step list)
  *
  * Always `aria-hidden` — the number is decorative context for a labeled parent.
