@@ -4,7 +4,7 @@ This document records honest, current limitations of the extraction pipeline.
 It exists so the team can prioritize the next sprint and so the OKI
 stakeholders know exactly what to expect at delivery.
 
-Last updated: 2026-11-11 (auth/RBAC milestone).
+Last updated: 2026-11-12 (moderated signup / access hardening milestone).
 
 ---
 
@@ -173,12 +173,15 @@ and should be prioritized for the next sprint:
    included.
 8. **Auth/user accounts** — ✅ **Done.** The system now has email+password
    accounts with email verification, self-service password reset, two roles
-   (`user`/`admin`), user-owned books with a personal dashboard, an admin
-   dashboard with user management, and owner/admin authorization enforced on
-   every backend endpoint. The first admin is created via
-   `make create-admin`. Remaining gaps: no per-user quotas (any user can
+   (`user`/`admin`), **admin-approved (moderated) registration**, user-owned
+   books with a personal dashboard, an admin dashboard with user management
+   and an admin-only cross-user Library, and owner/admin authorization enforced
+   on every backend endpoint. There is no anonymous access. The first admin is
+   created via `make create-admin`; admin-created and CLI accounts are
+   auto-approved. Remaining gaps: no per-user quotas (any approved user can
    upload/run unlimited jobs), email delivery depends on a configured SMTP
-   server, and rate limiting exists only on the auth endpoints.
+   server, admin notification of new signups is an in-app badge only (no email),
+   and rate limiting exists only on the auth endpoints.
 
 ---
 

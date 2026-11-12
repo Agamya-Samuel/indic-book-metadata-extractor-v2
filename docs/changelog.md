@@ -16,13 +16,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Personal dashboard (`/dashboard`): own books, own jobs, queue position (`queue_ahead`), cancel own queued/running jobs
 - Admin user management (`/admin/users`): create, change role, activate/deactivate, reset password, delete — with self/last-admin/owns-books protections
 - Admin books/jobs pages gained owner columns and a free-text owner filter; global stats include user counts
-- Public catalog gating: anonymous and non-owner users see metadata-only book detail (`can_view_full`); only `complete`/`awaiting_review` books are listed; uploader display name is public, email is admin-only
+- Public catalog gating: anonymous and non-owner users see metadata-only book detail (`can_view_full`); only `complete`/`awaiting_review` books are listed; uploader display name is public, email is admin-only *(superseded by Moderated signup below — the public catalog was removed)*
 - Job cancellation endpoint with owner/admin rules; book delete/reset/re-run endpoints now owner-scoped
+
+**Moderated signup & access hardening**
+- Approval-based registration: new accounts start `pending` and need admin approval; `REGISTRATION_REQUIRES_APPROVAL=false` re-enables open registration
+- `POST /api/admin/users/{id}/approve` and `/reject` endpoints (reject accepts an optional reason, shown to the user); `account_status` filter on `GET /api/admin/users`; `pending_user_count` in `GET /api/admin/stats`
+- Global `require_approved_user` gate on every application router; pending/rejected accounts get `403` (`account_pending` / `account_rejected`) and only `/api/auth/*` stays reachable
+- `/pending-approval` holding screen and an admin pending-count badge in the nav
 
 **Infrastructure**
 - Alembic migration `012_auth_rbac`: `users` table, session refresh-token table, `books.owner_id` (non-nullable — refuses to run on databases that already contain books)
+- Alembic migration `013_user_approval`: `users.account_status` (+ `status_reviewed_at`/`by_id`, `rejection_reason`); additive, backfills all existing rows to `approved`
 - SMTP transactional email service (verification, password reset); with `SMTP_ENABLED=false` links are logged instead of sent
 - Rate limiting on auth endpoints; CSRF (`X-CSRF-Token`) required on state-changing requests
+
+### Changed
+- **Breaking:** no anonymous or guest access — every page and API except `/api/auth/*` and `/health` now requires authentication, and the public catalog (anonymous `/library` and `/api/library/*`) is gone
+- **Breaking:** registration is moderated by default (`REGISTRATION_REQUIRES_APPROVAL=true`). Deployments that do not set this variable will send new signups to a pending queue until an admin approves them; set it explicitly to `false` to keep open registration
+- Library (`/library`, `/api/library/books|search|filters`) is admin-only and lists all books across users; regular users use the owner-scoped Dashboard
+- Book detail and thumbnails are owner-or-admin only; a non-owner URL returns `404` (no metadata-only public view)
+
+### Removed
+- The public catalog: `PUBLIC_BOOK_STATUSES`, `get_visible_book_or_404`, and the anonymous metadata view are gone
 
 ---
 

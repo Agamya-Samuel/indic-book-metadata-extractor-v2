@@ -94,23 +94,29 @@ The application guides users through a 7-step pipeline:
 4. **OCR Review** — Side-by-side view with bounding box overlay and text correction editor
 5. **LLM Configuration** — Select model, tune parameters, edit prompts, run batched extraction
 6. **Metadata Review** — Review and edit 52 extracted bibliographic fields
-7. **Library** — Browse, search, and filter all processed books
+7. **Library** (admin) — Browse, search, and filter all processed books across users
 
 ---
 
 ## Accounts & Access
 
-The app uses cookie-based sessions with two roles:
+The app requires authentication for every page and API except signup, login,
+email verification, and password reset. There is **no anonymous or guest
+access**. Cookie-based sessions with two roles:
 
-- **Users** register with email + password and must verify their email before
-  logging in. Each user sees a personal dashboard (`/dashboard`) with their
-  books, jobs, and queue position, and manages only books they uploaded.
-- **Admins** additionally see all books/jobs with an owner filter, manage
-  users at `/admin/users` (create, change role, activate/deactivate, reset
-  password, delete), and can operate any book or job.
-- **Anonymous visitors** can browse the public catalog (`/library`) — books in
-  `complete` or `awaiting_review` status — but see metadata only; page images,
-  OCR text, and processing history are restricted to the owner and admins.
+- **Registration is moderated.** A new account must verify its email and then be
+  **approved by an admin** before it can use the app. Until then the user can log
+  in but only reaches an "awaiting approval" holding screen; a rejected account
+  sees a "registration not approved" screen (with the reason, if any). Set
+  `REGISTRATION_REQUIRES_APPROVAL=false` to re-enable open registration.
+- **Users** see a personal dashboard (`/dashboard`) with their books, jobs, and
+  queue position, and can only reach books they uploaded. Any other book URL,
+  thumbnail, page, or metadata request returns 404.
+- **Admins** additionally see the **Library** (`/library`), which lists all books
+  from all users, plus all jobs with an owner filter. They approve/reject pending
+  accounts at `/admin/users` (which shows an approval status filter and a
+  pending-count badge in the nav), manage users (create, change role, activate/
+  deactivate, reset password, delete), and can operate any book or job.
 - **The first admin** is created via the CLI (no admin can self-register):
 
   ```sh
