@@ -2,8 +2,7 @@
 
 **Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../learnings/005-llm-model-evaluation.md), [010](../learnings/010-llm-shortlist-benchmark.md), [013](../learnings/013-verified-shortlist-and-ocr.md).** Last updated 2026-11-12.
 
-> **Status: uncontested winner not yet established.** Results are **language-dependent** and were run on small, CPU-only samples. **Cross-language head-to-head (2026-11-12):** `gemma4:e4b` leads **Telugu** (0.523 vs phi4-mini 0.182) but is operationally fragile end-to-end; `phi4-mini` leads **Hindi** (0.333) and is robust — see §6. The implemented default (`phi4-mini`) is the safe pick; `gemma4:e4b` is the Telugu candidate pending tuning.
-- Note: the default `--max-tokens` for batches was raised to 1024 to accommodate verbose models; `think:false` is now sent for thinking families.
+> **Status: head-to-head complete — `phi4-mini` locked as the production default** (robust; leads Hindi, F1 0.333 vs gemma4 0.106) with `gemma4:e4b` as the Telugu-optimised option (0.523 vs phi4-mini 0.182). Results are **language-dependent** — see §6. Default batch budget raised to 1024 tokens; `think:false` is sent for thinking families.
 
 ## 1. Resource / speed / JSON validity — 7-model sweep (test-node-2)
 
@@ -67,11 +66,11 @@ Attempted on `test-node-3` with the end-to-end harness (`--max-tokens 1024`):
 | Language | Books | gemma4:e4b (`think:false`) | phi4-mini |
 |---|---|---|---|
 | Telugu (005 clean-text method) | 2 | **0.523** | 0.182 |
-| Hindi (end-to-end harness) | 2 | *incomplete* | **0.333** |
+| Hindi (end-to-end harness) | 2 | 0.106 | **0.333** |
 
-**gemma4:e4b was operationally fragile end-to-end** — it kept exceeding the output budget (truncation at 1024 tokens → instructor retries), so a clean harness number could not be produced; this is the same "thinking trap" as 005 (defaults return empty/overlong). Its Telugu lead (0.523) came from the 005 clean-text runner with `think:false` + `num_predict=1024` + `repeat_penalty=1.1`. **phi4-mini is robust** under the harness and leads Hindi.
+gemma4:e4b needed a larger output budget to run end-to-end (truncated at 1024; **ran cleanly at `--max-tokens 4096`** → Hindi F1 0.106). Its Telugu lead (0.523) came from the 005 clean-text runner (`think:false` + `num_predict=1024` + `repeat_penalty=1.1`); **phi4-mini is robust** under the harness and leads Hindi.
 
-**Conclusion:** gemma4:e4b is the stronger **Telugu** extractor but needs tuning (`think:false` + a larger output budget) to deploy; **phi4-mini is the safe, robust default** and leads **Hindi**. They are complementary, not interchangeable. `think:false` support is now wired into the service ([llm_service.py](../backend/app/services/llm_service.py), thinking families only) and the harness gained `--max-tokens`.
+**Conclusion (head-to-head complete):** results are **language-dependent** — **gemma4:e4b** is the stronger **Telugu** extractor (0.523 vs 0.182); **phi4-mini** is the stronger and more robust **Hindi** extractor (0.333 vs 0.106). Neither dominates both. With one default model serving both languages, **`phi4-mini` is the lock** (robust, best balance); keep `gemma4:e4b` as the Telugu-optimised option once tuned. `think:false` is wired into the service and the harness gained `--max-tokens`.
 
 ## 7. Decision & recommendation
 
