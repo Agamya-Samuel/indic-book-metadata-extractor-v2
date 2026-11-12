@@ -16,27 +16,6 @@ export function Skeleton({ className }: { className?: string }) {
   );
 }
 
-export function SkeletonCard() {
-  return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]",
-        "shadow-[var(--shadow-xs)]",
-      )}
-    >
-      <Skeleton className="aspect-[3/4] w-full rounded-none border-0" />
-      <div className="space-y-2 p-3">
-        <Skeleton className="h-3.5 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
-        <div className="flex gap-2 pt-1">
-          <Skeleton className="h-4 w-12 rounded-full" />
-          <Skeleton className="h-4 w-16" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function SkeletonPageHeader() {
   return (
     <div className="space-y-2.5">
@@ -101,20 +80,6 @@ export function SkeletonCanvas() {
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-3 w-16" />
       </div>
-    </div>
-  );
-}
-
-export function LibrarySkeleton() {
-  return (
-    <div
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-      role="status"
-      aria-label="Loading library"
-    >
-      {Array.from({ length: 10 }).map((_, i) => (
-        <SkeletonCard key={i} />
-      ))}
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  *
  * Usage:
  *   <ActionMenu label="Actions">
- *     <ActionMenu.Link href="/library/1">Open in library</ActionMenu.Link>
+ *     <ActionMenu.Link href="/books/1">Open book detail</ActionMenu.Link>
  *     <ActionMenu.Button onClick={doThing}>Do thing</ActionMenu.Button>
  *     <ActionMenu.Separator />
  *   </ActionMenu>

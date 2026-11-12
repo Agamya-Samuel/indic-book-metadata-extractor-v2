@@ -173,7 +173,7 @@ describe("DashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Actions for My Telugu Book/i }));
 
     expect(await screen.findByRole("menu")).toBeDefined();
-    expect(screen.getByRole("menuitem", { name: "Open in library" })).toBeDefined();
+    expect(screen.getByRole("menuitem", { name: "Open book detail" })).toBeDefined();
     expect(screen.getByRole("menuitem", { name: "Metadata review" })).toBeDefined();
     expect(screen.getByRole("menuitem", { name: "Delete…" })).toBeDefined();
   });

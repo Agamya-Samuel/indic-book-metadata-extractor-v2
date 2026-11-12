@@ -376,10 +376,9 @@ test.describe("Full Workflow - Mocked API", () => {
     );
   });
 
-  test("home page shows upload and library links", async ({ page }) => {
+  test("home page shows upload link", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Start Upload")).toBeVisible();
-    await expect(page.getByText("Browse Library")).toBeVisible();
   });
 
   test("upload page renders correctly", async ({ page }) => {
@@ -389,9 +388,9 @@ test.describe("Full Workflow - Mocked API", () => {
     await expect(page.getByText("PDF up to 200 MB")).toBeVisible();
   });
 
-  test("library page shows books", async ({ page }) => {
-    await page.goto("/library");
-    await expect(page.getByText("Library")).toBeVisible();
+  test("admin books page shows the catalog", async ({ page }) => {
+    await page.goto("/admin/books");
+    await expect(page.getByText("Books")).toBeVisible();
   });
 
   test("select pages page renders thumbnails", async ({ page }) => {
@@ -431,10 +430,9 @@ test.describe("Full Workflow - Mocked API", () => {
     await expect(page.getByText("Upload Book")).toBeVisible();
   });
 
-  test("full navigation from home to library", async ({ page }) => {
-    await page.goto("/");
-    await page.click("text=Browse Library");
-    await expect(page).toHaveURL(/\/library/);
-    await expect(page.getByText("Library")).toBeVisible();
+  test("full navigation to admin books", async ({ page }) => {
+    await page.goto("/admin/books");
+    await expect(page).toHaveURL(/\/admin\/books/);
+    await expect(page.getByText("Books")).toBeVisible();
   });
 });

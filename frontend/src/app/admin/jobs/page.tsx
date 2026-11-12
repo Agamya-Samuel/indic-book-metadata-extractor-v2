@@ -127,7 +127,7 @@ export default function AdminJobsPage() {
       cell: (job) =>
         job.book_id ? (
           <Link
-            href={`/library/${job.book_id}`}
+            href={`/books/${job.book_id}`}
             className="text-[var(--text-sm)] text-[var(--text)] hover:underline"
           >
             {job.book_title || job.book_filename}
@@ -213,7 +213,7 @@ export default function AdminJobsPage() {
         <div className="flex flex-col items-end gap-1.5">
           {job.book_id && (
             <LinkButton
-              href={`/library/${job.book_id}`}
+              href={`/books/${job.book_id}`}
               variant="ghost"
               size="sm"
             >

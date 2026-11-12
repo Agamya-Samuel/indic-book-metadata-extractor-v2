@@ -12,7 +12,7 @@ import { LinkButton } from "@/components/shared/button";
 import Image from "next/image";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import WorkflowResumeBanner from "@/components/library/workflow-resume-banner";
+import WorkflowResumeBanner from "@/components/book/workflow-resume-banner";
 import { cn } from "@/lib/utils";
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -153,7 +153,7 @@ export default function BookDetailPage() {
   });
 
   const bookTitle = detail?.book.title;
-  useDocumentTitle(bookTitle ? `${bookTitle} · Library` : "Book");
+  useDocumentTitle(bookTitle ? `${bookTitle} · Books` : "Book");
 
   if (isLoading) {
     return <BookDetailSkeleton />;
@@ -224,7 +224,7 @@ export default function BookDetailPage() {
               Dashboard
             </LinkButton>
           }
-          eyebrow={language ? `Library · ${language}` : "Library"}
+          eyebrow={language ? `Books · ${language}` : "Books"}
           title={book.title || metadataFields.label || book.filename}
           description={
             <span className="flex flex-wrap items-center gap-2 text-[var(--text-sm)] text-[var(--text-muted)]">

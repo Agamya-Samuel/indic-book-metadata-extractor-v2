@@ -52,11 +52,11 @@ export default function AdminDashboardPage() {
       <PageHeader
         eyebrow="Admin"
         title="Operations"
-        description="Live queue activity, recent failures, and library health."
+        description="Live queue activity, recent failures, and book health."
       />
       {/*
         Monitor order: Pipeline first (what needs attention right now),
-        then Library holdings, then System footprint. Each cluster sits on
+        then book holdings, then System footprint. Each cluster sits on
         a titled Card so the grouping is structural, not just spacing.
       */}
       <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
@@ -92,10 +92,10 @@ export default function AdminDashboardPage() {
         </Card>
 
         <Card
-          title="Library"
+          title="Books"
           description={
             stats
-              ? `${stats.total_books} book${stats.total_books !== 1 ? "s" : ""} in the library · ${stats.books_with_metadata} with metadata extracted`
+              ? `${stats.total_books} book${stats.total_books !== 1 ? "s" : ""} across all books · ${stats.books_with_metadata} with metadata extracted`
               : "Loading…"
           }
         >
@@ -267,7 +267,7 @@ export default function AdminDashboardPage() {
                   )}
                   {job.book_id && (
                     <Link
-                      href={`/library/${job.book_id}`}
+                      href={`/books/${job.book_id}`}
                       className={cn(
                         "mt-1.5 inline-block text-[var(--text-sm)] font-medium text-[var(--accent)] hover:underline rounded-[var(--radius-xs)]",
                         focusRingInset,

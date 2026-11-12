@@ -195,19 +195,25 @@ Indic-Book-Metadata-Extractor/
 │   ├── src/
 │   │   ├── app/                     # Next.js App Router pages
 │   │   │   ├── page.tsx             # Home page
+│   │   │   ├── login|register|verify-email|forgot-password|reset-password/
+│   │   │   ├── pending-approval/    # Holding screen for unapproved accounts
+│   │   │   ├── dashboard/           # Owner: own books + jobs
 │   │   │   ├── upload/              # Step 1: PDF Upload
-│   │   │   ├── books/[bookId]/      # Steps 2-6: Workflow pages
+│   │   │   ├── books/[bookId]/      # Book detail + Steps 2-6: Workflow pages
+│   │   │   │   ├── page.tsx         # Book detail (owner or admin)
 │   │   │   │   ├── select-pages/
 │   │   │   │   ├── preprocessing/
+│   │   │   │   ├── extracting-pages/
+│   │   │   │   ├── ocr-processing/
 │   │   │   │   ├── ocr-review/
 │   │   │   │   ├── llm-config/
 │   │   │   │   ├── metadata-review/
 │   │   │   │   └── jobs/
-│   │   │   └── library/             # Step 7: Library & Search
+│   │   │   └── admin/               # Admin-only: operations, books, jobs, users, bulk
 │   │   ├── components/
 │   │   │   ├── ocr/                 # Bounding box canvas, text editor
 │   │   │   ├── metadata/            # 52-field metadata form
-│   │   │   ├── library/             # Book card component
+│   │   │   ├── library/             # Workflow resume banner
 │   │   │   └── shared/              # Stepper, sliders, badges, skeletons
 │   │   ├── hooks/                   # use-job-polling
 │   │   ├── lib/                     # API client, Fuse.js, error handler
@@ -227,6 +233,30 @@ Indic-Book-Metadata-Extractor/
 ├── .env.example                     # Environment template
 └── .gitignore
 ```
+
+---
+
+## Frontend Route Map
+
+Access is enforced by `frontend/src/components/auth/route-guard.tsx` and, authoritatively,
+by the backend. There is no public catalog.
+
+| Route | Access | Purpose |
+|---|---|---|
+| `/` | public | Landing page |
+| `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | public | Authentication |
+| `/pending-approval` | authenticated (unapproved) | Holding screen for pending/rejected accounts |
+| `/dashboard` | authenticated | Owner's own books and jobs |
+| `/upload` | authenticated | Upload a PDF (start of the pipeline) |
+| `/books/{bookId}` | owner or admin | Book detail (metadata, pages, jobs, LLM runs) |
+| `/books/{bookId}/{select-pages,preprocessing,extracting-pages,ocr-processing,ocr-review,llm-config,metadata-review,jobs}` | owner or admin | Pipeline steps |
+| `/admin` | admin | Operations overview |
+| `/admin/books` | admin | All books across users (the catalog) |
+| `/admin/jobs` | admin | All background jobs |
+| `/admin/users` | admin | User management + approvals |
+| `/admin/bulk` | admin | Bulk OpenRefine/Wikibase export & import |
+
+The API surface is documented separately in `docs/api-reference.md`.
 
 ---
 

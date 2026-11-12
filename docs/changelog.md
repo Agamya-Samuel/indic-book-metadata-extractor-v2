@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Library (`/library`) is admin-only and lists all books across users; regular users use the owner-scoped Dashboard
 - Book detail and thumbnails are owner-or-admin only; a non-owner URL returns `404` (no metadata-only public view)
 - Route convergence: the `/api/library/*` API is retired — the admin catalog is now `GET /api/admin/books` (+ `GET /api/admin/filters`) and book detail is `GET /api/books/{book_id}/detail`; dashboard/job routes are grouped under `/api/dashboard` (job cancellation is now `POST /api/dashboard/jobs/{job_id}/cancel`); the bulk-operations page moved from `/bulk-operations` to `/admin/bulk`
+- The separate `/library` catalog page is removed (superseded by the admin-only `/admin/books`); book detail moved from `/library/{id}` to `/books/{id}`
 
 ### Removed
 - The public catalog: `PUBLIC_BOOK_STATUSES`, `get_visible_book_or_404`, and the anonymous metadata view are gone

@@ -547,7 +547,7 @@ function BookRow({
           the moment it opens.
         */}
         <ActionMenu disabled={pending} ariaLabel={`Actions for ${title}`}>
-          <MenuLink href={`/library/${book.id}`}>Open in library</MenuLink>
+          <MenuLink href={`/books/${book.id}`}>Open book detail</MenuLink>
           <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
           <MenuSeparator />
           {canRerunOcr && (

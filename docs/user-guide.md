@@ -189,12 +189,16 @@ task with live progress.
 
 ---
 
-## Step 7: Library & Search
+## Step 7: Finding & Searching Books
 
-The Library page shows all processed books in a card-based layout.
+There is no shared public catalog. What you can see depends on your role:
 
-### Browsing
-- Browse books with cover thumbnails, titles, authors, and language badges
+- **Owners** see their books on the **Dashboard** (`/dashboard`).
+- **Admins** see every book across all users on the **Books** page
+  (`/admin/books`).
+
+### Browsing (admin Books page)
+- Browse books with cover thumbnails, titles, owner, language, and status
 - Use pagination to navigate through large collections
 
 ### Searching
@@ -206,11 +210,11 @@ The Library page shows all processed books in a card-based layout.
 - Combine filters for precise results
 
 ### Book Detail
-- Click any book card to see its complete metadata record, all page images, OCR text, and LLM run history
+- Open a book to see its complete metadata record, all page images, OCR text,
+  and LLM run history (`/books/{bookId}`)
 - From the detail view, you can return to editing metadata if needed
-- For books uploaded by someone else you see the **public entry only** —
-  bibliographic metadata and the uploader's display name. Page images, OCR
-  text, and processing history stay with the owner and administrators
+- Regular owners can only open their own books; any other book URL returns 404.
+  Admins can open any book.
 
 ---
 
