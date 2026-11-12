@@ -123,7 +123,7 @@ created verified + active.
 
 - **Admin**: full admin panel, re-run/reset/delete, owner filters.
 - **User**: owns their own books; cannot reach other users' private books.
-- **Anonymous**: sees only the public catalog.
+- **Anonymous**: has no access. Every page and API except signup/login/verify/reset requires a session; anonymous requests get `401`.
 
 ---
 
@@ -181,7 +181,7 @@ sub-case · ⬜ not implemented / out of scope.
 | Admin `/admin` operations aggregation | ⬜ partial | KPI strip + library/disk/user stats verified; global-failure aggregation still out of scope |
 | Auth: login/logout/register/verify-gate/forgot-password | ✅ | register → 24h token; unverified login blocked with a clear message; reset copy is non-enumerating |
 | RBAC + per-user ownership | ✅ | `user` role: no Admin nav, `/admin` → redirect to `/dashboard`, dashboard scoped to own books; admin **Add user** creates a verified account |
-| Library (search/filters/public catalog) | ✅ | search + Language/Status filters; public-only empty state |
+| Library (admin-only; search/filters) | 🟡 | admin search + Language/Status filters work; **the public catalog is retired and the admin-only gate has not been re-verified on the host since the moderated-signup change** |
 | Bulk operations (CSV + Wikibase export) | ✅ | `/bulk/export` → 200 `text/csv` (49-field header); `/bulk/export-wikibase` → QuickStatements |
 | Admin reset / Ollama-down / cancel paths | ✅ | reset → `uploaded`, pages/OCR/stages cleared; Ollama down → clear warning + Run disabled; cancel page-extraction + OCR both recover the book |
 | Phase 2 polish (upload %, virtualization, OCR-processing card, metadata SaveBar/evidence nav, field revert) | ⬜ | not implemented |

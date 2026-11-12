@@ -481,7 +481,7 @@ All `/api/admin/*` endpoints require the `admin` role.
 | `GET /api/admin/users` | List users. Filters: `query` (name/email), `role`, `is_active`, `account_status`, pagination. |
 | `POST /api/admin/users` | Create a user (`email`, `display_name`, `password`, `role`). Created verified, active, and approved. |
 | `GET /api/admin/users/{user_id}` | User detail incl. `book_count` and `active_job_count`. |
-| `PATCH /api/admin/users/{user_id}` | Update `display_name`, `role`, `is_active`, and/or `account_status`. |
+| `PATCH /api/admin/users/{user_id}` | Update `display_name`, `role`, and/or `is_active`. Approval state changes only via the approve/reject endpoints below (a stray `account_status` field is ignored). |
 | `POST /api/admin/users/{user_id}/approve` | Approve a `pending`/`rejected` account. |
 | `POST /api/admin/users/{user_id}/reject` | Reject an account; optional `rejection_reason` (≤ 500 chars). Shown to the user. |
 | `POST /api/admin/users/{user_id}/reset-password` | Set a new password (`new_password`); revokes the user's sessions. |
@@ -909,7 +909,6 @@ receives `404`, so the existence of another user's book is never revealed.
     "author": "రచయిత పేరు"
   },
   "metadata_updated_at": "2026-05-23T03:00:00Z",
-  "can_view_full": true,
   "owner_display_name": "Ada Lovelace",
   "pages": [
     {
@@ -927,8 +926,7 @@ receives `404`, so the existence of another user's book is never revealed.
 
 | Field | Description |
 |-------|-------------|
-| `can_view_full` | `true` when the caller is the owner or an admin. When `false`, `pages`/`llm_runs`/`jobs` are empty and review CTAs should be hidden. |
-| `owner_display_name` | Public uploader name (shown on cards and detail pages). The owner's email is never exposed here — admins can see it via `/api/admin/users`. |
+| `owner_display_name` | Uploader display name (shown on cards and detail pages). The owner's email is never exposed here — admins can see it via `/api/admin/users`. |
 
 ---
 
