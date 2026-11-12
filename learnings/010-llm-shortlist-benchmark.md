@@ -1,4 +1,4 @@
-# 007 — LLM Shortlist Benchmark (49-field extraction) + Ollama RAM footprint
+# 010 — LLM Shortlist Benchmark (49-field extraction) + Ollama RAM footprint
 
 - **Date:** 2026-11-11
 - **Context:** Following [learnings/006](006-first-real-accuracy.md) and the oki capacity review. Ran on **GCP `test-node-3`** (heavy testing stays off the local PC), and pulled the model shortlist recommended for the ~6 GiB prod budget.
