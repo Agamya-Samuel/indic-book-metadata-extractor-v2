@@ -148,6 +148,7 @@ class LLMService:
                 max_tokens=max_tokens,
                 max_retries=2,
                 timeout=1200.0,
+                extra_body=_thinking_body(model),
             )
 
             raw_response_text = result.model_dump_json()
@@ -583,6 +584,14 @@ def _empty_batch(batch_schema: type[BaseModel]) -> BaseModel:
 
 
 _BATCH_CLASS_NAMES = {cls.__name__ for cls in METADATA_BATCHES.values()}
+
+# Thinking-capable families: their default spends the whole output budget on the
+# reasoning channel and returns empty content, so disable thinking per request.
+_THINKING_MODELS = ("gemma4", "gemma3", "qwen3")
+
+
+def _thinking_body(model: str) -> dict | None:
+    return {"think": False} if any(tag in model.lower() for tag in _THINKING_MODELS) else None
 
 
 def _strip_schema_echoes(result: BaseModel) -> BaseModel:

@@ -142,7 +142,9 @@ def load_expected(path: str) -> dict:
     return data
 
 
-def run_pipeline_on_pdf(pdf_path: str, model: str = "qwen2.5", max_pages: int = 20, language: str = "tel") -> dict:
+def run_pipeline_on_pdf(
+    pdf_path: str, model: str = "qwen2.5", max_pages: int = 20, language: str = "tel", max_tokens: int = 1024
+) -> dict:
     """Run the full pipeline (preprocess + OCR + LLM extraction) on a PDF.
 
     This is a thin wrapper around the existing services. It uses
@@ -185,7 +187,7 @@ def run_pipeline_on_pdf(pdf_path: str, model: str = "qwen2.5", max_pages: int = 
 
             llm = LLMService()
             metadata, _, _ = await llm.run_hybrid_full_extraction(
-                ocr_text="", pages=ocr_texts, language=language, model=model
+                ocr_text="", pages=ocr_texts, language=language, model=model, max_tokens=max_tokens
             )
             return metadata.model_dump()
 
@@ -232,6 +234,7 @@ def main() -> int:
     parser.add_argument("--model", default="qwen2.5", help="Ollama model for extraction (default qwen2.5)")
     parser.add_argument("--limit", type=int, default=0, help="Max books to score (0 = all)")
     parser.add_argument("--pages", type=int, default=12, help="Max pages to render/OCR per book (default 12)")
+    parser.add_argument("--max-tokens", type=int, default=1024, help="Max output tokens per batch (default 1024)")
     parser.add_argument(
         "-v",
         "--verbose",
@@ -282,7 +285,7 @@ def main() -> int:
             env = json.loads(Path(sample["expected_path"]).read_text(encoding="utf-8"))
             book_lang = env.get("language", "tel") if isinstance(env, dict) else "tel"
             predicted = run_pipeline_on_pdf(
-                sample["pdf_path"], model=args.model, max_pages=args.pages, language=book_lang
+                sample["pdf_path"], model=args.model, max_pages=args.pages, language=book_lang, max_tokens=args.max_tokens
             )
             dt = time.time() - t0
             print(f"Pipeline took {dt:.1f}s")
