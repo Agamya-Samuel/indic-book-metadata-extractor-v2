@@ -424,7 +424,7 @@ function StatsCard({
   }
 
   return (
-    <Card title="Library Summary" description="Snapshot of book counts and language distribution.">
+    <Card title="Catalog Summary" description="Snapshot of book counts and language distribution.">
       <div className="flex flex-wrap gap-6 text-[var(--text-sm)]">
         <div>
           <span className="text-[var(--text-2xl)] font-bold text-[var(--text)]">

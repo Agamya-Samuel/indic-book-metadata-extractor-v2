@@ -79,8 +79,8 @@ describe("RouteGuard", () => {
     expect(screen.getByText("protected content")).toBeDefined();
   });
 
-  it("hides the admin-only Library from approved non-admins", () => {
-    pathname = "/library";
+  it("hides the admin-only books page from approved non-admins", () => {
+    pathname = "/admin/books";
     mockUseAuth.mockReturnValue(
       authValue({
         user: { id: "u1" },
@@ -94,8 +94,8 @@ describe("RouteGuard", () => {
     expect(screen.queryByText("protected content")).toBeNull();
   });
 
-  it("allows an approved admin into the Library", () => {
-    pathname = "/library";
+  it("allows an approved admin into the admin books page", () => {
+    pathname = "/admin/books";
     mockUseAuth.mockReturnValue(
       authValue({
         user: { id: "a1" },
@@ -109,8 +109,8 @@ describe("RouteGuard", () => {
     expect(screen.getByText("protected content")).toBeDefined();
   });
 
-  it("lets an approved owner open their own book under /library/<id>", () => {
-    pathname = "/library/3f2504e0-4f89-11d3-9a0c-0305e82c3301";
+  it("lets an approved owner open their own book under /books/<id>", () => {
+    pathname = "/books/3f2504e0-4f89-11d3-9a0c-0305e82c3301";
     mockUseAuth.mockReturnValue(
       authValue({
         user: { id: "u1" },

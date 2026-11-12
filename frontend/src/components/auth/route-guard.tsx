@@ -15,11 +15,6 @@ const PUBLIC_PATHS = [
 
 const ADMIN_PATHS = ["/admin"];
 
-// Exact-match admin pages. `/library` itself is admin-only, but
-// `/library/<bookId>` is owner-or-admin (the backend enforces it), so it must
-// stay reachable for a regular owner opening their own book.
-const ADMIN_EXACT_PATHS = ["/library"];
-
 const PENDING_PATH = "/pending-approval";
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
@@ -32,7 +27,6 @@ function isPublicPath(pathname: string): boolean {
 }
 
 function isAdminPath(pathname: string): boolean {
-  if (ADMIN_EXACT_PATHS.includes(pathname)) return true;
   return ADMIN_PATHS.some((path) => matchesPrefix(pathname, path));
 }
 

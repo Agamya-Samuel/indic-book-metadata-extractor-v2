@@ -10,7 +10,6 @@ import { useTheme } from "./theme-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 
 const navLinks = [
-  { href: "/library", label: "Library", shortLabel: "Library", scope: "admin" },
   {
     href: "/dashboard",
     label: "Dashboard",

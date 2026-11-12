@@ -112,9 +112,9 @@ access**. Cookie-based sessions with two roles:
 - **Users** see a personal dashboard (`/dashboard`) with their books, jobs, and
   queue position, and can only reach books they uploaded. Any other book URL,
   thumbnail, page, or metadata request returns 404.
-- **Admins** additionally see the **Library** (`/library`), which lists all books
-  from all users, plus all jobs with an owner filter. They approve/reject pending
-  accounts at `/admin/users` (which shows an approval status filter and a
+- **Admins** additionally see the **Books** page (`/admin/books`), which lists all
+  books from all users, plus all jobs with an owner filter. They approve/reject
+  pending accounts at `/admin/users` (which shows an approval status filter and a
   pending-count badge in the nav), manage users (create, change role, activate/
   deactivate, reset password, delete), and can operate any book or job.
 - **The first admin** is created via the CLI (no admin can self-register):

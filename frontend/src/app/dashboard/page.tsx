@@ -56,7 +56,7 @@ function workflowHref(book: BookSearchResult): string {
     case "complete":
       return `/books/${book.id}/metadata-review`;
     default:
-      return `/library/${book.id}`;
+      return `/books/${book.id}`;
   }
 }
 
@@ -559,7 +559,7 @@ function BookRow({
   return (
     <li className="px-5 py-3 flex items-center gap-3">
       <Link
-        href={`/library/${book.id}`}
+        href={`/books/${book.id}`}
         className="relative h-14 w-11 shrink-0 overflow-hidden rounded-[var(--radius-xs)] bg-[var(--surface-sunken)] border border-[var(--border)]"
         aria-hidden="true"
         tabIndex={-1}
@@ -578,7 +578,7 @@ function BookRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/library/${book.id}`}
+            href={`/books/${book.id}`}
             className="truncate font-medium text-[var(--text)] hover:underline rounded-[var(--radius-xs)]"
             title={title}
           >
@@ -596,7 +596,7 @@ function BookRow({
       </div>
       <div className="shrink-0">
         <ActionMenu disabled={busy} ariaLabel={`Actions for ${title}`}>
-          <MenuLink href={`/library/${book.id}`}>Open in library</MenuLink>
+          <MenuLink href={`/books/${book.id}`}>Open book detail</MenuLink>
           <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
           <MenuSeparator />
           {canRerunOcr && !active && (
@@ -677,7 +677,7 @@ function JobTable({
                   <td className="px-3 py-2.5 align-middle hidden md:table-cell">
                     {job.book_id ? (
                       <Link
-                        href={`/library/${job.book_id}`}
+                        href={`/books/${job.book_id}`}
                         className={cn(
                           "text-[var(--text-sm)] text-[var(--text)] hover:underline rounded-[var(--radius-xs)]",
                         )}
@@ -737,7 +737,7 @@ function JobTable({
                   <td className="px-3 py-2.5 align-middle text-right">
                     {job.book_id && (
                       <Link
-                        href={`/library/${job.book_id}`}
+                        href={`/books/${job.book_id}`}
                         className="text-[var(--text-sm)] text-[var(--accent)] hover:underline mr-3 rounded-[var(--radius-xs)]"
                       >
                         Open

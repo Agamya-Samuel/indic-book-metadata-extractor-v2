@@ -643,8 +643,8 @@ export interface FilterOptions {
   publishers: string[];
 }
 
-// The catalog is admin-scoped: `/library` (the page) and `/admin/books` (the
-// management view) both read the single `GET /admin/books` endpoint via
+// The catalog is admin-scoped: `/admin/books` serves both the admin list and
+// the book detail view via
 // `getAdminBooks`, so the filter set cannot drift between the two views.
 export const getBookDetail = async (
   bookId: string

@@ -110,7 +110,7 @@ describe("LoginPage", () => {
   });
 
   it("honours an internal next path after login", async () => {
-    searchParams.mockReturnValue(new URLSearchParams({ next: "/library" }));
+    searchParams.mockReturnValue(new URLSearchParams({ next: "/books" }));
     const loginImpl = vi
       .fn()
       .mockResolvedValue({ id: "u1", account_status: "approved" });
@@ -123,7 +123,7 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Log in" }));
 
     await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith("/library");
+      expect(replace).toHaveBeenCalledWith("/books");
     });
   });
 
