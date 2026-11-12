@@ -2,7 +2,8 @@
 
 **Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../learnings/005-llm-model-evaluation.md), [010](../learnings/010-llm-shortlist-benchmark.md), [013](../learnings/013-verified-shortlist-and-ocr.md).** Last updated 2026-11-12.
 
-> **Status: uncontested winner not yet established.** Results are **language-dependent** and were run on small, CPU-only samples. The implemented default (`phi4-mini`) is the Hindi leader; the Telugu leader is `gemma4:e4b` (`think:false`). A cross-language head-to-head is required before locking the model.
+> **Status: uncontested winner not yet established.** Results are **language-dependent** and were run on small, CPU-only samples. **Cross-language head-to-head (2026-11-12):** `gemma4:e4b` leads **Telugu** (0.523 vs phi4-mini 0.182) but is operationally fragile end-to-end; `phi4-mini` leads **Hindi** (0.333) and is robust — see §6. The implemented default (`phi4-mini`) is the safe pick; `gemma4:e4b` is the Telugu candidate pending tuning.
+- Note: the default `--max-tokens` for batches was raised to 1024 to accommodate verbose models; `think:false` is now sent for thinking families.
 
 ## 1. Resource / speed / JSON validity — 7-model sweep (test-node-2)
 
@@ -59,14 +60,27 @@ All ≤4B models fit the **6 GiB** oki cap with headroom; 7B is snug.
 3. **Language-dependent results.** gemma4:e4b leads **Telugu**; phi4-mini leads **Hindi**. No single model has been tested on **both** languages with verified GT.
 4. **Two now-fixed extraction bugs** ([013](../learnings/013-verified-shortlist-and-ocr.md)) confounded earlier numbers: schema-class echo (`title="CoreIdentityBatch"`) and over-nulling.
 
-## 6. Decision & recommendation
+## 6. Cross-language head-to-head (executed 2026-11-12)
+
+Attempted on `test-node-3` with the end-to-end harness (`--max-tokens 1024`):
+
+| Language | Books | gemma4:e4b (`think:false`) | phi4-mini |
+|---|---|---|---|
+| Telugu (005 clean-text method) | 2 | **0.523** | 0.182 |
+| Hindi (end-to-end harness) | 2 | *incomplete* | **0.333** |
+
+**gemma4:e4b was operationally fragile end-to-end** — it kept exceeding the output budget (truncation at 1024 tokens → instructor retries), so a clean harness number could not be produced; this is the same "thinking trap" as 005 (defaults return empty/overlong). Its Telugu lead (0.523) came from the 005 clean-text runner with `think:false` + `num_predict=1024` + `repeat_penalty=1.1`. **phi4-mini is robust** under the harness and leads Hindi.
+
+**Conclusion:** gemma4:e4b is the stronger **Telugu** extractor but needs tuning (`think:false` + a larger output budget) to deploy; **phi4-mini is the safe, robust default** and leads **Hindi**. They are complementary, not interchangeable. `think:false` support is now wired into the service ([llm_service.py](../backend/app/services/llm_service.py), thinking families only) and the harness gained `--max-tokens`.
+
+## 7. Decision & recommendation
 
 - **Implemented default: `phi4-mini`** (PR `964d5af`) — the Hindi leader, MIT, ~2.5 GB, fits the cap. Deploy via Dokploy (`docker/Modelfile.phi4-mini`, `OLLAMA_PRELOAD_MODEL=phi4-mini`).
 - **Caveat / likely better overall pick for Telugu: `gemma4:e4b` (`think:false`)** — best measured Telugu F1 (0.523) and lightest/fastest. **Recommend a cross-language head-to-head (gemma4:e4b vs phi4-mini, ≥2 verified books per language) before finalising.**
 - **Do not use:** `qwen2.5:7b` (near-empty output) or any thinking model without `think:false`.
 - Re-run the [evaluate_extraction.py](../backend/scripts/evaluate_extraction.py) harness `--ground-truth` after fixing OCR and the extraction bugs, so model deltas aren't swamped by recall loss.
 
-## 7. Reproduce
+## 8. Reproduce
 
 ```bash
 # resource/speed/JSON: node_acc.py / bench_llm_extraction.py on test-node-2
