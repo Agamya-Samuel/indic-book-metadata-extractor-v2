@@ -106,7 +106,7 @@ Changed:
 | GET | `/api/auth/me` | response includes `account_status` |
 | POST | `/api/auth/register` | success message reflects moderation ("verify your email; an admin will review your account") |
 | GET | `/api/admin/users` | new `account_status` filter |
-| PATCH | `/api/admin/users/{id}` | accepts `account_status` |
+| PATCH | `/api/admin/users/{id}` | *as built:* approval state is **not** settable here — use the dedicated approve/reject endpoints |
 | GET | `/api/admin/stats` | add `pending_user_count` (drives the badge) |
 | GET | `/api/library/books` (and `/search`, `/filters`) | require auth; return **all** books (drop `public_only`); serve the admin Library |
 | GET | `/api/library/books/{id}/detail` | owner or admin only; no anonymous metadata view |
