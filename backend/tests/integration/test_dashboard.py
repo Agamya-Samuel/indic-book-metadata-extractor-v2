@@ -139,7 +139,7 @@ async def test_owner_can_cancel_own_queued_job(client, regular_user):
     book = await _make_owned_book(regular_user.id, BookStatus.OCR_RUNNING)
     job = await _make_job(book.id, owner_id=regular_user.id)
 
-    response = await client.post(f"/api/jobs/{job.id}/cancel")
+    response = await client.post(f"/api/dashboard/jobs/{job.id}/cancel")
     assert response.status_code == 200
     assert response.json()["status"] == JobStatus.CANCELLED
 
@@ -157,7 +157,7 @@ async def test_other_user_cannot_cancel_job(
 
     other = await create_user(email="canceller@example.com")
     other_client = await auth_client(other)
-    response = await other_client.post(f"/api/jobs/{job.id}/cancel")
+    response = await other_client.post(f"/api/dashboard/jobs/{job.id}/cancel")
     assert response.status_code == 404
 
 
@@ -165,7 +165,7 @@ async def test_admin_can_cancel_any_job(client, admin_client, regular_user):
     book = await _make_owned_book(regular_user.id)
     job = await _make_job(book.id, owner_id=regular_user.id)
 
-    response = await admin_client.post(f"/api/jobs/{job.id}/cancel")
+    response = await admin_client.post(f"/api/dashboard/jobs/{job.id}/cancel")
     assert response.status_code == 200
     assert response.json()["status"] == JobStatus.CANCELLED
 
@@ -175,5 +175,5 @@ async def test_cannot_cancel_finished_job(client, regular_user):
     job = await _make_job(
         book.id, owner_id=regular_user.id, status=JobStatus.COMPLETED
     )
-    response = await client.post(f"/api/jobs/{job.id}/cancel")
+    response = await client.post(f"/api/dashboard/jobs/{job.id}/cancel")
     assert response.status_code == 400
