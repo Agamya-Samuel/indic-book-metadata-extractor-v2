@@ -9,13 +9,13 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal() as Record<string, unknown>;
   return {
     ...actual,
-    getLibraryBooks: vi.fn(),
+    getAdminBooks: vi.fn(),
     getFilterOptions: vi.fn(),
   };
 });
 
-import { getLibraryBooks, getFilterOptions } from "@/lib/api";
-const mockGetLibraryBooks = vi.mocked(getLibraryBooks);
+import { getAdminBooks, getFilterOptions } from "@/lib/api";
+const mockGetAdminBooks = vi.mocked(getAdminBooks);
 const mockGetFilterOptions = vi.mocked(getFilterOptions);
 
 const mockBooks: BookSearchResult[] = [
@@ -67,7 +67,7 @@ function createWrapper() {
 describe("LibraryPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetLibraryBooks.mockResolvedValue({
+    mockGetAdminBooks.mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
@@ -102,7 +102,7 @@ describe("LibraryPage", () => {
   });
 
   it("renders book cards when books exist", async () => {
-    mockGetLibraryBooks.mockResolvedValue(mockBooksResponse);
+    mockGetAdminBooks.mockResolvedValue(mockBooksResponse);
     render(<LibraryPage />, { wrapper: createWrapper() });
     await waitFor(() => {
       expect(screen.getByText("Telugu Book One")).toBeDefined();
@@ -138,7 +138,7 @@ describe("LibraryPage", () => {
   });
 
   it("displays total book count", async () => {
-    mockGetLibraryBooks.mockResolvedValue(mockBooksResponse);
+    mockGetAdminBooks.mockResolvedValue(mockBooksResponse);
     render(<LibraryPage />, { wrapper: createWrapper() });
     await waitFor(() => {
       expect(screen.getByText(/2 books total/)).toBeDefined();

@@ -643,22 +643,9 @@ export interface FilterOptions {
   publishers: string[];
 }
 
-export interface LibrarySearchParams {
-  query?: string;
-  language?: string;
-  status?: string;
-  genre?: string;
-  publisher?: string;
-  page?: number;
-  page_size?: number;
-}
-
-// The admin catalog is served by `/admin/books`; both helpers funnel through
-// `getAdminBooks` so the filter set can never drift between the two views.
-export const getLibraryBooks = async (
-  params?: LibrarySearchParams
-): Promise<BookListResponse> => getAdminBooks(params);
-
+// The catalog is admin-scoped: `/library` (the page) and `/admin/books` (the
+// management view) both read the single `GET /admin/books` endpoint via
+// `getAdminBooks`, so the filter set cannot drift between the two views.
 export const getBookDetail = async (
   bookId: string
 ): Promise<BookDetailResponse> => {
