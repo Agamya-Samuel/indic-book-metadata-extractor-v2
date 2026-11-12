@@ -34,7 +34,7 @@ async def test_other_user_cannot_reach_private_book(
         f"/api/books/{book_id}/metadata",
         f"/api/books/{book_id}/jobs",
         f"/api/books/{book_id}/pages/1/thumbnail",
-        f"/api/library/books/{book_id}/detail",
+        f"/api/books/{book_id}/detail",
         f"/api/sse/books/{book_id}/events",
     ]
     for path in paths:
@@ -78,21 +78,21 @@ async def test_completed_book_is_still_owner_only(
     other_client = await auth_client(other)
 
     assert (
-        await other_client.get(f"/api/library/books/{book['id']}/detail")
+        await other_client.get(f"/api/books/{book['id']}/detail")
     ).status_code == 404
     assert (await other_client.get(f"/api/books/{book['id']}")).status_code == 404
 
 
 async def test_library_listing_is_admin_only(anon_client, client, admin_client, make_book):
     # Anonymous callers are rejected outright.
-    assert (await anon_client.get("/api/library/books")).status_code == 401
+    assert (await anon_client.get("/api/admin/books")).status_code == 401
     # Regular approved users cannot browse the cross-user library.
-    assert (await client.get("/api/library/books")).status_code == 403
+    assert (await client.get("/api/admin/books")).status_code == 403
 
     await make_book()
     await make_book(status=BookStatus.AWAITING_REVIEW)
 
-    admin_response = await admin_client.get("/api/library/books")
+    admin_response = await admin_client.get("/api/admin/books")
     assert admin_response.status_code == 200
     assert admin_response.json()["total"] == 2
 

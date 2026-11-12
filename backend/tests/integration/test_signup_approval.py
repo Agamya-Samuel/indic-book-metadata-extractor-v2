@@ -73,7 +73,7 @@ async def test_rejected_user_is_told_why_but_blocked_from_the_app(
 async def test_anonymous_access_is_denied_everywhere(anon_client):
     for path in (
         "/api/dashboard/summary",
-        "/api/library/books",
+        "/api/admin/books",
         "/api/admin/stats",
         "/api/bulk/stats",
     ):
