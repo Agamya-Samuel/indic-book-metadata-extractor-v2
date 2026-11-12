@@ -53,12 +53,15 @@ Method: 2 batches (`core_identity`, `publication`) on the Telugu Athma book, **c
 |---|---|---|---|---|---|---|---|---|
 | **`gemma4:e4b` (`think:false`)** | 9 | 8 | 1 | 3 | **0.636** | 0.636 | 1/38 | **182 s** (fastest) |
 | **`qwen3.5:4b` (`think:false`)** | 9 | 8 | 1 | 3 | 0.545 | 0.545 | 1/38 | 292 s |
+| `phi4-mini` (3.8B) | 6 | 5 | 1 | 6 | 0.273 | 0.273 | 1/38 | 203 s |
 | `qwen3:4b-instruct-2507` | 3 | 2 | 1 | 9 | 0.182 | 0.182 | 1/38 | 978 s; `core_identity` **invalid** (wrote Telugu prose, not JSON) |
 | `qwen2.5:7b` (baseline) | 1 | 1 | 0 | 10 | 0.091 | 0.091 | 0/38 | 732 s; title only; `publication` all-null |
 
 Both leaders correctly extracted title, publication_date (1933), publisher, place_of_publication (మద్రాసు), language and original_language; `gemma4:e4b` additionally got `label`. The remaining `author` miss is a **GT artifact** (the model returns Telugu script రాయసము వెంకటశివుఁడు; GT stores the Latin transliteration), and the single "hallucination" is `publisher_telugu` — a value the model read from the title page that GT leaves empty.
 
 Takeaway: the current production `qwen2.5:7b` and the `qwen3:4b-instruct-2507` fallback are **both unsuitable** here — the 7B returns almost nothing and the 4B-2507 fails structured output. The two reasoning-capable 4B models **with `think:false`** are the only credible extractors, and `gemma4:e4b` leads on F1, speed and RAM. **Provisional winner: `gemma4:e4b` (`think:false`)**, narrowly ahead of `qwen3.5:4b`.
+
+**Cross-session reconciliation (2026-11-11):** parallel runs [learnings/006](006-first-real-accuracy.md) and [learnings/007](007-llm-shortlist-benchmark.md) scored a **Hindi** book on `test-node-3` — `phi4-mini` led (F1 0.50) over `qwen3-4b-2507`/`qwen2.5:7b` (0.20). **Neither `gemma4:e4b` nor `qwen3.5:4b` was in that run**, so no single model has yet been tested across both languages. The signal consistent across every session: **precision ≈ 1.0 with very low recall — the limiter is recall, and it tracks OCR quality** (Telugu CER ≈ 0.45, [learnings/004](004-ocr-stage-cer.md)) rather than the model.
 
 ### 5. Decision models (Jev-class)
 
