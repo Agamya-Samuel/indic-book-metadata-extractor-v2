@@ -148,7 +148,7 @@ Indic-Book-Metadata-Extractor/
 │   │   │   ├── pages.py             # Preprocessing, images, OCR CRUD
 │   │   │   ├── extraction.py        # LLM extraction dispatch
 │   │   │   ├── metadata.py          # Metadata CRUD, field definitions
-│   │   │   └── library.py           # Search, filtering, book detail
+│   │   │   └── admin.py             # Admin users, catalog search/filter, stats
 │   │   ├── core/
 │   │   │   ├── config.py            # Pydantic Settings (env vars)
 │   │   │   └── database.py          # Async SQLAlchemy engine

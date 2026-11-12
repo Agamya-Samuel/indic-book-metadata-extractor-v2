@@ -30,8 +30,9 @@ roles: `user` and `admin`.
   can show a holding screen) but every non-`/auth` endpoint returns `403`
   (`account_pending` / `account_rejected`).
 - **Authorization**: every book/page/OCR/metadata/job endpoint requires the
-  owner or an admin. `GET /api/library/*` listing/search endpoints are
-  admin-only and span all users; book detail is owner-or-admin. Admin endpoints
+  owner or an admin. The admin catalog (`GET /api/admin/books`,
+  `GET /api/admin/filters`) is admin-only and spans all users;
+  `GET /api/books/{book_id}/detail` is owner-or-admin. Admin endpoints
   (`/api/admin/*`, `/api/bulk/*`) require `admin`.
 - **Anonymous access**: none. Every route except `/api/auth/*` and `/health`
   returns `401` without a session. The public catalog has been removed.
@@ -462,7 +463,7 @@ Supports `status`, `job_type`, `page`, `page_size`. Each row includes
 `queue_ahead` — the estimated number of queued jobs in the same worker queue
 created earlier (`0` when running; `null` when not queued).
 
-### `POST /api/jobs/{job_id}/cancel`
+### `POST /api/dashboard/jobs/{job_id}/cancel`
 
 Cancels a queued/running job. Owners may cancel their own jobs; admins may
 cancel any. Returns `{ "id", "status" }`; `400` when the job is already in a
@@ -495,7 +496,8 @@ admin cannot reject or delete their own account.
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/admin/books` | All books. Filters: `query`, `language`, `status`, `has_metadata`, `owner_id`, pagination. Rows include `owner_display_name`. |
+| `GET /api/admin/books` | All books (admin catalog). Filters: `query`, `language`, `status`, `genre`, `publisher`, `has_metadata`, `owner_id`, pagination. Rows include `owner_display_name`. |
+| `GET /api/admin/filters` | Distinct filter values (`languages`, `statuses`, `genres`, `publishers`) across all books. |
 | `DELETE /api/admin/books/{book_id}` | Delete any book. |
 | `POST /api/admin/books/{book_id}/reset` | Reset any book. |
 | `POST /api/admin/books/{book_id}/rerun-ocr` | Re-run OCR on any book. |
@@ -782,109 +784,17 @@ Returns all LLM extraction runs for a book, including prompts and raw responses.
 
 ---
 
-## Library API
+## Catalog & Book Detail
 
-All `/api/library/*` endpoints require an approved session. The listing,
-search, and filter endpoints are **admin-only** and span all users' books; the
-book detail endpoint is **owner-or-admin**. There is no anonymous catalog.
+The admin catalog moved under the Admin API: `GET /api/admin/books` (list +
+fuzzy search via the `query` parameter) and `GET /api/admin/filters`. The
+former `/api/library/*` prefix has been retired. This section documents the
+owner-or-admin detail view.
 
-### List Library Books
-
-```
-GET /api/library/books
-```
-
-**Auth**: admin.
-
-**Query Parameters**:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `query` | string | null | Search query (triggers fuzzy search) |
-| `language` | string | null | Filter by language code |
-| `status` | string | null | Filter by book status |
-| `genre` | string | null | Filter by genre (partial match) |
-| `publisher` | string | null | Filter by publisher (partial match) |
-| `page` | integer | 1 | Page number |
-| `page_size` | integer | 20 | Items per page (max: 100) |
-
-**Response** (`200 OK`):
-```json
-{
-  "items": [
-    {
-      "id": "550e8400-...",
-      "title": "నా తెలుగు పుస్తకం",
-      "filename": "book.pdf",
-      "language": "tel",
-      "status": "complete",
-      "total_pages": 250,
-      "created_at": "2026-05-23T01:30:00Z",
-      "metadata_fields": {
-        "author": "రచయిత పేరు",
-        "publisher": "ప్రచురణకర్త",
-        "title": "నా తెలుగు పుస్తకం"
-      },
-      "thumbnail_url": "/api/books/550e8400-.../pages/1/thumbnail"
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 20,
-  "total_pages": 1
-}
-```
-
----
-
-### Search Library
+### Get Book Detail
 
 ```
-GET /api/library/search?q={query}
-```
-
-**Auth**: admin.
-
-Fuzzy search across title, filename, and metadata JSONB fields using pg_trgm similarity.
-
-**Query Parameters**:
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `q` | string | Yes | Search query (min 1 character) |
-| `language` | string | No | Filter by language |
-| `limit` | integer | 20 | Max results (max: 100) |
-
-**Response** (`200 OK`): Array of `BookSearchResult` objects (same format as list items).
-
----
-
-### Get Filter Options
-
-```
-GET /api/library/filters
-```
-
-**Auth**: admin.
-
-Returns available filter values from the database.
-
-**Response** (`200 OK`):
-```json
-{
-  "languages": ["hin", "tel"],
-  "statuses": ["complete", "ocr_complete", "uploaded"],
-  "genres": ["కవిత్వం", "నవల", "Fiction"],
-  "publishers": ["ప్రచురణకర్త A", "Publisher B"]
-}
-```
-
----
-
-### Get Book Detail (Library View)
-
-```
-GET /api/library/books/{book_id}/detail
+GET /api/books/{book_id}/detail
 ```
 
 **Auth**: owner or admin. Returns the full record (pages, OCR text, jobs, LLM

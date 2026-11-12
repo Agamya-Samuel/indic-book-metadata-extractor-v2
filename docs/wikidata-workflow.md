@@ -185,7 +185,7 @@ Where:
 
 ### Using the App's Export
 
-1. Go to http://localhost:3000/bulk-operations
+1. Go to http://localhost:3000/admin/bulk
 2. Filter by language/status if needed
 3. Click **Download QuickStatements**
 4. Open http://localhost:9191

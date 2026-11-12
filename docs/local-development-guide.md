@@ -728,8 +728,8 @@ sqlalchemy.exc.InterfaceError: cannot connect to server
 | **Redis** | Celery message broker and result backend |
 | **Ollama** | Local LLM inference server running Airavata 7B for structured metadata extraction |
 | **Flower** | Web dashboard for monitoring Celery task queues and worker status |
-| **Wikibase** | Structured data store — MediaWiki + Wikibase extension bundled in a single Docker image (`wikibase/wikibase:mw1.44.0`). Stores bibliographic metadata as linked entities. Backed by MariaDB and Elasticsearch. See [bulk-operations.md](bulk-operations.md) |
-| **OpenRefine** | Web-based bulk data cleaning tool. Export metadata from the backend, clean/normalise it, reconcile against Wikibase, then upload via QuickStatements. See [bulk-operations.md](bulk-operations.md) |
+| **Wikibase** | Structured data store — MediaWiki + Wikibase extension bundled in a single Docker image (`wikibase/wikibase:mw1.44.0`). Stores bibliographic metadata as linked entities. Backed by MariaDB and Elasticsearch. See [admin-bulk.md](admin-bulk.md) |
+| **OpenRefine** | Web-based bulk data cleaning tool. Export metadata from the backend, clean/normalise it, reconcile against Wikibase, then upload via QuickStatements. See [admin-bulk.md](admin-bulk.md) |
 | **New Relic** | APM + Browser + Infrastructure monitoring (SaaS). See [monitoring.md](monitoring.md) |
 
 ### Tech Stack Summary

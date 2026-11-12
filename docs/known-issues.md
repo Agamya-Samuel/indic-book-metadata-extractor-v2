@@ -4,7 +4,7 @@
 
 ### Skipped Test: Library Filter Options
 
-**Test**: `test_api_library.py::TestGetFilterOptions::test_get_filter_options`
+**Test**: `test_admin_books.py::TestAdminFilterOptions::test_get_filter_options`
 
 **Status**: Skipped
 
@@ -14,7 +14,7 @@
 ```bash
 make up
 # Wait for services to be healthy
-docker compose exec backend uv run pytest tests/integration/test_api_library.py -v -k "test_get_filter_options" --no-header
+docker compose exec backend uv run pytest tests/integration/test_admin_books.py -v -k "test_get_filter_options" --no-header
 ```
 
 **Resolution**: Would require either a PostgreSQL test container or refactoring the query to use SQLAlchemy JSON rendering that works across both SQLite and PostgreSQL.

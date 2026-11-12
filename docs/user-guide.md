@@ -239,7 +239,7 @@ After processing many books, you can use **Bulk Operations** to clean metadata a
 4. **Import** — Upload the cleaned CSV back to update all metadata records
 5. **Wikibase Export** — Generate QuickStatements TSV for uploading to Wikibase
 
-For detailed instructions, see the [Bulk Operations Guide](bulk-operations.md).
+For detailed instructions, see the [Bulk Operations Guide](admin-bulk.md).
 
 ---
 
