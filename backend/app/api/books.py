@@ -18,6 +18,8 @@ from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.schemas.book import (
     BookDetail,
+    BookDetailPage,
+    BookDetailResponse,
     BookUploadResponse,
     OcrStatusResponse,
     OcrPageStatus,
@@ -26,6 +28,7 @@ from app.schemas.book import (
     PageSelectionResponse,
 )
 from app.schemas.job import JobResponse
+from app.schemas.metadata import LlmRunResponse
 from app.schemas.page import PreprocessingConfig
 from app.services import pdf_service, storage
 from app.services.ocr_service import LANGUAGE_MAP
@@ -118,21 +121,80 @@ async def upload_book(
     return BookUploadResponse.model_validate(book)
 
 
+async def _build_book_detail(
+    db: AsyncSession,
+    book: Book,
+    *,
+    owner_display_name: str | None = None,
+    owner_email: str | None = None,
+) -> BookDetail:
+    """Build the shared BookDetail payload (review flags + optional owner fields)."""
+    low_conf_count = await SearchService.count_low_confidence_fields(
+        db, book.id, settings.low_confidence_threshold
+    )
+    data = {
+        **BookDetail.model_validate(book).model_dump(),
+        "needs_review": book.status == BookStatus.AWAITING_REVIEW and low_conf_count > 0,
+        "low_confidence_count": low_conf_count,
+    }
+    if owner_display_name is not None:
+        data["owner_display_name"] = owner_display_name
+    if owner_email is not None:
+        data["owner_email"] = owner_email
+    return BookDetail.model_validate(data)
+
+
 @router.get("/{book_id}", response_model=BookDetail)
 async def get_book(
-    book_id: UUID,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> BookDetail:
-    low_conf_count = await SearchService.count_low_confidence_fields(
-        db, book_id, settings.low_confidence_threshold
+    return await _build_book_detail(db, book)
+
+
+@router.get("/{book_id}/detail", response_model=BookDetailResponse)
+async def get_book_detail(
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+) -> BookDetailResponse:
+    detail = await SearchService.get_book_detail(db, book.id, book=book)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    metadata = detail["metadata"]
+    pages = detail["pages"]
+    jobs = detail["jobs"]
+    llm_runs = detail["llm_runs"]
+    page_responses = [
+        BookDetailPage(
+            id=p["id"],
+            page_number=p["page_number"],
+            image_url=p["image_url"],
+            ocr_text=p["ocr_text"],
+            ocr_confidence=p["ocr_confidence"],
+        )
+        for p in pages
+    ]
+    llm_run_responses = [
+        LlmRunResponse.model_validate(r).model_dump() for r in llm_runs
+    ]
+    job_responses = [JobResponse.model_validate(j).model_dump() for j in jobs]
+
+    book_detail = await _build_book_detail(
+        db,
+        book,
+        owner_display_name=detail.get("owner_display_name"),
+        owner_email=detail.get("owner_email"),
     )
-    return BookDetail.model_validate(
-        {
-            **BookDetail.model_validate(book).model_dump(),
-            "needs_review": book.status == BookStatus.AWAITING_REVIEW and low_conf_count > 0,
-            "low_confidence_count": low_conf_count,
-        }
+
+    return BookDetailResponse(
+        book=book_detail,
+        metadata=metadata.fields if metadata else None,
+        metadata_updated_at=metadata.updated_at if metadata else None,
+        pages=page_responses,
+        llm_runs=llm_run_responses,
+        jobs=job_responses,
+        owner_display_name=detail.get("owner_display_name"),
     )
 
 

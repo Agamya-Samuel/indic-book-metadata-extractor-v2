@@ -19,7 +19,11 @@ from app.schemas.auth import (
     UserListResponse,
     UserResponse,
 )
-from app.schemas.book import BookListResponse, BookSearchResult
+from app.schemas.book import (
+    BookListResponse,
+    BookSearchResult,
+    FilterOptionsResponse,
+)
 from app.services import admin_service, auth_service
 from app.services.auth_service import AuthError
 from app.services.search_service import SearchService
@@ -199,11 +203,20 @@ async def admin_stats(db: AsyncSession = Depends(get_db)) -> dict:
 # Books
 # ---------------------------------------------------------------------------
 
+@router.get("/filters", response_model=FilterOptionsResponse)
+async def admin_filter_options(
+    db: AsyncSession = Depends(get_db),
+) -> FilterOptionsResponse:
+    return await SearchService.get_filter_options(db)
+
+
 @router.get("/books", response_model=BookListResponse)
 async def admin_list_books(
     query: str | None = Query(default=None, alias="query"),
     language: str | None = Query(default=None),
     status_: str | None = Query(default=None, alias="status"),
+    genre: str | None = Query(default=None),
+    publisher: str | None = Query(default=None),
     has_metadata: bool | None = Query(default=None),
     owner_id: UUID | None = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -214,6 +227,8 @@ async def admin_list_books(
         db,
         language=language,
         status=status_,
+        genre=genre,
+        publisher=publisher,
         page=page,
         page_size=page_size,
         owner_id=owner_id,
@@ -227,6 +242,8 @@ async def admin_list_books(
             q=query.strip(),
             language=language,
             status=status_,
+            genre=genre,
+            publisher=publisher,
             page=page,
             page_size=page_size,
             owner_id=owner_id,
