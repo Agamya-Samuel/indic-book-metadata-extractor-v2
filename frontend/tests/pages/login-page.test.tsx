@@ -4,6 +4,22 @@ import userEvent from "@testing-library/user-event";
 import LoginPage from "@/app/login/page";
 import { useAuth } from "@/components/auth/auth-provider";
 
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace,
+    push: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  useParams: () => ({}),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/login",
+}));
+
 vi.mock("@/components/auth/auth-provider", () => ({
   useAuth: vi.fn(),
 }));
@@ -26,6 +42,8 @@ function mockAuth(loginImpl: ReturnType<typeof vi.fn>) {
     loading: false,
     isAuthenticated: false,
     isAdmin: false,
+    accountStatus: null,
+    isApproved: false,
     login: loginImpl as unknown as () => Promise<never>,
     logout: vi.fn() as unknown as () => Promise<void>,
     refreshUser: vi.fn() as unknown as () => Promise<void>,
@@ -67,6 +85,23 @@ describe("LoginPage", () => {
 
     await waitFor(() => {
       expect(loginImpl).toHaveBeenCalledWith("reader@example.com", "correct horse");
+    });
+  });
+
+  it("sends unapproved accounts to the holding screen after login", async () => {
+    const loginImpl = vi
+      .fn()
+      .mockResolvedValue({ id: "u1", account_status: "pending" });
+    mockAuth(loginImpl);
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "pending@example.com");
+    await user.type(screen.getByLabelText("Password"), "correct horse");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/pending-approval");
     });
   });
 

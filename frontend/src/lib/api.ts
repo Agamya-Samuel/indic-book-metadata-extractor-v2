@@ -84,12 +84,20 @@ api.interceptors.response.use(
   },
 );
 
+export type AccountStatus = "pending" | "approved" | "rejected";
+
+export const isApprovedStatus = (
+  status: AccountStatus | null | undefined,
+): boolean => status === "approved";
+
 export interface AuthUser {
   id: string;
   email: string;
   display_name: string;
   role: "user" | "admin";
   is_active: boolean;
+  account_status: AccountStatus;
+  rejection_reason: string | null;
   email_verified_at: string | null;
   last_login_at: string | null;
   created_at: string | null;
@@ -624,7 +632,7 @@ export interface BookDetailResponse {
   pages: BookDetailPage[];
   llm_runs: LlmRunResponse[];
   jobs: JobResponse[];
-  can_view_full?: boolean;
+
   owner_display_name?: string | null;
 }
 
@@ -785,7 +793,9 @@ export interface AdminStatsResponse {
   users?: {
     total: number;
     active: number;
+    pending: number;
   };
+  pending_user_count?: number;
   disk_usage_mb: number;
 }
 
@@ -836,6 +846,13 @@ export interface AdminJobsParams {
 export const getAdminStats = async (): Promise<AdminStatsResponse> => {
   const response = await api.get<AdminStatsResponse>("/admin/stats");
   return response.data;
+};
+
+export const getPendingUserCount = async (): Promise<number> => {
+  const response = await api.get<{ count: number }>(
+    "/admin/users/pending-count",
+  );
+  return response.data.count;
 };
 
 export const getAdminBooks = async (
@@ -1075,6 +1092,7 @@ export interface AdminUsersParams {
   query?: string;
   role?: "user" | "admin";
   is_active?: boolean;
+  account_status?: AccountStatus;
   page?: number;
   page_size?: number;
 }
@@ -1087,6 +1105,9 @@ export const getAdminUsers = async (
   if (params?.role) searchParams.set("role", params.role);
   if (typeof params?.is_active === "boolean") {
     searchParams.set("is_active", String(params.is_active));
+  }
+  if (params?.account_status) {
+    searchParams.set("account_status", params.account_status);
   }
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.page_size) searchParams.set("page_size", String(params.page_size));
@@ -1123,6 +1144,21 @@ export const updateAdminUser = async (
   },
 ): Promise<AdminUser> => {
   const response = await api.patch<AdminUser>(`/admin/users/${userId}`, payload);
+  return response.data;
+};
+
+export const approveAdminUser = async (userId: string): Promise<AdminUser> => {
+  const response = await api.post<AdminUser>(`/admin/users/${userId}/approve`);
+  return response.data;
+};
+
+export const rejectAdminUser = async (
+  userId: string,
+  rejectionReason?: string,
+): Promise<AdminUser> => {
+  const response = await api.post<AdminUser>(`/admin/users/${userId}/reject`, {
+    rejection_reason: rejectionReason || null,
+  });
   return response.data;
 };
 

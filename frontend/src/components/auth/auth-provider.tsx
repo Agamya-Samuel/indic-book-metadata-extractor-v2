@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   getCurrentUser,
+  isApprovedStatus,
   login as loginRequest,
   logout as logoutRequest,
   type AuthUser,
@@ -20,6 +21,8 @@ interface AuthContextValue {
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  accountStatus: AuthUser["account_status"] | null;
+  isApproved: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -68,6 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       isAuthenticated: user !== null,
       isAdmin: user?.role === "admin",
+      accountStatus: user?.account_status ?? null,
+      isApproved: isApprovedStatus(user?.account_status),
       login,
       logout,
       refreshUser,

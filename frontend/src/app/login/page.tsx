@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
+import { isApprovedStatus } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
@@ -27,8 +28,10 @@ function LoginForm() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      router.replace(safeNext);
+      const nextUser = await login(email, password);
+      router.replace(
+        isApprovedStatus(nextUser.account_status) ? safeNext : "/pending-approval",
+      );
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

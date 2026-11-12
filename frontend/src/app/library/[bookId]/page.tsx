@@ -168,9 +168,7 @@ export default function BookDetailPage() {
   }
 
   const { book, metadata, pages, llm_runs, jobs } = detail;
-  // The backend returns `can_view_full: false` for anonymous visitors and
-  // non-owner users: metadata only, no pages/OCR/jobs/LLM runs.
-  const canViewFull = detail.can_view_full === true;
+  // Only the owner or an admin ever receives this payload; non-owners get 404.
   const language = LANGUAGE_LABELS[book.language] || book.language;
   const metadataFields = metadata ?? {};
   const nonEmptyFieldCount = Object.values(metadataFields).filter(
@@ -248,34 +246,32 @@ export default function BookDetailPage() {
             </span>
           }
           actions={
-            canViewFull ? (
-              <div className="flex items-center gap-2">
-                {book.status === "awaiting_review" && (
-                  <LinkButton
-                    href={`/books/${bookId}/metadata-review`}
-                    variant="primary"
-                    size="md"
-                  >
-                    Review now
-                  </LinkButton>
-                )}
-                {book.status === "complete" && (
-                  <LinkButton
-                    href={`/books/${bookId}/metadata-review`}
-                    variant="outline"
-                    size="md"
-                  >
-                    Edit Metadata
-                  </LinkButton>
-                )}
-              </div>
-            ) : undefined
+            <div className="flex items-center gap-2">
+              {book.status === "awaiting_review" && (
+                <LinkButton
+                  href={`/books/${bookId}/metadata-review`}
+                  variant="primary"
+                  size="md"
+                >
+                  Review now
+                </LinkButton>
+              )}
+              {book.status === "complete" && (
+                <LinkButton
+                  href={`/books/${bookId}/metadata-review`}
+                  variant="outline"
+                  size="md"
+                >
+                  Edit Metadata
+                </LinkButton>
+              )}
+            </div>
           }
         />
 
-        {canViewFull && <WorkflowResumeBanner detail={detail.book} />}
+        <WorkflowResumeBanner detail={detail.book} />
 
-        {canViewFull && book.status === "awaiting_review" && (
+        {book.status === "awaiting_review" && (
           <Card>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
               <div
@@ -316,16 +312,6 @@ export default function BookDetailPage() {
                 </div>
               </div>
             </div>
-          </Card>
-        )}
-
-        {!canViewFull && (
-          <Card className="mb-6">
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
-              You are viewing the public catalog entry for this book. Page
-              images, OCR text, and processing history are visible to the
-              uploader and administrators only.
-            </p>
           </Card>
         )}
 
