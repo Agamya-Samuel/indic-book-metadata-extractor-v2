@@ -161,28 +161,35 @@ The browser tools are available (navigate / click / fill / snapshot / screenshot
 
 ---
 
-## 5. Implementation status (what to verify vs what is still to build)
+## 5. Results (browser-driven, deployed `oki` host)
 
-Legend: ✅ implemented + locally verified · 🟡 implemented, needs deployed verification ·
-⬜ not implemented (out of scope for this handoff; listed so you don't expect it).
+Legend: ✅ verified on the deployed host · 🟡 verified with a known defect or an unverified
+sub-case · ⬜ not implemented / out of scope.
 
-| Area | Status | Notes |
+| Area | Status | Evidence / notes |
 |---|---|---|
-| `workflow-state.ts` derivation + stepper + `WorkflowShell` | ✅ | 7 honest states incl. failure/stale |
-| SSE: snapshot/connected/heartbeat, connection mode, polling fallback | 🟡 | `withCredentials` fix just added |
-| LLM config escape hatch (form always mounted) + run-scoped job | ✅ | re-run no longer traps on progress |
-| LLM preflight (`/books/models`) | ✅ | route shadowing fixed (was 422) |
-| OCR editor key/dirty/empty/read-only + unsaved guard | ✅ | saved Hindi correction end-to-end |
-| Re-run OCR from any status (backend) + confirm + Celery revoke | ✅ | keeps metadata, resets downstream stages |
-| Preprocessing seed/preview/apply/rotation/advanced | ✅ | preview writes temp file only |
-| Async page-extraction job (`/extracting-pages?job=`) | ✅ | select → job → auto-redirect to preprocessing |
-| Bulk preprocessing job (`POST /books/{id}/preprocessing`) | ✅ | 2-page bulk job completed at 100% |
-| Explicit `POST /books/{id}/review/complete` | 🟡 | needs deployed confirm of full metadata flow |
-| Admin sidebar/layout + PageHeader + per-row pending + DataTable | 🟡 | jobs table on `DataTable`; books table still bespoke rows |
-| Admin `/admin` operations aggregation | ⬜ partial | KPI strip exists; global failures + `has_metadata`-aware stats still derive from the 10-row page |
-| Phase 2 polish (upload %, select-pages virtualization, OCR-processing card, metadata SaveBar/evidence nav, field revert) | ⬜ | not implemented |
-| Page-extraction failure/retry UX on `/extracting-pages` | 🟡 | basic failure + retry-to-select exists |
-| Playwright e2e suite committed to the repo | ⬜ | this doc is the manual plan; no automated Playwright spec was added |
+| `workflow-state.ts` derivation + stepper + `WorkflowShell` | ✅ | 7 steps; completed=link, current=`aria-current`, future locked (`aria-disabled`) |
+| SSE: snapshot/connected/heartbeat, connection mode, polling fallback | ✅ | `GET /api/sse/books/{id}/events` → 200 `eventsource`; streamed `event: snapshot`. Polling-fallback notice not induced |
+| LLM config escape hatch (form always mounted) + run-scoped job | ✅ | after a completed run: form mounted, **no progress takeover**, "Run again", *"A previous run exists..."*, batching *"8 LLM calls ... 49 fields"* |
+| LLM preflight (`/books/models`) | ✅ | 200 |
+| OCR editor key/dirty/empty/read-only + unsaved guard | ✅ | empty text persisted (`corrected_text` 0 vs `raw_text` 145); guard *"You have unsaved changes. Leave without saving?"* |
+| Re-run OCR from any status + confirm + Celery revoke | 🟡 | confirm dialog + job run correctly, but **the dialog promised "metadata is kept" while the backend deleted it** — fixed in `839bbad` (deployed); clean re-verify outstanding |
+| Preprocessing seed/preview/apply/rotation/advanced | ✅ | preview temp-only + note + toggle; apply-to-page; **one** `POST /books/{id}/preprocessing` → 201; both pages persisted |
+| Async page-extraction job (`/extracting-pages?job=`) | ✅ | `?job=` page, RUNNING + Cancel + %, auto-redirect; Cancel at 32% → 39 pages, **0 with missing images** |
+| Explicit `POST /books/{id}/review/complete` | 🟡 | happy path ✅ (36-empty-fields confirm → `complete`); **409-while-running not yet exercised** |
+| Admin sidebar/layout + PageHeader + per-row pending + DataTable | 🟡 | sidebar + `aria-current` on all three; no duplicate bar; progress 0–100; per-row Cancel + confirm; **no Owner column** |
+| Admin `/admin` operations aggregation | ⬜ partial | KPI strip + library/disk/user stats verified; global-failure aggregation still out of scope |
+| Auth: login/logout/register/verify-gate/forgot-password | ✅ | register → 24h token; unverified login blocked with a clear message; reset copy is non-enumerating |
+| RBAC + per-user ownership | ✅ | `user` role: no Admin nav, `/admin` → redirect to `/dashboard`, dashboard scoped to own books; admin **Add user** creates a verified account |
+| Library (search/filters/public catalog) | ✅ | search + Language/Status filters; public-only empty state |
+| Bulk operations (CSV + Wikibase export) | ✅ | `/bulk/export` → 200 `text/csv` (49-field header); `/bulk/export-wikibase` → QuickStatements |
+| Admin reset / Ollama-down / cancel paths | ✅ | reset → `uploaded`, pages/OCR/stages cleared; Ollama down → clear warning + Run disabled; cancel page-extraction + OCR both recover the book |
+| Phase 2 polish (upload %, virtualization, OCR-processing card, metadata SaveBar/evidence nav, field revert) | ⬜ | not implemented |
+| Page-extraction failure/retry UX on `/extracting-pages` | 🟡 | exists; failure path not induced |
+| Playwright e2e suite committed to the repo | ⬜ | this doc remains the manual plan; no automated spec added |
+
+See `learnings/011-deployment-exposure-and-single-origin.md` finding #5 for the six workflow
+dead-ends this pass found (and the fixes).
 
 ---
 
