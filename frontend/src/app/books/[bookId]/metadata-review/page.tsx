@@ -430,8 +430,8 @@ export default function MetadataReviewPage() {
             >
               Re-run Extraction
             </LinkButton>
-            <LinkButton href="/library" variant="outline">
-              Go to Library
+            <LinkButton href="/dashboard" variant="outline">
+              Go to dashboard
             </LinkButton>
           </div>
         </Stack>

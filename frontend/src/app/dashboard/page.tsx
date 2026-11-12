@@ -227,7 +227,7 @@ export default function DashboardPage() {
             <StatCard
               label="Complete"
               value={summary?.books.by_status?.complete ?? 0}
-              sublabel="published to the public catalog"
+              sublabel="fully processed"
               tone="success"
               flush
             />
@@ -317,15 +317,7 @@ export default function DashboardPage() {
             title="No books yet"
             description="Upload a scanned book to run OCR and extract metadata. Your books and their jobs appear here."
             action={
-              <div className="flex flex-col items-center gap-3">
-                <LinkButton href="/upload">Upload your first book</LinkButton>
-                <Link
-                  href="/library"
-                  className="text-[var(--text-sm)] text-[var(--accent)] hover:underline"
-                >
-                  Browse the public catalog
-                </Link>
-              </div>
+              <LinkButton href="/upload">Upload your first book</LinkButton>
             }
           />
         ) : (

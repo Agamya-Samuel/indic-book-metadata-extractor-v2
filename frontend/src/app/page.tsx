@@ -49,8 +49,8 @@ export default function Home() {
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-hero animate-hero-4">
           <LinkButton href="/upload" size="lg">Start an upload</LinkButton>
-          <LinkButton href="/library" size="lg" variant="outline">
-            Browse the library
+          <LinkButton href="/login" size="lg" variant="outline">
+            Log in
           </LinkButton>
         </div>
 
