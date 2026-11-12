@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     cookie_domain: str = ""
     frontend_url: str = "http://localhost:3000"
 
+    # Registration moderation. When True, new signups start `pending` and need
+    # admin approval; when False, signups are auto-approved (open registration).
+    registration_requires_approval: bool = True
+
     # Email delivery (SMTP)
     smtp_enabled: bool = False
     smtp_host: str = ""

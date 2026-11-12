@@ -113,10 +113,14 @@ async def register(
         )
     except AuthError as exc:
         raise _http_error(exc)
-    return {
-        "message": "Account created. Check your email to verify your address.",
-        "email": user.email,
-    }
+    if settings.registration_requires_approval:
+        message = (
+            "Account created. Verify your email address; an administrator will "
+            "review your account before you can sign in."
+        )
+    else:
+        message = "Account created. Check your email to verify your address."
+    return {"message": message, "email": user.email}
 
 
 @router.post("/login", response_model=UserResponse)

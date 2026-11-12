@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import func, or_, select, String, cast
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.book import Book, PUBLIC_BOOK_STATUSES
+from app.models.book import Book
 from app.models.metadata import BookMetadata
 from app.models.page import Page
 from app.models.user import User
@@ -57,7 +57,6 @@ class SearchService:
         page: int = 1,
         page_size: int = 20,
         owner_id: UUID | None = None,
-        public_only: bool = False,
         has_metadata: bool | None = None,
     ) -> tuple[list[dict], int]:
         query = (
@@ -82,9 +81,6 @@ class SearchService:
         if owner_id is not None:
             query = query.where(Book.owner_id == owner_id)
             count_query = count_query.where(Book.owner_id == owner_id)
-        if public_only:
-            query = query.where(Book.status.in_(PUBLIC_BOOK_STATUSES))
-            count_query = count_query.where(Book.status.in_(PUBLIC_BOOK_STATUSES))
         if has_metadata is not None:
             cond = _has_metadata_condition(has_metadata)
             query = query.where(cond)
@@ -133,7 +129,6 @@ class SearchService:
         page: int = 1,
         page_size: int = 20,
         owner_id: UUID | None = None,
-        public_only: bool = False,
         has_metadata: bool | None = None,
     ) -> tuple[list[dict], int]:
         base = (
@@ -153,8 +148,6 @@ class SearchService:
             base = base.where(Book.status == status)
         if owner_id is not None:
             base = base.where(Book.owner_id == owner_id)
-        if public_only:
-            base = base.where(Book.status.in_(PUBLIC_BOOK_STATUSES))
         if has_metadata is not None:
             base = base.where(_has_metadata_condition(has_metadata))
         if genre:
@@ -302,13 +295,10 @@ class SearchService:
         db: AsyncSession,
         *,
         owner_id: UUID | None = None,
-        public_only: bool = False,
     ) -> dict:
         book_filter = []
         if owner_id is not None:
             book_filter.append(Book.owner_id == owner_id)
-        if public_only:
-            book_filter.append(Book.status.in_(PUBLIC_BOOK_STATUSES))
 
         languages_query = select(Book.language).distinct()
         statuses_query = select(Book.status).distinct()
