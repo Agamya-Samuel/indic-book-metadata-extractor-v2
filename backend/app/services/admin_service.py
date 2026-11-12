@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.book import Book, BookStatus
+from app.models.stage import StageStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
@@ -26,6 +27,14 @@ from app.services import storage
 from app.services.stage_manager import StageManager
 
 logger = logging.getLogger(__name__)
+
+# Which lifecycle stage each cancellable job type drives. Used to terminalise
+# the stage row when a job is cancelled.
+_JOB_STAGE_NAME = {
+    JobType.OCR: "ocr",
+    JobType.LLM: "llm_extraction",
+    JobType.PAGE_EXTRACTION: "page_selection",
+}
 
 
 async def get_admin_stats(db: AsyncSession) -> dict:
@@ -181,6 +190,19 @@ async def cancel_job(db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled
         ):
             book.status = BookStatus.PAGES_SELECTED
 
+    # Terminalise the matching stage row too. Cancelling only the job leaves the
+    # stage stuck in `processing`, and the book status is derived from stage
+    # state, so the orphan wedges the next derivation exactly like a worker that
+    # was killed mid-job.
+    stage_name = _JOB_STAGE_NAME.get(job.job_type)
+    if stage_name:
+        row = await StageManager.get_stage(db, job.book_id, stage_name)
+        if row is not None and row.status in (
+            StageStatus.PROCESSING,
+            StageStatus.INITIATED,
+        ):
+            await StageManager.cancel_stage(db, job.book_id, stage_name, reason)
+
     await db.commit()
     await db.refresh(job)
     return job
@@ -289,7 +311,6 @@ async def rerun_ocr(
     # doesn't leave orphaned files behind.
     page_ids = [p.id for p in pages]
     await db.execute(delete(OcrResult).where(OcrResult.page_id.in_(page_ids)))
-    await db.execute(delete(MetadataFieldEvidence).where(MetadataFieldEvidence.book_id == book_id))
     files_to_unlink: list[Path] = []
     for p in pages:
         if p.processed_image_path:
@@ -297,8 +318,10 @@ async def rerun_ocr(
             files_to_unlink.append(fp)
         p.processed_image_path = None
         p.preprocessing_config = None
-    # LLM outputs are stale once OCR changes; clear them too.
-    await db.execute(delete(BookMetadata).where(BookMetadata.book_id == book_id))
+    # Extracted metadata and its evidence are KEPT. The confirm dialog tells the
+    # user they are "kept but marked out of date until you re-run extraction",
+    # and the stage reset already marks the downstream stages stale. Deleting
+    # them here silently destroyed reviewed work.
 
     # Create new OCR job
     job = Job(
