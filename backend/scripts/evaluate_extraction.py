@@ -231,7 +231,7 @@ def main() -> int:
     )
     parser.add_argument("--model", default="qwen2.5", help="Ollama model for extraction (default qwen2.5)")
     parser.add_argument("--limit", type=int, default=0, help="Max books to score (0 = all)")
-    parser.add_argument("--pages", type=int, default=20, help="Max pages to render/OCR per book (default 20)")
+    parser.add_argument("--pages", type=int, default=12, help="Max pages to render/OCR per book (default 12)")
     parser.add_argument(
         "-v",
         "--verbose",

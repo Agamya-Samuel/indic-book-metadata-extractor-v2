@@ -1,6 +1,6 @@
 # Indic Book Metadata Extractor
 
-A full-stack web application for OCR-powered metadata extraction from scanned Indic language book PDFs. Upload a PDF, run Tesseract OCR, extract 52 bibliographic fields using a locally-hosted LLM (Airavata 7B), and review/edit everything through a guided 7-step workflow.
+A full-stack web application for OCR-powered metadata extraction from scanned Indic language book PDFs. Upload a PDF, run Tesseract OCR, extract 49 bibliographic fields using a locally-hosted LLM, and review/edit everything through a guided 7-step workflow.
 
 ---
 
@@ -163,9 +163,9 @@ see [DEPLOY.md](DEPLOY.md) and `.env.example` for the variables.
 
 ---
 
-## Metadata Fields (52)
+## Metadata Fields (49)
 
-The application extracts 52 bibliographic fields per book, grouped into 8 batches:
+The application extracts 49 bibliographic fields per book, grouped into 8 batches:
 
 | Batch | Fields |
 |-------|--------|
