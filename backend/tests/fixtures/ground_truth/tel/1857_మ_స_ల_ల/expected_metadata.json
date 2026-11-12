@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "1857 ముస్లింలు",
     "author": "సయ్యద్ నశీర్ అహమ్మద్",
@@ -164,7 +164,171 @@
     "sources": [
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A1857_%E0%B0%AE%E0%B1%81%E0%B0%B8%E0%B1%8D%E0%B0%B2%E0%B0%BF%E0%B0%82%E0%B0%B2%E0%B1%81.pdf"
     ],
-    "enriched_at": "2026-11-11T08:36:06.872442+00:00",
+    "enriched_at": "2026-11-12T08:34:52.984823+00:00",
     "prefilled_fields": 10
+  },
+  "verification": {
+    "checked_at": "2026-11-12T08:36:57.770394+00:00",
+    "prefilled": 10,
+    "scan_confirmed": 10,
+    "fields": {
+      "label": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "author": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "description_work": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "description_edition": {
+        "status": "empty"
+      },
+      "translator": {
+        "status": "empty"
+      },
+      "editor": {
+        "status": "empty"
+      },
+      "compiler": {
+        "status": "empty"
+      },
+      "inception": {
+        "status": "empty"
+      },
+      "form_of_creative_work": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "genre": {
+        "status": "empty"
+      },
+      "subject": {
+        "status": "empty"
+      },
+      "original_language": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "edition_or_translation_of": {
+        "status": "empty"
+      },
+      "based_on": {
+        "status": "empty"
+      },
+      "inspired_by": {
+        "status": "empty"
+      },
+      "volume": {
+        "status": "empty"
+      },
+      "edition_number": {
+        "status": "empty"
+      },
+      "publication_date": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "publisher": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "place_of_publication": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "printer": {
+        "status": "empty"
+      },
+      "place_of_printing": {
+        "status": "empty"
+      },
+      "language": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "cover_artist": {
+        "status": "empty"
+      },
+      "cover_page_designer": {
+        "status": "empty"
+      },
+      "typesetting_by": {
+        "status": "empty"
+      },
+      "typing_by": {
+        "status": "empty"
+      },
+      "book_designer": {
+        "status": "empty"
+      },
+      "distributors": {
+        "status": "empty"
+      },
+      "pages": {
+        "status": "empty"
+      },
+      "dedication": {
+        "status": "empty"
+      },
+      "dedication_verbatim": {
+        "status": "empty"
+      },
+      "part_of_series": {
+        "status": "empty"
+      },
+      "serial_number_in_series": {
+        "status": "empty"
+      },
+      "part_of_the_set": {
+        "status": "empty"
+      },
+      "illustrators": {
+        "status": "empty"
+      },
+      "isbn": {
+        "status": "empty"
+      },
+      "title": {
+        "status": "scan_confirmed",
+        "source": "commons"
+      },
+      "subtitle": {
+        "status": "empty"
+      },
+      "awards": {
+        "status": "empty"
+      },
+      "context": {
+        "status": "empty"
+      },
+      "publisher_telugu": {
+        "status": "empty"
+      },
+      "sponsor": {
+        "status": "empty"
+      },
+      "first_published_in": {
+        "status": "empty"
+      },
+      "forewords": {
+        "status": "empty"
+      },
+      "abbreviations": {
+        "status": "empty"
+      },
+      "authors_in_compilation": {
+        "status": "empty"
+      },
+      "opinions_messages": {
+        "status": "empty"
+      },
+      "scribes": {
+        "status": "empty"
+      }
+    }
   }
 }
