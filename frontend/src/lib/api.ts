@@ -653,48 +653,23 @@ export interface LibrarySearchParams {
   page_size?: number;
 }
 
+// The admin catalog is served by `/admin/books`; both helpers funnel through
+// `getAdminBooks` so the filter set can never drift between the two views.
 export const getLibraryBooks = async (
   params?: LibrarySearchParams
-): Promise<BookListResponse> => {
-  const searchParams = new URLSearchParams();
-  if (params?.query) searchParams.set("query", params.query);
-  if (params?.language) searchParams.set("language", params.language);
-  if (params?.status) searchParams.set("status", params.status);
-  if (params?.genre) searchParams.set("genre", params.genre);
-  if (params?.publisher) searchParams.set("publisher", params.publisher);
-  if (params?.page) searchParams.set("page", String(params.page));
-  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
-
-  const qs = searchParams.toString();
-  const url = `/library/books${qs ? `?${qs}` : ""}`;
-  const response = await api.get<BookListResponse>(url);
-  return response.data;
-};
-
-export const searchLibrary = async (
-  q: string,
-  language?: string,
-  limit: number = 20
-): Promise<BookSearchResult[]> => {
-  const params = new URLSearchParams({ q, limit: String(limit) });
-  if (language) params.set("language", language);
-  const response = await api.get<BookSearchResult[]>(
-    `/library/search?${params.toString()}`
-  );
-  return response.data;
-};
+): Promise<BookListResponse> => getAdminBooks(params);
 
 export const getBookDetail = async (
   bookId: string
 ): Promise<BookDetailResponse> => {
   const response = await api.get<BookDetailResponse>(
-    `/library/books/${bookId}/detail`
+    `/books/${bookId}/detail`
   );
   return response.data;
 };
 
 export const getFilterOptions = async (): Promise<FilterOptions> => {
-  const response = await api.get<FilterOptions>("/library/filters");
+  const response = await api.get<FilterOptions>("/admin/filters");
   return response.data;
 };
 
@@ -803,6 +778,8 @@ export interface AdminBooksParams {
   query?: string;
   language?: string;
   status?: string;
+  genre?: string;
+  publisher?: string;
   has_metadata?: boolean;
   owner_id?: string;
   page?: number;
@@ -862,6 +839,8 @@ export const getAdminBooks = async (
   if (params?.query) searchParams.set("query", params.query);
   if (params?.language) searchParams.set("language", params.language);
   if (params?.status) searchParams.set("status", params.status);
+  if (params?.genre) searchParams.set("genre", params.genre);
+  if (params?.publisher) searchParams.set("publisher", params.publisher);
   if (typeof params?.has_metadata === "boolean") {
     searchParams.set("has_metadata", String(params.has_metadata));
   }
@@ -1027,7 +1006,7 @@ export const cancelJob = async (
   jobId: string,
 ): Promise<{ id: string; status: string }> => {
   const response = await api.post<{ id: string; status: string }>(
-    `/jobs/${jobId}/cancel`,
+    `/dashboard/jobs/${jobId}/cancel`,
   );
   return response.data;
 };

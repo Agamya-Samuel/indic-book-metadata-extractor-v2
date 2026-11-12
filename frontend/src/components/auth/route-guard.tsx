@@ -13,7 +13,7 @@ const PUBLIC_PATHS = [
   "/reset-password",
 ];
 
-const ADMIN_PATHS = ["/admin", "/bulk-operations"];
+const ADMIN_PATHS = ["/admin"];
 
 // Exact-match admin pages. `/library` itself is admin-only, but
 // `/library/<bookId>` is owner-or-admin (the backend enforces it), so it must
