@@ -12,39 +12,43 @@ from app.models.page import Page
 
 
 class TestListLibraryBooks:
-    async def test_list_books_empty(self, client):
+    async def test_list_books_requires_admin(self, client):
         response = await client.get("/api/library/books")
+        assert response.status_code == 403
+
+    async def test_list_books_empty(self, admin_client):
+        response = await admin_client.get("/api/library/books")
         assert response.status_code == 200
         data = response.json()
         assert data["items"] == []
         assert data["total"] == 0
         assert data["total_pages"] == 0
 
-    async def test_list_books_with_data(self, client, make_book):
+    async def test_list_books_with_data(self, admin_client, make_book):
         await make_book(status="awaiting_review")
         await make_book(status="awaiting_review")
 
-        response = await client.get("/api/library/books")
+        response = await admin_client.get("/api/library/books")
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 2
         assert len(data["items"]) == 2
 
-    async def test_list_books_filter_language(self, client, make_book):
+    async def test_list_books_filter_language(self, admin_client, make_book):
         await make_book(language="tel", status="awaiting_review")
         await make_book(language="hin", status="awaiting_review")
 
-        response = await client.get("/api/library/books?language=tel")
+        response = await admin_client.get("/api/library/books?language=tel")
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 1
         assert data["items"][0]["language"] == "tel"
 
-    async def test_list_books_pagination(self, client, make_book):
+    async def test_list_books_pagination(self, admin_client, make_book):
         for i in range(5):
             await make_book(status="awaiting_review")
 
-        response = await client.get("/api/library/books?page=1&page_size=2")
+        response = await admin_client.get("/api/library/books?page=1&page_size=2")
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 2
@@ -54,11 +58,11 @@ class TestListLibraryBooks:
 
 class TestGetFilterOptions:
     @pytest.mark.skip(reason="Requires PostgreSQL JSONB .astext support (SQLite incompatible). Run against Docker stack for full validation.")
-    async def test_get_filter_options(self, client, make_book):
+    async def test_get_filter_options(self, admin_client, make_book):
         await make_book(language="tel")
         await make_book(language="hin")
 
-        response = await client.get("/api/library/filters")
+        response = await admin_client.get("/api/library/filters")
         assert response.status_code == 200
         data = response.json()
         assert "tel" in data["languages"]
