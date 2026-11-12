@@ -1,0 +1,32 @@
+[
+  {
+    "book": "10031upanishhats033596mbp",
+    "pages": 3,
+    "cer": 0.4188,
+    "wer": 1.3254
+  },
+  {
+    "book": "10049upanyaasans033612mbp",
+    "pages": 2,
+    "cer": 0.3842,
+    "wer": 1.1217
+  },
+  {
+    "book": "10879telugukaavy034400mbp",
+    "pages": 3,
+    "cer": 0.6355,
+    "wer": 1.7451
+  },
+  {
+    "book": "1857_మ_స_ల_ల",
+    "pages": 2,
+    "cer": 0.2036,
+    "wer": 0.4408
+  },
+  {
+    "book": "2015.328360.Andhra-Mahaniyulu",
+    "pages": 3,
+    "cer": 0.5077,
+    "wer": 1.5451
+  }
+]
