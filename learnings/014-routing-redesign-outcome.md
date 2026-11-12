@@ -1,7 +1,8 @@
 # 014 — Frontend + Backend Route Redesign Outcome
 
 - **Date:** 2026-11-12
-- **Status:** Shipped (working tree; not yet committed)
+- **Status:** Shipped and committed (`0809a8d` API, `0c78806` tests, `c4f501f`
+  web, `40031d9` docs) — unpushed.
 - **Companion:** `todos/011-route-redesign-handoff.md` (inventory + locked decisions)
 
 ## Study Context
@@ -59,13 +60,29 @@ the frontend route surface changed by exactly one path.
 - `ADMIN_EXACT_PATHS = ["/library"]` is retained: `/library` is admin-only while
   `/library/<bookId>` stays owner-or-admin.
 
-### Verification
+## Verification
 
 - Backend: `test_api_library.py` replaced by `test_admin_books.py`
   (admin listing/filters, owner-or-admin detail, and 404 for retired
   `/api/library/*`); `test_rbac.py`, `test_signup_approval.py`, and
   `test_dashboard.py` repointed. Target suites green.
 - Frontend: `tsc --noEmit` clean, `eslint` 0 errors, `vitest` 198/198 pass.
+
+## Known failures on the branch (not caused by this change)
+
+- `tests/integration/test_api_books.py::TestSelectPages::{test_select_pages_success,
+  test_select_pages_duplicate_deduped}` — need a live Redis/Celery
+  (`localhost:6379`); fail identically on the pre-change base.
+- `tests/unit/test_metadata_schema.py::TestExtractionRequest::test_defaults` —
+  asserted the stale default `qwen2.5` after `964d5af` switched the default
+  model to `phi4-mini`. Fixed in the follow-up cleanup commit.
+
+## Follow-ups carried out after this note
+
+- Renamed the catalog helper `getLibraryBooks` → `getAdminBooks` at the call
+  site and deleted the alias (catalog is admin-scoped).
+- Added `/admin/bulk` to the admin sidebar so the moved page is reachable from
+  the admin surface, not only the top navbar.
 
 ## Recommendation
 
@@ -75,13 +92,10 @@ correct option given the owner-or-admin detail page.
 
 ## Next Steps
 
-- Commit the change set in logical increments (backend convergence, tests,
-  frontend, docs).
-- Run the backend suite with Redis/Celery up to clear the three
-  environment-dependent failures (see handoff §6).
-- Note: `tests/unit/test_metadata_schema.py::TestExtractionRequest::test_defaults`
-  currently fails on HEAD because commit `964d5af` switched the default model to
-  `phi4-mini` without updating the test — unrelated to this routing change.
+- Run the backend suite with Redis/Celery up to clear the environment-dependent
+  failures (see handoff §6).
+- Verify the redesigned routes on the deployed host (admin catalog, owner book
+  detail, `/bulk-operations` redirect, retired `/api/library/*` → 404).
 
 ## References
 
