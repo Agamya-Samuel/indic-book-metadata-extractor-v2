@@ -19,7 +19,7 @@ const navLinks = [
   },
   { href: "/upload", label: "Upload", shortLabel: "Upload", scope: "auth" },
   {
-    href: "/bulk-operations",
+    href: "/admin/bulk",
     label: "Bulk operations",
     shortLabel: "Bulk",
     scope: "admin",
@@ -31,7 +31,8 @@ export default function AppNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
-  const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, loading, isAuthenticated, isAdmin, isApproved, logout } =
+    useAuth();
 
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ["admin-pending-count"],
@@ -42,7 +43,7 @@ export default function AppNavbar() {
 
   const visibleLinks = navLinks.filter((link) => {
     if (link.scope === "admin") return isAdmin;
-    if (link.scope === "auth") return isAuthenticated;
+    if (link.scope === "auth") return isAuthenticated && isApproved;
     return true;
   });
 
@@ -188,12 +189,14 @@ export default function AppNavbar() {
                     </p>
                   )}
                 </div>
-                <Link
-                  href="/dashboard"
-                  className="block px-4 py-2.5 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]"
-                >
-                  Dashboard
-                </Link>
+                {isApproved && (
+                  <Link
+                    href="/dashboard"
+                    className="block px-4 py-2.5 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]"
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={handleLogout}

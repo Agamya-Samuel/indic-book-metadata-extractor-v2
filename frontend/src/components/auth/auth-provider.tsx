@@ -70,7 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       loading,
       isAuthenticated: user !== null,
-      isAdmin: user?.role === "admin",
+      isAdmin:
+        isApprovedStatus(user?.account_status) && user?.role === "admin",
       accountStatus: user?.account_status ?? null,
       isApproved: isApprovedStatus(user?.account_status),
       login,

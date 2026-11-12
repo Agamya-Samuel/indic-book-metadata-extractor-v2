@@ -38,8 +38,8 @@ export default function WorkflowError({
           Workflow error
         </h1>
         <p className="mt-2 text-[var(--text-sm)] text-[var(--text-muted)]">
-          Something went wrong on this page. You can retry or return to the
-          library.
+          Something went wrong on this page. You can retry or return to your
+          dashboard.
         </p>
         {error.message && (
           <details className="mt-5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-left">
@@ -55,8 +55,8 @@ export default function WorkflowError({
           <Button type="button" onClick={reset}>
             Retry
           </Button>
-          <LinkButton href="/library" variant="outline">
-            Back to library
+          <LinkButton href="/dashboard" variant="outline">
+            Back to dashboard
           </LinkButton>
         </div>
       </div>

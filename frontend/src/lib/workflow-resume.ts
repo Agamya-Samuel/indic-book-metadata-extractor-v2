@@ -61,8 +61,8 @@ const STAGE_CTA: Record<string, { ctaLabel: string; href: string | ((bookId: str
     showProgress: false,
   },
   completion: {
-    ctaLabel: "View library",
-    href: () => `/library`,
+    ctaLabel: "Back to dashboard",
+    href: () => `/dashboard`,
     headline: "Complete",
     description: "This book has been fully processed.",
     variant: "success",

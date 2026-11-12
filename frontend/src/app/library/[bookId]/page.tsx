@@ -208,7 +208,7 @@ export default function BookDetailPage() {
       <PageContainer>
         <PageHeader
           back={
-            <LinkButton href="/library" variant="ghost" size="sm">
+            <LinkButton href="/dashboard" variant="ghost" size="sm">
               <svg
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -221,7 +221,7 @@ export default function BookDetailPage() {
                   clipRule="evenodd"
                 />
               </svg>
-              Library
+              Dashboard
             </LinkButton>
           }
           eyebrow={language ? `Library · ${language}` : "Library"}

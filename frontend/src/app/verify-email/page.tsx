@@ -3,8 +3,14 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { resendVerification, verifyEmail } from "@/lib/api";
+import {
+  isApprovedStatus,
+  resendVerification,
+  verifyEmail,
+  type AccountStatus,
+} from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
+import { useAuth } from "@/components/auth/auth-provider";
 import { Field, Input } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
 import { Spinner } from "@/components/shared/spinner";
@@ -17,8 +23,12 @@ function VerifyEmailContent() {
   const token = searchParams.get("token");
   const emailParam = searchParams.get("email") ?? "";
 
+  const { refreshUser } = useAuth();
   const [state, setState] = useState<VerificationState>(
     token ? "verifying" : "idle",
+  );
+  const [verifiedStatus, setVerifiedStatus] = useState<AccountStatus | null>(
+    null,
   );
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState(emailParam);
@@ -30,12 +40,18 @@ function VerifyEmailContent() {
     if (!token || attempted.current) return;
     attempted.current = true;
     verifyEmail(token)
-      .then(() => setState("success"))
+      .then(async (verified) => {
+        setVerifiedStatus(verified.account_status);
+        // Hydrate the auth context so the holding screen (or dashboard) is
+        // reachable without a second login.
+        await refreshUser();
+        setState("success");
+      })
       .catch((err: unknown) => {
         setError(getErrorMessage(err));
         setState("error");
       });
-  }, [token]);
+  }, [token, refreshUser]);
 
   const handleResend = useCallback(
     async (event: React.FormEvent) => {
@@ -65,13 +81,42 @@ function VerifyEmailContent() {
   }
 
   if (state === "success") {
+    if (!isApprovedStatus(verifiedStatus)) {
+      return (
+        <AuthCard
+          title="Email verified — awaiting approval"
+          description="Your email is confirmed. An administrator will review your account."
+          footer={
+            <Link
+              href="/login"
+              className="text-[var(--accent)] hover:underline"
+            >
+              Back to log in
+            </Link>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+              Your account is not active yet. Once an administrator approves it,
+              you can upload and process books.
+            </p>
+            <LinkButton href="/pending-approval" className="w-full">
+              Check approval status
+            </LinkButton>
+          </div>
+        </AuthCard>
+      );
+    }
     return (
       <AuthCard
         title="Email verified"
         description="Your account is active. You are now logged in."
         footer={
-          <Link href="/library" className="text-[var(--accent)] hover:underline">
-            Browse the library
+          <Link
+            href="/dashboard"
+            className="text-[var(--accent)] hover:underline"
+          >
+            Go to your dashboard
           </Link>
         }
       >
