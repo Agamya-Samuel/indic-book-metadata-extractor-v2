@@ -17,7 +17,7 @@ from app.services.search_service import SearchService
 router = APIRouter()
 
 
-@router.get("/dashboard/summary", response_model=DashboardSummary)
+@router.get("/summary", response_model=DashboardSummary)
 async def dashboard_summary(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -25,7 +25,7 @@ async def dashboard_summary(
     return DashboardSummary(**(await dashboard_service.get_summary(db, user.id)))
 
 
-@router.get("/dashboard/books", response_model=BookListResponse)
+@router.get("/books", response_model=BookListResponse)
 async def dashboard_books(
     status: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -67,7 +67,7 @@ async def dashboard_books(
     )
 
 
-@router.get("/dashboard/jobs", response_model=DashboardJobsResponse)
+@router.get("/jobs", response_model=DashboardJobsResponse)
 async def dashboard_jobs(
     status: str | None = Query(default=None),
     job_type: str | None = Query(default=None),

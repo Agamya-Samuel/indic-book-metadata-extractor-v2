@@ -7,7 +7,6 @@ from app.api.bulk import router as bulk_router
 from app.api.dashboard import router as dashboard_router
 from app.api.deps import require_approved_user
 from app.api.extraction import router as extraction_router
-from app.api.library import router as library_router
 from app.api.metadata import router as metadata_router
 from app.api.pages import router as pages_router
 from app.api.sse import router as sse_router
@@ -17,12 +16,6 @@ api_router = APIRouter()
 # /auth/* stays outside the approval gate so pending/rejected users can hold a
 # session, refresh it, and log out while they sit on the holding screen.
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
-api_router.include_router(
-    library_router,
-    prefix="/library",
-    tags=["library"],
-    dependencies=[Depends(require_approved_user)],
-)
 # Include routers with static /books sub-paths (e.g. /books/models) before the
 # books router, whose /{book_id} route would otherwise shadow them and 422 on
 # UUID validation.
@@ -58,6 +51,7 @@ api_router.include_router(
 )
 api_router.include_router(
     dashboard_router,
+    prefix="/dashboard",
     tags=["dashboard"],
     dependencies=[Depends(require_approved_user)],
 )

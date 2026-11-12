@@ -23,6 +23,18 @@ def _has_metadata_condition(has_metadata: bool):
     return exists.exists() if has_metadata else ~exists.exists()
 
 
+def _metadata_field_ilike(field: str, value: str):
+    """Case-insensitive substring match on a metadata JSONB text field.
+
+    Uses the ``->>`` text accessor, which both matches the expression indexed by
+    ``ix_metadata_<field>_trgm`` (so pg_trgm can serve the leading-wildcard
+    ILIKE) and yields unquoted values, unlike a ``CAST(fields -> 'x' AS text)``.
+    """
+    return BookMetadata.fields[field].astext.ilike(
+        f"%{_escape_like(value)}%", escape="\\"
+    )
+
+
 class SearchService:
     CARD_FIELDS = [
         "author",
@@ -54,6 +66,8 @@ class SearchService:
         db: AsyncSession,
         language: str | None = None,
         status: str | None = None,
+        genre: str | None = None,
+        publisher: str | None = None,
         page: int = 1,
         page_size: int = 20,
         owner_id: UUID | None = None,
@@ -83,6 +97,20 @@ class SearchService:
             count_query = count_query.where(Book.owner_id == owner_id)
         if has_metadata is not None:
             cond = _has_metadata_condition(has_metadata)
+            query = query.where(cond)
+            count_query = count_query.where(cond)
+        if genre:
+            cond = select(BookMetadata.id).where(
+                BookMetadata.book_id == Book.id,
+                _metadata_field_ilike("genre", genre),
+            ).exists()
+            query = query.where(cond)
+            count_query = count_query.where(cond)
+        if publisher:
+            cond = select(BookMetadata.id).where(
+                BookMetadata.book_id == Book.id,
+                _metadata_field_ilike("publisher", publisher),
+            ).exists()
             query = query.where(cond)
             count_query = count_query.where(cond)
 
@@ -151,15 +179,9 @@ class SearchService:
         if has_metadata is not None:
             base = base.where(_has_metadata_condition(has_metadata))
         if genre:
-            safe_genre = _escape_like(genre)
-            base = base.where(
-                cast(BookMetadata.fields["genre"], String).ilike(f"%{safe_genre}%", escape="\\")
-            )
+            base = base.where(_metadata_field_ilike("genre", genre))
         if publisher:
-            safe_publisher = _escape_like(publisher)
-            base = base.where(
-                cast(BookMetadata.fields["publisher"], String).ilike(f"%{safe_publisher}%", escape="\\")
-            )
+            base = base.where(_metadata_field_ilike("publisher", publisher))
 
         conditions = [
             func.similarity(cast(Book.title, String), q) > 0.1,
@@ -222,13 +244,15 @@ class SearchService:
     async def get_book_detail(
         db: AsyncSession,
         book_id: UUID,
+        book: Book | None = None,
     ) -> dict | None:
         from app.models.job import Job
         from app.models.llm_run import LlmRun
         from app.models.ocr_result import OcrResult
 
-        book_result = await db.execute(select(Book).where(Book.id == book_id))
-        book = book_result.scalar_one_or_none()
+        if book is None:
+            book_result = await db.execute(select(Book).where(Book.id == book_id))
+            book = book_result.scalar_one_or_none()
         if book is None:
             return None
 
