@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import LoginPage from "@/app/login/page";
 import { useAuth } from "@/components/auth/auth-provider";
 
-const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+const { replace, searchParams } = vi.hoisted(() => ({
+  replace: vi.fn(),
+  searchParams: vi.fn(() => new URLSearchParams()),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -16,7 +19,7 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
   }),
   useParams: () => ({}),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParams(),
   usePathname: () => "/login",
 }));
 
@@ -53,6 +56,7 @@ function mockAuth(loginImpl: ReturnType<typeof vi.fn>) {
 describe("LoginPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchParams.mockReturnValue(new URLSearchParams());
     mockAuth(vi.fn());
   });
 
@@ -102,6 +106,42 @@ describe("LoginPage", () => {
 
     await waitFor(() => {
       expect(replace).toHaveBeenCalledWith("/pending-approval");
+    });
+  });
+
+  it("honours an internal next path after login", async () => {
+    searchParams.mockReturnValue(new URLSearchParams({ next: "/library" }));
+    const loginImpl = vi
+      .fn()
+      .mockResolvedValue({ id: "u1", account_status: "approved" });
+    mockAuth(loginImpl);
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "reader@example.com");
+    await user.type(screen.getByLabelText("Password"), "correct horse");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/library");
+    });
+  });
+
+  it("ignores a protocol-relative next path (open redirect)", async () => {
+    searchParams.mockReturnValue(new URLSearchParams({ next: "//evil.com" }));
+    const loginImpl = vi
+      .fn()
+      .mockResolvedValue({ id: "u1", account_status: "approved" });
+    mockAuth(loginImpl);
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "reader@example.com");
+    await user.type(screen.getByLabelText("Password"), "correct horse");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith("/dashboard");
     });
   });
 
