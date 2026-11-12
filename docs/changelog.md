@@ -34,8 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - **Breaking:** no anonymous or guest access — every page and API except `/api/auth/*` and `/health` now requires authentication, and the public catalog (anonymous `/library` and `/api/library/*`) is gone
 - **Breaking:** registration is moderated by default (`REGISTRATION_REQUIRES_APPROVAL=true`). Deployments that do not set this variable will send new signups to a pending queue until an admin approves them; set it explicitly to `false` to keep open registration
-- Library (`/library`, `/api/library/books|search|filters`) is admin-only and lists all books across users; regular users use the owner-scoped Dashboard
+- Library (`/library`) is admin-only and lists all books across users; regular users use the owner-scoped Dashboard
 - Book detail and thumbnails are owner-or-admin only; a non-owner URL returns `404` (no metadata-only public view)
+- Route convergence: the `/api/library/*` API is retired — the admin catalog is now `GET /api/admin/books` (+ `GET /api/admin/filters`) and book detail is `GET /api/books/{book_id}/detail`; dashboard/job routes are grouped under `/api/dashboard` (job cancellation is now `POST /api/dashboard/jobs/{job_id}/cancel`); the bulk-operations page moved from `/bulk-operations` to `/admin/bulk`
 
 ### Removed
 - The public catalog: `PUBLIC_BOOK_STATUSES`, `get_visible_book_or_404`, and the anonymous metadata view are gone

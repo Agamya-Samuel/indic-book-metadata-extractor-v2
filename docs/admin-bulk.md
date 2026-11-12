@@ -204,7 +204,7 @@ These fields benefit most from clustering (due to OCR artifacts or inconsistent 
 
 ### Step 5: Import Cleaned Data Back
 
-1. Return to the application at **http://localhost:3000/bulk-operations**
+1. Return to the application at **http://localhost:3000/admin/bulk**
 2. In the **Import from CSV** card:
    - Choose **Import Mode**:
      - **Merge** (default) — only update fields that have values in the CSV; existing fields not in the CSV are preserved
@@ -226,7 +226,7 @@ The metadata in the library is now updated with the cleaned values.
 
 ### Step 1: Generate QuickStatements
 
-1. Go to **http://localhost:3000/bulk-operations**
+1. Go to **http://localhost:3000/admin/bulk**
 2. In the **Wikibase Export** card:
    - Optionally filter by **Language**
    - Click **Download QuickStatements**
