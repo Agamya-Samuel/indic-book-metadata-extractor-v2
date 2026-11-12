@@ -50,6 +50,11 @@ COPY --from=builder /app/newrelic.cjs ./newrelic.cjs
 # Create log file with proper permissions for the nextjs user
 RUN touch /app/newrelic_agent.log && chown nextjs:nodejs /app/newrelic_agent.log
 
+# Next.js writes runtime caches (image optimizer, fetch cache) under .next at
+# startup; the standalone bundle ships it root-owned, so the non-root runtime
+# user hits EACCES creating /app/.next/cache. Hand the tree to the runtime user.
+RUN mkdir -p /app/.next/cache && chown -R nextjs:nodejs /app/.next
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
