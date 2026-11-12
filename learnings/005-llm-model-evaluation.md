@@ -6,7 +6,7 @@
 
 ## Summary
 
-On a real 4 vCPU / 16 GB node, the measured comparison points to **`gemma4:e4b` with `think:false`** as the best extractor: highest token-F1 (**0.636**) on a verified Telugu book — just ahead of `qwen3.5:4b` (**0.545**) — and also the fastest (182 s / 2 batches) and lightest (~1.8 GiB). The current production **`qwen2.5:7b` (F1 0.091, title only)** and **`qwen3:4b-instruct-2507` (0.182, fails structured JSON)** are unsuitable. **Thinking-capable models must set `think:false`** or they return empty output. Provisional pick: **`gemma4:e4b` (`think:false`)** — evidence is one book so far.
+On a real 4 vCPU / 16 GB node, the measured comparison points to **`gemma4:e4b` with `think:false`** as the best extractor: highest token-F1 (**0.636**) on a verified Telugu book — just ahead of `qwen3.5:4b` (**0.545**) — and also the fastest (182 s / 2 batches) and lightest (~1.8 GiB). The current production **`qwen2.5:7b` (F1 0.091, title only)** and **`qwen3:4b-instruct-2507` (0.182, fails structured JSON)** are unsuitable. **Thinking-capable models must set `think:false`** or they return empty output. Provisional pick: **`gemma4:e4b` (`think:false`)**, confirmed on **2 verified Telugu books** (mean 0.523 vs `qwen3.5:4b` 0.409); Hindi untested; the dominant limiter is OCR/recall, not the model.
 
 ## Key findings
 
@@ -49,19 +49,22 @@ A mechanical corroboration pass ([`audit_ground_truth.py`](../backend/scripts/au
 
 Method: 2 batches (`core_identity`, `publication`) on the Telugu Athma book, **clean Wikisource front-matter text**, `num_ctx=8192`, `temp=0`, `think:false` for reasoning models, via [`node_acc.py`](../backend/scripts/node_acc.py); scored with [`score_acc.py`](../backend/scripts/score_acc.py) against the now-**verified** Athma GT (§4b). Re-run 2026-11-11 with a hardened runner (`num_predict=1024`, `repeat_penalty=1.1`, `keep_alive`).
 
-| Model | Fields returned | TP | FP | FN | mean token-F1 | Exact | Halluc. | 2-batch wall |
-|---|---|---|---|---|---|---|---|---|
-| **`gemma4:e4b` (`think:false`)** | 9 | 8 | 1 | 3 | **0.636** | 0.636 | 1/38 | **182 s** (fastest) |
-| **`qwen3.5:4b` (`think:false`)** | 9 | 8 | 1 | 3 | 0.545 | 0.545 | 1/38 | 292 s |
-| `phi4-mini` (3.8B) | 6 | 5 | 1 | 6 | 0.273 | 0.273 | 1/38 | 203 s |
-| `qwen3:4b-instruct-2507` | 3 | 2 | 1 | 9 | 0.182 | 0.182 | 1/38 | 978 s; `core_identity` **invalid** (wrote Telugu prose, not JSON) |
-| `qwen2.5:7b` (baseline) | 1 | 1 | 0 | 10 | 0.091 | 0.091 | 0/38 | 732 s; title only; `publication` all-null |
+| Model | Athma F1 | Andhra F1 | Mean | Notes |
+|---|---|---|---|---|
+| **`gemma4:e4b` (`think:false`)** | **0.636** | **0.409** | **0.523** | fastest + lightest; correct title/date/publisher/place on both books |
+| `qwen3.5:4b` (`think:false`) | 0.545 | 0.273 | 0.409 | runner-up |
+| `phi4-mini` (3.8B) | 0.273 | 0.091 | 0.182 | weak on Telugu |
+| `hex-1` (4B, Qwen3 finetune) | 0.291 | 0.045 | 0.168 | slowest; mis-read `title`; hallucinated `printer` from the few-shot example |
+| `qwen3:4b-instruct-2507` | 0.182 | – | – | Athma only; one batch returned **invalid JSON** |
+| `qwen2.5:7b` (current prod) | 0.091 | – | – | Athma only; title only; `publication` all-null |
 
 Both leaders correctly extracted title, publication_date (1933), publisher, place_of_publication (మద్రాసు), language and original_language; `gemma4:e4b` additionally got `label`. The remaining `author` miss is a **GT artifact** (the model returns Telugu script రాయసము వెంకటశివుఁడు; GT stores the Latin transliteration), and the single "hallucination" is `publisher_telugu` — a value the model read from the title page that GT leaves empty.
 
-Takeaway: the current production `qwen2.5:7b` and the `qwen3:4b-instruct-2507` fallback are **both unsuitable** here — the 7B returns almost nothing and the 4B-2507 fails structured output. The two reasoning-capable 4B models **with `think:false`** are the only credible extractors, and `gemma4:e4b` leads on F1, speed and RAM. **Provisional winner: `gemma4:e4b` (`think:false`)**, narrowly ahead of `qwen3.5:4b`.
+Takeaway: the current production `qwen2.5:7b` and the `qwen3:4b-instruct-2507` fallback are **both unsuitable** here — the 7B returns almost nothing and the 4B-2507 fails structured output. The two reasoning-capable 4B models **with `think:false`** are the credible extractors. **Provisional winner: `gemma4:e4b` (`think:false`)** — ahead of `qwen3.5:4b` on **both** verified books (mean 0.523 vs 0.409) and fastest/lightest; `phi4-mini` and `hex-1` trail on Telugu. Hindi remains untested (no clean text / verified GT).
 
 **Cross-session reconciliation (2026-11-11):** parallel runs [learnings/006](006-first-real-accuracy.md) and [learnings/007](007-llm-shortlist-benchmark.md) scored a **Hindi** book on `test-node-3` — `phi4-mini` led (F1 0.50) over `qwen3-4b-2507`/`qwen2.5:7b` (0.20). **Neither `gemma4:e4b` nor `qwen3.5:4b` was in that run**, so no single model has yet been tested across both languages. The signal consistent across every session: **precision ≈ 1.0 with very low recall — the limiter is recall, and it tracks OCR quality** (Telugu CER ≈ 0.45, [learnings/004](004-ocr-stage-cer.md)) rather than the model.
+
+**Indic finetunes inherit the thinking trap:** `hex-1` (a Qwen3-4B finetune) also returned empty until `think:false` was set — so that fix must be pinned for any Qwen3-family model, not just base Qwen3.x.
 
 ### 5. Decision models (Jev-class)
 
