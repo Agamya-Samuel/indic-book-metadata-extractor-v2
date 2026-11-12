@@ -14,7 +14,7 @@ The platform is built around a background task queue architecture so that multip
 ## Goals
 
 - Enable non-technical users to extract structured metadata from scanned Indic language books via a clean, step-by-step web interface.
-- Support up to **52 bibliographic fields** per book, with user-editable prompts and batched LLM inference for high accuracy.
+- Support up to **49 bibliographic fields** per book, with user-editable prompts and batched LLM inference for high accuracy.
 - Provide side-by-side OCR review with bounding box visualization and inline text correction.
 - Persist all extracted data (raw text, images, metadata) in a searchable database with fuzzy search.
 - Run entirely on **CPU-only cloud infrastructure** with no GPU dependency.
@@ -205,11 +205,11 @@ graph TD
 - Choose from available locally-hosted LLMs (configured via Ollama).
 - Adjustable inference parameters: temperature, max tokens, top-p.
 - View and edit the system prompt and extraction prompt template.
-- **Batch field extraction**: choose how many of the 52 fields to extract per prompt (e.g. 10 fields per call) to maximize accuracy.
-- All 52 default metadata fields are pre-configured (see list below); users may add custom fields but cannot remove default ones.
+- **Batch field extraction**: choose how many of the 49 fields to extract per prompt (e.g. 10 fields per call) to maximize accuracy.
+- All 49 default metadata fields are pre-configured (see list below); users may add custom fields but cannot remove default ones.
 - Submit for background LLM processing — progress visible in the Job Queue.
 
-#### Default Metadata Fields (52)
+#### Default Metadata Fields (49)
 
 | # | Field | Wikidata Property |
 |---|---|---|
@@ -296,7 +296,7 @@ All of the following are stored in PostgreSQL:
 | `pages` | Per-page image path, pre-processing settings, page number |
 | `ocr_results` | Raw OCR text per page, bounding box JSON, user corrections |
 | `jobs` | Job ID, status, timestamps, error logs |
-| `metadata` | All 52+ fields as structured JSON + individual indexed columns |
+| `metadata` | All 49+ fields as structured JSON + individual indexed columns |
 | `llm_runs` | Prompt used, model chosen, raw LLM response, field batch config |
 
 Vector embeddings of book descriptions (via pgvector) are stored for future semantic search capability.
