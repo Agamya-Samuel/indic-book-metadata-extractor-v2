@@ -3,9 +3,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  getLibraryBooks,
+  getAdminBooks,
   getFilterOptions,
-  type LibrarySearchParams,
+  type AdminBooksParams,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
 import { createBookFuse, fuseSearch } from "@/lib/fuse-config";
@@ -34,7 +34,7 @@ export default function LibraryPage() {
 
   const pageSize = 20;
 
-  const apiParams: LibrarySearchParams = useMemo(
+  const apiParams: AdminBooksParams = useMemo(
     () => ({
       query: useServerSearch ? debouncedQuery : undefined,
       language: filters.language || undefined,
@@ -49,7 +49,7 @@ export default function LibraryPage() {
 
   const { data: booksData, isLoading } = useQuery({
     queryKey: ["library", apiParams],
-    queryFn: () => getLibraryBooks(apiParams),
+    queryFn: () => getAdminBooks(apiParams),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });

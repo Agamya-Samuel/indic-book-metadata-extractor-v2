@@ -21,7 +21,12 @@ function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
 
   const next = searchParams.get("next");
-  const safeNext = next && next.startsWith("/") ? next : "/dashboard";
+  // Only same-origin internal paths are allowed; reject protocol-relative
+  // ("//evil.com") and absolute URLs to avoid an open redirect.
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//")
+      ? next
+      : "/dashboard";
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
