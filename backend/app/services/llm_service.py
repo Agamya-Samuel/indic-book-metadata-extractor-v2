@@ -186,7 +186,7 @@ class LLMService:
             usage_stats = {"status": "error", "error": str(e)}
             self._record_failure()
 
-        return result, raw_response_text, usage_stats, extraction_prompt
+        return _strip_schema_echoes(result), raw_response_text, usage_stats, extraction_prompt
 
     @newrelic.agent.function_trace(name="LLM: Run Full Extraction", group="Custom")
     async def run_full_extraction(
@@ -580,6 +580,23 @@ class LLMService:
 
 def _empty_batch(batch_schema: type[BaseModel]) -> BaseModel:
     return batch_schema()
+
+
+_BATCH_CLASS_NAMES = {cls.__name__ for cls in METADATA_BATCHES.values()}
+
+
+def _strip_schema_echoes(result: BaseModel) -> BaseModel:
+    """Drop values that are just the batch class name echoed from the injected schema.
+
+    instructor's ``MD_JSON`` mode injects the Pydantic schema, whose top-level ``"title"``
+    key is the model class name (e.g. ``"CoreIdentityBatch"``). Weak models copy that into
+    the (unrelated) ``title`` field; a value equal to any batch class name is noise, not
+    metadata, so treat it as absent.
+    """
+    for name, value in result.model_dump().items():
+        if isinstance(value, str) and value.strip() in _BATCH_CLASS_NAMES:
+            setattr(result, name, None)
+    return result
 
 
 def _fallback_parse(raw_text: str, batch_schema: type[BaseModel]) -> BaseModel:

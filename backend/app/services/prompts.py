@@ -94,7 +94,8 @@ OCR Text (from {{ page_count }} pages of a scanned book):
 {{ ocr_text }}
 ---
 
-Respond with a JSON object containing exactly these fields. Use null for fields not found in the text.
+Respond with a JSON object containing exactly these fields.
+Extract your best reading for every field that appears anywhere in the text — including titles, authors, and publishers even when the OCR is imperfect; use null only when the information is genuinely absent.
 Do not include any explanation or text outside the JSON object."""
 )
 
