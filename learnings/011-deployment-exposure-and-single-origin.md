@@ -112,17 +112,52 @@ present in the built image.
   purpose. Only `./docker/scripts/backend-entrypoint.sh:/entrypoint.sh:ro` remains (the image does
   not bake the entrypoint), which is read once at startup.
 
-**Rollout order matters:** the frontend API URL is baked at build time, so the `/api` domain must be
-added and the env updated **before** the deploy that rebuilds the frontend. Delete the `-api` /
-`-flower` domains only after the single-origin path is verified.
+### 5. Workflow dead ends found by driving the real pipeline
+
+End-to-end browser testing surfaced a family of defects with one shape: **a job or stage ends
+non-terminally and nothing releases the book.** The book status is derived from `book_stage_status`,
+and the "run" endpoints guard on status, so a single orphan wedges the whole workflow with no in-app
+way out. All observed live on the deployed host:
+
+- **Failed OCR wedged the book.** `_mark_job_failed` marked the job failed but never touched
+  `book.status`, leaving `ocr_running` forever; `run-ocr` requires `pages_selected` and
+  `run-extraction` requires `ocr_complete`/`complete`, so both 400'd. Released the book to
+  `pages_selected`, matching what `_finalize_job` already documents (fix `1ca5997`).
+- **"Re-run OCR" called the wrong endpoint.** The preprocessing button sent both the first run and
+  the re-run to `run-ocr`; whenever it was labelled "Re-run OCR" it 400'd. Now branches to
+  `rerun-ocr` (fix `1ca5997`).
+- **Re-running OCR left downstream stages untouched**, so an orphaned `llm_extraction: processing`
+  row kept the derived status at `llm_running` through two *completed* OCR re-runs. `rerun_ocr` now
+  uses `StageManager.reset_from_stage`; same for `rerun_extraction` (fix `ed128b5`). Verified live:
+  after the fix, a re-run cancelled `human_review`, `completion` and every `llm_extraction` attempt
+  and the book recovered to `pages_selected`.
+- **Cancel left its stage row in `processing`.** Cancelling a 10-page OCR at 90% cancelled the job
+  ("Cancelled by admin") and rolled the book back to `pages_selected`, but the `ocr` stage stayed
+  `processing` — the same orphan. `cancel_job` now terminalises the matching stage (fix `839bbad`).
+- **Re-run OCR destroyed metadata behind a promise.** The confirm dialog says *"Extracted metadata
+  text is kept but marked out of date until you re-run extraction."* while `rerun_ocr` deleted
+  `metadata` (1→0) **and** `metadata_field_evidence` (13→0). Reviewed work vanished. The deletes were
+  removed; the stage reset is the "out of date" signal (fix `839bbad`).
+- **A deploy kills in-flight jobs.** The backend image rebuild recreates the worker, so *any* push
+  (including a docs-only one — observed with `c372d2e` at 06:58) SIGKILLs whatever is running. The
+  task never terminalises, leaving a zombie `running` job plus an orphaned stage. Recurred twice in
+  one session. Do not push while a book is processing; the real fix is a startup reconciliation that
+  marks `running` jobs with no live Celery task as failed and releases their stages/book.
+
+
 
 ---
 
 ## Next steps
 
 1. Verify single-origin end to end (login → upload → SSE → page images) on the deployed host. **Done.**
-2. Resume the §6 browser matrix — it was blocked at §6.2 by the 403, then at §6.3 by the OCR import error.
-3. Consider baking `backend-entrypoint.sh` into the image (it is the last source bind; doing so means
+2. Browser matrix, deployed host: §6.1, §6.2, §6.3, §6.4, §6.5, §6.7, §6.8 PASS. §6.6 was the source of
+   finding #5 and needs one clean re-run now that `ed128b5`/`839bbad` are live. §6.7.3 (409 while a job
+   runs) and cancel-OCR-mid-run still need a book with saved metadata — blocked by the ~40 min CPU
+   extraction, not by a defect.
+3. Add a startup reconciliation for zombie jobs (last bullet of finding #5) — the only structural fix
+   that covers "worker died / deploy mid-job" for every stage.
+4. Consider baking `backend-entrypoint.sh` into the image (it is the last source bind; doing so means
    moving the script inside the `backend/` build context or switching the context to the repo root).
 
 ## References
