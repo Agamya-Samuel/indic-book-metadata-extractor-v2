@@ -23,9 +23,10 @@ The task was a **convergence + grouping + naming** pass — not a rewrite.
 
 The `/api/library/*` API is retired and folded into the admin API; the
 dashboard and job routes are grouped under `/api/dashboard`; the bulk-ops page
-moved to `/admin/bulk`. No pipeline routes were relocated. `/library` (the
-admin catalog page) and `/library/[bookId]` (owner-or-admin detail) are kept, so
-the frontend route surface changed by exactly one path.
+moved to `/admin/bulk`. No pipeline routes were relocated. The separate
+`/library` catalog page was subsequently removed (it duplicated `/admin/books`)
+and book detail moved from `/library/[bookId]` to `/books/[bookId]` — see
+"Follow-up: /library removed" below.
 
 ## Key Findings
 
@@ -57,8 +58,27 @@ the frontend route surface changed by exactly one path.
 - `/bulk-operations` → `/admin/bulk` (page moved; nav + route guard updated;
   `/bulk-operations` dropped from `ADMIN_PATHS`). The page now inherits the
   `/admin` layout (admin sidebar), which is appropriate for an admin tool.
-- `ADMIN_EXACT_PATHS = ["/library"]` is retained: `/library` is admin-only while
-  `/library/<bookId>` stays owner-or-admin.
+
+### Follow-up: `/library` removed
+
+Decided with the user after the initial pass: the `/library` list duplicated
+`/admin/books` (both read `GET /api/admin/books`) and only admins may see the
+all-books list, so the `/library` page was **removed** and `/admin/books` is the
+sole admin catalog.
+
+- Book detail moved from `/library/[bookId]` to `/books/[bookId]` so owners keep
+  a detail view (linked from the dashboard). All `/library/*` links repointed
+  (dashboard, admin overview/books/jobs, navbar). `ADMIN_EXACT_PATHS` and the
+  `Library` nav link were deleted.
+- No redirects were added — the app is pre-production, so the old URL is simply
+  broken rather than shimmed.
+- Dead code removed: `BookCard`, `LibrarySkeleton`, `SkeletonCard`, and the
+  `components/library/` folder (the workflow resume banner moved to
+  `components/book/`).
+- Deployed verification on the OKI host (2026-11-12): `/library` → `404`,
+  `/api/library/books` → `404`, `/api/admin/books` → `401` (exists, auth-gated),
+  `/api/books/{id}/detail` → `401`; `/admin/books`, `/login`, `/dashboard` →
+  `200`; backend `/health` → `200`.
 
 ## Verification
 
