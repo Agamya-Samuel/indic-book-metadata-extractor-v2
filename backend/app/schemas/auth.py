@@ -8,7 +8,7 @@ import uuid
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.config import settings
-from app.models.user import UserRole
+from app.models.user import AccountStatus, UserRole
 
 
 def _validate_password(value: str) -> str:
@@ -27,6 +27,8 @@ class UserResponse(BaseModel):
     display_name: str
     role: str
     is_active: bool
+    account_status: AccountStatus
+    rejection_reason: str | None = None
     email_verified_at: datetime.datetime | None
     last_login_at: datetime.datetime | None
     created_at: datetime.datetime | None
@@ -86,6 +88,10 @@ class AdminUserUpdateRequest(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=120)
     role: UserRole | None = None
     is_active: bool | None = None
+
+
+class AdminUserRejectRequest(BaseModel):
+    rejection_reason: str | None = Field(default=None, max_length=500)
 
 
 class AdminPasswordResetRequest(BaseModel):

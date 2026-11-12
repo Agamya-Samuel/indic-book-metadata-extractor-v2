@@ -34,7 +34,6 @@ from app.services.stage_manager import StageManager
 from app.api.deps import (
     get_current_user,
     get_owned_book_or_404,
-    get_visible_book_or_404,
 )
 from app.models.user import User
 from app.services import admin_service
@@ -140,7 +139,7 @@ async def get_book(
 @router.get("/{book_id}/pages/{page_number}/thumbnail")
 async def get_thumbnail(
     page_number: int,
-    book: Book = Depends(get_visible_book_or_404),
+    book: Book = Depends(get_owned_book_or_404),
 ) -> FileResponse:
     if page_number < 1 or (book.total_pages and page_number > book.total_pages):
         raise HTTPException(status_code=404, detail="Page number out of range")

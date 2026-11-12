@@ -22,7 +22,7 @@ from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
-from app.models.user import User
+from app.models.user import AccountStatus, User
 from app.services import storage
 from app.services.stage_manager import StageManager
 
@@ -79,6 +79,11 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     active_users = await db.scalar(
         select(func.count(User.id)).where(User.is_active.is_(True))
     ) or 0
+    pending_users = await db.scalar(
+        select(func.count(User.id)).where(
+            User.account_status == AccountStatus.PENDING
+        )
+    ) or 0
 
     return {
         "total_books": total_books,
@@ -94,7 +99,9 @@ async def get_admin_stats(db: AsyncSession) -> dict:
         "users": {
             "total": total_users,
             "active": active_users,
+            "pending": pending_users,
         },
+        "pending_user_count": pending_users,
         "disk_usage_mb": disk_usage_mb,
     }
 

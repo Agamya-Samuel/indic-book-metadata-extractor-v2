@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_admin
 from app.core.database import get_db
-from app.models.user import User
+from app.models.user import AccountStatus, User
 from app.schemas.auth import (
     AdminPasswordResetRequest,
     AdminUserCreateRequest,
     AdminUserDetailResponse,
+    AdminUserRejectRequest,
     AdminUserUpdateRequest,
     UserListResponse,
     UserResponse,
@@ -46,6 +47,7 @@ async def admin_list_users(
     query: str | None = Query(default=None),
     role: str | None = Query(default=None),
     is_active: bool | None = Query(default=None),
+    account_status: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -55,6 +57,7 @@ async def admin_list_users(
         query=query,
         role=role,
         is_active=is_active,
+        account_status=account_status,
         page=page,
         page_size=page_size,
     )
@@ -84,6 +87,14 @@ async def admin_create_user(
     except AuthError as exc:
         raise _auth_http_error(exc)
     return UserResponse.model_validate(user)
+
+
+# Registered before /users/{user_id} so the literal path is not captured as a
+# UUID path parameter.
+@router.get("/users/pending-count")
+async def admin_pending_user_count(db: AsyncSession = Depends(get_db)) -> dict:
+    count = await auth_service.count_users_by_status(db, AccountStatus.PENDING)
+    return {"count": count}
 
 
 @router.get("/users/{user_id}", response_model=AdminUserDetailResponse)
@@ -117,6 +128,35 @@ async def admin_update_user(
             role=body.role.value if body.role is not None else None,
             is_active=body.is_active,
         )
+    except AuthError as exc:
+        raise _auth_http_error(exc)
+    return UserResponse.model_validate(user)
+
+
+@router.post("/users/{user_id}/approve", response_model=UserResponse)
+async def admin_approve_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> UserResponse:
+    target = await _get_user_or_404(db, user_id)
+    try:
+        user = await auth_service.approve_user(db, admin, target)
+    except AuthError as exc:
+        raise _auth_http_error(exc)
+    return UserResponse.model_validate(user)
+
+
+@router.post("/users/{user_id}/reject", response_model=UserResponse)
+async def admin_reject_user(
+    user_id: UUID,
+    body: AdminUserRejectRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> UserResponse:
+    target = await _get_user_or_404(db, user_id)
+    try:
+        user = await auth_service.reject_user(db, admin, target, body.rejection_reason)
     except AuthError as exc:
         raise _auth_http_error(exc)
     return UserResponse.model_validate(user)

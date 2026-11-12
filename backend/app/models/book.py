@@ -18,11 +18,6 @@ class BookStatus(StrEnum):
     COMPLETE = "complete"
 
 
-# Books in these states form the public catalog. Owners and admins always see
-# their own/in-progress books in addition to these.
-PUBLIC_BOOK_STATUSES = frozenset({BookStatus.COMPLETE, BookStatus.AWAITING_REVIEW})
-
-
 class Book(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "books"
 

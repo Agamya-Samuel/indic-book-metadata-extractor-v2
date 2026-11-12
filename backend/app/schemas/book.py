@@ -101,7 +101,6 @@ class BookDetailResponse(BaseModel):
     pages: list[BookDetailPage] = []
     llm_runs: list[dict] = []
     jobs: list[dict] = []
-    can_view_full: bool = False
     owner_display_name: str | None = None
 
 

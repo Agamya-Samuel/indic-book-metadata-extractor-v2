@@ -17,6 +17,12 @@ class UserRole(StrEnum):
     ADMIN = "admin"
 
 
+class AccountStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class EmailTokenPurpose(StrEnum):
     VERIFY_EMAIL = "verify_email"
     RESET_PASSWORD = "reset_password"
@@ -30,6 +36,16 @@ class User(UUIDMixin, TimestampMixin, Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(20), default=UserRole.USER, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Moderation state, separate from is_active (which means "admin suspended").
+    # Defaults to approved so admin-created accounts and existing rows skip review.
+    account_status: Mapped[str] = mapped_column(
+        String(20), default=AccountStatus.APPROVED, nullable=False, index=True
+    )
+    status_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status_reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    rejection_reason: Mapped[str | None] = mapped_column(String(500))
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

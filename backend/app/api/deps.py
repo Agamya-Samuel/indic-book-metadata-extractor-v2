@@ -15,9 +15,9 @@ from app.core.security import (
     CSRF_HEADER,
     decode_access_token,
 )
-from app.models.book import Book, BookStatus, PUBLIC_BOOK_STATUSES
+from app.models.book import Book
 from app.models.job import Job
-from app.models.user import User, UserRole
+from app.models.user import AccountStatus, User, UserRole
 
 _MUTATION_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
@@ -87,33 +87,38 @@ async def get_current_user(
     return user
 
 
-async def get_optional_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-) -> User | None:
-    """Resolve a user for public endpoints without rejecting anonymous access."""
-    token, _ = _extract_token(request)
-    if not token:
-        return None
-    return await _user_from_token(db, token)
+async def require_approved_user(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Gate application routers on moderator approval.
+
+    Allow-list check: only ``approved`` accounts pass, so any future status is
+    denied by default. Pending and rejected accounts still hold a session so the
+    frontend can render a status-specific holding screen; only ``/auth/*`` stays
+    reachable.
+    """
+    if user.account_status != AccountStatus.APPROVED:
+        code = (
+            "account_rejected"
+            if user.account_status == AccountStatus.REJECTED
+            else "account_pending"
+        )
+        raise HTTPException(status_code=403, detail=code)
+    return user
 
 
 async def require_admin(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_approved_user),
 ) -> User:
+    # require_admin composes the approval gate so a pending/rejected account can
+    # never reach the admin surface, even if it carries the admin role.
     if user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Administrator access required")
     return user
 
 
-def can_view_full_book(book: Book, user: User | None) -> bool:
-    if user is None:
-        return False
+def can_view_full_book(book: Book, user: User) -> bool:
     return user.role == UserRole.ADMIN or book.owner_id == user.id
-
-
-def is_public_book(book: Book) -> bool:
-    return book.status in PUBLIC_BOOK_STATUSES
 
 
 async def get_book_or_404(book_id: UUID, db: AsyncSession = Depends(get_db)) -> Book:
@@ -136,20 +141,6 @@ async def get_owned_book_or_404(
         # 404 rather than 403: do not confirm that another user's book exists.
         raise HTTPException(status_code=404, detail="Book not found")
     return book
-
-
-async def get_visible_book_or_404(
-    book_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User | None = Depends(get_optional_current_user),
-) -> Book:
-    """Return a public book, or a private one when the caller may see it."""
-    book = await db.get(Book, book_id)
-    if book is None:
-        raise HTTPException(status_code=404, detail="Book not found")
-    if is_public_book(book) or can_view_full_book(book, user):
-        return book
-    raise HTTPException(status_code=404, detail="Book not found")
 
 
 async def get_job_for_user_or_404(

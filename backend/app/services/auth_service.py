@@ -21,7 +21,14 @@ from app.core.security import (
 )
 from app.models.book import Book
 from app.models.job import Job, JobStatus
-from app.models.user import EmailToken, EmailTokenPurpose, RefreshToken, User, UserRole
+from app.models.user import (
+    AccountStatus,
+    EmailToken,
+    EmailTokenPurpose,
+    RefreshToken,
+    User,
+    UserRole,
+)
 from app.services.email_service import send_password_reset_email, send_verification_email
 
 logger = logging.getLogger(__name__)
@@ -68,6 +75,7 @@ async def create_user(
     password: str,
     role: str = UserRole.USER,
     verified: bool = False,
+    account_status: str = AccountStatus.APPROVED,
 ) -> User:
     normalized = normalize_email(email)
     if await get_user_by_email(db, normalized) is not None:
@@ -79,6 +87,7 @@ async def create_user(
         password_hash=hash_password(password),
         role=role,
         is_active=True,
+        account_status=account_status,
         email_verified_at=utcnow() if verified else None,
     )
     db.add(user)
@@ -129,6 +138,11 @@ async def register_user(
         password=password,
         role=UserRole.USER,
         verified=False,
+        account_status=(
+            AccountStatus.PENDING
+            if settings.registration_requires_approval
+            else AccountStatus.APPROVED
+        ),
     )
     token = await create_email_token(db, user, EmailTokenPurpose.VERIFY_EMAIL)
     await send_verification_email(user, token)
@@ -347,6 +361,7 @@ async def list_users(
     is_active: bool | None,
     page: int,
     page_size: int,
+    account_status: str | None = None,
 ) -> tuple[list[User], int]:
     base = select(User)
     if query and query.strip():
@@ -359,6 +374,8 @@ async def list_users(
         base = base.where(User.role == role)
     if is_active is not None:
         base = base.where(User.is_active.is_(is_active))
+    if account_status:
+        base = base.where(User.account_status == account_status)
 
     total = int(
         await db.scalar(select(func.count()).select_from(base.subquery())) or 0
@@ -369,6 +386,17 @@ async def list_users(
         .limit(page_size)
     )
     return list(result.scalars().all()), total
+
+
+async def count_users_by_status(db: AsyncSession, account_status: str) -> int:
+    return int(
+        await db.scalar(
+            select(func.count(User.id)).where(
+                User.account_status == account_status
+            )
+        )
+        or 0
+    )
 
 
 async def get_user_counts(db: AsyncSession, user_id: UUID) -> tuple[int, int]:
@@ -394,16 +422,62 @@ def _ensure_admin_target_preserved(
     *,
     new_role: str | None,
     new_active: bool | None,
+    new_account_status: str | None = None,
     deleting: bool = False,
 ) -> None:
     if target.id == acting_admin.id and (
-        deleting or new_role == UserRole.USER or new_active is False
+        deleting
+        or new_role == UserRole.USER
+        or new_active is False
+        or (
+            new_account_status is not None
+            and new_account_status != AccountStatus.APPROVED
+        )
     ):
         raise AuthError(
-            "You cannot demote, deactivate, or delete your own admin account",
+            "You cannot demote, reject, or deactivate your own admin account",
             400,
             "self_admin_protection",
         )
+
+
+def _apply_account_status(
+    acting_admin: User | None,
+    target: User,
+    status: str,
+    *,
+    reason: str | None = None,
+) -> None:
+    target.account_status = status
+    target.status_reviewed_at = utcnow()
+    target.status_reviewed_by_id = acting_admin.id if acting_admin else None
+    target.rejection_reason = reason if status == AccountStatus.REJECTED else None
+
+
+async def approve_user(db: AsyncSession, admin: User, target: User) -> User:
+    _ensure_admin_target_preserved(
+        admin, target, new_role=None, new_active=None, new_account_status=AccountStatus.APPROVED
+    )
+    _apply_account_status(admin, target, AccountStatus.APPROVED)
+    await db.commit()
+    await db.refresh(target)
+    return target
+
+
+async def reject_user(
+    db: AsyncSession, admin: User, target: User, reason: str | None = None
+) -> User:
+    _ensure_admin_target_preserved(
+        admin, target, new_role=None, new_active=None, new_account_status=AccountStatus.REJECTED
+    )
+    _apply_account_status(admin, target, AccountStatus.REJECTED, reason=reason)
+    await db.commit()
+    await db.refresh(target)
+    # Revoke other sessions so a rejected user cannot keep using the app; they
+    # can still log back in to the "registration not approved" holding screen.
+    await revoke_all_sessions(db, target.id)
+    await db.refresh(target)
+    return target
 
 
 async def update_user_admin(
@@ -416,7 +490,10 @@ async def update_user_admin(
     is_active: bool | None,
 ) -> User:
     _ensure_admin_target_preserved(
-        acting_admin, target, new_role=role, new_active=is_active
+        acting_admin,
+        target,
+        new_role=role,
+        new_active=is_active,
     )
 
     demoting_or_disabling = (
