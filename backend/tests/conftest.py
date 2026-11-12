@@ -19,7 +19,7 @@ from app.core.database import get_db
 from app.core.security import create_access_token, hash_password
 from app.models.base import Base
 from app.models.book import Book
-from app.models.user import User, UserRole
+from app.models.user import AccountStatus, User, UserRole
 
 
 def create_test_pdf(path: Path, num_pages: int = 2, text_per_page: dict[int, str] | None = None) -> Path:
@@ -139,6 +139,7 @@ def _user_factory():
         role: str = UserRole.USER,
         is_active: bool = True,
         verified: bool = True,
+        account_status: str = AccountStatus.APPROVED,
         password: str = "correct horse battery staple",
     ) -> User:
         async with TestSessionFactory() as session:
@@ -148,6 +149,7 @@ def _user_factory():
                 password_hash=hash_password(password),
                 role=role,
                 is_active=is_active,
+                account_status=account_status,
                 email_verified_at=(
                     datetime.now(timezone.utc) if verified else None
                 ),
@@ -179,6 +181,40 @@ async def admin_user(test_app) -> User:
         display_name="Admin User",
         role=UserRole.ADMIN,
     )
+
+
+@pytest.fixture
+async def pending_user(test_app) -> User:
+    return await _user_factory()(
+        email="pending@example.com",
+        display_name="Pending User",
+        account_status=AccountStatus.PENDING,
+    )
+
+
+@pytest.fixture
+async def rejected_user(test_app) -> User:
+    return await _user_factory()(
+        email="rejected@example.com",
+        display_name="Rejected User",
+        account_status=AccountStatus.REJECTED,
+    )
+
+
+@pytest.fixture
+async def pending_client(test_app, pending_user) -> AsyncGenerator[AsyncClient, None]:
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        _authenticate(ac, pending_user)
+        yield ac
+
+
+@pytest.fixture
+async def rejected_client(test_app, rejected_user) -> AsyncGenerator[AsyncClient, None]:
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        _authenticate(ac, rejected_user)
+        yield ac
 
 
 @pytest.fixture

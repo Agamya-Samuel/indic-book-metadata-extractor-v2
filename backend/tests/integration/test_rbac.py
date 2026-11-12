@@ -63,11 +63,11 @@ async def test_owner_and_admin_reach_private_book(
     assert (await admin_client.get(f"/api/books/{book['id']}")).status_code == 200
 
 
-async def test_public_book_is_metadata_only_for_non_owner(
+async def test_completed_book_is_still_owner_only(
     make_book_with_pages, auth_client, create_user, db_session
 ):
     book = await make_book_with_pages(selected_pages=[1, 2])
-    # Make it public.
+    # Even a "complete" book is no longer a public catalog entry.
     from app.models.book import Book
 
     row = await db_session.get(Book, uuid.UUID(book["id"]))
@@ -77,28 +77,24 @@ async def test_public_book_is_metadata_only_for_non_owner(
     other = await create_user(email="reader@example.com")
     other_client = await auth_client(other)
 
-    response = await other_client.get(f"/api/library/books/{book['id']}/detail")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["can_view_full"] is False
-    assert data["pages"] == []
-    assert data["jobs"] == []
-    assert data["llm_runs"] == []
-    assert data["book"]["owner_display_name"] == "Regular User"
-
-    # But the private pipeline API still refuses.
+    assert (
+        await other_client.get(f"/api/library/books/{book['id']}/detail")
+    ).status_code == 404
     assert (await other_client.get(f"/api/books/{book['id']}")).status_code == 404
 
 
-async def test_public_catalog_filters_private_books(anon_client, client, make_book):
-    private = await make_book()
-    response = await anon_client.get("/api/library/books")
-    assert response.status_code == 200
-    assert private["id"] not in {item["id"] for item in response.json()["items"]}
+async def test_library_listing_is_admin_only(anon_client, client, admin_client, make_book):
+    # Anonymous callers are rejected outright.
+    assert (await anon_client.get("/api/library/books")).status_code == 401
+    # Regular approved users cannot browse the cross-user library.
+    assert (await client.get("/api/library/books")).status_code == 403
 
+    await make_book()
     await make_book(status=BookStatus.AWAITING_REVIEW)
-    response = await anon_client.get("/api/library/books")
-    assert response.json()["total"] == 1
+
+    admin_response = await admin_client.get("/api/library/books")
+    assert admin_response.status_code == 200
+    assert admin_response.json()["total"] == 2
 
 
 async def test_admin_user_crud_and_safety_rules(
