@@ -66,12 +66,12 @@ services:
     volumes:
       - ollama_data:/root/.ollama
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
-      - ./docker/Modelfile.qwen2.5:/models/Modelfile.qwen2.5
+      - ./docker/Modelfile.phi4-mini:/models/Modelfile.phi4-mini
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     mem_limit: "6g"
     memswap_limit: "6g"
     environment:
-      OLLAMA_PRELOAD_MODEL: qwen2.5
+      OLLAMA_PRELOAD_MODEL: phi4-mini
       OLLAMA_KEEP_ALIVE: "30m"
       # Bound RAM/first-load on the 4 vCPU / 16 GB no-swap host (a 4B fits ~3.5 GB).
       OLLAMA_MAX_LOADED_MODELS: "1"

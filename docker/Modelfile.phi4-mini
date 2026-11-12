@@ -1,0 +1,9 @@
+FROM phi4-mini
+
+# Phi-4-mini-instruct (3.8B, MIT). Best measured on the verified Indic ground truth
+# (learnings/013: F1 0.333 vs qwen3-4b-instruct-2507 0.106; ~2.5 GB, fits the 6 GiB
+# oki cap with headroom). Non-thinking and JSON-schema friendly; keep its native
+# chat template and only tune sampler + context window here.
+
+PARAMETER temperature 0.3
+PARAMETER num_ctx 8192
