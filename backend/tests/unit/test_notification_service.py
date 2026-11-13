@@ -134,6 +134,34 @@ async def test_job_terminal_maps_status_to_notification(
         assert "boom" in row.body
 
 
+async def test_cancel_body_carries_an_admin_reason_only(db_session) -> None:
+    owner = await _make_user(db_session)
+    book = await _make_book(db_session, owner)
+
+    async def _cancel_notification(event_suffix: str, error_log: str):
+        job = Job(
+            id=uuid.uuid4(),
+            book_id=book.id,
+            requested_by_id=owner.id,
+            job_type=JobType.OCR,
+            status=JobStatus.CANCELLED,
+            error_log=error_log,
+        )
+        db_session.add(job)
+        await db_session.commit()
+        notification_id = await notification_service.notify_job_terminal(
+            db_session, job=job, book=book, status=JobStatus.CANCELLED
+        )
+        await db_session.commit()
+        return await db_session.get(Notification, notification_id)
+
+    by_admin = await _cancel_notification("a", "Cancelled by admin: freeing the queue")
+    assert "freeing the queue" in by_admin.body
+
+    by_owner = await _cancel_notification("b", "Cancelled by owner")
+    assert "Cancelled by owner" not in by_owner.body
+
+
 async def test_job_terminal_prefers_requester_and_falls_back_to_owner(db_session) -> None:
     owner = await _make_user(db_session)
     requester = await _make_user(db_session)
