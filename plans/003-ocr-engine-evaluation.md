@@ -1,9 +1,20 @@
 # 003 — Evaluation Plan: OCR Engine Selection for Indic (Hindi + Telugu) Scanned Books
 
 - **Date:** 2026-11-11
-- **Status:** Plan → awaiting approval to implement
+- **Status:** ✅ **Decided 2026-11-13** — evaluation complete, engines locked. Outcome: [learnings/020](../learnings/020-ocr-engine-benchmark.md); operational requirements & deferred research: [learnings/021](../learnings/021-ocr-engine-operational-requirements.md). Remaining implementation handed off: [todos/012](../todos/012-ocr-engine-integration-handoff.md).
 - **Depends on:** [plans/002-ground-truth-poc.md](002-ground-truth-poc.md) — **partially satisfied already**: 002 has landed a corpus of **6 Commons books** (3 Telugu + 3 Hindi) with `original.pdf`, `expected_metadata.json` (marked `unverified`) and `provenance.json` under `backend/tests/fixtures/ground_truth/`. The study does **not** need to wait on 002's metadata verification, because it needs OCR *text* GT, not metadata GT. Also depends on [learnings/001](../learnings/001-ground-truth-dataset-feasibility.md) §Tier B.
 - **Relationship:** replaces the "Indic-language-specific OCR engines" open item in [docs/known-limitations.md](../docs/known-limitations.md) (the load-bearing OCR weakness) with a measured selection decision.
+
+## Outcome (2026-11-13) — decision locked
+
+Evaluated on real scans (CPU-only, 4 vCPU / 16 GB): Tesseract 5, PaddleOCR PP-OCRv4, `harsha-desaraju/telugu-ocr-model`, and (gated) IndicOCR. Full numbers in [learnings/020](../learnings/020-ocr-engine-benchmark.md).
+
+**Locked per-language decision:**
+- **Hindi → Tesseract 5 (`hin`)** — median CER 0.072, 2.3 s/page, 44 MB. IndicOCR (the only step-change candidate) is gated and **not CPU-viable**.
+- **Telugu → `harsha-desaraju/telugu-ocr-model`** (line OCR + Tesseract line boxes) — median CER 0.163 vs Tesseract 0.402, 3.8 s/page, 0.78 GB.
+- Rejected: PaddleOCR (no accuracy gain, 6–13× slower, 1.3 GB, CPU segfault); Surya/EasyOCR (licence / poor Indic).
+
+**Not yet implemented (handed off):** the Telugu line pipeline is not wired into `ocr_service.py`; see [todos/012](../todos/012-ocr-engine-integration-handoff.md).
 
 ## Objective
 
