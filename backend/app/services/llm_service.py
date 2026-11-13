@@ -430,6 +430,9 @@ class LLMService:
                             gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
                         )
                     except Exception as e:
+                        # Keep the real batch name: finalisation renders a prompt
+                        # per batch, and a placeholder is not a known batch.
+                        e.batch_name = bn  # type: ignore[attr-defined]
                         return e
 
             in_flight = [
@@ -440,10 +443,13 @@ class LLMService:
                 outcome = await fut
                 completed += 1
                 if isinstance(outcome, Exception):
-                    logger.error("Hybrid LLM batch failed: %s", outcome)
+                    failed_batch = getattr(outcome, "batch_name", needed_batches[0])
+                    logger.error(
+                        "Hybrid LLM batch '%s' failed: %s", failed_batch, outcome
+                    )
                     batch_results.append(
                         {
-                            "batch_name": "<failed>",
+                            "batch_name": failed_batch,
                             "raw_response": "",
                             "parsed_fields": {},
                             "usage": {"status": "error", "error": str(outcome)},
@@ -452,7 +458,7 @@ class LLMService:
                         }
                     )
                     if progress_callback:
-                        await progress_callback(completed, total_needed, "<failed>")
+                        await progress_callback(completed, total_needed, failed_batch)
                     continue
                 batch_name, parsed, raw_response, usage, prompt = outcome
                 batch_results.append(
