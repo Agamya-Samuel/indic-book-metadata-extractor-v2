@@ -1,21 +1,19 @@
 # Ground Truth vs. Metadata Fields (49-field conformance & coverage)
 
-Comparison of the ground-truth corpus in `backend/tests/fixtures/ground_truth/` against the canonical 49 fields defined in [`docs/metadata-fields.md`](metadata-fields.md) (source: `backend/app/schemas/metadata.py`).
+Comparison of the corpus in `backend/tests/fixtures/ground_truth/` against [`docs/metadata-fields.md`](metadata-fields.md) (source: `app/schemas/metadata.py`). Regenerate with `uv run python -m scripts.gt_coverage_report`.
 
-## Conformance (schema match)
+## Conformance
 
-- Books: **49** · canonical fields: **49**
-- Every book's `expected_metadata`, `field_status` and `field_source` contain **exactly** the 49 canonical keys — **0 missing, 0 extra** across all books (verified by `scripts/apply_field_schema.py --check`).
-- Verification status: `verified`=8, `prefilled_llm_unverified`=41.
-- So the field spec is already applied; the remaining question is **coverage**, below.
+- Books **49** · canonical fields **49**.
+- Every book's `expected_metadata`, `field_status` and `field_source` hold **exactly** the 49 keys (0 missing, 0 extra; `scripts/apply_field_schema.py --check`).
+- Status: `verified`=8, `prefilled_llm_unverified`=41.
 
-## Coverage summary
+## Coverage
 
-- **623** non-null field values across the corpus.
-- **37 of 49** fields carry data in at least one book.
-- **12** fields are empty in every book: `inspired_by`, `cover_artist`, `cover_page_designer`, `typing_by`, `book_designer`, `part_of_the_set`, `illustrators`, `awards`, `first_published_in`, `abbreviations`, `opinions_messages`, `scribes`.
+- **623** non-null values; **37/49** fields populated.
+- Empty in every book (12): `inspired_by`, `cover_artist`, `cover_page_designer`, `typing_by`, `book_designer`, `part_of_the_set`, `illustrators`, `awards`, `first_published_in`, `abbreviations`, `opinions_messages`, `scribes`.
 
-## Per-field coverage
+## Per-field
 
 | # | Field | Batch | Wikidata | Telugu | Hindi | Total | Source(s) |
 |---|---|---|---|---|---|---|---|
@@ -69,10 +67,58 @@ Comparison of the ground-truth corpus in `backend/tests/fixtures/ground_truth/` 
 | 48 | `illustrators` | physical_extra | — | 0 | 0 | 0 | — |
 | 49 | `pages` | physical_extra | P1104 | 14 | 5 | 19 | internet_archive:19 |
 
-Source key: `unmapped` = value present but `field_source` unset (catalog/seed); `node_llm_extraction` = model prefill from the scan (unverified — see [learnings/019](../learnings/019-gt-corpus-enrichment.md)); `wikisource_index` / `internet_archive` / `commons_category` = catalog enrichment.
+## Per-book
 
-## Notes
+| Book | Lang | Filled / 49 | Status |
+|---|---|---|---|
+| 2015.263752.Sadhu-Aur | hin | 18 | prefilled_llm_unverified |
+| Biography_of_Freedom_fighter_Mahadev_Mishra | hin | 15 | prefilled_llm_unverified |
+| Gandhi_-_Dakshin_Afrika_Ke_Satyagraha_Hindi | hin | 14 | prefilled_llm_unverified |
+| 5व_जल_सम_म_लन_9-12_नवम_बर_05 | hin | 13 | prefilled_llm_unverified |
+| Gandhi_-_Delhi_Diary_Hindi | hin | 13 | prefilled_llm_unverified |
+| Hindi_Ke_Musalman_Kavi_-_Ganga_Prasad_Singh | hin | 13 | prefilled_llm_unverified |
+| Hindi_Sahitya_ka_Itihas_by_Acharya_Ramchandra_Shukla | hin | 13 | prefilled_llm_unverified |
+| Muntakhabat-i-hindi_Vol._1_Ed._5th_IA_in.ernet.dli.2015.94432 | hin | 13 | prefilled_llm_unverified |
+| Prabhu-Padhare | hin | 12 | prefilled_llm_unverified |
+| 19140101_Priyapravaas_Hindi_PDF | hin | 11 | prefilled_llm_unverified |
+| Bhakta_Mala_of_Nabhadas_Ayodhya_Edition_1905 | hin | 11 | prefilled_llm_unverified |
+| 1913_Ummed_Singh_Charitra_Hindi_PDF | hin | 10 | verified |
+| Bharatiya_Sampatti_Shastra | hin | 10 | prefilled_llm_unverified |
+| Lūka_racita_susamācāra_aura_Preritoṃkī_kriyāoṃkā_vṛttānta._IA_lukaracitasusama00unse | hin | 7 | prefilled_llm_unverified |
+| Shri_Chandravali_-_Bharatendu_Harishchandra_-_1933 | hin | 7 | prefilled_llm_unverified |
+| Antarrashtriya_Gyankosh | hin | 6 | prefilled_llm_unverified |
+| Dayanand_Granthmala_Bhag_1_1925 | hin | 6 | verified |
+| Godan_-_Premchand_-_Hindi_Novel | hin | 5 | prefilled_llm_unverified |
+| Śiva_parīkshā._IA_sivapariksha00unse | hin | 5 | verified |
+| 1857_మ_స_ల_ల | tel | 24 | prefilled_llm_unverified |
+| 2015.373190.Athma-Charitramu | tel | 21 | prefilled_llm_unverified |
+| 1917_Prataparudreeyamu_Ratnapanasahitam_Telugu_PDF | tel | 19 | prefilled_llm_unverified |
+| 1927_shhadchakravartulayindrajaalapukathalu_Telugu_PDF | tel | 19 | prefilled_llm_unverified |
+| A_Collection_of_Telugu_Proverbs_translat_1 | tel | 18 | prefilled_llm_unverified |
+| 1895_SarpaVishayaSarvasvaSangrahamu_Telugu_PDF | tel | 17 | prefilled_llm_unverified |
+| 2030020025431_-_chitra_leikhanamu | tel | 16 | prefilled_llm_unverified |
+| 10879telugukaavy034400mbp | tel | 15 | prefilled_llm_unverified |
+| 19220101_BrahmaVidya_Telugu_Pdf | tel | 15 | prefilled_llm_unverified |
+| 10031upanishhats033596mbp | tel | 14 | prefilled_llm_unverified |
+| 10049upanyaasans033612mbp | tel | 14 | prefilled_llm_unverified |
+| 19280101_AngleyaVaidyaRahasyamu_Telugu_PDF | tel | 14 | prefilled_llm_unverified |
+| 19330101_AndhrashabdaChinthamani_Telugu_pdf | tel | 14 | prefilled_llm_unverified |
+| 2015.372978.Andhra-Kavithva | tel | 14 | prefilled_llm_unverified |
+| 19280101_Vasanthakumari_Telugu | tel | 13 | prefilled_llm_unverified |
+| 19300101_ShivarathriMahathmyamu_Telugu | tel | 13 | prefilled_llm_unverified |
+| 2015.328360.Andhra-Mahaniyulu | tel | 13 | prefilled_llm_unverified |
+| Aanandhanga_Undalante_VBS_JVV | tel | 13 | prefilled_llm_unverified |
+| Abalaa_sachcharitra_ratnamaala_Dvitiiya_Sanputa | tel | 13 | prefilled_llm_unverified |
+| 19220101_SriSugunaMani_Telugu_PDF | tel | 12 | prefilled_llm_unverified |
+| 19230101_SangeetagoloBakavali_Telugu_PDF | tel | 12 | verified |
+| 19240101_ChandrakantaNatakamu_Telugu_PDF | tel | 12 | prefilled_llm_unverified |
+| 19250101_AndhranamaSangrahamuAndhraNamasheshamu_Telugu | tel | 12 | prefilled_llm_unverified |
+| 19380101_Savitri_Natakamu_Telugu_PDF | tel | 12 | verified |
+| A_Collection_of_Telugu_Proverbs | tel | 12 | prefilled_llm_unverified |
+| .Kalidasa-Charitra_by_chilakamarthi_lakshminarasimham | tel | 11 | verified |
+| 19230101_LavaKusa_Telugu_PDF | tel | 11 | prefilled_llm_unverified |
+| Abalaa_sachcharitra_ratnamaala | tel | 10 | prefilled_llm_unverified |
+| 19270101_PranaDanamu_Telugu_Pdf | tel | 9 | verified |
+| 19280101_JyothishyaVidyaPrakashika_Telugu | tel | 9 | verified |
 
-- The 12 empty fields are genuinely rare or only present on pages not fetched (cover designers, typesetters, scribes, awards, …); they are not a schema gap.
-- Values sourced `node_llm_extraction` are **prefill, not verified truth**. The scoring harness excludes them per-field, so prefilled books still score their verified core (`scripts/evaluate_extraction.py` → `ignored_fields`).
-- `author`/`title`/`language` show `unmapped` because their `field_source` was never set by the fetch scaffold; the values themselves are catalog/seed sourced.
+Source key: `unmapped` = value present but `field_source` unset; `node_llm_extraction` = unverified model prefill (see `learnings/019`); catalog sources as named.
