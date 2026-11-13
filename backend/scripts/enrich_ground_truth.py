@@ -184,9 +184,12 @@ def ia_identifier(provenance: dict, slug: str) -> str | None:
         url = provenance.get(key)
         if not url:
             continue
-        for marker in ("/items/", "/details/"):
+        for marker in ("/items/", "/details/", "/download/"):
             if marker in url:
-                return url.split(marker, 1)[1].split("/", 1)[0]
+                return url.split(marker, 1)[1].split("/", 1)[0].split("?", 1)[0]
+        m = re.search(r"identifier:\s*([A-Za-z0-9._-]+)", url)
+        if m:
+            return m.group(1)
     m = re.match(r"^(\d{4}\.\d+)\.", slug)  # DLI slug -> in.ernet.dli.<id>
     if m:
         return f"in.ernet.dli.{m.group(1)}"

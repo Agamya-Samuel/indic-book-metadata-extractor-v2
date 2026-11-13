@@ -162,8 +162,8 @@
   },
   "enrichment": {
     "sources": [],
-    "enriched_at": "2026-11-13T04:26:26.771516+00:00",
-    "prefilled_fields": 4
+    "enriched_at": "2026-11-13T11:35:20.603837+00:00",
+    "prefilled_fields": 7
   },
   "verification": {
     "checked_at": "2026-11-13T05:53:29.317900+00:00",
