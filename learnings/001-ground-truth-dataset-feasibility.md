@@ -139,6 +139,17 @@ Two stages, measured separately and end-to-end, with error attribution.
   - **Gold test subset:** every field **double-annotated + adjudicated**, with source-page evidence — mirrors BiblioPage's fully-verified test.
 - **Freeze versioned splits** (`v1.0`) with a manifest: `book_id, wikidata_qid, source, license, language, era, split, pdf_sha256, gt_json, annotator, verification_status, source_urls`.
 
+### Materialized (2026-11-13)
+
+The split above is now **materialized** for the 35-book corpus. [`backend/scripts/build_manifest.py`](../backend/scripts/build_manifest.py) derives `backend/tests/fixtures/ground_truth/manifest.jsonl` from the per-book envelopes and freezes the assignment in [`splits/gt-split-v1.0.json`](../backend/tests/fixtures/ground_truth/splits/gt-split-v1.0.json). It is deterministic (`--check` fails if the manifest would change), so re-running is a no-op.
+
+- **Rule:** `sha256(work_key)` within each language stratum; **work-groups are disjoint** (a book joins a group when its normalized title *extends* another's — volume/part markers included, regardless of script — so `...రత్నమాల` and `...రత్నమాల, ద్వితీయ సంపుటము` share a group). 34 groups over 35 books.
+- **Ratio:** dev 30% / test 70% per language → **tel dev 9 / test 21**, **hin dev 2 / test 3**.
+- **Manifest schema:** `manifest_version, slug, lang, work_key, source, category, commons_title, license, publication_date, year, era, pdf, pdf_size_bytes, pdf_sha256, gt, ocr_gt, ocr_pages, field_density, field_density_ratio, verification_status, scan_confirmed, split`.
+- **Reconciliation:** the previous manifest was hand-appended by two fetch scripts and had drifted — 21 Wikisource-seeded rows carried no `verification_status`, 14 carried a stale `unverified`, while every per-book file said `verified`. The builder now reads status from each book's own `expected_metadata.json`, so the manifest and the books cannot disagree.
+- **Status note:** `verified` means *source-verified* (catalog + scan-text check, [`verify_ground_truth.py`](../backend/scripts/verify_ground_truth.py)); it is **not** human-verified. Treat the split as provisional until gold human annotation lands (§Caveats).
+
+
 ## Annotation & Verification Protocol
 
 1. **Auto-prefill** each book's 49 fields from Wikidata (P-IDs) + Open Library/IA metadata; use `s1.md` as the column/label template.

@@ -1,0 +1,55 @@
+{
+  "split_version": "v1.0",
+  "dev_ratio": 0.3,
+  "rule": "sha256(work_key) within language stratum; work-groups are disjoint",
+  "counts": {
+    "hin": {
+      "dev": 2,
+      "test": 3
+    },
+    "tel": {
+      "dev": 9,
+      "test": 21
+    }
+  },
+  "dev": [
+    "1895_SarpaVishayaSarvasvaSangrahamu_Telugu_PDF",
+    "19140101_Priyapravaas_Hindi_PDF",
+    "1917_Prataparudreeyamu_Ratnapanasahitam_Telugu_PDF",
+    "19280101_AngleyaVaidyaRahasyamu_Telugu_PDF",
+    "19280101_Vasanthakumari_Telugu",
+    "19330101_AndhrashabdaChinthamani_Telugu_pdf",
+    "19380101_Savitri_Natakamu_Telugu_PDF",
+    "2015.328360.Andhra-Mahaniyulu",
+    "2015.372978.Andhra-Kavithva",
+    "5व_जल_सम_म_लन_9-12_नवम_बर_05",
+    "Aanandhanga_Undalante_VBS_JVV"
+  ],
+  "test": [
+    ".Kalidasa-Charitra_by_chilakamarthi_lakshminarasimham",
+    "10031upanishhats033596mbp",
+    "10049upanyaasans033612mbp",
+    "10879telugukaavy034400mbp",
+    "1857_మ_స_ల_ల",
+    "1913_Ummed_Singh_Charitra_Hindi_PDF",
+    "19220101_BrahmaVidya_Telugu_Pdf",
+    "19220101_SriSugunaMani_Telugu_PDF",
+    "19230101_LavaKusa_Telugu_PDF",
+    "19230101_SangeetagoloBakavali_Telugu_PDF",
+    "19240101_ChandrakantaNatakamu_Telugu_PDF",
+    "19250101_AndhranamaSangrahamuAndhraNamasheshamu_Telugu",
+    "19270101_PranaDanamu_Telugu_Pdf",
+    "1927_shhadchakravartulayindrajaalapukathalu_Telugu_PDF",
+    "19280101_JyothishyaVidyaPrakashika_Telugu",
+    "19300101_ShivarathriMahathmyamu_Telugu",
+    "2015.263752.Sadhu-Aur",
+    "2015.373190.Athma-Charitramu",
+    "2030020025431_-_chitra_leikhanamu",
+    "A_Collection_of_Telugu_Proverbs",
+    "A_Collection_of_Telugu_Proverbs_translat_1",
+    "Abalaa_sachcharitra_ratnamaala",
+    "Abalaa_sachcharitra_ratnamaala_Dvitiiya_Sanputa",
+    "Antarrashtriya_Gyankosh"
+  ],
+  "created_at": "2026-11-13T03:59:54.460671+00:00"
+}
