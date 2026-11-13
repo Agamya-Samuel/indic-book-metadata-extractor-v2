@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Alert } from "@/components/shared/alert";
+import { Banner } from "@/components/shared/empty-state";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { getErrorMessage } from "@/lib/error-handler";
@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {error && <Alert>{error}</Alert>}
+        {error && <Banner tone="danger">{error}</Banner>}
         <Field label="Email" htmlFor="forgot-email">
           <Input
             id="forgot-email"

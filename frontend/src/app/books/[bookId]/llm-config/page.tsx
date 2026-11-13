@@ -26,7 +26,7 @@ import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card
 import { Field, Select, Textarea } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
 import { WorkflowNav } from "@/components/shared/workflow-nav";
-import { ErrorState } from "@/components/shared/empty-state";
+import { Banner, ErrorState } from "@/components/shared/empty-state";
 import JobProgressCard from "@/components/shared/job-progress-card";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -244,10 +244,10 @@ export default function LlmConfigPage() {
         )}
 
         {ollamaUnreachable && (
-          <div className="mb-6 rounded-[var(--radius)] border border-[var(--warning-500)]/30 bg-[var(--warning-50)] px-4 py-3 text-[var(--text-sm)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]">
+          <Banner tone="warning" className="mb-6">
             Ollama is unreachable or has no models installed. Start Ollama and
             pull a model before running extraction.
-          </div>
+          </Banner>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

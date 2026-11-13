@@ -93,16 +93,26 @@ export function ErrorState({
   );
 }
 
-/** An inline informational banner — success, info, warning, neutral. */
-type BannerTone = "info" | "success" | "warning" | "neutral";
+/** An inline message banner — danger (form errors), success, info, warning, neutral. */
+type BannerTone = "danger" | "info" | "success" | "warning" | "neutral";
 
 const toneClass: Record<BannerTone, string> = {
+  danger:
+    "border-[var(--danger-500)]/30 bg-[var(--danger-50)] dark:bg-[var(--danger-900)]/20 text-[var(--danger-700)] dark:text-[var(--danger-100)]",
   info: "border-[var(--info-500)]/30 bg-[var(--info-50)] dark:bg-[var(--info-900)]/15 text-[var(--info-700)] dark:text-[var(--info-100)]",
   success:
     "border-[var(--success-500)]/30 bg-[var(--success-50)] dark:bg-[var(--success-900)]/15 text-[var(--success-700)] dark:text-[var(--success-100)]",
   warning:
     "border-[var(--warning-500)]/30 bg-[var(--warning-50)] dark:bg-[var(--warning-900)]/15 text-[var(--warning-700)] dark:text-[var(--warning-100)]",
   neutral: "border-[var(--border)] bg-[var(--surface-sunken)] text-[var(--text)]",
+};
+
+const toneRole: Record<BannerTone, "alert" | "status" | undefined> = {
+  danger: "alert",
+  info: "status",
+  success: "status",
+  warning: "status",
+  neutral: undefined,
 };
 
 export function Banner({
@@ -122,7 +132,8 @@ export function Banner({
         toneClass[tone],
         className,
       )}
-      role={tone === "warning" || tone === "info" ? "status" : undefined}
+      role={toneRole[tone]}
+      data-tone={tone}
     >
       {children}
     </div>

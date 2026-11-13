@@ -390,7 +390,7 @@ export default function DesignKitPage() {
           <Pagination page={page} totalPages={8} onPageChange={setPage} />
         </Section>
 
-        <Card title="States" description="Empty, error, and the four banner tones.">
+        <Card title="States" description="Empty, error, and the five banner tones.">
           <Stack gap={3}>
             <EmptyState
               title="No pages to select"
@@ -398,7 +398,7 @@ export default function DesignKitPage() {
               action={<Button size="sm">Select pages</Button>}
             />
             <ErrorState title="Could not save" description="The server rejected the change." />
-            {(["info", "success", "warning", "neutral"] as const).map((tone) => (
+            {(["danger", "info", "success", "warning", "neutral"] as const).map((tone) => (
               <Banner key={tone} tone={tone}>
                 {tone} banner — inline, non-blocking feedback.
               </Banner>

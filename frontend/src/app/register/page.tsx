@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { register } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Alert } from "@/components/shared/alert";
+import { Banner } from "@/components/shared/empty-state";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { getErrorMessage } from "@/lib/error-handler";
@@ -95,7 +95,7 @@ export default function RegisterPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {error && <Alert>{error}</Alert>}
+        {error && <Banner tone="danger">{error}</Banner>}
         <Field label="Display name" htmlFor="display-name">
           <Input
             id="display-name"
