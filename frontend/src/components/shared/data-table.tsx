@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { SkeletonTable } from "./skeleton";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -20,6 +21,14 @@ interface DataTableProps<T> {
   caption?: string;
   className?: string;
   rowClassName?: (row: T) => string | undefined;
+  /** Render a skeleton instead of the table (first load). */
+  loading?: boolean;
+  /** Render this when `rows` is empty. Omit to keep the empty table shell. */
+  empty?: React.ReactNode;
+  /** Pin the header while the body scrolls (pair with `maxHeight`). */
+  stickyHeader?: boolean;
+  /** Cap the scroll area, in pixels, so `stickyHeader` has an effect. */
+  maxHeight?: number;
 }
 
 const HIDE_BELOW: Record<NonNullable<DataTableColumn<unknown>["hideBelow"]>, string> = {
@@ -40,7 +49,19 @@ export function DataTable<T>({
   caption,
   className,
   rowClassName,
+  loading = false,
+  empty,
+  stickyHeader = false,
+  maxHeight,
 }: DataTableProps<T>) {
+  if (loading) {
+    return <SkeletonTable rows={5} />;
+  }
+
+  if (empty !== undefined && rows.length === 0) {
+    return <>{empty}</>;
+  }
+
   return (
     <div
       className={cn(
@@ -48,10 +69,19 @@ export function DataTable<T>({
         className,
       )}
     >
-      <div className="overflow-x-auto">
+      <div
+        className="overflow-x-auto"
+        style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}
+      >
         <table className="w-full text-sm">
           {caption && <caption className="sr-only">{caption}</caption>}
-          <thead className="bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
+          <thead
+            className={cn(
+              "bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]",
+              stickyHeader &&
+                "sticky top-0 z-10 bg-[var(--surface)] backdrop-blur",
+            )}
+          >
             <tr>
               {columns.map((column) => (
                 <th
