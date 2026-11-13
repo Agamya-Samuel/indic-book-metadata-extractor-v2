@@ -134,6 +134,11 @@ async def notify_job_terminal(
     body = f"{stage} {tail} for “{label}”."
     if type_ == NotificationType.JOB_FAILED and job.error_log:
         body = f"{body}\n\n{job.error_log[:400]}"
+    elif type_ == NotificationType.JOB_CANCELLED and job.error_log:
+        # Only an administrator's reason is news to the owner; "Cancelled by
+        # owner" just restates the action they took themselves.
+        if "owner" not in job.error_log:
+            body = f"{body}\n\n{job.error_log[:400]}"
 
     link_url = None
     if book is not None:
