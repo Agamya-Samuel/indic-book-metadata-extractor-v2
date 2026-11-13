@@ -262,9 +262,9 @@ export default function LlmConfigPage() {
                         setConfig((prev) => ({ ...prev, model: e.target.value }))
                       }
                     >
-                      <option value="qwen2.5">qwen2.5 (default)</option>
+                      <option value="phi4-mini">phi4-mini (default)</option>
                       {models
-                        ?.filter((m) => m.name !== "qwen2.5")
+                        ?.filter((m) => m.name !== "phi4-mini")
                         .map((m) => (
                           <option key={m.name} value={m.name}>
                             {m.name}

@@ -505,7 +505,7 @@ export interface LlmRunResponse {
 }
 
 export const DEFAULT_EXTRACTION_CONFIG: ExtractionRequest = {
-  model: "qwen2.5",
+  model: "phi4-mini",
   temperature: 0.3,
   max_tokens: 512,
   fields_per_batch: 10,
