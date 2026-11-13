@@ -102,6 +102,36 @@ per-page progress and cancel is planned (see
 
 ---
 
+## Deployment and operations
+
+### The origin is reachable without Cloudflare
+
+`https://187.127.174.246/` answers directly, so Cloudflare's WAF and rate rules
+can be bypassed by connecting to the IP, and the proxy headers the app trusts
+(`CF-Connecting-IP`, the last `X-Forwarded-For` hop) can be forged that way.
+Closing ingress to Cloudflare ranges (or moving to a Cloudflare Tunnel) is an
+operator action on the Cloudflare side; see `docs/runbook.md`.
+
+### Backups have no offsite copy
+
+Daily `pg_dump -Fc` backups are kept (newest 7) and a restore drill succeeded on
+2026-11-14, but they live in a Docker volume on the same host and disk as the
+database. A host or disk loss loses both. Copying the dumps off-host needs a
+destination and credentials.
+
+### No APM or alerting
+
+`NEW_RELIC_ENABLED=false` and logs are local (`json-file`, 3 × 10 MB per
+container). There is no alert when the site, worker or a backup fails. The
+minimum alert set is in `docs/runbook.md`.
+
+### Ollama memory cap has killed the model mid-run
+
+`llama-server` measured ~6.15 GB resident, above the previous 6 GB container cap,
+and was OOM-killed twice on 2026-11-13 (the host has no swap). The cap is now
+7 GB. An extraction that starts while the model is being restarted fails its
+batches and reports "All batches failed".
+
 ## Platform-Specific
 
 ### Docker on Windows
