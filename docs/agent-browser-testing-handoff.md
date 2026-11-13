@@ -116,8 +116,8 @@ asyncio.run(main())
 Password policy comes from `PASSWORD_MIN_LENGTH` (default **10**). The account is
 created verified + active.
 
-- Local account already created for reference: `e2e@example.com` / `E2eTest!2026`
-  (local DB only — do **not** expect it to exist on `oki`).
+- A local QA account exists for reference: `e2e@example.com`, with a locally
+  chosen password (local DB only — do **not** expect it to exist on `oki`).
 
 ### Roles to exercise
 
