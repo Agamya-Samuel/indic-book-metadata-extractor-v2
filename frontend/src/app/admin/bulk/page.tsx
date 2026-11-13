@@ -17,6 +17,7 @@ import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { StepNumber } from "@/components/shared/step-number";
+import { Skeleton } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export default function BulkOperationsPage() {
@@ -130,9 +131,9 @@ export default function BulkOperationsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <PageContainer>
+    <PageContainer>
         <PageHeader
+          eyebrow="Admin"
           title="Bulk Operations"
           description="Export metadata for bulk cleaning in OpenRefine, import cleaned data, or generate Wikibase QuickStatements."
         />
@@ -401,7 +402,6 @@ export default function BulkOperationsPage() {
           </Card>
         </Stack>
       </PageContainer>
-    </div>
   );
 }
 
@@ -415,9 +415,9 @@ function StatsCard({
   if (isLoading) {
     return (
       <Card>
-        <div className="space-y-3 animate-pulse">
-          <div className="h-4 bg-[var(--surface-sunken)] rounded-[var(--radius-sm)] w-1/3" />
-          <div className="h-3 bg-[var(--surface-sunken)] rounded-[var(--radius-sm)] w-2/3" />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-3 w-2/3" />
         </div>
       </Card>
     );
