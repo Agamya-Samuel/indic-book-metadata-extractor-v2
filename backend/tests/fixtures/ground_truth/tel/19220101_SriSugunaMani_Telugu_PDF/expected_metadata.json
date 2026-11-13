@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "శ్రీ సుగుణమణి",
     "author": "వల్లూరి బాపిరాజు",
@@ -14,7 +14,7 @@
     "translator": null,
     "editor": null,
     "compiler": null,
-    "inception": null,
+    "inception": "1922",
     "form_of_creative_work": "పుస్తకం",
     "genre": "drama",
     "subject": "Drama, Telugu, MinistryOfCulture",
@@ -27,7 +27,7 @@
     "publication_date": "1922",
     "publisher": null,
     "place_of_publication": null,
-    "printer": null,
+    "printer": "దాతుర శఛోలయందు",
     "place_of_printing": null,
     "language": "Telugu",
     "cover_artist": null,
@@ -65,7 +65,7 @@
     "translator": "empty_needs_annotation",
     "editor": "empty_needs_annotation",
     "compiler": "empty_needs_annotation",
-    "inception": "empty_needs_annotation",
+    "inception": "prefilled_needs_verification",
     "form_of_creative_work": "prefilled_needs_verification",
     "genre": "prefilled_needs_verification",
     "subject": "prefilled_needs_verification",
@@ -78,7 +78,7 @@
     "publication_date": "prefilled_needs_verification",
     "publisher": "empty_needs_annotation",
     "place_of_publication": "empty_needs_annotation",
-    "printer": "empty_needs_annotation",
+    "printer": "prefilled_needs_verification",
     "place_of_printing": "empty_needs_annotation",
     "language": "prefilled_needs_verification",
     "cover_artist": "empty_needs_annotation",
@@ -117,7 +117,7 @@
     "translator": null,
     "editor": null,
     "compiler": null,
-    "inception": null,
+    "inception": "node_llm_extraction",
     "form_of_creative_work": null,
     "genre": "commons_category",
     "subject": "internet_archive",
@@ -130,7 +130,7 @@
     "publication_date": null,
     "publisher": null,
     "place_of_publication": null,
-    "printer": null,
+    "printer": "node_llm_extraction",
     "place_of_printing": null,
     "language": null,
     "cover_artist": null,
@@ -331,5 +331,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      84,
+      85
+    ],
+    "ocr_pages": 8,
+    "filled_at": "2026-11-13T07:06:19.020632+00:00",
+    "fields_added": 2
   }
 }

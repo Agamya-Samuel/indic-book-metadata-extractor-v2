@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "తెలుగు కావ్యములు",
     "author": "మదిన సుభద్రయ్యమ్మ",
@@ -14,7 +14,7 @@
     "translator": null,
     "editor": "గోడే నారాయణ గజపతి రావు",
     "compiler": null,
-    "inception": null,
+    "inception": "1503",
     "form_of_creative_work": "పుస్తకం",
     "genre": null,
     "subject": "RELIGION. THEOLOGY",
@@ -27,8 +27,8 @@
     "publication_date": "1893",
     "publisher": "aaryavaramudraaqs-arashaala",
     "place_of_publication": null,
-    "printer": null,
-    "place_of_printing": null,
+    "printer": "G. Ve Jagannathachareer",
+    "place_of_printing": "Vesagaputam",
     "language": "Telugu",
     "cover_artist": null,
     "cover_page_designer": null,
@@ -65,7 +65,7 @@
     "translator": "empty_needs_annotation",
     "editor": "prefilled_needs_verification",
     "compiler": "empty_needs_annotation",
-    "inception": "empty_needs_annotation",
+    "inception": "prefilled_needs_verification",
     "form_of_creative_work": "prefilled_needs_verification",
     "genre": "empty_needs_annotation",
     "subject": "prefilled_needs_verification",
@@ -78,8 +78,8 @@
     "publication_date": "prefilled_needs_verification",
     "publisher": "prefilled_needs_verification",
     "place_of_publication": "empty_needs_annotation",
-    "printer": "empty_needs_annotation",
-    "place_of_printing": "empty_needs_annotation",
+    "printer": "prefilled_needs_verification",
+    "place_of_printing": "prefilled_needs_verification",
     "language": "prefilled_needs_verification",
     "cover_artist": "empty_needs_annotation",
     "cover_page_designer": "empty_needs_annotation",
@@ -117,7 +117,7 @@
     "translator": null,
     "editor": null,
     "compiler": null,
-    "inception": null,
+    "inception": "node_llm_extraction",
     "form_of_creative_work": null,
     "genre": null,
     "subject": "internet_archive",
@@ -130,8 +130,8 @@
     "publication_date": null,
     "publisher": "internet_archive",
     "place_of_publication": null,
-    "printer": null,
-    "place_of_printing": null,
+    "printer": "node_llm_extraction",
+    "place_of_printing": "node_llm_extraction",
     "language": null,
     "cover_artist": null,
     "cover_page_designer": null,
@@ -333,5 +333,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      178,
+      179
+    ],
+    "ocr_pages": 2,
+    "filled_at": "2026-11-13T06:52:28.844829+00:00",
+    "fields_added": 3
   }
 }

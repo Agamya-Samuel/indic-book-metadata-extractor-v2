@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": null,
     "author": "Bharatendu Harishchandra",
@@ -16,8 +16,8 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": null,
-    "genre": null,
-    "subject": null,
+    "genre": "नाटिका काव्य",
+    "subject": "भक्ति, वराग, रसिकता, ज्ञान",
     "original_language": "Hindi",
     "edition_or_translation_of": null,
     "based_on": null,
@@ -45,7 +45,7 @@
     "illustrators": null,
     "isbn": null,
     "title": null,
-    "subtitle": null,
+    "subtitle": "सुरस सिंगार के दोड दल, कविता नेम",
     "awards": null,
     "context": null,
     "publisher_telugu": null,
@@ -67,8 +67,8 @@
     "compiler": "empty_needs_annotation",
     "inception": "empty_needs_annotation",
     "form_of_creative_work": "empty_needs_annotation",
-    "genre": "empty_needs_annotation",
-    "subject": "empty_needs_annotation",
+    "genre": "prefilled_needs_verification",
+    "subject": "prefilled_needs_verification",
     "original_language": "prefilled_needs_verification",
     "edition_or_translation_of": "empty_needs_annotation",
     "based_on": "empty_needs_annotation",
@@ -96,7 +96,7 @@
     "illustrators": "empty_needs_annotation",
     "isbn": "empty_needs_annotation",
     "title": "empty_needs_annotation",
-    "subtitle": "empty_needs_annotation",
+    "subtitle": "prefilled_needs_verification",
     "awards": "empty_needs_annotation",
     "context": "empty_needs_annotation",
     "publisher_telugu": "empty_needs_annotation",
@@ -119,8 +119,8 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": null,
-    "genre": null,
-    "subject": null,
+    "genre": "node_llm_extraction",
+    "subject": "node_llm_extraction",
     "original_language": null,
     "edition_or_translation_of": null,
     "based_on": null,
@@ -148,7 +148,7 @@
     "illustrators": null,
     "isbn": null,
     "title": null,
-    "subtitle": null,
+    "subtitle": "node_llm_extraction",
     "awards": null,
     "context": null,
     "publisher_telugu": null,
@@ -322,5 +322,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      78,
+      79
+    ],
+    "ocr_pages": 8,
+    "filled_at": "2026-11-13T06:41:14.204258+00:00",
+    "fields_added": 3
   }
 }

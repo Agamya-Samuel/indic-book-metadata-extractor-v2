@@ -5,7 +5,7 @@
   "source_category": "Category:PDF books in Telugu",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "ఆంధ్ర మహనీయులు",
     "author": "Chilukuri Veerabhadra Rao (1872-1939)",
@@ -28,7 +28,7 @@
     "publisher": "మాదిరెడ్డి సుబ్బారావు",
     "place_of_publication": "రాజమహేంద్రవరము",
     "printer": null,
-    "place_of_printing": null,
+    "place_of_printing": "రాజమహేంద్రవరము",
     "language": "Telugu",
     "cover_artist": null,
     "cover_page_designer": null,
@@ -79,7 +79,7 @@
     "publisher": "prefilled_needs_verification",
     "place_of_publication": "prefilled_needs_verification",
     "printer": "empty_needs_annotation",
-    "place_of_printing": "empty_needs_annotation",
+    "place_of_printing": "prefilled_needs_verification",
     "language": "prefilled_needs_verification",
     "cover_artist": "empty_needs_annotation",
     "cover_page_designer": "empty_needs_annotation",
@@ -131,7 +131,7 @@
     "publisher": "wikisource_index",
     "place_of_publication": "wikisource_index",
     "printer": null,
-    "place_of_printing": null,
+    "place_of_printing": "node_llm_extraction",
     "language": null,
     "cover_artist": null,
     "cover_page_designer": null,
@@ -333,5 +333,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      89,
+      90
+    ],
+    "ocr_pages": 6,
+    "filled_at": "2026-11-13T07:46:45.213271+00:00",
+    "fields_added": 1
   }
 }
