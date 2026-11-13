@@ -32,6 +32,10 @@ On 8 books: `fixed` 8 pages · `heuristic` 10.5–14 · `llm_text` 1.5. The **he
 
 New values are `prefilled_needs_verification` with `field_source` provenance; the harness excludes `node_llm_extraction` fields from gold scoring (`evaluate_extraction.ignored_fields`). "verified" throughout means **source-verified**, not human-verified.
 
+### 6. The evaluation harness cannot score thinking models (`think:false` ignored)
+
+`evaluate_extraction` runs the model through `LLMService` (the **OpenAI-compatible** client), the same path where `think:false` is dropped. With `gemma4:e4b` every batch returned **empty `content`** (all budget on the `reasoning` channel, `finish_reason=length`) → the eval scored empty predictions. **Consequences:** evaluate **non-thinking models** with the harness as written (`phi4-mini`, `qwen2.5`), or route thinking models via the native `/api/chat` endpoint. This is the practical corollary of the finding in [019](019-gt-corpus-enrichment.md).
+
 ## Recommendation / next steps
 
 1. **Depth for Commons-only books** must come from OCR/LLM (the scans), not catalogues — or curate books from DLI/IA hosts so catalogues apply.
