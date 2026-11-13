@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import {
   getBook,
   getBookPages,
   getOcrResult,
   updateOcrCorrection,
   getPageImageUrl,
+  getThumbnailUrl,
   type OcrResultResponse,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
@@ -21,6 +23,7 @@ import WorkflowShell from "@/components/shared/workflow-shell";
 import { OcrReviewSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, Card } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
+import { Toolbar, ToolbarGroup } from "@/components/shared/toolbar";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -29,6 +32,7 @@ import {
   confirmDiscard,
 } from "@/hooks/use-unsaved-changes";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 
 export default function OcrReviewPage() {
   useDocumentTitle("OCR review");
@@ -41,8 +45,19 @@ export default function OcrReviewPage() {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | undefined>(undefined);
   const [editorDirty, setEditorDirty] = useState(false);
+  const [filmstripOpen, setFilmstripOpen] = useState(true);
+  const filmstripRef = useRef<HTMLDivElement>(null);
 
   useUnsavedChanges(editorDirty);
+
+  // Keep the page being reviewed in view as the reviewer pages through.
+  useEffect(() => {
+    const container = filmstripRef.current;
+    if (!container) return;
+    container
+      .querySelector<HTMLElement>(`[data-page-index="${currentPageIndex}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [currentPageIndex]);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -215,33 +230,107 @@ export default function OcrReviewPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrevPage}
-                  disabled={currentPageIndex === 0}
-                >
-                  Previous
-                </Button>
-                <span className="text-[var(--text-sm)] text-[var(--text-muted)] min-w-[80px] text-center tabular-nums">
-                  Page {currentPageIndex + 1} of {pages.length}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNextPage}
-                  disabled={currentPageIndex === pages.length - 1}
-                >
-                  Next
-                </Button>
-              </div>
             </div>
           </div>
         </PageContainer>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+      <div className="px-3 pt-3">
+        <Toolbar>
+          <ToolbarGroup>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilmstripOpen((open) => !open)}
+              aria-pressed={filmstripOpen}
+            >
+              Pages
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevPage}
+              disabled={currentPageIndex === 0}
+            >
+              Previous
+            </Button>
+            <span className="min-w-[80px] text-center text-[var(--text-sm)] tabular-nums text-[var(--text-muted)]">
+              Page {currentPageIndex + 1} of {pages.length}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPageIndex === pages.length - 1}
+            >
+              Next
+            </Button>
+          </ToolbarGroup>
+          <ToolbarGroup align="end">
+            <LinkButton
+              href={`/books/${bookId}/preprocessing`}
+              variant="outline"
+              size="sm"
+            >
+              Back to Preprocessing
+            </LinkButton>
+            <LinkButton href={`/books/${bookId}/llm-config`} size="sm">
+              Proceed to LLM Config
+            </LinkButton>
+          </ToolbarGroup>
+        </Toolbar>
+      </div>
+
+      <div className="flex-1 flex min-h-0">
+        {filmstripOpen && !showPollingOverlay && (
+          <div
+            ref={filmstripRef}
+            className="hidden w-28 shrink-0 overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-2 lg:block"
+          >
+            <div className="flex flex-col gap-2">
+              {pages.map((page, idx) => {
+                const hasOcr = !!getCachedOcrForPage(page.id);
+                return (
+                  <button
+                    key={page.id}
+                    type="button"
+                    data-page-index={idx}
+                    onClick={() => handlePageSelect(idx)}
+                    aria-label={`Go to page ${page.page_number}${hasOcr ? ", OCR loaded" : ""}`}
+                    aria-current={idx === currentPageIndex ? "true" : undefined}
+                    className={cn(
+                      "relative aspect-[3/4] overflow-hidden rounded-[var(--radius)] border-2 transition-colors",
+                      focusRing,
+                      idx === currentPageIndex
+                        ? "border-[var(--accent)]"
+                        : "border-[var(--border)] hover:border-[var(--border-strong)]",
+                    )}
+                  >
+                    <Image
+                      src={getThumbnailUrl(bookId, page.page_number)}
+                      alt=""
+                      fill
+                      sizes="7rem"
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <span className="absolute inset-x-0 bottom-0 bg-[var(--neutral-1000)]/70 py-0.5 text-center text-[10px] font-medium text-[var(--text-inverse)]">
+                      {page.page_number}
+                    </span>
+                    {hasOcr && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute right-1 top-1 size-2 rounded-full bg-[var(--success-600)]"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {showPollingOverlay ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-md">
@@ -314,55 +403,7 @@ export default function OcrReviewPage() {
             </div>
           </div>
         )}
-      </div>
-
-      <div className="border-t border-[var(--border)] bg-[var(--surface)]">
-        <PageContainer className="!py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0">
-              {pages.map((page, idx) => {
-                const hasOcr = !!getCachedOcrForPage(page.id);
-                return (
-                  <Button
-                    key={page.id}
-                    size="sm"
-                    variant={idx === currentPageIndex ? "primary" : "ghost"}
-                    onClick={() => handlePageSelect(idx)}
-                    aria-label={`Go to page ${page.page_number}`}
-                    title={`Page ${page.page_number}${hasOcr ? " (OCR loaded)" : ""}`}
-                    className={cn(
-                      "shrink-0",
-                      idx === currentPageIndex
-                        ? ""
-                        : hasOcr
-                          ? "text-[var(--success-700)] dark:text-[var(--success-100)]"
-                          : ""
-                    )}
-                  >
-                    {page.page_number}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <LinkButton
-                href={`/books/${bookId}/preprocessing`}
-                variant="outline"
-                size="sm"
-              >
-                Back to Preprocessing
-              </LinkButton>
-              <LinkButton
-                href={`/books/${bookId}/llm-config`}
-                variant="primary"
-                size="sm"
-              >
-                Proceed to LLM Config
-              </LinkButton>
-            </div>
-          </div>
-        </PageContainer>
+        </div>
       </div>
       </div>
     </WorkflowShell>
