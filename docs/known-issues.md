@@ -49,6 +49,16 @@ Tesseract OCR accuracy on Telugu and Hindi scripts varies significantly dependin
 
 Pages containing mixed languages (e.g., Telugu + English) use multi-language OCR mode (`tel+eng` or `hin+eng`). Accuracy may decrease on pages with heavy code-switching.
 
+### Telugu OCR is the accuracy ceiling (engine selected, not yet wired)
+
+Measured on our verified scans ([learnings/020](../learnings/020-ocr-engine-benchmark.md)): Tesseract Telugu leaves ~40 % of characters wrong (median CER 0.40) — the dominant pipeline error. A Telugu-specific line model (`harsha-desaraju/telugu-ocr-model`) more than halves it (median CER 0.16) and is the **chosen** Telugu engine, but it is **not yet integrated** into `ocr_service.py`.
+
+**Mitigation (until integrated):** the OCR review step; optionally switch Telugu to `tessdata_best`. Preprocessing (binarization/denoise) did **not** help Telugu and is disabled by default.
+
+### IndicOCR (Hindi step-change) is gated and not CPU-viable
+
+`bodhan-ai/indic-ocr` (0.8 B VLM, currently the best published Hindi accuracy) needs Python ≥3.11, `device="cpu"`, and a Hugging Face licence + token; on the 4-vCPU CPU box it did **not** complete a page in >12 min → **excluded**. Hindi therefore stays on Tesseract (median CER 0.07). Full engine requirements and environment gotchas: [learnings/021](../learnings/021-ocr-engine-operational-requirements.md).
+
 ---
 
 ## Feature Gaps
