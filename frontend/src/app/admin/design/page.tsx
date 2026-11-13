@@ -22,6 +22,7 @@ import StatCard from "@/components/shared/stat-card";
 import Pagination from "@/components/shared/pagination";
 import SliderControl from "@/components/shared/slider-control";
 import CollapsibleSection from "@/components/shared/collapsible-section";
+import { Switch } from "@/components/shared/switch";
 import {
   Skeleton,
   SkeletonTable,
@@ -150,6 +151,7 @@ export default function DesignKitPage() {
   const [saving, setSaving] = useState(false);
   const [showSaveBar, setShowSaveBar] = useState(false);
   const [slider, setSlider] = useState(25);
+  const [switchOn, setSwitchOn] = useState(true);
   const [page, setPage] = useState(2);
   const [layout, setLayout] = useState<PageLayout>("reading");
 
@@ -414,7 +416,7 @@ export default function DesignKitPage() {
           </CollapsibleSection>
         </Card>
 
-        <Card title="Controls" description="Slider and spinner.">
+        <Card title="Controls" description="Slider, switch, and spinner.">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <SliderControl
               label="Brightness"
@@ -424,6 +426,16 @@ export default function DesignKitPage() {
               onChange={setSlider}
               hint="—100 to 100"
             />
+            <div className="flex items-center gap-4">
+              <Switch
+                label="Example preference"
+                checked={switchOn}
+                onCheckedChange={setSwitchOn}
+              />
+              <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                Preference switch
+              </span>
+            </div>
             <div className="flex items-center gap-4">
               <Spinner className="size-5 text-[var(--accent)]" />
               <span className="text-[var(--text-sm)] text-[var(--text-muted)]">

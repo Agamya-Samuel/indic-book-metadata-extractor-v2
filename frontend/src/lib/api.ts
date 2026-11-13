@@ -1140,3 +1140,87 @@ export const resetAdminUserPassword = async (
 export const deleteAdminUser = async (userId: string): Promise<void> => {
   await api.delete(`/admin/users/${userId}`);
 };
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export interface NotificationRow {
+  id: string;
+  type:
+    | "job_completed"
+    | "job_failed"
+    | "job_cancelled"
+    | "account_approved"
+    | "pending_registration";
+  title: string;
+  body: string;
+  link_url: string | null;
+  book_id: string | null;
+  read_at: string | null;
+  created_at: string | null;
+}
+
+export interface NotificationListResponse {
+  items: NotificationRow[];
+  total: number;
+  unread_count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export const getNotifications = async (params?: {
+  page?: number;
+  page_size?: number;
+  unread_only?: boolean;
+}): Promise<NotificationListResponse> => {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+  if (params?.unread_only) searchParams.set("unread_only", "true");
+  const response = await api.get<NotificationListResponse>(
+    `/notifications?${searchParams.toString()}`,
+  );
+  return response.data;
+};
+
+export const getUnreadNotificationCount = async (): Promise<number> => {
+  const response = await api.get<{ count: number }>(
+    "/notifications/unread-count",
+  );
+  return response.data.count;
+};
+
+export const markNotificationRead = async (
+  id: string,
+): Promise<NotificationRow> => {
+  const response = await api.post<NotificationRow>(
+    `/notifications/${id}/read`,
+  );
+  return response.data;
+};
+
+export const markAllNotificationsRead = async (): Promise<number> => {
+  const response = await api.post<{ updated: number }>(
+    "/notifications/read-all",
+  );
+  return response.data.updated;
+};
+
+export const getNotificationPreferences = async (): Promise<boolean> => {
+  const response = await api.get<{ email_enabled: boolean }>(
+    "/notifications/preferences",
+  );
+  return response.data.email_enabled;
+};
+
+export const setNotificationPreferences = async (
+  emailEnabled: boolean,
+): Promise<boolean> => {
+  const response = await api.patch<{ email_enabled: boolean }>(
+    "/notifications/preferences",
+    { email_enabled: emailEnabled },
+  );
+  return response.data.email_enabled;
+};
