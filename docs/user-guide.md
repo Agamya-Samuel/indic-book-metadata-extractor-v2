@@ -253,6 +253,31 @@ You can safely leave the page and return — all jobs persist in the database.
 
 ---
 
+## Notifications
+
+The **bell** in the navbar shows how many notifications are unread. Open it for
+the latest eight; **View all notifications** opens the full list.
+
+- **Job results** — page rendering, OCR, preprocessing and metadata extraction
+  each report when they finish, fail or are cancelled, with a link back to the
+  relevant step of that book.
+- **Account decisions** — when an administrator approves your account you get a
+  notification pointing at your dashboard.
+- **Admins** also get one notification per new registration awaiting approval,
+  linking to the pending filter on the Users page.
+
+In the full list, clicking a notification marks it read and follows its link;
+**Mark all as read** clears the count. In-app notifications are always on.
+
+### Email alerts
+
+The **Email alerts** switch on the Notifications page mirrors these same events
+to your account email address. Turn it off and nothing is emailed, but every
+notification still appears in the app. Delivery needs a working mail server; if
+one is not configured, the app keeps working and only the email is skipped.
+
+---
+
 ## Bulk Operations (OpenRefine & Wikibase)
 
 After processing many books, you can use **Bulk Operations** to clean metadata across the entire collection and export it to Wikibase.

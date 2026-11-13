@@ -955,3 +955,23 @@ LAST	P407	Q809
 ```bash
 curl -X POST "http://localhost:8000/api/bulk/export-wikibase" -o quickstatements.tsv
 ```
+
+---
+
+## Notifications API
+
+All routes require an approved session and are scoped to the calling user.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/notifications` | Paginated list. Query: `page` (default 1), `page_size` (1–100, default 20), `unread_only` (bool). Returns `items`, `total`, `unread_count`, `total_pages`. |
+| `GET` | `/api/notifications/unread-count` | `{ "count": N }` for the bell badge. |
+| `POST` | `/api/notifications/{id}/read` | Marks one notification read; `404` if it belongs to another user. |
+| `POST` | `/api/notifications/read-all` | Marks every unread notification read; returns `{ "updated": N }`. |
+| `GET` | `/api/notifications/preferences` | `{ "email_enabled": true }` |
+| `PATCH` | `/api/notifications/preferences` | Body `{ "email_enabled": false }`; controls email only, never in-app delivery. |
+
+Notification types: `job_completed`, `job_failed`, `job_cancelled`,
+`account_approved`, `pending_registration`. Each row carries `title`, `body`,
+an optional `link_url`, `read_at`, and `created_at`. Creation is idempotent per
+`(user, event_key)`, so a retried background task never duplicates a row.

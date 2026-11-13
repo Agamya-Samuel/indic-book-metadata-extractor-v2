@@ -248,6 +248,7 @@ by the backend. There is no public catalog.
 | `/pending-approval` | authenticated (unapproved) | Holding screen for pending/rejected accounts |
 | `/dashboard` | authenticated | Owner's own books and jobs |
 | `/upload` | authenticated | Upload a PDF (start of the pipeline) |
+| `/notifications` | authenticated | In-app notifications, read state, email preference |
 | `/books/{bookId}` | owner or admin | Book detail (metadata, pages, jobs, LLM runs) |
 | `/books/{bookId}/{select-pages,preprocessing,extracting-pages,ocr-processing,ocr-review,llm-config,metadata-review,jobs}` | owner or admin | Pipeline steps |
 | `/admin` | admin | Operations overview |
@@ -268,6 +269,18 @@ Pages are assembled from the primitives in `frontend/src/components/shared/` —
 hand-rolled spinner). `/admin/design` renders all of them in their states; add
 new primitives there first. The rationale and constraints are recorded in
 `plans/008-ui-ux-composition-redesign.md`.
+
+### Notifications
+
+`app/services/notification_service.py` writes one `notifications` row per
+(recipient, `event_key`); the unique constraint makes a redelivered Celery task
+idempotent. Rows are created in the producing transaction — job terminal blocks
+in `page_tasks`/`ocr_tasks`/`llm_tasks`/`celery_app.task_failure`, plus
+`cancel_job`, `register_user` and `approve_user`. Email is always delivered
+after the row is committed: `BackgroundTasks` for request paths, an inline
+await on the same session for workers. Email is gated by
+`users.email_notifications_enabled`; in-app records are never gated. The design
+and decisions are in `plans/010-notifications.md`.
 
 ---
 
