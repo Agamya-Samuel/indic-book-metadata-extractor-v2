@@ -1,7 +1,18 @@
 # 009 — Metadata-Page Selection (front/back window) POC → MVP
 
 - **Date:** 2026-11-13
-- **Status:** POC running on `test-node-1`; MVP plumbing written. Results pending.
+- **Status:** POC run on `test-node-1` (2026-11-13). Labelling was flawed (see below); `llm_text` is the promising detector. MVP plumbing written, not adopted.
+
+## POC result (2026-11-13)
+
+Ran on 4 Telugu + 4 Hindi books (front 12 / back 4), detectors `fixed` / `heuristic` / `llm_text`.
+
+- **`fixed`:** 8 pages · **`heuristic`:** 10.5–14 pages · **`llm_text`:** 1.5 pages.
+- The heuristic **barely fires on noisy OCR** (pages are short, so `is_body_page` rarely trips) and keeps *more* pages than `fixed` — useless as written.
+- The **`llm_text` judge is ~5× more selective** than the fixed window (1.5 vs 8 pages) — the only promising lever for cutting prompt noise.
+- **The metric was invalid:** silver labels required an exact GT identity value in the OCR text, which OCR errors blank (silver=0 for every book → precision 0, recall meaningless). Patched the labeller to fuzzy token overlap but did not re-run (cost vs the accuracy eval).
+
+**Verdict:** do **not** adopt the heuristic. `llm_text` is worth re-running with the fuzzy labeller to confirm recall before any MVP. Low priority relative to the accuracy eval.
 - **Motivation:** the extraction prompt is fed a fixed page window (first N + last M). Body-text pages add OCR noise and can crowd out the bibliographic front/back matter. We want to *choose* the metadata pages instead.
 
 ## Objective
