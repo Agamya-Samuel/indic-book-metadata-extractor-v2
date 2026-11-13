@@ -19,9 +19,6 @@ storage/
 *.swp
 *.swo
 
-# Scripts (not needed in container)
-scripts/
-
 # OS
 .DS_Store
 Thumbs.db
