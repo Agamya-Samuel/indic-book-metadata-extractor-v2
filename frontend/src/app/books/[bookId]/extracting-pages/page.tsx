@@ -9,7 +9,8 @@ import { useJobProgress } from "@/hooks/use-job-progress";
 import { toast } from "sonner";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { PageContainer, PageHeader, Card } from "@/components/shared/card";
-import { Button, LinkButton } from "@/components/shared/button";
+import { LinkButton } from "@/components/shared/button";
+import { WorkflowNav } from "@/components/shared/workflow-nav";
 import { EmptyState, ErrorState } from "@/components/shared/empty-state";
 import JobProgressCard from "@/components/shared/job-progress-card";
 import { Spinner } from "@/components/shared/spinner";
@@ -116,24 +117,19 @@ export default function ExtractingPagesPage() {
             onRetry={() => router.push(`/books/${bookId}/select-pages`)}
           />
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <LinkButton
-              href={`/books/${bookId}/select-pages`}
-              variant="outline"
-            >
-              Back to page selection
-            </LinkButton>
-            {progress.isComplete && (
-              <Button
-                onClick={() =>
-                  router.replace(`/books/${bookId}/preprocessing`)
+          </Card>
+
+        <WorkflowNav
+          prev={{ href: `/books/${bookId}/select-pages`, label: "Select pages" }}
+          next={
+            progress.isComplete
+              ? {
+                  href: `/books/${bookId}/preprocessing`,
+                  label: "Continue to preprocessing",
                 }
-              >
-                Continue to preprocessing
-              </Button>
-            )}
-          </div>
-        </Card>
+              : undefined
+          }
+        />
       </PageContainer>
     </WorkflowShell>
   );
