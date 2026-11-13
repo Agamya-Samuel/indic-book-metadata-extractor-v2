@@ -37,6 +37,16 @@ LANG_BY_CATEGORY = {"telugu": "tel", "hindi": "hin"}
 LANG_LABEL = {"tel": "Telugu", "hin": "Hindi"}
 
 
+def _is_cc_pd(license_short: str | None) -> bool:
+    """Whether a Commons license string permits public redistribution."""
+    text = (license_short or "").lower()
+    if not text:
+        return False
+    if any(bad in text for bad in ("non-free", "fair use", "noncommercial", "nd")):
+        return False
+    return any(ok in text for ok in ("public domain", "pd", "cc0", "cc by", "cc-by"))
+
+
 def _strip_html(value: str | None) -> str | None:
     if not value:
         return None
@@ -233,6 +243,11 @@ def main() -> int:
     )
     parser.add_argument("--lang", default=None, choices=["tel", "hin"], help="Override language hint")
     parser.add_argument("--overwrite", action="store_true", help="Rewrite existing GT scaffolds")
+    parser.add_argument(
+        "--cc-pd-only",
+        action="store_true",
+        help="Skip files that are not Public Domain / Creative Commons (redistributability guard)",
+    )
     args = parser.parse_args()
 
     categories = args.category or DEFAULT_CATEGORIES
@@ -260,6 +275,9 @@ def main() -> int:
                 try:
                     info = file_info(client, title, args.delay)
                     expected, status, provenance, license_short = prefill(info, lang, category)
+                    if args.cc_pd_only and not _is_cc_pd(license_short):
+                        print(f"  skip (license {license_short!r}): {slug}")
+                        continue
                     size_mb = (info["imageinfo"].get("size") or 0) / 1_000_000
                     if args.download and args.max_size_mb and size_mb > args.max_size_mb:
                         print(f"  skip (size {size_mb:.0f}MB > {args.max_size_mb:.0f}MB): {slug}")

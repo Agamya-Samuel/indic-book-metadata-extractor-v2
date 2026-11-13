@@ -164,11 +164,11 @@
     "sources": [
       "https://te.wikisource.org/wiki/%E0%B0%9A%E0%B0%BF%E0%B0%A4%E0%B1%8D%E0%B0%B0%E0%B0%B2%E0%B1%87%E0%B0%96%E0%B0%A8%E0%B0%AE%E0%B1%81"
     ],
-    "enriched_at": "2026-11-12T08:35:31.087426+00:00",
+    "enriched_at": "2026-11-13T04:27:27.914773+00:00",
     "prefilled_fields": 7
   },
   "verification": {
-    "checked_at": "2026-11-12T08:36:57.791882+00:00",
+    "checked_at": "2026-11-13T05:53:29.344005+00:00",
     "prefilled": 7,
     "scan_confirmed": 3,
     "fields": {
