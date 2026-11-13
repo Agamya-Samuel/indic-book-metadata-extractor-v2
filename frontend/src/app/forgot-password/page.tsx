@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
+import { Alert } from "@/components/shared/alert";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { getErrorMessage } from "@/lib/error-handler";
@@ -67,14 +68,7 @@ export default function ForgotPasswordPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {error && (
-          <p
-            role="alert"
-            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-          >
-            {error}
-          </p>
-        )}
+        {error && <Alert>{error}</Alert>}
         <Field label="Email" htmlFor="forgot-email">
           <Input
             id="forgot-email"

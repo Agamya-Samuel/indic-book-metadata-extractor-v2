@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { isApprovedStatus } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
+import { Alert } from "@/components/shared/alert";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { Spinner } from "@/components/shared/spinner";
@@ -46,14 +47,7 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {error && (
-        <p
-          role="alert"
-          className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert>{error}</Alert>}
       <Field label="Email" htmlFor="email">
         <Input
           id="email"
@@ -74,8 +68,8 @@ function LoginForm() {
           onChange={(event) => setPassword(event.target.value)}
         />
       </Field>
-      <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? <Spinner className="size-4" /> : "Log in"}
+      <Button type="submit" className="w-full" loading={submitting}>
+        Log in
       </Button>
       <div className="flex items-center justify-between text-[var(--text-xs)]">
         <Link
