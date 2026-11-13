@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getBookDetail, getPageImageUrl, getBookCurrentStages } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
+import { Chip } from "@/components/shared/chip";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { BookDetailSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
@@ -13,7 +14,6 @@ import Image from "next/image";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import WorkflowResumeBanner from "@/components/book/workflow-resume-banner";
-import { cn } from "@/lib/utils";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -321,16 +321,13 @@ export default function BookDetailPage() {
               title={
                 <span className="flex items-center gap-2">
                   <span>Metadata</span>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-muted)]"
+                  <Chip
+                    dot
+                    tone="success"
                     title={`${nonEmptyFieldCount} fields with values`}
                   >
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 rounded-full bg-[var(--success-500)]"
-                    />
                     {nonEmptyFieldCount} of {Object.keys(metadataFields).length}
-                  </span>
+                  </Chip>
                 </span>
               }
               description="Fields extracted from the book, grouped by category."
@@ -396,8 +393,17 @@ export default function BookDetailPage() {
               title={
                 <span className="flex items-center gap-2">
                   <span>Pages</span>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-muted)]"
+                  <Chip
+                    dot
+                    tone={
+                      ocrState === "complete"
+                        ? "success"
+                        : ocrState === "all-failed"
+                          ? "danger"
+                          : ocrState === "not-started"
+                            ? "neutral"
+                            : "warning"
+                    }
                     title={
                       ocrState === "not-started"
                         ? "No OCR has been run on this book yet"
@@ -406,19 +412,6 @@ export default function BookDetailPage() {
                           : `${ocrDoneCount} of ${pages.length} pages have OCR text`
                     }
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "size-1.5 rounded-full",
-                        ocrState === "complete"
-                          ? "bg-[var(--success-500)]"
-                          : ocrState === "all-failed"
-                            ? "bg-[var(--danger-500)]"
-                            : ocrState === "not-started"
-                              ? "bg-[var(--text-subtle)]"
-                              : "bg-[var(--warning-500)]",
-                      )}
-                    />
                     {ocrState === "not-started" ? (
                       <span>Not started</span>
                     ) : ocrState === "all-failed" ? (
@@ -427,13 +420,13 @@ export default function BookDetailPage() {
                       <>
                         {ocrDoneCount} of {pages.length} OCR&apos;d
                         {lowConfidenceCount > 0 && (
-                          <span className="ml-0.5 text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                          <span className="ml-0.5 font-medium">
                             · {lowConfidenceCount} low conf
                           </span>
                         )}
                       </>
                     )}
-                  </span>
+                  </Chip>
                 </span>
               }
               description="Click a row to view the page image and OCR text."
@@ -453,17 +446,17 @@ export default function BookDetailPage() {
                           Page {page.page_number}
                         </span>
                         {page.ocr_confidence != null && (
-                          <span
-                            className={`text-[11px] px-1.5 py-0.5 rounded-[var(--radius-xs)] font-medium ${
+                          <Chip
+                            tone={
                               page.ocr_confidence >= 80
-                                ? "bg-[var(--success-50)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]"
+                                ? "success"
                                 : page.ocr_confidence >= 60
-                                  ? "bg-[var(--warning-50)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]"
-                                  : "bg-[var(--danger-50)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-                            }`}
+                                  ? "warning"
+                                  : "danger"
+                            }
                           >
                             {Math.round(page.ocr_confidence)}% confidence
-                          </span>
+                          </Chip>
                         )}
                         {page.ocr_text && (
                           <span className="text-[var(--text-xs)] text-[var(--text-subtle)] truncate max-w-[200px] sm:max-w-[300px]">
@@ -527,32 +520,28 @@ export default function BookDetailPage() {
               title={
                 <span className="flex items-center gap-2">
                   <span>Processing history</span>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-muted)]"
+                  <Chip
+                    dot
+                    tone={
+                      runningJobs > 0
+                        ? "info"
+                        : failedJobs > 0
+                          ? "danger"
+                          : completedJobs === jobs.length
+                            ? "success"
+                            : "neutral"
+                    }
                     title={`${completedJobs} of ${jobs.length} jobs completed`}
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "size-1.5 rounded-full",
-                        runningJobs > 0
-                          ? "bg-[var(--info-500)]"
-                          : failedJobs > 0
-                            ? "bg-[var(--danger-500)]"
-                            : completedJobs === jobs.length
-                              ? "bg-[var(--success-500)]"
-                              : "bg-[var(--text-subtle)]",
-                      )}
-                    />
                     {runningJobs > 0
                       ? `${runningJobs} running`
                       : `${completedJobs} of ${jobs.length} done`}
                     {failedJobs > 0 && (
-                      <span className="ml-0.5 text-[var(--danger-700)] dark:text-[var(--danger-100)]">
+                      <span className="ml-0.5 font-medium">
                         · {failedJobs} failed
                       </span>
                     )}
-                  </span>
+                  </Chip>
                 </span>
               }
               description="Past and current jobs for this book."
@@ -600,21 +589,18 @@ export default function BookDetailPage() {
               title={
                 <span className="flex items-center gap-2">
                   <span>LLM run history</span>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-muted)]"
+                  <Chip
+                    dot
+                    tone="accent"
                     title={`${llm_runs.length} extraction runs on file`}
                   >
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 rounded-full bg-[var(--accent)]"
-                    />
                     {llm_runs.length} {llm_runs.length === 1 ? "run" : "runs"}
                     {latestLlmRun?.model && (
-                      <span className="ml-0.5 text-[var(--text-subtle)]">
+                      <span className="ml-0.5 opacity-80">
                         · {latestLlmRun.model}
                       </span>
                     )}
-                  </span>
+                  </Chip>
                 </span>
               }
               description="Past LLM extraction runs and their results."
