@@ -126,6 +126,42 @@ class TestLLMServiceExtractBatch:
         assert isinstance(result, CoreIdentityBatch)
         assert usage["status"] == "fallback"
 
+    async def test_extract_batch_marks_transport_failure_as_error(self, service):
+        """A dead Ollama must not masquerade as an empty-but-successful batch."""
+        retry_exc = InstructorRetryException(
+            "retry exhausted", last_completion=None, messages=[], n_attempts=3, total_usage=[]
+        )
+        retry_exc.__cause__ = httpx.ConnectError("connection refused")
+
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create.side_effect = retry_exc
+        _setup_service_with_mock_client(service, mock_client)
+
+        result, raw, usage, prompt = await service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+        )
+
+        assert isinstance(result, CoreIdentityBatch)
+        assert usage["status"] == "error"
+        assert "connection refused" in usage["error"]
+        assert all(value is None for value in result.model_dump().values())
+
+
+def test_transport_failure_walks_the_cause_chain() -> None:
+    from app.services.llm_service import _transport_failure
+
+    retry_exc = InstructorRetryException(
+        "retry exhausted", last_completion=None, messages=[], n_attempts=3, total_usage=[]
+    )
+    assert _transport_failure(retry_exc) is None
+
+    wrapper = RuntimeError("wrapped")
+    wrapper.__cause__ = retry_exc
+    retry_exc.__cause__ = httpx.ConnectError("refused")
+    assert isinstance(_transport_failure(wrapper), httpx.ConnectError)
+
 
 class TestLLMServiceFullExtraction:
     @pytest.fixture
