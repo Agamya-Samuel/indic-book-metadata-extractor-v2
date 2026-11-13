@@ -43,6 +43,25 @@ FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "sam
 GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
 GT_ROOT = FIXTURE_ROOT.parent / "ground_truth"
 
+# Books eligible for scoring by default. ``prefilled_llm_unverified`` books have
+# a verified catalog core plus model-prefilled extras; those extras are excluded
+# per-field via ``ignored_fields`` so the model is not scored against its own
+# output, while the verified core still counts.
+SCOREABLE_STATUSES = {"verified", "prefilled_llm_unverified"}
+
+
+def ignored_fields(envelope: dict) -> set[str]:
+    """Fields whose ground-truth value came from model prefill, not a source.
+
+    Keyed on ``field_source == "node_llm_extraction"`` (set by
+    ``merge_node_fill.py``); ``field_status`` is deliberately *not* used because
+    enrichment also marks catalog-prefilled fields ``prefilled_needs_verification``.
+    """
+    src = envelope.get("field_source") if isinstance(envelope, dict) else None
+    if not isinstance(src, dict):
+        return set()
+    return {name for name, origin in src.items() if origin == "node_llm_extraction"}
+
 
 def discover_samples(quality: str = "clean") -> list[dict]:
     """Find all expected_metadata.json fixtures with PDFs present."""
@@ -89,9 +108,13 @@ def discover_ground_truth(root: Path | None = None, only_verified: bool = True) 
     ``{lang}/{quality}/`` directory, this layout keeps one directory per
     book so the Commons corpus can grow without restructuring.
 
-    Only books with ``verification_status == "verified"`` are scored by
-    default: Commons-prefilled metadata is a scaffold, not ground truth.
-    A bare expectation dict (no envelope) is treated as already verified.
+    Books whose ``verification_status`` is in :data:`SCOREABLE_STATUSES`
+    (``verified`` and ``prefilled_llm_unverified``) are scored by default; a
+    bare expectation dict (no envelope) is treated as already verified. Fields
+    whose source is model prefill (``field_source == "node_llm_extraction"``) are
+    excluded from scoring downstream (see :func:`ignored_fields`), so a prefilled
+    book still scores its verified core. Fully ``unverified`` scaffolds are
+    skipped unless ``only_verified`` is false.
     """
     root = root or GT_ROOT
     samples: list[dict] = []
@@ -114,7 +137,7 @@ def discover_ground_truth(root: Path | None = None, only_verified: bool = True) 
                     logger.warning("Skipping %s (unreadable GT: %s)", expected_path, exc)
                     continue
                 status = envelope.get("verification_status") if isinstance(envelope, dict) else None
-                if status is not None and status != "verified":
+                if status is not None and status not in SCOREABLE_STATUSES:
                     logger.info("Skipping %s (verification_status=%s)", book_dir.name, status)
                     continue
             pdf_path = book_dir / "original.pdf"
@@ -276,13 +299,14 @@ def main() -> int:
 
     for sample in samples:
         print(f"\n=== {sample['sample_id']} ===")
+        env = json.loads(Path(sample["expected_path"]).read_text(encoding="utf-8"))
         expected = load_expected(sample["expected_path"])
+        skip = ignored_fields(env)
         if args.stub:
             # Predict everything correctly for half the fields, miss the rest.
             predicted = {k: v for k, v in expected.items() if k in all_field_names}
         else:
             t0 = time.time()
-            env = json.loads(Path(sample["expected_path"]).read_text(encoding="utf-8"))
             book_lang = env.get("language", "tel") if isinstance(env, dict) else "tel"
             predicted = run_pipeline_on_pdf(
                 sample["pdf_path"], model=args.model, max_pages=args.pages, language=book_lang, max_tokens=args.max_tokens
@@ -295,8 +319,11 @@ def main() -> int:
             expected=expected,
             predicted=predicted,
             all_fields=all_field_names,
+            ignore_fields=skip,
         )
         book_evals.append(evaln)
+        if skip:
+            print(f"  (excluded {len(skip)} unverified prefill field(s) from scoring)")
 
         print(
             f"  TP={evaln.tp()} FP={evaln.fp()} FN={evaln.fn()}  "

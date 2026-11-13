@@ -42,12 +42,12 @@ Newly populated by C (book counts): `subject` 35, `place_of_printing` 29, `print
 
 - Model output is **prefill, not truth**. `merge_node_fill.py` applies a plausibility filter (rejects fake ISBNs like `99999990069634`, year-shaped junk like `943`, and Latin/Devanagari text in `publisher_telugu`) and drops echo values; **199 of ~230 raw fills survived**.
 - OCR is the ceiling (Telugu CER ≈ 0.45, [004](004-ocr-stage-cer.md)); books with unreadable front matter yield 0 fields (e.g. `1913_Ummed_Singh_Charitra` filled=0), books with clean title pages yield 10–12.
-- **Status semantics:** merging sets each touched book to `verification_status=prefilled_llm_unverified` (per-field `field_source=node_llm_extraction`, `field_status=prefilled_needs_verification`). The scoring harness scores only `verified` books, so these 41 books are **excluded from gold scoring until a human reviews them** — deliberately, to avoid scoring the model against its own output. **8 books remain fully source-verified.**
+- **Status semantics:** merging sets each touched book to `verification_status=prefilled_llm_unverified` (per-field `field_source=node_llm_extraction`, `field_status=prefilled_needs_verification`), deliberately so the model is never scored against its own output. **The harness now handles this per-field** (see below): prefilled books are still scored, but only on their verified core. **8 books remain fully source-verified.**
 
 ## Recommendation / next steps
 
 1. **Owner (user):** decide the verification depth — human-review the 199 prefilled values (or accept them as provisional prefill and leave the books out of the scored set).
-2. **Harness option:** make `evaluate_extraction.load_expected` field-aware — treat `prefilled_needs_verification` fields as `unknown` (excluded from TP/FN) so the 41 books can still score their catalog-verified fields without circularity.
+2. **Harness (done):** `evaluate_extraction` is now field-aware — `prefilled_llm_unverified` books are scored by default (added to `SCOREABLE_STATUSES`), and `ignored_fields()` excludes any field whose `field_source == "node_llm_extraction"` from TP/FP/FN. Keyed on `field_source` (not `field_status`, which enrichment also sets for catalog prefill — using that wrongly ignored verified fields). Covered by unit tests in `test_extraction_validator.py` and `test_ground_truth_discovery.py`.
 3. **Re-run with a larger page window** (front 10 / back 4) on books that yielded 0, if the extra OCR cost is acceptable, to catch title pages deeper than page 6.
 4. **Legacy `think` note:** any future pipeline call must use the native endpoint (or verify the OpenAI path forwards `think` for the installed Ollama) — this was a silent empty-output failure.
 5. **Node hygiene:** `test-node-1` was left running for this task; stop it (`gcloud compute instances stop test-node-1 --zone=asia-south1-c`) when the spend guardrail applies.

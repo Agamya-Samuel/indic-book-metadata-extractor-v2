@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from app.services.extraction_validator import (
-    BookEvaluation,
     OverallEvaluation,
     evaluate_book,
     evaluate_field,
@@ -71,6 +70,19 @@ class TestEvaluateBook:
         assert evaln.fp() == 0
         assert evaln.fn() == 0
         assert evaln.mean_token_f1() == 0.0
+
+    def test_ignore_fields_excluded_from_scoring(self):
+        # A field whose ground truth is model prefill must not be scored, or
+        # the model would be credited for reproducing its own output.
+        expected = {"title": "A", "printer": "Leader Press"}
+        predicted = {"title": "A", "printer": "Leader Press", "isbn": "unexpected"}
+        evaln = evaluate_book("test", expected, predicted, expected.keys(), ignore_fields={"printer"})
+
+        assert [r.field_name for r in evaln.field_results] == ["title"]
+        assert evaln.tp() == 1
+        # `printer` is skipped entirely, so the predicted value is neither TP nor FP.
+        assert evaln.fp() == 0
+        assert evaln.fn() == 0
 
 
 class TestOverallEvaluation:
