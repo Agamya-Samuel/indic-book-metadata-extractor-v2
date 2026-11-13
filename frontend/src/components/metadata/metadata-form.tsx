@@ -21,6 +21,8 @@ interface MetadataFormProps {
   onSave: (fields: Record<string, string | Record<string, string>>) => void;
   isSaving: boolean;
   confidenceByField?: Record<string, FieldConfidence>;
+  /** Reports which field the reviewer is working on, for the evidence pane. */
+  onFieldFocus?: (fieldName: string) => void;
 }
 
 const BATCH_DISPLAY_NAMES: Record<string, string> = {
@@ -95,6 +97,7 @@ export default function MetadataForm({
   onSave,
   isSaving,
   confidenceByField,
+  onFieldFocus,
 }: MetadataFormProps) {
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [customFieldName, setCustomFieldName] = useState("");
@@ -240,6 +243,7 @@ export default function MetadataForm({
                           onChange={(e) =>
                             handleChange(field.field_name, e.target.value)
                           }
+                          onFocus={() => onFieldFocus?.(field.field_name)}
                           rows={3}
                           dir="auto"
                         />
@@ -251,6 +255,7 @@ export default function MetadataForm({
                           onChange={(e) =>
                             handleChange(field.field_name, e.target.value)
                           }
+                          onFocus={() => onFieldFocus?.(field.field_name)}
                           dir="auto"
                           placeholder={
                             confidence === "empty" ? "Not extracted" : ""
