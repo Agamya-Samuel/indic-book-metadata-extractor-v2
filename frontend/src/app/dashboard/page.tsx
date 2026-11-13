@@ -332,19 +332,14 @@ export default function DashboardPage() {
           />
         ) : (
           <Stack gap={4}>
-            <ul className="divide-y divide-[var(--border)] -mx-5">
-              {books.map((book) => (
-                <BookRow
-                  key={book.id}
-                  book={book}
-                  busy={pending}
-                  onReset={() => setConfirmAction({ type: "reset", book })}
-                  onDelete={() => setConfirmAction({ type: "delete", book })}
-                  onRerunOcr={() => rerunOcrOne.mutate(book.id)}
-                  onRerunExtraction={() => rerunExtOne.mutate(book.id)}
-                />
-              ))}
-            </ul>
+            <BookTable
+              books={books}
+              busy={pending}
+              onReset={(book) => setConfirmAction({ type: "reset", book })}
+              onDelete={(book) => setConfirmAction({ type: "delete", book })}
+              onRerunOcr={(book) => rerunOcrOne.mutate(book.id)}
+              onRerunExtraction={(book) => rerunExtOne.mutate(book.id)}
+            />
             <Pagination
               page={bookPage}
               totalPages={booksData?.total_pages ?? 0}
@@ -500,91 +495,6 @@ function bookTitle(book: BookSearchResult): string {
 // Book row
 // ---------------------------------------------------------------------------
 
-function BookRow({
-  book,
-  busy,
-  onReset,
-  onDelete,
-  onRerunOcr,
-  onRerunExtraction,
-}: {
-  book: BookSearchResult;
-  busy: boolean;
-  onReset: () => void;
-  onDelete: () => void;
-  onRerunOcr: () => void;
-  onRerunExtraction: () => void;
-}) {
-  const title = bookTitle(book);
-  const active =
-    book.status === "ocr_running" || book.status === "llm_running";
-
-  // The pipeline has pages (and therefore OCR output to rebuild) from
-  // pages_selected onward. Before that, re-running OCR is meaningless.
-  const canRerunOcr = book.status !== "uploaded";
-  const canRerunExt =
-    book.status === "ocr_complete" ||
-    book.status === "awaiting_review" ||
-    book.status === "complete";
-
-  return (
-    <li className="px-5 py-3 flex items-center gap-3">
-      <Link
-        href={`/books/${book.id}`}
-        className="relative h-14 w-11 shrink-0 overflow-hidden rounded-[var(--radius-xs)] bg-[var(--surface-sunken)] border border-[var(--border)]"
-        aria-hidden="true"
-        tabIndex={-1}
-      >
-        {book.total_pages ? (
-          <Image
-            src={getThumbnailUrl(book.id, 1)}
-            alt=""
-            fill
-            sizes="44px"
-            className="object-cover"
-            unoptimized
-          />
-        ) : null}
-      </Link>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/books/${book.id}`}
-            className="truncate font-medium text-[var(--text)] hover:underline rounded-[var(--radius-xs)]"
-            title={title}
-          >
-            {title}
-          </Link>
-          <StatusBadge status={book.status} />
-        </div>
-        <p
-          className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
-          title={book.filename}
-        >
-          {book.filename}
-          {book.total_pages ? ` · ${book.total_pages} pages` : ""}
-        </p>
-      </div>
-      <div className="shrink-0">
-        <ActionMenu disabled={busy} ariaLabel={`Actions for ${title}`}>
-          <MenuLink href={`/books/${book.id}`}>Open book detail</MenuLink>
-          <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
-          <MenuSeparator />
-          {canRerunOcr && !active && (
-            <MenuButton onClick={onRerunOcr}>Re-run OCR</MenuButton>
-          )}
-          {canRerunExt && !active && (
-            <MenuButton onClick={onRerunExtraction}>Re-run extraction</MenuButton>
-          )}
-          {!active && <MenuButton onClick={onReset}>Reset to uploaded…</MenuButton>}
-          <MenuButton danger onClick={onDelete}>
-            Delete…
-          </MenuButton>
-        </ActionMenu>
-      </div>
-    </li>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Job table
@@ -598,6 +508,138 @@ function queueLabel(job: DashboardJobRow): React.ReactNode {
     return "Queued";
   }
   return "—";
+}
+
+function BookTable({
+  books,
+  busy,
+  onReset,
+  onDelete,
+  onRerunOcr,
+  onRerunExtraction,
+}: {
+  books: BookSearchResult[];
+  busy: boolean;
+  onReset: (book: BookSearchResult) => void;
+  onDelete: (book: BookSearchResult) => void;
+  onRerunOcr: (book: BookSearchResult) => void;
+  onRerunExtraction: (book: BookSearchResult) => void;
+}) {
+  const columns: DataTableColumn<BookSearchResult>[] = [
+    {
+      key: "book",
+      header: "Book",
+      cell: (book) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href={`/books/${book.id}`}
+            className="relative h-14 w-11 shrink-0 overflow-hidden rounded-[var(--radius-xs)] border border-[var(--border)] bg-[var(--surface-sunken)]"
+            aria-hidden="true"
+            tabIndex={-1}
+          >
+            {book.total_pages ? (
+              <Image
+                src={getThumbnailUrl(book.id, 1)}
+                alt=""
+                fill
+                sizes="44px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : null}
+          </Link>
+          <div className="min-w-0">
+            <Link
+              href={`/books/${book.id}`}
+              className="block truncate font-medium text-[var(--text)] hover:underline"
+              title={bookTitle(book)}
+            >
+              {bookTitle(book)}
+            </Link>
+            <p
+              className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+              title={book.filename}
+            >
+              {book.filename}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (book) => <StatusBadge status={book.status} />,
+    },
+    {
+      key: "pages",
+      header: "Pages",
+      hideBelow: "sm",
+      cell: (book) => (
+        <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+          {book.total_pages ?? "-"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (book) => {
+        const active =
+          book.status === "ocr_running" || book.status === "llm_running";
+        // The pipeline has pages from pages_selected onward, so re-running OCR
+        // is meaningless before that.
+        const canRerunOcr = book.status !== "uploaded";
+        const canRerunExt =
+          book.status === "ocr_complete" ||
+          book.status === "awaiting_review" ||
+          book.status === "complete";
+        return (
+          <div className="flex justify-end">
+            <ActionMenu
+              disabled={busy}
+              ariaLabel={`Actions for ${bookTitle(book)}`}
+            >
+              <MenuLink href={`/books/${book.id}`}>Open book detail</MenuLink>
+              <MenuLink href={workflowHref(book)}>
+                {workflowLabel(book.status)}
+              </MenuLink>
+              <MenuSeparator />
+              {canRerunOcr && !active && (
+                <MenuButton onClick={() => onRerunOcr(book)}>
+                  Re-run OCR
+                </MenuButton>
+              )}
+              {canRerunExt && !active && (
+                <MenuButton onClick={() => onRerunExtraction(book)}>
+                  Re-run extraction
+                </MenuButton>
+              )}
+              {!active && (
+                <MenuButton onClick={() => onReset(book)}>
+                  Reset to uploaded…
+                </MenuButton>
+              )}
+              <MenuButton danger onClick={() => onDelete(book)}>
+                Delete…
+              </MenuButton>
+            </ActionMenu>
+          </div>
+        );
+      },
+    },
+  ];
+
+  return (
+    <DataTable
+      caption="Your books"
+      columns={columns}
+      rows={books}
+      rowKey={(book) => book.id}
+    />
+  );
 }
 
 function JobTable({
