@@ -68,8 +68,11 @@ services:
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
       - ./docker/Modelfile.phi4-mini:/models/Modelfile.phi4-mini
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
-    mem_limit: "6g"
-    memswap_limit: "6g"
+    # Measured llama-server residency for phi4-mini at ctx 4096 was ~6.15 GB,
+    # which the old 6 GB cap OOM-killed mid-run; 7 GB leaves headroom without
+    # risking the 15 GB no-swap host.
+    mem_limit: "7g"
+    memswap_limit: "7g"
     environment:
       OLLAMA_PRELOAD_MODEL: phi4-mini
       OLLAMA_KEEP_ALIVE: "30m"

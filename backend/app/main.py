@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -41,6 +42,27 @@ AUTH_RATE_LIMIT_PATHS = frozenset(
 _redis_pool: aioredis.Redis | None = None
 
 
+def client_ip(request: Request) -> str:
+    """The real client address, not the edge proxy that delivered the request.
+
+    Cloudflare sets ``CF-Connecting-IP``; behind Traefik the socket peer is the
+    proxy, so keying limits on it would put every visitor in one bucket. Only
+    the *last* ``X-Forwarded-For`` hop is trusted (the one our own proxy
+    appended); earlier entries are client-controlled. Residual risk: until the
+    origin only accepts Cloudflare, a direct caller can forge either header —
+    see plans/011-launch-readiness.md.
+    """
+    forwarded = request.headers.get("cf-connecting-ip")
+    if forwarded and forwarded.strip():
+        return forwarded.strip()
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        last_hop = xff.split(",")[-1].strip()
+        if last_hop:
+            return last_hop
+    return request.client.host if request.client else "unknown"
+
+
 _THUMBNAIL_PATH_RE = re.compile(r"^/api/books/[^/]+/pages/\d+/thumbnail$")
 _SSE_PATH_RE = re.compile(r"^/api/sse/books/[^/]+/events$")
 
@@ -50,7 +72,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks and static assets
-        if request.url.path in ("/health", "/docs", "/openapi.json", "/redoc"):
+        if request.url.path in ("/health", "/api/health", "/docs", "/openapi.json", "/redoc"):
             return await call_next(request)
 
         # Skip rate limiting for thumbnail GETs — they serve cached static files
@@ -66,14 +88,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Redis not available — skip rate limiting
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        ip = client_ip(request)
 
         is_auth = request.url.path in AUTH_RATE_LIMIT_PATHS
         limit = AUTH_RATE_LIMIT_REQUESTS if is_auth else RATE_LIMIT_REQUESTS
         window = AUTH_RATE_LIMIT_WINDOW if is_auth else RATE_LIMIT_WINDOW
         scope = "auth" if is_auth else "global"
 
-        key = f"rate_limit:{scope}:{client_ip}"
+        key = f"rate_limit:{scope}:{ip}"
         now = time.time()
         window_start = now - window
         # Use a unique member per request to avoid collisions under concurrency
@@ -101,9 +123,27 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+REAPER_INTERVAL_SECONDS = 300
+
+
+async def _reaper_loop() -> None:
+    """Periodically fail jobs no worker will ever finish."""
+    from app.core.database import async_session_factory
+    from app.services.job_reaper import reap_stale_jobs
+
+    while True:
+        try:
+            async with async_session_factory() as db:
+                reaped = await reap_stale_jobs(db)
+                if reaped:
+                    logger.warning("Stale-job sweep failed %d job(s)", reaped)
+        except Exception:  # noqa: BLE001
+            logger.exception("Stale-job sweep failed")
+        await asyncio.sleep(REAPER_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     setup_logging()
 
     global _redis_pool
@@ -124,9 +164,20 @@ async def lifespan(app: FastAPI):
             await sse_service.start(_redis_pool)
         except Exception:
             logger.exception("Failed to start SSE service; clients will see no events")
+
+    reaper_task: asyncio.Task | None = None
+    if settings.stale_job_reaper_enabled:
+        reaper_task = asyncio.create_task(_reaper_loop(), name="job-reaper")
+
     yield
     # Shutdown
     logger.info("Application shutting down...")
+    if reaper_task is not None:
+        reaper_task.cancel()
+        try:
+            await reaper_task
+        except asyncio.CancelledError:
+            pass
     await sse_service.stop()
     if _redis_pool:
         await _redis_pool.aclose()
@@ -183,6 +234,26 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
+
+
+# Applied to every API response, including rate-limit and error responses.
+# frame-ancestors stays minimal (no script-src) so it cannot break the app.
+SECURITY_HEADERS = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    return response
 
 
 # ---------------------------------------------------------------------------
