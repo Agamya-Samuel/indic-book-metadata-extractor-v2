@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "Bhakta Mala of Nabhadas Ayodhya Edition (1905)",
-    "author": "Nabhadas (Author), Babu Shri Baldev Narayan Singh (Publisher/Editor)",
+    "author": "नाभदास (Author), बाबू श्री बालदेव नारायण सिंह (Publisher/Editor)",
     "description_work": "A classical 17th-century hagiographical poem composed in Braj Bhasha by Nabhadas, chronicling the lives of Hindu saints and Krishna devotees. This traditional 1905 print edition was published by Babu Shri Baldev Narayan Singh at Ayodhya. Digitized from the Digital Library of India collection.",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,

@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "Telugu: ఆనందంగా ఉండాలంటే Aanandhanga Undalante title QS:P1476,te:\"ఆనందంగా ఉండాలంటే \" label QS:Lte,\"ఆనందంగా ఉండాలంటే \" label QS:Len,\"Aanandhanga Undalante\"",
-    "author": "Vitapu Balasubrahmanyam",
+    "author": "వితపు బలసుబ్రహ్మణ్యం",
     "description_work": "Book by Vitapu Balasubrahmanyam",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,

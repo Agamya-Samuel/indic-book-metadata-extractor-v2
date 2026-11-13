@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "అబలా సచ్చరిత్ర రత్నమాల, ద్వితీయ సంపుటము",
-    "author": "Bhandaru Achchamamba",
+    "author": "భండారు అచ్చమాంబ",
     "description_work": "Biographies of some Indian women in Telugu found in Digital Library of India and uploaded to be used in Telugu wikisource. Rajasekhar1961 ( talk ) 11:35, 3 June 2015 (UTC)",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": "wikisource_index",
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,

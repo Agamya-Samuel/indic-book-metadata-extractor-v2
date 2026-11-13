@@ -1,7 +1,16 @@
 # 011 — Ground-Truth Source Expansion: scale + metadata depth (Telugu/Hindi, CC/PD)
 
 - **Date:** 2026-11-13
-- **Status:** Plan — awaiting go-ahead to implement (PoC first).
+- **Status:** **Phase 1 PoC done** (2026-11-13) — result below; Phase 2+ pending.
+
+## Phase 1 result (2026-11-13)
+
+Built [`enrich_catalogues.py`](../backend/scripts/enrich_catalogues.py) (`ia_dc` + `pustaka_nidhi`) and [`fix_script.py`](../backend/scripts/fix_script.py) (OpenRouter `ernie-5.5-flash:free` transliteration), applied to the existing 49 books.
+
+- `pustaka_nidhi`: 42,828 records, **17/49 books matched** by IA id — but their titles were **already Telugu script**, so it changed nothing here. Its value is **scale** (new Telugu books), not the current set.
+- `ia_dc` (dc.publisher / date.citation / totalpages / subject.classification): **0 new fields** — that data was already captured by the earlier enrich pass.
+- `fix_script`: Latin **title/label 11 → 8**, **author 26 → 11** (15 authors + 3 titles transliterated). The remaining 8 Latin titles are genuine English/resource titles (e.g. *A Collection of Telugu Proverbs*), correctly left unchanged.
+- Depth field count unchanged (681 values, 39/49): Phase 1 was a **script fix**, not new fields. Depth gains must come from the scale pass (new books) or the DLI Catalogue adapter (Phase 2).
 - **Depends on:** [learnings/001](../learnings/001-ground-truth-dataset-feasibility.md), [learnings/019](../learnings/019-gt-corpus-enrichment.md), [plans/009](009-metadata-page-selection.md).
 - **Decisions (user, 2026-11-13):** Internet Archive **allowed**; goal is **both scale and depth**; **Telugu/Hindi only**; new catalogues are **another prefill to verify**, not authoritative; **CC/PD-only** for redistribution; OpenRouter **free** models permitted (**1000 req/day**).
 

@@ -17,15 +17,15 @@ Comparison of the corpus in `backend/tests/fixtures/ground_truth/` against [`doc
 
 | # | Field | Batch | Wikidata | Telugu | Hindi | Total | Source(s) |
 |---|---|---|---|---|---|---|---|
-| 1 | `author` | core_identity | P50 | 30 | 17 | 47 | unmapped:47 |
+| 1 | `author` | core_identity | P50 | 30 | 17 | 47 | unmapped:32, openrouter_transliteration:15 |
 | 2 | `description_edition` | core_identity | — | 4 | 6 | 10 | node_llm_extraction:10 |
 | 3 | `description_work` | core_identity | — | 24 | 18 | 42 | unmapped:42 |
 | 4 | `isbn` | core_identity | — | 2 | 0 | 2 | node_llm_extraction:2 |
-| 5 | `label` | core_identity | — | 30 | 12 | 42 | derived:20, unmapped:11, wikisource_index:7, internet_archive:4 |
+| 5 | `label` | core_identity | — | 30 | 12 | 42 | derived:20, unmapped:10, wikisource_index:7, openrouter_transliteration:3, internet_archive:2 |
 | 6 | `language` | core_identity | P407 | 30 | 19 | 49 | unmapped:49 |
 | 7 | `original_language` | core_identity | P364 | 30 | 19 | 49 | unmapped:49 |
 | 8 | `subtitle` | core_identity | — | 12 | 8 | 20 | node_llm_extraction:20 |
-| 9 | `title` | core_identity | — | 30 | 12 | 42 | unmapped:31, wikisource_index:7, internet_archive:4 |
+| 9 | `title` | core_identity | — | 30 | 12 | 42 | unmapped:30, wikisource_index:7, openrouter_transliteration:3, internet_archive:2 |
 | 10 | `book_designer` | contributors | — | 0 | 0 | 0 | — |
 | 11 | `compiler` | contributors | — | 0 | 3 | 3 | node_llm_extraction:3 |
 | 12 | `cover_artist` | contributors | P736 | 0 | 0 | 0 | — |

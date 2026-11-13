@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": null,
-    "author": "Bharatendu Harishchandra",
+    "author": "भरतेंदु हरिश्चंद्र",
     "description_work": "This book is a 4 act play from Bharatendu Harischandra (1850-1885), written in 1880s, republished in 1903 and 1933.",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,

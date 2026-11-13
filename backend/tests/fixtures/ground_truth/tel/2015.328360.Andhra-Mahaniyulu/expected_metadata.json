@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "ఆంధ్ర మహనీయులు",
-    "author": "Chilukuri Veerabhadra Rao (1872-1939)",
+    "author": "చిలుకూరి వీరభద్ర రావు (1872-1939)",
     "description_work": "Biographic work of Andhra people, published in 1952; found in Digital Library of India and Archives; uploaded to be used in Telugu wikisource. Rajasekhar1961 ( talk )",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Front-matter bibliographic fields verified 2026-11-11 against the proofread Wikisource title page (te.wikisource, page 2): title/label (ఆంధ్ర మహనీయులు), publisher (మాదిరెడ్డి సుబ్బారావు), place_of_publication (రాజమహేంద్రవరము), publication_date (1952), language. author stored as Latin transliteration (source: చిలుకూరి వీరభద్రరావు). Fields other than the front-matter identity set remain Commons scaffold.",
   "field_source": {
     "label": "wikisource_index",
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,

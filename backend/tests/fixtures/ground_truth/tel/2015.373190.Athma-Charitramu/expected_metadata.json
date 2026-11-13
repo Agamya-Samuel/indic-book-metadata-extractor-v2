@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "ఆత్మచరిత్రము",
-    "author": "Rayasam Venkata Shivudu (1870-1953)",
+    "author": "రాయసం వెంకట శివుడు (1870-1953)",
     "description_work": "This autobiography of R. Venkata Sivudu (died in 1953) published in 1933, is found in Archives and uploaded to be used in Telugu wisisource. Rajasekhar1961 ( talk ) 05:30, 19 September 2017 (UTC)",
     "description_edition": "AUTOBIOGRAPHY",
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Front-matter bibliographic fields verified 2026-11-11 against the proofread Wikisource title page (te.wikisource, page 3): title/label, place_of_publication (మద్రాసు), publication_date (1933), language; publisher corrected from null to 'ఆంధ్ర పత్రికా ముద్రాలయము'. author is stored as Latin transliteration (source is Telugu: రాయసము వెంకటశివుఁడు). Fields other than the front-matter identity set remain Commons scaffold.",
   "field_source": {
     "label": "wikisource_index",
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": "node_llm_extraction",
     "translator": null,

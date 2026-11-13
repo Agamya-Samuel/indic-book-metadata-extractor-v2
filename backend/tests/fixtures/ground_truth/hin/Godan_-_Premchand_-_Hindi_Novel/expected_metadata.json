@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": null,
-    "author": "Premchand",
+    "author": "प्रेमचंद",
     "description_work": "Godaan is a classic Hindi novel authored by Premchand . In public domain in India",
     "description_edition": null,
     "translator": null,
@@ -113,7 +113,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,
