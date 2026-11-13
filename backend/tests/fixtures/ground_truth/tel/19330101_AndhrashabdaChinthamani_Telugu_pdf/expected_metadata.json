@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "ఆంధ్ర శబ్ద చింతామణి",
     "author": "నన్నయ భట్టారకుడు",
@@ -164,12 +164,12 @@
     "sources": [
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A19330101_AndhrashabdaChinthamani_Telugu_pdf.pdf"
     ],
-    "enriched_at": "2026-11-13T04:27:17.910121+00:00",
-    "prefilled_fields": 10
+    "enriched_at": "2026-11-13T20:39:24.302106+00:00",
+    "prefilled_fields": 14
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.333205+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T20:44:06.062547+00:00",
+    "prefilled": 14,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -197,7 +197,8 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "catalog_only",
@@ -244,7 +245,8 @@
         "status": "empty"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -281,7 +283,8 @@
         "status": "empty"
       },
       "serial_number_in_series": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "part_of_the_set": {
         "status": "empty"
@@ -306,7 +309,8 @@
         "status": "empty"
       },
       "publisher_telugu": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "sponsor": {
         "status": "empty"

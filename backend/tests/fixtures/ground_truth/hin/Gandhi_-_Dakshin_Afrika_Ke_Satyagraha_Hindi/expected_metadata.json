@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "Gandhi - Dakshin Afrika Ke Satyagraha (Hindi)",
     "author": "Mahatma Gandhi",
@@ -164,12 +164,12 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.309618 https:"
     ],
-    "enriched_at": "2026-11-13T11:35:08.202587+00:00",
+    "enriched_at": "2026-11-13T20:38:04.286638+00:00",
     "prefilled_fields": 14
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.313611+00:00",
-    "prefilled": 6,
+    "checked_at": "2026-11-13T20:44:06.034476+00:00",
+    "prefilled": 14,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -185,10 +185,12 @@
         "source": "commons"
       },
       "description_edition": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "translator": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "editor": {
         "status": "empty"
@@ -206,14 +208,16 @@
         "status": "empty"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "catalog_only",
         "source": "commons"
       },
       "edition_or_translation_of": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "based_on": {
         "status": "empty"
@@ -222,10 +226,12 @@
         "status": "empty"
       },
       "volume": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "edition_number": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "publication_date": {
         "status": "empty"
@@ -237,10 +243,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",

@@ -5,10 +5,10 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": null,
-    "author": "Ramnarayan \"Yadavendu\"",
+    "author": "रामनारायण \"यादवेंदु\"",
     "description_work": "An encyclopedia released in India in 1943 in hindi language. Author is Ramnarayan \"Yadavendu\", thi book is in Public domain in India.",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,
@@ -164,12 +164,12 @@
     "sources": [
       "https://hi.wikisource.org/wiki/%E0%A4%85%E0%A4%82%E0%A4%A4%E0%A4%B0%E0%A5%8D%E0%A4%B0%E0%A4%BE%E0%A4%B7%E0%A5%8D%E0%A4%9F%E0%A5%8D%E0%A4%B0%E0%A5%80%E0%A4%AF_%E0%A4%9C%E0%A5%8D%E0%A4%9E%E0%A4%BE%E0%A4%A8%E0%A4%95%E0%A5%8B%E0%A4%B6"
     ],
-    "enriched_at": "2026-11-13T11:34:57.785775+00:00",
-    "prefilled_fields": 6
+    "enriched_at": "2026-11-13T20:37:54.569820+00:00",
+    "prefilled_fields": 8
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.311050+00:00",
-    "prefilled": 5,
+    "checked_at": "2026-11-13T20:44:06.031921+00:00",
+    "prefilled": 8,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -177,7 +177,7 @@
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
@@ -206,7 +206,8 @@
         "source": "commons_category"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "catalog_only",
@@ -219,7 +220,8 @@
         "status": "empty"
       },
       "inspired_by": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "volume": {
         "status": "empty"
@@ -316,7 +318,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

@@ -4,17 +4,17 @@
   "rule": "sha256(work_key) within language stratum; work-groups are disjoint",
   "counts": {
     "hin": {
-      "dev": 6,
-      "test": 13
+      "dev": 10,
+      "test": 25
     },
     "tel": {
-      "dev": 9,
-      "test": 21
+      "dev": 11,
+      "test": 25
     }
   },
   "dev": [
+    "1857_మ_స_ల_ల",
     "1895_SarpaVishayaSarvasvaSangrahamu_Telugu_PDF",
-    "19140101_Priyapravaas_Hindi_PDF",
     "1917_Prataparudreeyamu_Ratnapanasahitam_Telugu_PDF",
     "19280101_AngleyaVaidyaRahasyamu_Telugu_PDF",
     "19280101_Vasanthakumari_Telugu",
@@ -24,18 +24,24 @@
     "2015.372978.Andhra-Kavithva",
     "5व_जल_सम_म_लन_9-12_नवम_बर_05",
     "Aanandhanga_Undalante_VBS_JVV",
+    "Adhunikarajyanga025633mbp",
     "Gandhi_-_Delhi_Diary_Hindi",
+    "Hindi_Ke_Musalman_Kavi_-_Ganga_Prasad_Singh",
     "Lūka_racita_susamācāra_aura_Preritoṃkī_kriyāoṃkā_vṛttānta._IA_lukaracitasusama00unse",
     "Prabhu-Padhare",
-    "Śiva_parīkshā._IA_sivapariksha00unse"
+    "Veer_Punjabi_-_Bhimsen_Vidyalankar",
+    "अर_वल_क_आ_स",
+    "अरवर_नद_क_प_नर_जन_म_क_कथ",
+    "आह_र_तत_त_व",
+    "कव_त_क_म_द"
   ],
   "test": [
     ".Kalidasa-Charitra_by_chilakamarthi_lakshminarasimham",
     "10031upanishhats033596mbp",
     "10049upanyaasans033612mbp",
     "10879telugukaavy034400mbp",
-    "1857_మ_స_ల_ల",
     "1913_Ummed_Singh_Charitra_Hindi_PDF",
+    "19140101_Priyapravaas_Hindi_PDF",
     "19220101_BrahmaVidya_Telugu_Pdf",
     "19220101_SriSugunaMani_Telugu_PDF",
     "19230101_LavaKusa_Telugu_PDF",
@@ -49,10 +55,15 @@
     "2015.263752.Sadhu-Aur",
     "2015.373190.Athma-Charitramu",
     "2030020025431_-_chitra_leikhanamu",
+    "ADIDAMU-SURAKAVI",
     "A_Collection_of_Telugu_Proverbs",
     "A_Collection_of_Telugu_Proverbs_translat_1",
     "Abalaa_sachcharitra_ratnamaala",
     "Abalaa_sachcharitra_ratnamaala_Dvitiiya_Sanputa",
+    "Abraham_Lincoln_Telugu",
+    "Acharya_SV_Jogarao_Sahitya_Varivasya_by_Velamala_Simmanna",
+    "Akkanna_Maadannala_Charitra_Vedamu_Venkataraya_Sastri",
+    "Aliya_Rama_Rayalu",
     "Antarrashtriya_Gyankosh",
     "Bhakta_Mala_of_Nabhadas_Ayodhya_Edition_1905",
     "Bharatiya_Sampatti_Shastra",
@@ -60,10 +71,21 @@
     "Dayanand_Granthmala_Bhag_1_1925",
     "Gandhi_-_Dakshin_Afrika_Ke_Satyagraha_Hindi",
     "Godan_-_Premchand_-_Hindi_Novel",
-    "Hindi_Ke_Musalman_Kavi_-_Ganga_Prasad_Singh",
     "Hindi_Sahitya_ka_Itihas_by_Acharya_Ramchandra_Shukla",
     "Muntakhabat-i-hindi_Vol._1_Ed._5th_IA_in.ernet.dli.2015.94432",
-    "Shri_Chandravali_-_Bharatendu_Harishchandra_-_1933"
+    "Shri_Chandravali_-_Bharatendu_Harishchandra_-_1933",
+    "Srimad_Bhagavad_Gita_Bhavartha_Translation_by_Gadadhar_Singh_1896",
+    "Thalua_Club_-_Babu_Gulabrai",
+    "Tulsichaura-Hindi",
+    "Yeh_Gali_Bikau_Nahin-Hindi",
+    "Śiva_parīkshā._IA_sivapariksha00unse",
+    "अय_ध_य_क_इत_ह_स",
+    "अह_स_Ahimsa_by_M._K._Gandhi",
+    "आप_और_म_-_क_र_ब_र_म",
+    "आल_हखण_ड",
+    "इ_श_अल_ल_ह_ख_न_-_र_न_क_तक_क_कह_न",
+    "क_श_क_भ",
+    "कर_त_तव_य_श_स_त_र"
   ],
-  "created_at": "2026-11-13T16:01:28.747729+00:00"
+  "created_at": "2026-11-13T20:44:09.230567+00:00"
 }

@@ -5,7 +5,7 @@
   "source_category": "Category:PDF books in Telugu",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "ఆంధ్ర మహనీయులు",
     "author": "చిలుకూరి వీరభద్ర రావు (1872-1939)",
@@ -165,21 +165,21 @@
       "https://archive.org/details/in.ernet.dli.2015.328360",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95:2015.328360.Andhra-Mahaniyulu.pdf"
     ],
-    "enriched_at": "2026-11-13T04:27:22.115644+00:00",
-    "prefilled_fields": 12
+    "enriched_at": "2026-11-13T20:39:30.515615+00:00",
+    "prefilled_fields": 14
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.337831+00:00",
-    "prefilled": 12,
-    "scan_confirmed": 5,
+    "checked_at": "2026-11-13T20:44:06.067206+00:00",
+    "prefilled": 14,
+    "scan_confirmed": 8,
     "fields": {
       "label": {
         "status": "scan_confirmed",
         "source": "wikisource_index"
       },
       "author": {
-        "status": "not_in_scan",
-        "source": "commons"
+        "status": "scan_confirmed",
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "not_in_scan",
@@ -198,7 +198,8 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "not_in_scan",
@@ -246,7 +247,8 @@
         "status": "empty"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "not_in_scan",

@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "ప్రతాపరుద్రీయము రత్నాపణసహితము",
     "author": "విద్యానాథుడు",
@@ -165,12 +165,12 @@
       "https://archive.org/details/in.ernet.dli.2015.497541",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A1917_Prataparudreeyamu_Ratnapanasahitam_Telugu_PDF.pdf"
     ],
-    "enriched_at": "2026-11-13T04:26:49.627436+00:00",
-    "prefilled_fields": 13
+    "enriched_at": "2026-11-13T20:38:57.162825+00:00",
+    "prefilled_fields": 19
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.326392+00:00",
-    "prefilled": 13,
+    "checked_at": "2026-11-13T20:44:06.055146+00:00",
+    "prefilled": 19,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -199,14 +199,16 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "catalog_only",
         "source": "commons"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
         "status": "catalog_only",
@@ -244,10 +246,12 @@
         "source": "commons"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -301,7 +305,8 @@
         "source": "commons"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -310,7 +315,8 @@
         "status": "empty"
       },
       "publisher_telugu": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "sponsor": {
         "status": "empty"

@@ -1,0 +1,334 @@
+{
+  "description": "Alha- Khand — Commons GT scaffold (UNVERIFIED)",
+  "language": "hin",
+  "quality": "commons",
+  "source_category": "Category:Hindi-language books",
+  "total_pages": null,
+  "recommended_pages": null,
+  "verification_status": "verified",
+  "expected_metadata": {
+    "label": "Alha- Khand",
+    "author": "Jaganik",
+    "description_work": "Book Source: http://www.new.dli.ernet.in/handle/2015/321959 \" rel=\"nofollow\">Digital Library of India Item 2015.321959 dc.contributor.author: Jaganik dc.date.accessioned: 2015-08-11T21:47:38Z dc.date.available: 2015-08-11T21:47:38Z dc.date.copyright: 1923 dc.date.digitalpublicationdate: 2010/1 dc.date.citation: 1923 dc.identifier.barcode: 99999990248353 dc.identifier.origpath: /data4/upload/0101/157 dc.identifier.copyno: 1 dc.identifier.uri: http://www.new.dli.ernet.in/handle/2015/321959 dc.description.scanningcentre: Banasthali University dc.description.main: 1 dc.description.tagged: 0 dc.description.totalpages: 618 dc.format.mimetype: application/pdf dc.language.iso: Hindi dc.publisher.digitalrepublisher: Digital Library Of India dc.publisher: Lakhanow, Munshi Navalkishor Press dc.source.library: Sanmati Library dc.title: Alha- Khand dc.type: Print - Paper dc.type: Book",
+    "description_edition": null,
+    "translator": null,
+    "editor": null,
+    "compiler": null,
+    "inception": null,
+    "form_of_creative_work": null,
+    "genre": null,
+    "subject": "Banasthali",
+    "original_language": "Hindi",
+    "edition_or_translation_of": null,
+    "based_on": null,
+    "inspired_by": null,
+    "volume": null,
+    "edition_number": null,
+    "publication_date": "1923",
+    "publisher": "Lakhanow, Munshi Navalkishor Press",
+    "place_of_publication": null,
+    "printer": null,
+    "place_of_printing": null,
+    "language": "Hindi",
+    "cover_artist": null,
+    "cover_page_designer": null,
+    "typesetting_by": null,
+    "typing_by": null,
+    "book_designer": null,
+    "distributors": null,
+    "pages": "618",
+    "dedication": null,
+    "dedication_verbatim": null,
+    "part_of_series": null,
+    "serial_number_in_series": null,
+    "part_of_the_set": null,
+    "illustrators": null,
+    "isbn": null,
+    "title": "Alha- Khand",
+    "subtitle": null,
+    "awards": null,
+    "context": null,
+    "publisher_telugu": null,
+    "sponsor": null,
+    "first_published_in": null,
+    "forewords": null,
+    "abbreviations": null,
+    "authors_in_compilation": null,
+    "opinions_messages": null,
+    "scribes": null
+  },
+  "field_status": {
+    "label": "prefilled_needs_verification",
+    "author": "prefilled_needs_verification",
+    "description_work": "prefilled_needs_verification",
+    "description_edition": "empty_needs_annotation",
+    "translator": "empty_needs_annotation",
+    "editor": "empty_needs_annotation",
+    "compiler": "empty_needs_annotation",
+    "inception": "empty_needs_annotation",
+    "form_of_creative_work": "empty_needs_annotation",
+    "genre": "empty_needs_annotation",
+    "subject": "prefilled_needs_verification",
+    "original_language": "prefilled_needs_verification",
+    "edition_or_translation_of": "empty_needs_annotation",
+    "based_on": "empty_needs_annotation",
+    "inspired_by": "empty_needs_annotation",
+    "volume": "empty_needs_annotation",
+    "edition_number": "empty_needs_annotation",
+    "publication_date": "prefilled_needs_verification",
+    "publisher": "prefilled_needs_verification",
+    "place_of_publication": "empty_needs_annotation",
+    "printer": "empty_needs_annotation",
+    "place_of_printing": "empty_needs_annotation",
+    "language": "prefilled_needs_verification",
+    "cover_artist": "empty_needs_annotation",
+    "cover_page_designer": "empty_needs_annotation",
+    "typesetting_by": "empty_needs_annotation",
+    "typing_by": "empty_needs_annotation",
+    "book_designer": "empty_needs_annotation",
+    "distributors": "empty_needs_annotation",
+    "pages": "prefilled_needs_verification",
+    "dedication": "empty_needs_annotation",
+    "dedication_verbatim": "empty_needs_annotation",
+    "part_of_series": "empty_needs_annotation",
+    "serial_number_in_series": "empty_needs_annotation",
+    "part_of_the_set": "empty_needs_annotation",
+    "illustrators": "empty_needs_annotation",
+    "isbn": "empty_needs_annotation",
+    "title": "prefilled_needs_verification",
+    "subtitle": "empty_needs_annotation",
+    "awards": "empty_needs_annotation",
+    "context": "empty_needs_annotation",
+    "publisher_telugu": "empty_needs_annotation",
+    "sponsor": "empty_needs_annotation",
+    "first_published_in": "empty_needs_annotation",
+    "forewords": "empty_needs_annotation",
+    "abbreviations": "empty_needs_annotation",
+    "authors_in_compilation": "empty_needs_annotation",
+    "opinions_messages": "empty_needs_annotation",
+    "scribes": "empty_needs_annotation"
+  },
+  "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
+  "field_source": {
+    "label": null,
+    "author": null,
+    "description_work": null,
+    "description_edition": null,
+    "translator": null,
+    "editor": null,
+    "compiler": null,
+    "inception": null,
+    "form_of_creative_work": null,
+    "genre": null,
+    "subject": "internet_archive",
+    "original_language": null,
+    "edition_or_translation_of": null,
+    "based_on": null,
+    "inspired_by": null,
+    "volume": null,
+    "edition_number": null,
+    "publication_date": "internet_archive",
+    "publisher": "internet_archive",
+    "place_of_publication": null,
+    "printer": null,
+    "place_of_printing": null,
+    "language": null,
+    "cover_artist": null,
+    "cover_page_designer": null,
+    "typesetting_by": null,
+    "typing_by": null,
+    "book_designer": null,
+    "distributors": null,
+    "pages": "internet_archive",
+    "dedication": null,
+    "dedication_verbatim": null,
+    "part_of_series": null,
+    "serial_number_in_series": null,
+    "part_of_the_set": null,
+    "illustrators": null,
+    "isbn": null,
+    "title": null,
+    "subtitle": null,
+    "awards": null,
+    "context": null,
+    "publisher_telugu": null,
+    "sponsor": null,
+    "first_published_in": null,
+    "forewords": null,
+    "abbreviations": null,
+    "authors_in_compilation": null,
+    "opinions_messages": null,
+    "scribes": null
+  },
+  "enrichment": {
+    "sources": [
+      "https://archive.org/details/in.ernet.dli.2015.321959"
+    ],
+    "enriched_at": "2026-11-13T20:38:36.553683+00:00",
+    "prefilled_fields": 10
+  },
+  "verification": {
+    "checked_at": "2026-11-13T20:44:06.043689+00:00",
+    "prefilled": 10,
+    "scan_confirmed": 0,
+    "fields": {
+      "label": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "author": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "description_work": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "description_edition": {
+        "status": "empty"
+      },
+      "translator": {
+        "status": "empty"
+      },
+      "editor": {
+        "status": "empty"
+      },
+      "compiler": {
+        "status": "empty"
+      },
+      "inception": {
+        "status": "empty"
+      },
+      "form_of_creative_work": {
+        "status": "empty"
+      },
+      "genre": {
+        "status": "empty"
+      },
+      "subject": {
+        "status": "catalog_only",
+        "source": "internet_archive"
+      },
+      "original_language": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "edition_or_translation_of": {
+        "status": "empty"
+      },
+      "based_on": {
+        "status": "empty"
+      },
+      "inspired_by": {
+        "status": "empty"
+      },
+      "volume": {
+        "status": "empty"
+      },
+      "edition_number": {
+        "status": "empty"
+      },
+      "publication_date": {
+        "status": "catalog_only",
+        "source": "internet_archive"
+      },
+      "publisher": {
+        "status": "catalog_only",
+        "source": "internet_archive"
+      },
+      "place_of_publication": {
+        "status": "empty"
+      },
+      "printer": {
+        "status": "empty"
+      },
+      "place_of_printing": {
+        "status": "empty"
+      },
+      "language": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "cover_artist": {
+        "status": "empty"
+      },
+      "cover_page_designer": {
+        "status": "empty"
+      },
+      "typesetting_by": {
+        "status": "empty"
+      },
+      "typing_by": {
+        "status": "empty"
+      },
+      "book_designer": {
+        "status": "empty"
+      },
+      "distributors": {
+        "status": "empty"
+      },
+      "pages": {
+        "status": "catalog_only",
+        "source": "internet_archive"
+      },
+      "dedication": {
+        "status": "empty"
+      },
+      "dedication_verbatim": {
+        "status": "empty"
+      },
+      "part_of_series": {
+        "status": "empty"
+      },
+      "serial_number_in_series": {
+        "status": "empty"
+      },
+      "part_of_the_set": {
+        "status": "empty"
+      },
+      "illustrators": {
+        "status": "empty"
+      },
+      "isbn": {
+        "status": "empty"
+      },
+      "title": {
+        "status": "catalog_only",
+        "source": "commons"
+      },
+      "subtitle": {
+        "status": "empty"
+      },
+      "awards": {
+        "status": "empty"
+      },
+      "context": {
+        "status": "empty"
+      },
+      "publisher_telugu": {
+        "status": "empty"
+      },
+      "sponsor": {
+        "status": "empty"
+      },
+      "first_published_in": {
+        "status": "empty"
+      },
+      "forewords": {
+        "status": "empty"
+      },
+      "abbreviations": {
+        "status": "empty"
+      },
+      "authors_in_compilation": {
+        "status": "empty"
+      },
+      "opinions_messages": {
+        "status": "empty"
+      },
+      "scribes": {
+        "status": "empty"
+      }
+    }
+  }
+}

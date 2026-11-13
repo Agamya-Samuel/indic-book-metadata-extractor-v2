@@ -164,17 +164,17 @@
     "sources": [
       "https://archive.org/details/sivapariksha00unse"
     ],
-    "enriched_at": "2026-11-13T11:35:25.255050+00:00",
+    "enriched_at": "2026-11-13T20:38:27.554077+00:00",
     "prefilled_fields": 10
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.318434+00:00",
-    "prefilled": 5,
+    "checked_at": "2026-11-13T20:44:06.040743+00:00",
+    "prefilled": 10,
     "scan_confirmed": 0,
     "fields": {
       "label": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "author": {
         "status": "empty"
@@ -205,7 +205,8 @@
         "status": "empty"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "original_language": {
         "status": "catalog_only",
@@ -227,10 +228,12 @@
         "status": "empty"
       },
       "publication_date": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "publisher": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "place_of_publication": {
         "status": "empty"
@@ -264,7 +267,8 @@
         "status": "empty"
       },
       "pages": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "dedication": {
         "status": "empty"
@@ -289,7 +293,7 @@
       },
       "title": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "subtitle": {
         "status": "empty"
@@ -304,7 +308,8 @@
         "status": "empty"
       },
       "sponsor": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "first_published_in": {
         "status": "empty"

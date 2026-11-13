@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "Sadhu Aur Vaishya",
     "author": "Jatibhaskar → Jwalaprasad Mishra Rangeela Rasul → Pandit Chamupati (agar ye wahi original edition hai) Kinar Desh Main → Rahul Sankrityayan Hindi Bangla Shiksha → Haridas Vaidya Sadhu Aur Vaishya → Krishna Prasad Kaul",
@@ -164,12 +164,12 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.263752"
     ],
-    "enriched_at": "2026-11-13T11:34:54.757860+00:00",
-    "prefilled_fields": 18
+    "enriched_at": "2026-11-13T20:37:46.060672+00:00",
+    "prefilled_fields": 21
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.309914+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T20:44:06.030884+00:00",
+    "prefilled": 21,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -185,10 +185,12 @@
         "source": "commons"
       },
       "description_edition": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "translator": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "editor": {
         "status": "empty"
@@ -197,13 +199,15 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
         "status": "catalog_only",
@@ -214,10 +218,12 @@
         "source": "commons"
       },
       "edition_or_translation_of": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "based_on": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "inspired_by": {
         "status": "empty"
@@ -226,7 +232,8 @@
         "status": "empty"
       },
       "edition_number": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "publication_date": {
         "status": "catalog_only",
@@ -240,10 +247,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -297,7 +306,8 @@
         "source": "internet_archive"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -321,7 +331,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"
