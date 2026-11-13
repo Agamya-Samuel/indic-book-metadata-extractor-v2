@@ -81,9 +81,7 @@ exhaustive):
 
 **Mitigations NOT yet implemented**:
 - Page-rotation detection (planned: run `--psm 1` OSD on page 1)
-- Indic-language-specific OCR engines (e.g. `IndicOCR` from AI4Bharat,
-  Google Cloud Vision) — would require an external API or larger
-  on-device model
+- Indic-language-specific OCR engines — **evaluated 2026-11-13**: a Telugu-specific line model (`harsha-desaraju/telugu-ocr-model`) more than halves Telugu CER (0.16 vs 0.40) and is the **chosen** Telugu engine; Hindi stays on Tesseract. Integration pending — see [learnings/020](../learnings/020-ocr-engine-benchmark.md), [learnings/021](../learnings/021-ocr-engine-operational-requirements.md), [todos/012](../todos/012-ocr-engine-integration-handoff.md). (IndicOCR is gated and not CPU-viable.)
 - Script-aware preprocessing (different denoising parameters for
   Telugu vs Hindi)
 
