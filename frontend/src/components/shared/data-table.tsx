@@ -34,6 +34,10 @@ interface DataTableProps<T> {
    * inside a Card instead of drawing a second box around itself.
    */
   bare?: boolean;
+  /** Key of the row whose detail row is open, if the table has any. */
+  expandedRowKey?: string | null;
+  /** Detail content rendered full-width beneath the expanded row. */
+  renderExpandedRow?: (row: T) => React.ReactNode;
 }
 
 const HIDE_BELOW: Record<NonNullable<DataTableColumn<unknown>["hideBelow"]>, string> = {
@@ -59,6 +63,8 @@ export function DataTable<T>({
   stickyHeader = false,
   maxHeight,
   bare = false,
+  expandedRowKey,
+  renderExpandedRow,
 }: DataTableProps<T>) {
   if (loading) {
     return <SkeletonTable rows={5} />;
@@ -107,26 +113,34 @@ export function DataTable<T>({
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {rows.map((row) => (
-              <tr
-                key={rowKey(row)}
-                className={cn(
-                  "hover:bg-[var(--surface-sunken)]/40",
-                  rowClassName?.(row),
+              <React.Fragment key={rowKey(row)}>
+                <tr
+                  className={cn(
+                    "hover:bg-[var(--surface-sunken)]/40",
+                    rowClassName?.(row),
+                  )}
+                >
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className={cn(
+                        "px-3 py-2.5 align-middle",
+                        column.hideBelow && HIDE_BELOW[column.hideBelow],
+                        column.className,
+                      )}
+                    >
+                      {column.cell(row)}
+                    </td>
+                  ))}
+                </tr>
+                {renderExpandedRow && expandedRowKey === rowKey(row) && (
+                  <tr className="bg-[var(--surface-sunken)]/40">
+                    <td colSpan={columns.length} className="px-3 py-3">
+                      {renderExpandedRow(row)}
+                    </td>
+                  </tr>
                 )}
-              >
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={cn(
-                      "px-3 py-2.5 align-middle",
-                      column.hideBelow && HIDE_BELOW[column.hideBelow],
-                      column.className,
-                    )}
-                  >
-                    {column.cell(row)}
-                  </td>
-                ))}
-              </tr>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
