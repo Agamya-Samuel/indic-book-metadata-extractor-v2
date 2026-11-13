@@ -32,6 +32,8 @@ export interface ProgressProps {
   max?: number;
   indeterminate?: boolean;
   label?: string;
+  /** Accessible name when the bar is shown without a visible label. */
+  ariaLabel?: string;
   showValue?: boolean;
   size?: "sm" | "md";
   tone?: ProgressTone;
@@ -43,6 +45,7 @@ export function Progress({
   max = 100,
   indeterminate = false,
   label,
+  ariaLabel,
   showValue = false,
   size = "sm",
   tone = "accent",
@@ -66,7 +69,7 @@ export function Progress({
         aria-valuemin={0}
         aria-valuemax={max}
         aria-valuenow={indeterminate ? undefined : Math.round(pct)}
-        aria-label={label}
+        aria-label={ariaLabel ?? label}
         className={cn(
           "w-full overflow-hidden rounded-full bg-[var(--surface-sunken)] border border-[var(--border)]",
           size === "sm" ? "h-1.5" : "h-2",

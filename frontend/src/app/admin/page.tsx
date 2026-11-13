@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { getAdminStats, getAdminJobs } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
+import { Progress } from "@/components/shared/progress";
 import AdminStatsCard from "@/components/shared/stat-card";
 import { PageContainer, Card, PageHeader } from "@/components/shared/card";
 import { SkeletonTable } from "@/components/shared/skeleton";
@@ -212,18 +213,12 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
                   {job.status === "running" && (
-                    <span
-                      className={cn(
-                        "inline-flex h-1.5 w-24 overflow-hidden rounded-full",
-                        "bg-[var(--surface-sunken)] border border-[var(--border)]",
-                      )}
-                      aria-label={`${Math.round(job.progress)}% complete`}
-                    >
-                      <span
-                        className="h-full bg-[var(--info-500)] transition-[width]"
-                        style={{ width: `${Math.round(job.progress)}%` }}
+                    <div className="w-24">
+                      <Progress
+                        value={job.progress}
+                        ariaLabel={`${Math.round(job.progress)}% complete`}
                       />
-                    </span>
+                    </div>
                   )}
                 </li>
               ))}
