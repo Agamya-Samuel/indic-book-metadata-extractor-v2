@@ -21,7 +21,7 @@ import Pagination from "@/components/shared/pagination";
 import { PageContainer, Card } from "@/components/shared/card";
 import { Field, Input, Select, Textarea } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
-import { EmptyState } from "@/components/shared/empty-state";
+import { EmptyState, Banner } from "@/components/shared/empty-state";
 import DataTable, { type DataTableColumn } from "@/components/shared/data-table";
 import { Chip } from "@/components/shared/chip";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -711,14 +711,7 @@ function CreateUserDialog({
         </p>
       </div>
       <form onSubmit={handleSubmit} className="px-6 pb-5 space-y-4" noValidate>
-        {error && (
-          <p
-            role="alert"
-            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-          >
-            {error}
-          </p>
-        )}
+        {error && <Banner tone="danger">{error}</Banner>}
         <Field label="Display name" htmlFor="new-user-name">
           <Input
             id="new-user-name"
@@ -841,14 +834,7 @@ function ResetPasswordDialog({
         </p>
       </div>
       <form onSubmit={handleSubmit} className="px-6 pb-5 space-y-4" noValidate>
-        {error && (
-          <p
-            role="alert"
-            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-          >
-            {error}
-          </p>
-        )}
+        {error && <Banner tone="danger">{error}</Banner>}
         <Field
           label="New password"
           htmlFor="reset-user-password"
@@ -945,14 +931,7 @@ function RejectAccountDialog({
         </p>
       </div>
       <form onSubmit={handleSubmit} className="px-6 pb-5 space-y-4" noValidate>
-        {error && (
-          <p
-            role="alert"
-            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-          >
-            {error}
-          </p>
-        )}
+        {error && <Banner tone="danger">{error}</Banner>}
         <Field
           label="Reason (optional)"
           htmlFor="reject-user-reason"

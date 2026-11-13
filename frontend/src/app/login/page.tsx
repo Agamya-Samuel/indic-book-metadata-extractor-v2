@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { isApprovedStatus } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Alert } from "@/components/shared/alert";
+import { Banner } from "@/components/shared/empty-state";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { Spinner } from "@/components/shared/spinner";
@@ -47,7 +47,7 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {error && <Alert>{error}</Alert>}
+      {error && <Banner tone="danger">{error}</Banner>}
       <Field label="Email" htmlFor="email">
         <Input
           id="email"

@@ -10,7 +10,7 @@ import {
   type AccountStatus,
 } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
-import { Alert } from "@/components/shared/alert";
+import { Banner } from "@/components/shared/empty-state";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Field, Input } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
@@ -152,12 +152,12 @@ function VerifyEmailContent() {
       }
     >
       <form onSubmit={handleResend} className="space-y-4" noValidate>
-        {error && <Alert>{error}</Alert>}
+        {error && <Banner tone="danger">{error}</Banner>}
         {resent && (
-          <Alert tone="success">
+          <Banner tone="success">
             If that address needs verification, a new link is on its way. The
             link expires in 24 hours.
-          </Alert>
+          </Banner>
         )}
         <Field label="Email" htmlFor="verify-email">
           <Input

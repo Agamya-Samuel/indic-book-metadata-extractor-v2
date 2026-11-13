@@ -2,6 +2,7 @@
 
 import { cn, formatElapsed } from "@/lib/utils";
 import { Button } from "@/components/shared/button";
+import { Banner } from "@/components/shared/empty-state";
 import { Progress, type ProgressTone } from "@/components/shared/progress";
 import StatusBadge from "@/components/shared/status-badge";
 
@@ -99,12 +100,7 @@ export function JobProgressCard({
       </div>
 
       {failed && error && (
-        <p
-          role="alert"
-          className="mt-3 rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-xs)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-        >
-          {error}
-        </p>
+        <Banner tone="danger" className="mt-3 text-[var(--text-xs)]">{error}</Banner>
       )}
     </section>
   );
