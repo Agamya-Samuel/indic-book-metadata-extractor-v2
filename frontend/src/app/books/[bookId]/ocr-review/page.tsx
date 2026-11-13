@@ -185,7 +185,7 @@ export default function OcrReviewPage() {
         <PageContainer className="!py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-[var(--text-xl)] font-bold text-[var(--text)]">OCR Review</h1>
+              <h1 className="text-[var(--text-2xl)] font-semibold tracking-tight text-[var(--text)]">OCR Review</h1>
               <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
                 {book.title || book.filename} &bull;{" "}
                 {getLanguageName(book.language)}

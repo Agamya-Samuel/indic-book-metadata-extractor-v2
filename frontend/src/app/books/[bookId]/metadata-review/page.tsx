@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Button, LinkButton } from "@/components/shared/button";
+import { WorkflowNav } from "@/components/shared/workflow-nav";
 import { ErrorState, Progress, EmptyState } from "@/components/shared/empty-state";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
 import { Spinner } from "@/components/shared/spinner";
@@ -421,17 +422,16 @@ export default function MetadataReviewPage() {
             />
           )}
 
-          <div className="flex items-center gap-3 border-t border-[var(--border)] pt-4">
-            <LinkButton
-              href={`/books/${bookId}/llm-config`}
-              variant="outline"
-            >
-              Re-run Extraction
-            </LinkButton>
-            <LinkButton href="/dashboard" variant="outline">
+          <WorkflowNav
+            prev={{
+              href: `/books/${bookId}/llm-config`,
+              label: "Re-run extraction",
+            }}
+          >
+            <LinkButton href="/dashboard" variant="outline" size="sm">
               Go to dashboard
             </LinkButton>
-          </div>
+          </WorkflowNav>
         </Stack>
 
         <ConfirmDialog

@@ -24,6 +24,7 @@ import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select, Textarea } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
+import { WorkflowNav } from "@/components/shared/workflow-nav";
 import { ErrorState } from "@/components/shared/empty-state";
 import JobProgressCard from "@/components/shared/job-progress-card";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -332,23 +333,7 @@ export default function LlmConfigPage() {
                 </Stack>
               </Card>
 
-              <div className="flex gap-2">
-                <LinkButton
-                  href={`/books/${bookId}/ocr-review`}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Back to OCR Review
-                </LinkButton>
-                <LinkButton
-                  href={`/books/${bookId}/jobs`}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  View Jobs
-                </LinkButton>
-              </div>
-            </Stack>
+              </Stack>
           </div>
 
           <div className="lg:col-span-5">
@@ -413,6 +398,16 @@ export default function LlmConfigPage() {
             </Card>
           </div>
         </div>
+      <WorkflowNav
+          prev={{
+            href: `/books/${bookId}/ocr-review`,
+            label: "Back to OCR Review",
+          }}
+        >
+          <LinkButton href={`/books/${bookId}/jobs`} variant="outline" size="sm">
+            View Jobs
+          </LinkButton>
+        </WorkflowNav>
       </PageContainer>
     </WorkflowShell>
   );
