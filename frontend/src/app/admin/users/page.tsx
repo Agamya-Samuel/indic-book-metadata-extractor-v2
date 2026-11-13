@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -25,6 +26,7 @@ import { EmptyState, Banner } from "@/components/shared/empty-state";
 import DataTable, { type DataTableColumn } from "@/components/shared/data-table";
 import { Chip } from "@/components/shared/chip";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { Spinner } from "@/components/shared/spinner";
 import { getErrorMessage } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
 
@@ -78,17 +80,25 @@ function AccountStatusBadge({ status }: { status: AccountStatus }) {
   );
 }
 
-export default function AdminUsersPage() {
+function AdminUsersContent() {
   useDocumentTitle("Admin · Users");
 
   const qc = useQueryClient();
   const { user: currentUser } = useAuth();
+  const searchParams = useSearchParams();
 
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("");
   const [activeFilter, setActiveFilter] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("");
+  // Deep links (e.g. the admin notification for a new registration) carry the
+  // approval filter in the query string; seed the control from it once.
+  const [statusFilter, setStatusFilter] = React.useState(() => {
+    const status = searchParams.get("status");
+    return status === "pending" || status === "approved" || status === "rejected"
+      ? status
+      : "";
+  });
   const [page, setPage] = React.useState(1);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -954,5 +964,19 @@ function RejectAccountDialog({
         </div>
       </form>
     </dialog>
+  );
+}
+
+export default function AdminUsersPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <Spinner className="size-8 text-[var(--accent)]" />
+        </div>
+      }
+    >
+      <AdminUsersContent />
+    </React.Suspense>
   );
 }

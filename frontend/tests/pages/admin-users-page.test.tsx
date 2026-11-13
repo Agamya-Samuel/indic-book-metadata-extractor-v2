@@ -11,6 +11,11 @@ vi.mock("@/components/auth/auth-provider", () => ({
   useAuth: vi.fn(),
 }));
 
+let mockSearchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => mockSearchParams,
+}));
+
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal() as Record<string, unknown>;
   return {
@@ -75,6 +80,7 @@ function createWrapper() {
 describe("AdminUsersPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
     mockGetAdminUsers.mockResolvedValue(mockUsers);
     mockUpdateAdminUser.mockImplementation((_id, payload) =>
       Promise.resolve(userRow({ ...payload })),
@@ -184,6 +190,16 @@ describe("AdminUsersPage", () => {
         password: "long-enough-123",
         role: "user",
       });
+    });
+  });
+
+  it("honours the ?status= deep link from a notification", async () => {
+    mockSearchParams = new URLSearchParams("status=pending");
+    render(<AdminUsersPage />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      const lastCall = mockGetAdminUsers.mock.calls.at(-1)?.[0];
+      expect(lastCall?.account_status).toBe("pending");
     });
   });
 });
