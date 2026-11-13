@@ -19,6 +19,7 @@ import { toastError } from "@/lib/error-handler";
 import { toast } from "sonner";
 import SliderControl from "@/components/shared/slider-control";
 import CollapsibleSection from "@/components/shared/collapsible-section";
+import { Chip } from "@/components/shared/chip";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
@@ -169,6 +170,9 @@ export default function LlmConfigPage() {
         j.status === "failed" ||
         j.status === "cancelled"),
   );
+  const systemPromptModified = systemPrompt !== DEFAULT_SYSTEM_PROMPT;
+  const extractionPromptModified =
+    extractionPrompt !== DEFAULT_EXTRACTION_PROMPT;
   const currentRunActive = Boolean(startedAt) && progress.isRunning;
   const currentRunComplete = Boolean(startedAt) && progress.isComplete;
   const currentRunFailed = Boolean(startedAt) && progress.isFailed;
@@ -338,30 +342,70 @@ export default function LlmConfigPage() {
 
           <div className="lg:col-span-5">
             <Stack gap={4}>
-              <Card title="System Prompt" description="Instructs the model on its role and output format.">
+              <CollapsibleSection
+                title="System prompt"
+                defaultOpen={false}
+                meta={
+                  systemPromptModified ? (
+                    <Chip tone="warning">modified</Chip>
+                  ) : undefined
+                }
+              >
+                <p className="mb-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+                  Instructs the model on its role and output format. Variables:{" "}
+                  {"{{language}}"}
+                </p>
                 <Textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   rows={8}
                   className="font-mono"
+                  aria-label="System prompt"
                 />
-                <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
-                  Available variables: {"{{language}}"}
-                </p>
-              </Card>
+                {systemPromptModified && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => setSystemPrompt(DEFAULT_SYSTEM_PROMPT)}
+                  >
+                    Reset to default
+                  </Button>
+                )}
+              </CollapsibleSection>
 
-              <Card title="Extraction Prompt" description="The user-turn prompt that requests field extraction.">
+              <CollapsibleSection
+                title="Extraction prompt"
+                defaultOpen={false}
+                meta={
+                  extractionPromptModified ? (
+                    <Chip tone="warning">modified</Chip>
+                  ) : undefined
+                }
+              >
+                <p className="mb-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+                  The user-turn prompt that requests field extraction. Variables:{" "}
+                  {"{{language}}"}, {"{{field_descriptions}}"}, {"{{ocr_text}}"},{" "}
+                  {"{{page_count}}"}
+                </p>
                 <Textarea
                   value={extractionPrompt}
                   onChange={(e) => setExtractionPrompt(e.target.value)}
                   rows={12}
                   className="font-mono"
+                  aria-label="Extraction prompt"
                 />
-                <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
-                  Variables: {"{{language}}"}, {"{{field_descriptions}}"},{" "}
-                  {"{{ocr_text}}"}, {"{{page_count}}"}
-                </p>
-              </Card>
+                {extractionPromptModified && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => setExtractionPrompt(DEFAULT_EXTRACTION_PROMPT)}
+                  >
+                    Reset to default
+                  </Button>
+                )}
+              </CollapsibleSection>
             </Stack>
           </div>
 
