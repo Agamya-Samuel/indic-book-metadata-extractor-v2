@@ -136,7 +136,7 @@ async def _reaper_loop() -> None:
             async with async_session_factory() as db:
                 reaped = await reap_stale_jobs(db)
                 if reaped:
-                    logger.warning("Stale-job sweep failed %d job(s)", reaped)
+                    logger.warning("Stale-job sweep reaped %d job(s)", reaped)
         except Exception:  # noqa: BLE001
             logger.exception("Stale-job sweep failed")
         await asyncio.sleep(REAPER_INTERVAL_SECONDS)
