@@ -64,6 +64,9 @@ RUN UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
 
 # Copy application code
 COPY app/ app/
+# Operational scripts (first-admin bootstrap) must be runnable inside the
+# deployed container, where the DB credentials already are.
+COPY scripts/ scripts/
 COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
 COPY newrelic.ini newrelic.ini

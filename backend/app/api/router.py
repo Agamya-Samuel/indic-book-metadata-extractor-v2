@@ -7,6 +7,7 @@ from app.api.bulk import router as bulk_router
 from app.api.dashboard import router as dashboard_router
 from app.api.deps import require_approved_user
 from app.api.extraction import router as extraction_router
+from app.api.health import router as health_router
 from app.api.metadata import router as metadata_router
 from app.api.notifications import router as notifications_router
 from app.api.pages import router as pages_router
@@ -14,6 +15,8 @@ from app.api.sse import router as sse_router
 from app.api.stages import router as stages_router
 
 api_router = APIRouter()
+# Liveness must stay unauthenticated so an external monitor can poll it.
+api_router.include_router(health_router, tags=["health"])
 # /auth/* stays outside the approval gate so pending/rejected users can hold a
 # session, refresh it, and log out while they sit on the holding screen.
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])

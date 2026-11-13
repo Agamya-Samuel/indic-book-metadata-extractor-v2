@@ -25,6 +25,9 @@ class Settings(BaseSettings):
 
     # Upload limits
     max_upload_size_mb: int = 200
+    # A running job older than this is treated as lost (no worker will finish it).
+    stale_job_minutes: int = 90
+    stale_job_reaper_enabled: bool = True
 
     # Authentication
     jwt_secret_key: str = "dev-insecure-change-me"
