@@ -22,6 +22,8 @@ import { PageContainer, Card } from "@/components/shared/card";
 import { Field, Input, Select, Textarea } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { EmptyState } from "@/components/shared/empty-state";
+import DataTable, { type DataTableColumn } from "@/components/shared/data-table";
+import { Chip } from "@/components/shared/chip";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
 import { cn } from "@/lib/utils";
@@ -225,6 +227,163 @@ export default function AdminUsersPage() {
 
   const isSelf = (user: AdminUser) => user.id === currentUser?.id;
 
+  const columns: DataTableColumn<AdminUser>[] = [
+    {
+      key: "user",
+      header: "User",
+      cell: (user) => (
+        <div className="min-w-0">
+          <p className="truncate font-medium text-[var(--text)]">
+            {user.display_name}
+            {isSelf(user) && (
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                (you)
+              </span>
+            )}
+          </p>
+          <p
+            className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+            title={user.email}
+          >
+            {user.email}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "role",
+      header: "Role",
+      cell: (user) => <RoleBadge role={user.role} />,
+    },
+    {
+      key: "approval",
+      header: "Approval",
+      cell: (user) => <AccountStatusBadge status={user.account_status} />,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (user) => (
+        <Chip dot tone={user.is_active ? "success" : "danger"}>
+          {user.is_active ? "Active" : "Deactivated"}
+        </Chip>
+      ),
+    },
+    {
+      key: "verified",
+      header: "Verified",
+      hideBelow: "md",
+      cell: (user) => (
+        <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+          {user.email_verified_at ? "Yes" : "No"}
+        </span>
+      ),
+    },
+    {
+      key: "lastLogin",
+      header: "Last login",
+      hideBelow: "lg",
+      cell: (user) => (
+        <span className="whitespace-nowrap text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+          {user.last_login_at
+            ? new Date(user.last_login_at).toLocaleString()
+            : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      hideBelow: "lg",
+      cell: (user) => (
+        <span className="whitespace-nowrap text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+          {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (user) => (
+        <div className="flex justify-end">
+          <ActionMenu
+            ariaLabel={`Actions for ${user.display_name}`}
+            label="Actions"
+          >
+            {user.account_status !== "approved" && (
+              <MenuButton
+                disabled={isSelf(user)}
+                onClick={() => setPendingAction({ type: "approve", user })}
+              >
+                Approve account
+              </MenuButton>
+            )}
+            {user.account_status !== "rejected" && (
+              <MenuButton
+                disabled={isSelf(user)}
+                onClick={() => setPendingAction({ type: "reject", user })}
+              >
+                Reject account...
+              </MenuButton>
+            )}
+            <MenuSeparator />
+            {user.role === "admin" ? (
+              <MenuButton
+                disabled={isSelf(user)}
+                onClick={() =>
+                  setPendingAction({ type: "role", user, role: "user" })
+                }
+              >
+                Change role to user
+              </MenuButton>
+            ) : (
+              <MenuButton
+                onClick={() =>
+                  setPendingAction({ type: "role", user, role: "admin" })
+                }
+              >
+                Change role to admin
+              </MenuButton>
+            )}
+            {user.is_active ? (
+              <MenuButton
+                disabled={isSelf(user)}
+                onClick={() =>
+                  setPendingAction({ type: "active", user, isActive: false })
+                }
+              >
+                Deactivate
+              </MenuButton>
+            ) : (
+              <MenuButton
+                onClick={() =>
+                  setPendingAction({ type: "active", user, isActive: true })
+                }
+              >
+                Activate
+              </MenuButton>
+            )}
+            <MenuButton
+              onClick={() => setPendingAction({ type: "reset-password", user })}
+            >
+              Reset password...
+            </MenuButton>
+            <MenuSeparator />
+            <MenuButton
+              danger
+              disabled={isSelf(user)}
+              onClick={() => setPendingAction({ type: "delete", user })}
+            >
+              Delete...
+            </MenuButton>
+          </ActionMenu>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <PageContainer>
       <Card
@@ -320,184 +479,14 @@ export default function AdminUsersPage() {
         />
       ) : (
         <>
-          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
-                  <tr>
-                    <th className="px-3 py-2.5 text-left font-medium">User</th>
-                    <th className="px-3 py-2.5 text-left font-medium">Role</th>
-                    <th className="px-3 py-2.5 text-left font-medium">Approval</th>
-                    <th className="px-3 py-2.5 text-left font-medium">Status</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Verified</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Last login</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Created</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {items.map((user) => (
-                    <tr
-                      key={user.id}
-                      className={cn(
-                        "hover:bg-[var(--surface-sunken)]/40",
-                        !user.is_active && "opacity-60",
-                      )}
-                    >
-                      <td className="px-3 py-2.5 align-middle">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-[var(--text)]">
-                            {user.display_name}
-                            {isSelf(user) && (
-                              <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                                (you)
-                              </span>
-                            )}
-                          </p>
-                          <p
-                            className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
-                            title={user.email}
-                          >
-                            {user.email}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle">
-                        <RoleBadge role={user.role} />
-                      </td>
-                      <td className="px-3 py-2.5 align-middle">
-                        <AccountStatusBadge status={user.account_status} />
-                      </td>
-                      <td className="px-3 py-2.5 align-middle text-[var(--text-sm)]">
-                        {user.is_active ? (
-                          <span className="text-[var(--success-700)] dark:text-[var(--success-100)]">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="text-[var(--danger-700)] dark:text-[var(--danger-300)]">
-                            Deactivated
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 align-middle hidden md:table-cell text-[var(--text-sm)] text-[var(--text-muted)]">
-                        {user.email_verified_at ? "Yes" : "No"}
-                      </td>
-                      <td className="px-3 py-2.5 align-middle hidden lg:table-cell text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
-                        {user.last_login_at
-                          ? new Date(user.last_login_at).toLocaleString()
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-2.5 align-middle hidden lg:table-cell text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
-                        {user.created_at
-                          ? new Date(user.created_at).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-2.5 align-middle text-right">
-                        <ActionMenu
-                          ariaLabel={`Actions for ${user.display_name}`}
-                          label="Actions"
-                        >
-                          {user.account_status !== "approved" && (
-                            <MenuButton
-                              disabled={isSelf(user)}
-                              onClick={() =>
-                                setPendingAction({ type: "approve", user })
-                              }
-                            >
-                              Approve account
-                            </MenuButton>
-                          )}
-                          {user.account_status !== "rejected" && (
-                            <MenuButton
-                              disabled={isSelf(user)}
-                              onClick={() =>
-                                setPendingAction({ type: "reject", user })
-                              }
-                            >
-                              Reject account...
-                            </MenuButton>
-                          )}
-                          <MenuSeparator />
-                          {user.role === "admin" ? (
-                            <MenuButton
-                              disabled={isSelf(user)}
-                              onClick={() =>
-                                setPendingAction({
-                                  type: "role",
-                                  user,
-                                  role: "user",
-                                })
-                              }
-                            >
-                              Change role to user
-                            </MenuButton>
-                          ) : (
-                            <MenuButton
-                              onClick={() =>
-                                setPendingAction({
-                                  type: "role",
-                                  user,
-                                  role: "admin",
-                                })
-                              }
-                            >
-                              Change role to admin
-                            </MenuButton>
-                          )}
-                          {user.is_active ? (
-                            <MenuButton
-                              disabled={isSelf(user)}
-                              onClick={() =>
-                                setPendingAction({
-                                  type: "active",
-                                  user,
-                                  isActive: false,
-                                })
-                              }
-                            >
-                              Deactivate
-                            </MenuButton>
-                          ) : (
-                            <MenuButton
-                              onClick={() =>
-                                setPendingAction({
-                                  type: "active",
-                                  user,
-                                  isActive: true,
-                                })
-                              }
-                            >
-                              Activate
-                            </MenuButton>
-                          )}
-                          <MenuButton
-                            onClick={() =>
-                              setPendingAction({
-                                type: "reset-password",
-                                user,
-                              })
-                            }
-                          >
-                            Reset password…
-                          </MenuButton>
-                          <MenuSeparator />
-                          <MenuButton
-                            danger
-                            disabled={isSelf(user)}
-                            onClick={() =>
-                              setPendingAction({ type: "delete", user })
-                            }
-                          >
-                            Delete…
-                          </MenuButton>
-                        </ActionMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+
+          <DataTable
+            caption="Users"
+            columns={columns}
+            rows={items}
+            rowKey={(user) => user.id}
+            rowClassName={(user) => (!user.is_active ? "opacity-60" : undefined)}
+          />
 
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
