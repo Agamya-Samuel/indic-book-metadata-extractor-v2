@@ -45,6 +45,7 @@ from app.services.batch_routing import PageText
 from app.services.llm_service import LLMService
 from app.services.ocr_service import run_ocr
 from app.services.pdf_service import get_page_count, render_full_page
+from app.services.page_selection import select_pages
 from app.services.prompts import FIELD_DISPLAY_NAMES
 
 LANG_CODE = {"tel": "tel", "te": "tel", "telugu": "tel", "hin": "hin", "hi": "hin", "hindi": "hin"}
@@ -146,8 +147,16 @@ async def fill_book(client: httpx.AsyncClient, llm: LLMService, book_dir: Path, 
     lang = LANG_CODE.get(str(envelope.get("language", "tel")).lower(), "tel")
     pdf = book_dir / "original.pdf"
     total = get_page_count(pdf)
-    pages = page_plan(total, args.front, args.back)
-    texts, joined = ocr_pages(pdf, pages, lang)
+    if args.select == "fixed":
+        scan = page_plan(total, args.front, args.back)
+    else:
+        scan = page_plan(total, args.scan_front, args.scan_back)
+    scanned, _ = ocr_pages(pdf, scan, lang)
+    text_by_page = {p.page_number: p.text for p in scanned}
+    keep = set(select_pages(total, text_by_page, strategy=args.select, front=args.front, back=args.back))
+    texts = [p for p in scanned if p.page_number in keep]
+    pages = sorted(keep)
+    joined = "\n\n".join(f"[page {p.page_number}]\n{p.text}" for p in texts)
 
     if args.mode == "hybrid":
         metadata, _b, _e = await llm.run_hybrid_full_extraction(
@@ -180,6 +189,9 @@ async def main() -> int:
     ap.add_argument("--ollama-url", default=os.environ.get("OLLAMA_URL", "http://ollama:11434"))
     ap.add_argument("--front", type=int, default=5)
     ap.add_argument("--back", type=int, default=2)
+    ap.add_argument("--select", choices=["fixed", "heuristic"], default="fixed")
+    ap.add_argument("--scan-front", type=int, default=12)
+    ap.add_argument("--scan-back", type=int, default=5)
     ap.add_argument("--max-tokens", type=int, default=1024)
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--ocr-chars", type=int, default=4000)
