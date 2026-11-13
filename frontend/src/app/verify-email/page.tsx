@@ -10,6 +10,7 @@ import {
   type AccountStatus,
 } from "@/lib/api";
 import { AuthCard } from "@/components/auth/auth-card";
+import { Alert } from "@/components/shared/alert";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Field, Input } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
@@ -151,22 +152,12 @@ function VerifyEmailContent() {
       }
     >
       <form onSubmit={handleResend} className="space-y-4" noValidate>
-        {error && (
-          <p
-            role="alert"
-            className="rounded-[var(--radius)] border border-[var(--danger-500)]/30 bg-[var(--danger-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--danger-700)] dark:bg-[var(--danger-900)]/20 dark:text-[var(--danger-100)]"
-          >
-            {error}
-          </p>
-        )}
+        {error && <Alert>{error}</Alert>}
         {resent && (
-          <p
-            role="status"
-            className="rounded-[var(--radius)] border border-[var(--success-500)]/30 bg-[var(--success-50)] px-3 py-2 text-[var(--text-sm)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]"
-          >
+          <Alert tone="success">
             If that address needs verification, a new link is on its way. The
             link expires in 24 hours.
-          </p>
+          </Alert>
         )}
         <Field label="Email" htmlFor="verify-email">
           <Input
