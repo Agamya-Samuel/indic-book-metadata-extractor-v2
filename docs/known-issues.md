@@ -57,10 +57,6 @@ Pages containing mixed languages (e.g., Telugu + English) use multi-language OCR
 
 The `embeddings` table with pgvector(768) exists in the schema, but no service populates or queries it. Semantic/similarity search is not implemented.
 
-### No Dark Mode Toggle
-
-CSS classes support dark mode theming, but there is no UI toggle to switch between light and dark themes.
-
 ### Authentication
 
 The application has email+password authentication with two roles (`user`,
@@ -104,4 +100,4 @@ Docker Desktop on Windows may experience slower file I/O with bind-mounted volum
 
 ### First Run Model Download
 
-On first startup, Ollama downloads the Qwen2.5 7B model (~4 GB). This can take several minutes depending on network speed. The `ollama` health check has a 60-second start period to accommodate this.
+On first startup, Ollama downloads the default model (`phi4-mini`, ~2.5 GB). This can take several minutes depending on network speed. The `ollama` health check has a 60-second start period to accommodate it.

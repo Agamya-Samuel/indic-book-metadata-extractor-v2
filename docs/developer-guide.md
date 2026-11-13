@@ -255,8 +255,19 @@ by the backend. There is no public catalog.
 | `/admin/jobs` | admin | All background jobs |
 | `/admin/users` | admin | User management + approvals |
 | `/admin/bulk` | admin | Bulk OpenRefine/Wikibase export & import |
+| `/admin/design` | admin | Living reference for the shared UI primitives and their states |
 
 The API surface is documented separately in `docs/api-reference.md`.
+
+### UI composition rules
+
+Pages are assembled from the primitives in `frontend/src/components/shared/` —
+`PageContainer` (reading/workspace/gallery layout), `Card`, `DataTable`,
+`Toolbar`, `Chip`, `StatusBadge`, `Alert`, `SaveBar`, `Progress`, the workflow
+`StageRail`/`WorkflowNav`, and `Button` (use its `loading` prop rather than a
+hand-rolled spinner). `/admin/design` renders all of them in their states; add
+new primitives there first. The rationale and constraints are recorded in
+`plans/008-ui-ux-composition-redesign.md`.
 
 ---
 
