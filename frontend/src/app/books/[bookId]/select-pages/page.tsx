@@ -8,7 +8,8 @@ import { getLanguageName } from "@/lib/utils";
 import { useBookStore } from "@/stores/book-store";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { SelectPagesSkeleton } from "@/components/shared/skeleton";
-import { PageContainer, PageHeader, Card } from "@/components/shared/card";
+import { PageContainer, PageHeader } from "@/components/shared/card";
+import { Toolbar, ToolbarGroup } from "@/components/shared/toolbar";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
 import { EmptyState, ErrorState } from "@/components/shared/empty-state";
@@ -139,46 +140,44 @@ export default function SelectPagesPage() {
 
   return (
     <WorkflowShell bookId={bookId}>
-      <PageContainer>
+      <PageContainer layout="gallery">
         <PageHeader
           eyebrow={getLanguageName(book.language)}
           title={book.title || book.filename}
           description={`Total pages: ${totalPages}`}
         />
 
-        <Card className="mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                Select All
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDeselectAll}>
-                Deselect All
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectFront10}>
-                Select Front 10
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectBack5}>
-                Select Back 5
-              </Button>
-            </div>
+        <Toolbar sticky className="mb-4">
+          <ToolbarGroup>
+            <span className="mr-1 text-[var(--text-sm)] font-medium tabular-nums text-[var(--text-muted)]">
+              {selectedCount} of {totalPages} selected
+            </span>
+            <Button variant="outline" size="sm" onClick={handleSelectAll}>
+              All
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDeselectAll}>
+              None
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSelectFront10}>
+              Front 10
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSelectBack5}>
+              Back 5
+            </Button>
+          </ToolbarGroup>
 
-            <div className="flex items-center gap-3">
-              <span className="text-[var(--text-sm)] font-medium text-[var(--text-muted)]">
-                Selected {selectedCount} / {totalPages} pages
-              </span>
-              <Button
-                onClick={handleConfirm}
-                disabled={selectedCount === 0 || selectPagesMutation.isPending}
-                loading={selectPagesMutation.isPending}
-              >
-                {selectPagesMutation.isPending
-                  ? "Starting..."
-                  : `Confirm ${selectedCount} pages`}
-              </Button>
-            </div>
-          </div>
-        </Card>
+          <ToolbarGroup align="end">
+            <Button
+              onClick={handleConfirm}
+              disabled={selectedCount === 0 || selectPagesMutation.isPending}
+              loading={selectPagesMutation.isPending}
+            >
+              {selectPagesMutation.isPending
+                ? "Starting..."
+                : `Confirm ${selectedCount} page${selectedCount === 1 ? "" : "s"}`}
+            </Button>
+          </ToolbarGroup>
+        </Toolbar>
 
         {visiblePageNumbers.length === 0 ? (
           <EmptyState
@@ -186,7 +185,7 @@ export default function SelectPagesPage() {
             description="There are no pages in the visible range."
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
             {visiblePageNumbers.map((pageNumber) => {
               const isSelected = selectedPages.has(pageNumber);
               const isLoaded = imagesLoaded.has(pageNumber);
@@ -210,7 +209,7 @@ export default function SelectPagesPage() {
                       src={getThumbnailUrl(bookId, pageNumber)}
                       alt={`Page ${pageNumber}`}
                       fill
-                      sizes="(min-width: 1280px) 16vw, (min-width: 768px) 25vw, 50vw"
+                      sizes="(min-width: 1280px) 12vw, (min-width: 768px) 20vw, 45vw"
                       className="object-cover"
                       onLoad={() => handleImageLoad(pageNumber)}
                       onError={() => handleImageError(pageNumber)}
