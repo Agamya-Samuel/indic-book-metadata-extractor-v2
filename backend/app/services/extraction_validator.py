@@ -169,10 +169,21 @@ def evaluate_book(
     expected: dict,
     predicted: dict,
     all_fields: Iterable[str],
+    ignore_fields: Iterable[str] | None = None,
 ) -> BookEvaluation:
-    """Evaluate one book's predicted metadata against the ground truth."""
+    """Evaluate one book's predicted metadata against the ground truth.
+
+    ``ignore_fields`` names fields that must not be scored — e.g. values the
+    ground-truth scaffold flagged ``prefilled_needs_verification`` because they
+    came from model prefill rather than a verified source. Excluding them stops
+    the model from being scored against its own output (circularity) while the
+    rest of the book's fields are still evaluated.
+    """
+    skip = set(ignore_fields or ())
     evaln = BookEvaluation(sample_id=sample_id)
     for field_name in all_fields:
+        if field_name in skip:
+            continue
         exp = expected.get(field_name)
         pred = predicted.get(field_name)
         evaln.field_results.append(evaluate_field(field_name, exp, pred))

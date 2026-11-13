@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.evaluate_extraction import discover_ground_truth
+from scripts.evaluate_extraction import discover_ground_truth, ignored_fields
 
 EXPECTED = {"title": "Andhra Mahaniyulu", "author": "Chilukuri Veerabhadra Rao"}
 
@@ -58,6 +58,27 @@ def test_skips_unverified_by_default(tmp_path: Path) -> None:
     _make_book(tmp_path, "tel", "scaffold-only", status="unverified")
 
     assert discover_ground_truth(tmp_path) == []
+
+
+def test_discovers_prefilled_llm_book(tmp_path: Path) -> None:
+    # A book with a verified core plus model-prefilled extras is still scoreable;
+    # the prefilled fields are excluded per-field, not by dropping the book.
+    _make_book(tmp_path, "tel", "prefilled", status="prefilled_llm_unverified")
+
+    samples = discover_ground_truth(tmp_path)
+
+    assert [s["sample_id"] for s in samples] == ["tel/prefilled"]
+
+
+def test_ignored_fields_keys_on_field_source(tmp_path: Path) -> None:
+    envelope = {
+        "field_source": {"title": "wikisource_index", "printer": "node_llm_extraction"},
+        "field_status": {"title": "prefilled_needs_verification", "printer": "prefilled_needs_verification"},
+    }
+
+    # Catalog `title` must be scored even though its field_status also reads
+    # "prefilled_needs_verification"; only the model-sourced field is ignored.
+    assert ignored_fields(envelope) == {"printer"}
 
 
 def test_include_unverified_opts_back_in(tmp_path: Path) -> None:
