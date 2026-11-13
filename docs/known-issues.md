@@ -78,11 +78,13 @@ admin-only; regular users use the owner-scoped Dashboard. The first admin must
 be created via `make create-admin` (admin-created and CLI accounts are
 `approved`). See [api-reference.md](api-reference.md) for the auth endpoints.
 
-### Admin notification of new signups is in-app only
+### Notification emails depend on a working SMTP configuration
 
-New `pending` accounts are surfaced as a count badge on the admin nav and via
-the `account_status` filter at `/admin/users`. There is no email to admins, so
-approval depends on an admin checking the app.
+In-app notifications are always written, independently of mail delivery. Their
+email mirror is only attempted when the recipient has `email_notifications_enabled`
+and the backend has SMTP configured (`SMTP_*`). When SMTP is unset or failing,
+the send is logged and skipped; the request or job that produced the event still
+succeeds, and the notification stays visible in the app.
 
 ### Server-Sent Events fall back to polling
 
