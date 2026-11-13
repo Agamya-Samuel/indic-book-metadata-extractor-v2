@@ -1,0 +1,58 @@
+{
+  "generated": "2026-11-13",
+  "study": "learnings/020-ocr-engine-benchmark.md",
+  "method": {
+    "metric": "page-level code-point CER (Levenshtein) + token WER; median reported (mean shown); Unicode NFC, whitespace-collapsed",
+    "render": "300 DPI PNG; identical images per engine",
+    "line_engines": "page -> Tesseract line boxes -> per-line transcribe -> concatenate"
+  },
+  "environment": {
+    "host": "GCP test-node-3, e2-standard-4, 4 vCPU / 16 GB, CPU only",
+    "python": "3.10 (Ubuntu 22.04)",
+    "versions": {
+      "tesseract": "5.x CLI; tel traineddata (system) / hin 4.00 traineddata",
+      "paddleocr_2x": "paddlepaddle 2.6.2 + paddleocr 2.7.3 (numpy 1.26.4, opencv-python-headless 4.10.0.84)",
+      "telugu_ocr_model": "torch 2.14.1+cpu, transformers 4.46.3"
+    }
+  },
+  "telugu": {
+    "dataset": "own Wikisource-verified Telugu scans",
+    "pages": 21,
+    "books": 8,
+    "book_order": [
+      ".Kalidasa-Charitra_by_chilakamarthi(3)",
+      "10031upanishhats033596mbp(3)",
+      "10049upanyaasans033612mbp(2)",
+      "10879telugukaavy034400mbp(3)",
+      "1857(3)",
+      "1927_shhadchakravartulayindrajaalapukathalu(1)",
+      "19280101_AngleyaVaidyaRahasyamu(3)",
+      "19380101_Savitri_Natakamu(3)"
+    ],
+    "engines": {
+      "tesseract_tel": {
+        "summary": {"median_cer": 0.4018, "mean_cer": 0.5783, "median_wer": 0.9894, "sec_per_page": 1.986, "peak_rss_mb": 167.0},
+        "per_page": [[1.106,2.714],[0.159,0.867],[0.402,1.489],[0.262,1.098],[0.551,0.974],[0.695,1.0],[1.121,2.067],[0.280,0.887],[1.752,4.083],[0.241,0.988],[0.387,0.971],[0.934,0.989],[0.030,0.116],[0.029,0.120],[0.223,1.0],[0.976,1.6],[0.888,0.939],[0.272,0.667],[0.637,1.091],[0.809,1.531],[0.391,0.955]]
+      },
+      "paddleocr4_te": {
+        "summary": {"median_cer": 0.5112, "mean_cer": 0.5076, "median_wer": 0.9735, "sec_per_page": 12.974, "peak_rss_mb": 1278.1},
+        "per_page": [[0.837,1.071],[0.606,1.109],[0.613,1.308],[0.668,1.232],[0.636,0.974],[0.666,0.983],[0.272,0.867],[0.440,0.943],[0.796,1.611],[0.505,1.023],[0.622,0.981],[0.400,0.558],[0.380,0.808],[0.433,0.898],[0.511,1.008],[0.578,0.8],[0.118,0.333],[0.395,0.667],[0.164,0.318],[0.508,1.041],[0.511,0.925]]
+      },
+      "telugu_ocr_model_ctc": {
+        "summary": {"median_cer": 0.1632, "mean_cer": 0.227, "median_wer": 0.6, "sec_per_page": 3.81, "peak_rss_mb": 778.6},
+        "per_page": [[0.837,1.0],[0.031,0.320],[0.259,0.915],[0.067,0.488],[0.389,0.850],[0.460,0.898],[0.163,0.600],[0.090,0.641],[0.430,1.056],[0.089,0.616],[0.163,0.591],[0.879,0.878],[0.033,0.122],[0.015,0.072],[0.084,0.433],[0.012,0.067],[0.002,0.030],[0.185,0.333],[0.048,0.318],[0.305,0.796],[0.226,0.776]]
+      }
+    }
+  },
+  "hindi": {
+    "dataset": "IndicVisionBench OCR config (real printed pages + verified text)",
+    "pages": 24,
+    "engines": {
+      "tesseract_hin": {
+        "summary": {"median_cer": 0.072, "mean_cer": 0.0846, "median_wer": 0.25, "sec_per_page": 2.339, "peak_rss_mb": 43.7},
+        "per_page": [[0.078,0.338],[0.025,0.140],[0.087,0.371],[0.072,0.250],[0.048,0.199],[0.087,0.326],[0.043,0.218],[0.222,0.315],[0.029,0.123],[0.114,0.333],[0.140,0.438],[0.033,0.081],[0.020,0.097],[0.085,0.322],[0.080,0.267],[0.055,0.206],[0.033,0.195],[0.022,0.105],[0.179,0.374],[0.026,0.147],[0.032,0.063],[0.024,0.123],[0.216,0.556],[0.282,0.951]]
+      }
+    }
+  },
+  "projection_250_pages": {"tesseract_min": "8-10", "paddle_min": 54, "telugu_model_min": 16, "ram_max_gb": 1.28}
+}
