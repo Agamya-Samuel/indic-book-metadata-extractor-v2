@@ -11,6 +11,7 @@ import pytest
 from app.schemas.metadata import (
     METADATA_BATCHES,
     BATCH_FIELD_ORDER,
+    FIELD_TO_BATCH,
     CoreIdentityBatch,
     FullMetadata,
 )
@@ -161,6 +162,39 @@ def test_transport_failure_walks_the_cause_chain() -> None:
     wrapper.__cause__ = retry_exc
     retry_exc.__cause__ = httpx.ConnectError("refused")
     assert isinstance(_transport_failure(wrapper), httpx.ConnectError)
+
+
+class TestHybridExtractionFailures:
+    @pytest.fixture
+    def service(self):
+        return LLMService(ollama_url="http://fake-ollama:11434")
+
+    async def test_failing_batches_keep_their_real_names(self, service):
+        """A raising batch must not leave a placeholder name behind: the
+        finaliser renders a prompt per batch name and rejects unknown ones."""
+        progress: list[str] = []
+
+        async def on_progress(_current, _total, batch_name):
+            progress.append(batch_name)
+
+        async def failing_batch(**kwargs):
+            raise ConnectionError("connection refused")
+
+        with patch.object(
+            service, "_run_one_batch_for_hybrid", side_effect=failing_batch
+        ):
+            metadata, batch_results, evidence = await service.run_hybrid_full_extraction(
+                ocr_text="భరత స్వాతంత్ర్య సంగ్రామం",
+                progress_callback=on_progress,
+            )
+
+        assert isinstance(metadata, FullMetadata)
+        assert batch_results, "expected one record per attempted batch"
+        known = set(FIELD_TO_BATCH.values())
+        for record in batch_results:
+            assert record["batch_name"] in known
+            assert record["usage"]["status"] == "error"
+        assert progress and all(name in known for name in progress)
 
 
 class TestLLMServiceFullExtraction:
