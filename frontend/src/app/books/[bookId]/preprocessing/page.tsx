@@ -439,6 +439,8 @@ export default function PreprocessingPage() {
               }
             >
               <Stack gap={4}>
+                <CollapsibleSection title="Rotate" defaultOpen>
+                <div className="space-y-4">
                 <div>
                   <p className="mb-1 text-[var(--text-sm)] font-medium text-[var(--text)]">
                     Rotation
@@ -494,6 +496,11 @@ export default function PreprocessingPage() {
                   </div>
                 </div>
 
+                </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Enhance" defaultOpen>
+                <div className="space-y-4">
                 <ToggleControl
                   label="Grayscale"
                   checked={config.grayscale}
@@ -516,6 +523,11 @@ export default function PreprocessingPage() {
                   onChange={(v) => updateConfig({ contrast: v })}
                 />
 
+                </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Binarize" defaultOpen>
+                <div className="space-y-4">
                 <Field label="Binarization">
                   <Select
                     value={config.binarization || "none"}
@@ -576,6 +588,11 @@ export default function PreprocessingPage() {
                   </>
                 )}
 
+                </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Cleanup" defaultOpen>
+                <div className="space-y-4">
                 <ToggleControl
                   label="Deskew"
                   checked={config.deskew}
@@ -597,6 +614,9 @@ export default function PreprocessingPage() {
                     onChange={(v) => updateConfig({ denoise_strength: v })}
                   />
                 )}
+
+                </div>
+                </CollapsibleSection>
 
                 <CollapsibleSection title="Advanced" defaultOpen={false}>
                   <Stack gap={3}>
