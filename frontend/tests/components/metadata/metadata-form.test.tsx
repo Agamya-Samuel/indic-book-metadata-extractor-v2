@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import MetadataForm from "@/components/metadata/metadata-form";
 import type { MetadataFieldDefinition } from "@/lib/api";
 
@@ -86,38 +86,48 @@ describe("MetadataForm", () => {
     expect(titleInput).toBeDefined();
   });
 
-  it("renders save button", () => {
+  it("hands its save and discard actions to the page save bar", () => {
+    const onRegisterActions = vi.fn();
     render(
       <MetadataForm
         fieldDefinitions={mockFieldDefs}
         values={defaultValues}
         onSave={vi.fn()}
         isSaving={false}
+        onRegisterActions={onRegisterActions}
       />
     );
-    expect(screen.getByText(/Save metadata/)).toBeDefined();
+    expect(onRegisterActions).toHaveBeenCalled();
+    const actions = onRegisterActions.mock.calls.at(-1)![0];
+    expect(typeof actions.save).toBe("function");
+    expect(typeof actions.discard).toBe("function");
+    // The form no longer owns a save button; the page's save bar does.
+    expect(screen.queryByText(/Save metadata/)).toBeNull();
   });
 
-  it("disables save button when no changes", () => {
+  it("reports zero unsaved changes initially", () => {
+    const onDirtyCountChange = vi.fn();
     render(
       <MetadataForm
         fieldDefinitions={mockFieldDefs}
         values={defaultValues}
         onSave={vi.fn()}
         isSaving={false}
+        onDirtyCountChange={onDirtyCountChange}
       />
     );
-    const saveBtn = screen.getByText(/Save metadata/).closest("button")!;
-    expect(saveBtn.disabled).toBe(true);
+    expect(onDirtyCountChange).toHaveBeenCalledWith(0);
   });
 
-  it("shows unsaved changes count after edit", () => {
+  it("reports the unsaved-change count after an edit", () => {
+    const onDirtyCountChange = vi.fn();
     render(
       <MetadataForm
         fieldDefinitions={mockFieldDefs}
         values={defaultValues}
         onSave={vi.fn()}
         isSaving={false}
+        onDirtyCountChange={onDirtyCountChange}
       />
     );
 
@@ -129,17 +139,19 @@ describe("MetadataForm", () => {
       fireEvent.change(titleInput, { target: { value: "New Title" } });
     }
 
-    expect(screen.getByText(/unsaved change/)).toBeDefined();
+    expect(onDirtyCountChange).toHaveBeenLastCalledWith(1);
   });
 
-  it("calls onSave when save button clicked after edit", () => {
+  it("saves the edited field through the registered action", () => {
     const onSave = vi.fn();
+    const onRegisterActions = vi.fn();
     render(
       <MetadataForm
         fieldDefinitions={mockFieldDefs}
         values={defaultValues}
         onSave={onSave}
         isSaving={false}
+        onRegisterActions={onRegisterActions}
       />
     );
 
@@ -151,25 +163,41 @@ describe("MetadataForm", () => {
       fireEvent.change(titleInput, { target: { value: "Modified Title" } });
     }
 
-    const saveBtn = screen.getByText(/Save metadata/).closest("button")!;
-    fireEvent.click(saveBtn);
+    onRegisterActions.mock.calls.at(-1)![0].save();
 
     expect(onSave).toHaveBeenCalled();
     const savedFields = onSave.mock.calls[0][0];
     expect(savedFields.title).toBe("Modified Title");
   });
 
-  it("shows loading spinner when isSaving is true", () => {
+  it("discards edits through the registered action", () => {
+    const onDirtyCountChange = vi.fn();
+    const onRegisterActions = vi.fn();
     render(
       <MetadataForm
         fieldDefinitions={mockFieldDefs}
         values={defaultValues}
         onSave={vi.fn()}
-        isSaving={true}
+        isSaving={false}
+        onDirtyCountChange={onDirtyCountChange}
+        onRegisterActions={onRegisterActions}
       />
     );
-    const saveBtn = screen.getByText(/Save metadata/).closest("button")!;
-    expect(saveBtn.getAttribute("aria-busy")).toBe("true");
+
+    const inputs = screen.getAllByRole("textbox");
+    const titleInput = inputs.find(
+      (i) => (i as HTMLInputElement).value === "Test Book Title"
+    );
+    if (titleInput) {
+      fireEvent.change(titleInput, { target: { value: "Ignored" } });
+    }
+    expect(onDirtyCountChange).toHaveBeenLastCalledWith(1);
+
+    act(() => {
+      onRegisterActions.mock.calls.at(-1)![0].discard();
+    });
+
+    expect(onDirtyCountChange).toHaveBeenLastCalledWith(0);
   });
 
   it("renders description as textarea (long text field)", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,7 @@ import { Button, LinkButton } from "@/components/shared/button";
 import { WorkflowNav } from "@/components/shared/workflow-nav";
 import { ErrorState, Progress, EmptyState } from "@/components/shared/empty-state";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
+import SaveBar from "@/components/shared/save-bar";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -122,6 +123,11 @@ export default function MetadataReviewPage() {
     });
 
   const bookStatus = useBookStatus({ bookId });
+
+  const [metadataDirtyCount, setMetadataDirtyCount] = useState(0);
+  const formActionsRef = useRef<{ save: () => void; discard: () => void } | null>(
+    null,
+  );
 
   const saveMutation = useMutation({
     mutationFn: async (
@@ -430,6 +436,10 @@ export default function MetadataReviewPage() {
               isSaving={saveMutation.isPending}
               confidenceByField={confidenceByField}
               onFieldFocus={setFocusedField}
+              onDirtyCountChange={setMetadataDirtyCount}
+              onRegisterActions={(actions) => {
+                formActionsRef.current = actions;
+              }}
             />
           )}
 
@@ -451,6 +461,14 @@ export default function MetadataReviewPage() {
             </LinkButton>
           </WorkflowNav>
         </Stack>
+
+        <SaveBar
+          dirtyCount={metadataDirtyCount}
+          saving={saveMutation.isPending}
+          saveLabel="Save metadata"
+          onSave={() => formActionsRef.current?.save()}
+          onDiscard={() => formActionsRef.current?.discard()}
+        />
 
         <ConfirmDialog
           open={confirmCompleteOpen}
