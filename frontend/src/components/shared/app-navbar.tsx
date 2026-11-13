@@ -8,6 +8,7 @@ import { focusRing } from "@/lib/focus-ring";
 import { getPendingUserCount } from "@/lib/api";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "@/components/auth/auth-provider";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const navLinks = [
   {
@@ -140,6 +141,8 @@ export default function AppNavbar() {
               </Link>
             </div>
           )}
+
+          {isAuthenticated && isApproved && <NotificationBell />}
 
           {isAuthenticated && user && (
             <details className="relative ml-1">
