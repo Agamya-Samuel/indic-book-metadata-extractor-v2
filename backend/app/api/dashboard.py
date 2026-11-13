@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_job_for_user_or_404
@@ -12,6 +12,7 @@ from app.models.user import User, UserRole
 from app.schemas.book import BookListResponse, BookSearchResult
 from app.schemas.dashboard import DashboardJobsResponse, DashboardSummary
 from app.services import admin_service, dashboard_service
+from app.services.notification_service import deliver_notification_emails
 from app.services.search_service import SearchService
 
 router = APIRouter()
@@ -95,12 +96,13 @@ async def dashboard_jobs(
 
 @router.post("/jobs/{job_id}/cancel")
 async def cancel_own_job(
+    background_tasks: BackgroundTasks,
     job: Job = Depends(get_job_for_user_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
     try:
-        cancelled = await admin_service.cancel_job(
+        cancelled, notification_id = await admin_service.cancel_job(
             db,
             job.id,
             reason="Cancelled by admin" if user.role == UserRole.ADMIN else "Cancelled by owner",
@@ -109,4 +111,6 @@ async def cancel_own_job(
         raise HTTPException(status_code=404, detail="Job not found")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    if notification_id is not None:
+        background_tasks.add_task(deliver_notification_emails, [notification_id])
     return {"id": str(cancelled.id), "status": cancelled.status}

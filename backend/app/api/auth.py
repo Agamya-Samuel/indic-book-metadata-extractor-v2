@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -28,6 +36,7 @@ from app.schemas.auth import (
 )
 from app.services import auth_service
 from app.services.auth_service import AuthError
+from app.services.notification_service import deliver_notification_emails
 
 router = APIRouter()
 
@@ -102,10 +111,11 @@ async def _start_session(
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     body: RegisterRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     try:
-        user = await auth_service.register_user(
+        user, notification_ids = await auth_service.register_user(
             db,
             email=body.email,
             display_name=body.display_name,
@@ -113,6 +123,8 @@ async def register(
         )
     except AuthError as exc:
         raise _http_error(exc)
+    if notification_ids:
+        background_tasks.add_task(deliver_notification_emails, notification_ids)
     if settings.registration_requires_approval:
         message = (
             "Account created. Verify your email address; an administrator will "

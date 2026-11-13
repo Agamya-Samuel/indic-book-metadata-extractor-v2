@@ -5,6 +5,7 @@ from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
+from app.models.notification import Notification, NotificationType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.models.stage import BookStage, BookStageStatus, StageStatus
@@ -25,6 +26,8 @@ __all__ = [
     "JobType",
     "LlmRun",
     "MetadataFieldEvidence",
+    "Notification",
+    "NotificationType",
     "OcrResult",
     "Page",
     "RefreshToken",

@@ -20,7 +20,7 @@ from app.core.database import async_session_factory
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus
 from app.models.page import Page
-from app.services import pdf_service, preprocessing, storage
+from app.services import notification_service, pdf_service, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
 from app.services.stage_manager import StageManager
 from app.tasks.async_utils import run_async, run_async_threadsafe
@@ -152,6 +152,12 @@ def _fail(job_id: uuid.UUID, book_id: uuid.UUID, message: str) -> None:
             except Exception:
                 logger.debug("Could not fail page_selection stage", exc_info=True)
             await db.commit()
+            if job is not None and job.status == JobStatus.FAILED:
+                book = await db.get(Book, book_id)
+                notification_id = await notification_service.notify_job_terminal(
+                    db, job=job, book=book, status=JobStatus.FAILED
+                )
+                await notification_service.notify_and_deliver(db, [notification_id])
 
     try:
         run_async_threadsafe(_do())
@@ -209,7 +215,12 @@ def _finalize(
             job.progress = 100.0
             job.completed_at = datetime.now(timezone.utc)
             await db.commit()
-            return job.status, job.error_log, (book.status if book else None)
+            terminal_status = job.status
+            notification_id = await notification_service.notify_job_terminal(
+                db, job=job, book=book, status=terminal_status
+            )
+            await notification_service.notify_and_deliver(db, [notification_id])
+            return terminal_status, job.error_log, (book.status if book else None)
 
     try:
         result = run_async_threadsafe(_do())

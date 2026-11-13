@@ -23,7 +23,7 @@ from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.models.user import AccountStatus, User
-from app.services import storage
+from app.services import notification_service, storage
 from app.services.stage_manager import StageManager
 
 logger = logging.getLogger(__name__)
@@ -171,7 +171,15 @@ async def list_admin_jobs(
     return items, total
 
 
-async def cancel_job(db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled by admin") -> Job:
+async def cancel_job(
+    db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled by admin"
+) -> tuple[Job, UUID | None]:
+    """Cancel a queued/running job.
+
+    Returns the job and the id of the notification created for its requester
+    (None when this exact event already produced one), so the route can deliver
+    the alert email after the response without holding the request open.
+    """
     job = await db.get(Job, job_id)
     if job is None:
         raise LookupError("Job not found")
@@ -210,9 +218,12 @@ async def cancel_job(db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled
         ):
             await StageManager.cancel_stage(db, job.book_id, stage_name, reason)
 
+    notification_id = await notification_service.notify_job_terminal(
+        db, job=job, book=book, status=JobStatus.CANCELLED
+    )
     await db.commit()
     await db.refresh(job)
-    return job
+    return job, notification_id
 
 
 async def delete_book(db: AsyncSession, book_id: UUID) -> None:

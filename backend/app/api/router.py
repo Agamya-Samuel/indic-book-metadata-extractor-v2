@@ -8,6 +8,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.deps import require_approved_user
 from app.api.extraction import router as extraction_router
 from app.api.metadata import router as metadata_router
+from app.api.notifications import router as notifications_router
 from app.api.pages import router as pages_router
 from app.api.sse import router as sse_router
 from app.api.stages import router as stages_router
@@ -57,6 +58,12 @@ api_router.include_router(
 )
 api_router.include_router(
     sse_router, tags=["SSE"], dependencies=[Depends(require_approved_user)]
+)
+api_router.include_router(
+    notifications_router,
+    prefix="/notifications",
+    tags=["notifications"],
+    dependencies=[Depends(require_approved_user)],
 )
 api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
 api_router.include_router(

@@ -11,7 +11,7 @@ from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
-from app.services import ocr_service, ocr_postprocess, preprocessing, storage
+from app.services import notification_service, ocr_service, ocr_postprocess, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
 from app.services.stage_manager import StageManager
 from app.tasks.async_utils import run_async, run_async_threadsafe
@@ -459,6 +459,10 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             terminal_status = job.status
             error_log = job.error_log
             new_book_status = book.status if book else None
+            notification_id = await notification_service.notify_job_terminal(
+                db, job=job, book=book, status=terminal_status
+            )
+            await notification_service.notify_and_deliver(db, [notification_id])
 
         _publish_job_terminal(book_id, job_id, terminal_status, error_log)
         if new_book_status is not None:
@@ -496,6 +500,10 @@ def _mark_job_failed(job_id_str: str, book_id: uuid.UUID, error: str):
                 book.status = BookStatus.PAGES_SELECTED
 
             await db.commit()
+            notification_id = await notification_service.notify_job_terminal(
+                db, job=job, book=book, status=JobStatus.FAILED
+            )
+            await notification_service.notify_and_deliver(db, [notification_id])
             return released
 
     try:
