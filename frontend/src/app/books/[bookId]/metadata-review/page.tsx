@@ -2,11 +2,11 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
   getBookPages,
-  getOcrResult,
   getPageImageUrl,
   getMetadata,
   updateMetadata,
@@ -20,8 +20,8 @@ import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { useBookStatus } from "@/hooks/use-book-status";
 import { getErrorMessage } from "@/lib/error-handler";
-import BoundingBoxCanvas from "@/components/ocr/bounding-box-canvas";
 import MetadataForm from "@/components/metadata/metadata-form";
+import { Chip } from "@/components/shared/chip";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { MetadataReviewSkeleton } from "@/components/shared/skeleton";
 import { toast } from "sonner";
@@ -40,10 +40,9 @@ export default function MetadataReviewPage() {
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
 
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [selectedBoxIndex, setSelectedBoxIndex] = useState<
-    number | undefined
-  >(undefined);
+  const [focusedField, setFocusedField] = useState<string | undefined>(
+    undefined,
+  );
   const [showLlmHistory, setShowLlmHistory] = useState(false);
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
 
@@ -124,15 +123,6 @@ export default function MetadataReviewPage() {
 
   const bookStatus = useBookStatus({ bookId });
 
-  const currentPage = pages?.[currentPageIndex];
-
-  const { data: ocrResult } = useQuery({
-    queryKey: ["ocr", currentPage?.id],
-    queryFn: () => getOcrResult(currentPage!.id),
-    enabled: !!currentPage?.id,
-    retry: 1,
-  });
-
   const saveMutation = useMutation({
     mutationFn: async (
       fields: Record<string, string | Record<string, string>>
@@ -158,10 +148,6 @@ export default function MetadataReviewPage() {
     },
     [saveMutation]
   );
-
-  const handleCopyText = useCallback((text: string) => {
-    navigator.clipboard.writeText(text);
-  }, []);
 
   const completeMutation = useMutation({
     mutationFn: () => completeReview(bookId),
@@ -211,6 +197,16 @@ export default function MetadataReviewPage() {
       </div>
     );
   }
+
+  const evidence = focusedField ? confidenceByField[focusedField] : undefined;
+  const evidencePage =
+    evidence?.source_page_number != null
+      ? pages?.find((page) => page.page_number === evidence.source_page_number)
+      : undefined;
+  const focusedFieldLabel = focusedField
+    ? (fieldDefs?.find((f) => f.field_name === focusedField)?.display_name ??
+      focusedField)
+    : undefined;
 
   const metadataValues = metadata?.fields ?? {};
 
@@ -352,58 +348,79 @@ export default function MetadataReviewPage() {
             </Card>
           )}
 
-          {pages && pages.length > 0 && ocrResult && currentPage && (
-            <Card
-              title="Page Image Viewer"
-              description="Click a bounding box to copy its text to clipboard."
-              headerAction={
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCurrentPageIndex((prev) => Math.max(0, prev - 1));
-                      setSelectedBoxIndex(undefined);
-                    }}
-                    disabled={currentPageIndex === 0}
+          <Card
+            title="Evidence"
+            description={
+              focusedField
+                ? "Where the focused field's value came from."
+                : "Focus a field below to see where its value came from."
+            }
+          >
+            {focusedField && evidence ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Chip
+                    dot
+                    tone={
+                      evidence.confidence == null
+                        ? "neutral"
+                        : evidence.confidence >= 0.85
+                          ? "success"
+                          : evidence.confidence >= 0.5
+                            ? "warning"
+                            : "danger"
+                    }
                   >
-                    Prev
-                  </Button>
-                  <span className="text-[var(--text-sm)] text-[var(--text-muted)] min-w-[80px] text-center tabular-nums">
-                    Page {currentPageIndex + 1} of {pages.length}
+                    {evidence.confidence == null
+                      ? "no score"
+                      : `${Math.round(evidence.confidence * 100)}% confidence`}
+                  </Chip>
+                  <Chip mono>{evidence.extraction_method}</Chip>
+                  {evidence.source_page_number != null && (
+                    <Chip>page {evidence.source_page_number}</Chip>
+                  )}
+                  <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                    {focusedFieldLabel}
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCurrentPageIndex((prev) =>
-                        Math.min(pages.length - 1, prev + 1)
-                      );
-                      setSelectedBoxIndex(undefined);
-                    }}
-                    disabled={currentPageIndex === pages.length - 1}
-                  >
-                    Next
-                  </Button>
                 </div>
-              }
-            >
-              <BoundingBoxCanvas
-                imageUrl={getPageImageUrl(currentPage.id)}
-                boxes={ocrResult.bounding_boxes ?? []}
-                selectedIndex={selectedBoxIndex}
-                onBoxClick={(idx) => {
-                  setSelectedBoxIndex(idx);
-                  const word = ocrResult.bounding_boxes?.[idx];
-                  if (word?.text) {
-                    handleCopyText(word.text);
-                  }
-                }}
-                highlightLowConfidence={true}
-                lowConfidenceThreshold={60}
-              />
-            </Card>
-          )}
+
+                {evidencePage && (
+                  <Image
+                    src={getPageImageUrl(evidencePage.id)}
+                    alt={`Source page ${evidence.source_page_number}`}
+                    width={900}
+                    height={1200}
+                    sizes="(min-width: 1024px) 40vw, 100vw"
+                    className="max-h-[420px] w-auto rounded-[var(--radius)] border border-[var(--border)]"
+                    unoptimized
+                  />
+                )}
+
+                {evidence.source_text_snippet ? (
+                  <p className="rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[var(--text-sm)] leading-relaxed text-[var(--text)]">
+                    …{evidence.source_text_snippet}…
+                  </p>
+                ) : (
+                  <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                    No source snippet was recorded for this field.
+                  </p>
+                )}
+
+                <LinkButton
+                  href={`/books/${bookId}/ocr-review`}
+                  variant="outline"
+                  size="sm"
+                >
+                  Open in OCR review
+                </LinkButton>
+              </div>
+            ) : (
+              <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                Focus a field to see its source page, snippet, confidence and
+                extraction method.
+              </p>
+            )}
+          </Card>
 
           {fieldDefs && (
             <MetadataForm
@@ -412,6 +429,7 @@ export default function MetadataReviewPage() {
               onSave={handleSave}
               isSaving={saveMutation.isPending}
               confidenceByField={confidenceByField}
+              onFieldFocus={setFocusedField}
             />
           )}
 
