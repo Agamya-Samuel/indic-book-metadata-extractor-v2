@@ -10,7 +10,7 @@
     "label": "చిత్రలేఖనము",
     "author": "Talisetty Ramarao",
     "description_work": "This book on art work written in 1918 and found in Digital Library of India; uploaded to be used in Telugu wikisource. Rajasekhar1961 ( talk ) 06:31, 9 October 2014 (UTC)",
-    "description_edition": null,
+    "description_edition": "A TREATISE ON PAINTING BY JEYPORE",
     "translator": null,
     "editor": null,
     "compiler": null,
@@ -61,7 +61,7 @@
     "label": "prefilled_needs_verification",
     "author": "prefilled_needs_verification",
     "description_work": "prefilled_needs_verification",
-    "description_edition": "empty_needs_annotation",
+    "description_edition": "prefilled_needs_verification",
     "translator": "empty_needs_annotation",
     "editor": "empty_needs_annotation",
     "compiler": "empty_needs_annotation",
@@ -113,7 +113,7 @@
     "label": "wikisource_index",
     "author": null,
     "description_work": null,
-    "description_edition": null,
+    "description_edition": "node_llm_extraction",
     "translator": null,
     "editor": null,
     "compiler": null,
@@ -337,11 +337,17 @@
       4,
       5,
       6,
+      7,
+      8,
+      9,
+      10,
+      65,
+      66,
       67,
       68
     ],
-    "ocr_pages": 2,
-    "filled_at": "2026-11-13T07:54:18.106948+00:00",
-    "fields_added": 9
+    "ocr_pages": 7,
+    "filled_at": "2026-11-13T15:33:55.629244+00:00",
+    "fields_added": 1
   }
 }

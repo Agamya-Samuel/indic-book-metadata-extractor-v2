@@ -45,7 +45,7 @@
     "illustrators": null,
     "isbn": null,
     "title": "శ్రీ సుగుణమణి",
-    "subtitle": null,
+    "subtitle": "ఒక కల్పిత నాటకము.",
     "awards": null,
     "context": null,
     "publisher_telugu": null,
@@ -96,7 +96,7 @@
     "illustrators": "empty_needs_annotation",
     "isbn": "empty_needs_annotation",
     "title": "prefilled_needs_verification",
-    "subtitle": "empty_needs_annotation",
+    "subtitle": "prefilled_needs_verification",
     "awards": "empty_needs_annotation",
     "context": "empty_needs_annotation",
     "publisher_telugu": "empty_needs_annotation",
@@ -148,7 +148,7 @@
     "illustrators": null,
     "isbn": null,
     "title": null,
-    "subtitle": null,
+    "subtitle": "node_llm_extraction",
     "awards": null,
     "context": null,
     "publisher_telugu": null,
@@ -341,11 +341,17 @@
       4,
       5,
       6,
+      7,
+      8,
+      9,
+      10,
+      82,
+      83,
       84,
       85
     ],
-    "ocr_pages": 8,
-    "filled_at": "2026-11-13T07:06:19.020632+00:00",
-    "fields_added": 2
+    "ocr_pages": 14,
+    "filled_at": "2026-11-13T14:25:30.626627+00:00",
+    "fields_added": 1
   }
 }
