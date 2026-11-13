@@ -1,7 +1,13 @@
 # 011 — Ground-Truth Source Expansion: scale + metadata depth (Telugu/Hindi, CC/PD)
 
 - **Date:** 2026-11-13
-- **Status:** **Phase 1 PoC done** (2026-11-13) — result below; Phase 2+ pending.
+- **Status:** **Phase 1 (depth) and Phase 3 (scale) done** (2026-11-13); Phase 2 (DLI Catalogue) pending.
+
+## Phase 3 result — scale (2026-11-13)
+
+Fetched **+16 Hindi + 6 Telugu** CC/PD books from Commons (`--cc-pd-only`, 40 MB cap); corpus **49 → 71 books**, values **681 → 844**, still 39/49 fields, all schema-conformant and source-verified.
+
+**Limitation found:** the IA-based adapters (`ia_dc`, `pustaka_nidhi`) matched **0 of the 22 new books** — they are Commons-only uploads with no Internet Archive identifier, so catalogue-based depth cannot reach them. Depth for those must come from OCR/LLM. The DLI/IA-hosted books (the original 35) are where the catalogue adapters apply.
 
 ## Phase 1 result (2026-11-13)
 
