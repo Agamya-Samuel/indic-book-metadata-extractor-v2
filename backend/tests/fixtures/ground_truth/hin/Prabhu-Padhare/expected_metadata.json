@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": null,
-    "author": "Jhaverchand Meghani",
+    "author": "झावेरचंद मेघानी",
     "description_work": "Prabhu-Padhare by Jhaverchand Meghani",
     "description_edition": "दूसरा संस्करण",
     "translator": "surg ward",
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": "node_llm_extraction",
     "translator": "node_llm_extraction",

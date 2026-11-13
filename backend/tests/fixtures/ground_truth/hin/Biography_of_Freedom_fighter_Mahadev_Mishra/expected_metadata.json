@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": null,
-    "author": "Vishnu Kant Mishra",
+    "author": "विष्णु कांत मिश्र",
     "description_work": "स्वतंत्रता सेनानी महादेव मिश्र सन १९४२ के क्रांति के बिहार के मधुबनी जिले के महा नायक थे 'उनका जन्म २६ जून १९१० में झंझारपुर अनुमंडल के अंधराठाढ़ी प्रखंड के गोनौली ग्राम में हुआ था ,वे एक विद्वान शिक्षक भी थे ,उन्होंने कई गाँव में सबसे सहयोग लेकर कई स्कूल की स्थापना की , वे भगवान शंकर के बहुत बड़े भक्त थे ,उनकी कई रचनाएँ भी हैं ,उन्होंने पंडित जयदेव कृति गीत गोबिंद का मैथिली में अनुवाद भी किया है ,एक देश पर सर्वस्व न्योछावर कर देने वाले महान सेनानी ,एक महँ समाज सुधारक और शिक्षा के प्रति समर्पित शिक्षक के रूप में वे सदा याद किये जायेंगे .",
     "description_edition": "प्रथम पुष्प",
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": "node_llm_extraction",
     "translator": null,

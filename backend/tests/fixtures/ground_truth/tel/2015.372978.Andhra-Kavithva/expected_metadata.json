@@ -8,7 +8,7 @@
   "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "ఆంధ్ర కవిత్వ చరిత్రము",
-    "author": "Basavaraju Apparao (1894-1933)",
+    "author": "బసవరాజు అప్పరావు (1894-1933)",
     "description_work": "This Telugu book by Basavaraju Apparao on the History of Telugu Poetry is found in Archives and uploaded to be used in Telugu wikisource. Rajasekhar1961 ( talk ) 14:37, 28 September 2017 (UTC)",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": "wikisource_index",
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,
