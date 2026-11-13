@@ -12,10 +12,11 @@ Indic Book Metadata Extractor is a web application that helps you extract struct
 
 1. Ensure the application is running (see the [README](../README.md) for setup instructions)
 2. Open **http://localhost:3000** in your browser
-3. You'll see the home page with two options: **Upload a Book** and **Browse Library**
+3. You'll see the home page with **Start an upload** and a link to log in
 
-You can browse the Library without an account, but uploading a book and
-everything else in the workflow requires a sign-in.
+Uploading a book and everything else in the workflow requires a signed-in,
+approved account. Every account is reviewed by an administrator before it can
+be used.
 
 ---
 
@@ -46,7 +47,7 @@ administrator may have reset your password or deactivated your account.
 
 | | Visitor | User | Admin |
 |---|---|---|---|
-| Browse the public Library | ✅ | ✅ | ✅ |
+| Browse the full catalog (admin **Books** page) | — | — | ✅ |
 | See page images, OCR text and job history of a book | — | Own books only | Any book |
 | Upload books, run the pipeline, edit metadata | — | Own books | Any book |
 | Personal dashboard with own books/jobs and queue position | — | ✅ | ✅ |
@@ -67,6 +68,18 @@ administrator may have reset your password or deactivated your account.
 The **Admin** section (admins only) additionally shows every book and job
 across all users, with an owner filter, plus the **Users** page for account
 administration.
+
+### Moving through a book's workflow
+
+Every book page uses the same layout: a **stage rail** on the left (collapsed
+to a stage picker on narrow screens) lists the eight steps and their state,
+the step's content fills the rest of the screen, and a footer carries
+**Back**, **Next** and links to any parallel next steps.
+
+The rail marks the current step, completed steps, failed or stale steps, and
+any background work still running under the step that owns it. Click any
+stage to jump straight there — earlier stages stay reachable after a book is
+finished so you can re-run OCR or re-extract metadata.
 
 ---
 
@@ -141,7 +154,9 @@ task with live progress.
    navigating away with unsaved changes asks for confirmation.
 5. The word boxes on the image are the **original OCR layout** — they are not
    updated by text edits.
-6. Use **Previous** / **Next** and the page strip to navigate between pages.
+6. Use **Previous** / **Next** in the toolbar, or the page filmstrip on the
+   left, to navigate between pages. The **Pages** button collapses the
+   filmstrip to give the editor more room.
 7. Use **Save corrections** to save your changes.
 
 > **Tip**: OCR accuracy on Indic scripts varies. Focus on correcting key fields like title, author, and publisher — these are what the LLM uses for metadata extraction.
@@ -154,7 +169,8 @@ task with live progress.
    available — a running job shows as a progress card above the form instead
    of replacing it.
 2. Configure extraction settings:
-   - **Model**: Choose from available Ollama models (Qwen2.5 7B is the default)
+   - **Model**: Choose from available Ollama models (`phi4-mini` is the
+     default)
    - **Temperature**: Controls randomness (0.3 recommended for factual extraction)
    - **Max Tokens**: Maximum response length per batch
    - **System Prompt**: The instruction given to the model (editable)
@@ -177,14 +193,18 @@ task with live progress.
    - Pre-filled values come from the LLM extraction
    - Low-confidence or empty fields are highlighted
    - All fields are editable inline
-2. The page image viewer at the top lets you reference the original scan
-3. Edit any field values as needed
-4. Click **Save Metadata** to save. **Saving no longer completes the book** —
-   it stays in review so you can keep editing.
-5. When you are finished, click **Mark review complete**. It confirms first and
+2. The **page image viewer** at the top lets you reference the original scan
+3. Click any field to open the **Evidence** pane on the right. It shows where
+   the value came from: the source page image, the OCR snippet it was read
+   from, the extraction method, and the model's confidence
+4. Edit any field values as needed. The sticky **save bar** at the bottom
+   counts unsaved changes and offers **Save** and **Discard**
+5. Click **Save** to save. **Saving no longer completes the book** — it stays
+   in review so you can keep editing.
+6. When you are finished, click **Mark review complete**. It confirms first and
    lists any empty or low-confidence fields. This is the only action that
    completes the workflow.
-6. If you re-run OCR later, extracted metadata text is kept but marked out of
+7. If you re-run OCR later, extracted metadata text is kept but marked out of
    date until extraction is re-run.
 
 ---
