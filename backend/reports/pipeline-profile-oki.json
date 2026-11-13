@@ -1,0 +1,130 @@
+{
+  "captured": "2026-11-10 to 2026-11-11",
+  "host": {
+    "name": "oki (srv1714035)",
+    "vcpu": 4,
+    "ram_mib": 15990,
+    "swap_mib": 0,
+    "docker_containers_running": 18,
+    "note": "Production host. Measured directly over SSH (alias `oki`)."
+  },
+  "workload": {
+    "book": "tel / 30 pages / 21 MB scan, 1280x720 pt pages",
+    "render_dpi": 300,
+    "ocr_mode": "sequential pages (baseline code path)",
+    "celery_concurrency": 8,
+    "llm_model": "qwen2.5 (Modelfile build of qwen2.5:7b)",
+    "given_ocr_text": "not used (full OCR run)"
+  },
+
+  "service_inventory": {
+    "core_essential": {
+      "postgres": "pgvector/pg16 - books, pages, jobs, stage status",
+      "redis": "Celery broker + result backend + SSE pub/sub + rate limiting",
+      "ollama": "LLM inference (model resident only while in use)",
+      "backend": "FastAPI",
+      "worker": "Celery; runs Tesseract as a subprocess (no separate OCR service)",
+      "frontend": "Next.js standalone"
+    },
+    "core_adjacent_keep_on": {
+      "backup": "daily pg_dump, 7-day retention; idle sleep loop, ~12 MiB. Sole automated backup of pgdata."
+    },
+    "non_essential_candidates": [
+      "wikibase", "wikibase-jobrunner", "wikibase-init",
+      "quickstatements", "mysql", "elasticsearch",
+      "openrefine", "flower"
+    ]
+  },
+
+  "measured_idle_memory_mib": {
+    "non_essential_total": 2522,
+    "non_essential": {
+      "openrefine": 1084.4,
+      "elasticsearch": 900.3,
+      "wikibase": 170.2,
+      "mysql": 139.4,
+      "wikibase_jobrunner": 131.1,
+      "flower": 53.67,
+      "quickstatements": 42.93
+    },
+    "core_total": 1183.7,
+    "core": {
+      "worker": 648.0,
+      "backend": 161.1,
+      "ollama": 155.3,
+      "frontend": 129.4,
+      "postgres": 64.11,
+      "redis": 13.93,
+      "backup": 11.84
+    },
+    "dokploy_platform_total": 705.6,
+    "dokploy_platform": {
+      "dokploy": 505.5,
+      "traefik": 119.3,
+      "dokploy_postgres": 63.96,
+      "dokploy_redis": 16.83
+    },
+    "note": "Ollama idle at 155 MiB means the model is UNLOADED (ollama ps empty) - an idle snapshot understates peak."
+  },
+
+  "measured_core_only_stack_mib": {
+    "total_idle": 1421.7,
+    "containers": 7,
+    "note": "Gating validated by starting only core services; nothing core depends on the optional ones."
+  },
+
+  "ocr_phase": {
+    "wall_seconds": 568.4,
+    "pages": 30,
+    "seconds_per_page_mean": 18.95,
+    "seconds_per_page_median": 9,
+    "seconds_per_page_min": 3,
+    "seconds_per_page_max": 86,
+    "per_page_seconds_sorted": [3,3,3,3,3,6,6,6,7,9,9,9,9,9,9,9,10,10,12,12,16,21,21,27,32,37,52,52,77,86],
+    "pages_over_40s": [52,52,77,86],
+    "slowest_5_share_of_total_seconds": 304,
+    "slowest_5_share_of_total_fraction": 0.535,
+    "avg_confidence": 61.73,
+    "engine_peaks": {
+      "worker": {"cpu_percent": 335.3, "mem_mib": 882.6},
+      "backend": {"cpu_percent": 100.3, "mem_mib": 449.1},
+      "ollama": {"cpu_percent": 43.5, "mem_mib": 380.5, "model_loaded": false}
+    },
+    "host": {"used_steady_mib_range": [1427, 2064], "loadavg_peak": 3.34, "cores": 4},
+    "note": "Worker peak CPU 335% => Tesseract OpenMP already uses ~3.35 of 4 cores for a single page; pages are sequential."
+  },
+
+  "extraction_phase": {
+    "wall_seconds_to_all_batches_returned": 2434.4,
+    "batches": 8,
+    "seconds_per_batch_approx": 305,
+    "batch_progress_offsets_seconds": [3, 285, 659, 927, 1258, 1514, 1820, 2178, 2434],
+    "worker_cpu_during": "~0.1% (blocked on HTTP)",
+    "ollama_cpu_during": "~199%",
+    "post_hang": "job sat at running 100% - see learnings/016 (persistence deadlock); no llm_runs/metadata rows written"
+  },
+
+  "host_memory_under_load": {
+    "extraction_peak_anon_mib": 7713,
+    "extraction_min_available_mib": 3070,
+    "extraction_steady_anon_mib": 7365,
+    "container_sum_at_peak_mib": 7370,
+    "shmem_mib": 22,
+    "slab_mib": 424,
+    "cached_mib": 1050,
+    "note": "1s /proc/meminfo sampling over the whole extraction (1720 samples). AnonPages matches the container sum, so host memory is fully attributed. No 10 GB transient exists."
+  },
+
+  "superseded_measurement_artifact": {
+    "claim": "host 'used' spiked to 11733-12440 MiB in two runs",
+    "verdict": "artifact",
+    "cause": "aggregate `free -m` used sampled via subprocess at 2-4s intervals, which cannot distinguish AnonPages / Cached / Shmem / Slab",
+    "disproof": "1-second /proc/meminfo category sampling across the same phases shows anon <= 7713 MiB and no sample with anon>9GB, cached>9GB or shmem>1GB"
+  },
+
+  "phase_split": {
+    "ocr_fraction": 0.189,
+    "extraction_fraction": 0.811,
+    "note": "Extraction dominates per-book wall-clock ~4.3x, so LLM tuning is the larger lever than OCR page-parallelism."
+  }
+}
