@@ -138,9 +138,7 @@ export default function SelectPagesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowShell bookId={bookId} />
-
+    <WorkflowShell bookId={bookId}>
       <PageContainer>
         <PageHeader
           eyebrow={getLanguageName(book.language)}
@@ -334,6 +332,6 @@ export default function SelectPagesPage() {
           </nav>
         )}
       </PageContainer>
-    </div>
+    </WorkflowShell>
   );
 }
