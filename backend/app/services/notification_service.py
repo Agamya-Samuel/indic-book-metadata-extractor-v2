@@ -301,19 +301,22 @@ async def deliver_emails_in_session(
 
         sent = 0
         skipped = 0
+        attempted = 0
         for notification, user in rows:
             if notification.emailed_at is not None:
                 continue
             if not user.email_notifications_enabled:
                 skipped += 1
                 continue
+            attempted += 1
             if await _send_one(notification, user):
                 notification.emailed_at = datetime.now(timezone.utc)
                 sent += 1
         await db.flush()
         logger.info(
-            "Notification email delivery: %d sent, %d skipped (preference off)",
+            "Notification email delivery: %d/%d sent, %d skipped (preference off)",
             sent,
+            attempted,
             skipped,
         )
         return sent

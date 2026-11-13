@@ -169,6 +169,17 @@ services:
       OCR_BATCH_SIZE: ${OCR_BATCH_SIZE:-10}
       OCR_THREAD_WORKERS: ${OCR_THREAD_WORKERS:-4}
       OCR_RENDER_DPI: ${OCR_RENDER_DPI:-300}
+      # Workers create job notifications and send their alert emails, so they
+      # need the same SMTP settings and public URL as the backend.
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      SMTP_ENABLED: ${SMTP_ENABLED:-true}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
