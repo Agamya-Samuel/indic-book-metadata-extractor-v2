@@ -9,7 +9,7 @@ import { Chip } from "@/components/shared/chip";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { BookDetailSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
-import { LinkButton } from "@/components/shared/button";
+import { Button, LinkButton } from "@/components/shared/button";
 import Image from "next/image";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -138,7 +138,7 @@ const FIELD_GROUPS: Record<string, string[]> = {
 export default function BookDetailPage() {
   const params = useParams();
   const bookId = params.bookId as string;
-  const [expandedPage, setExpandedPage] = useState<number | null>(null);
+  const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
 
   const { data: detail, isLoading } = useQuery({
     queryKey: ["book-detail", bookId],
@@ -254,6 +254,68 @@ export default function BookDetailPage() {
         <span className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-subtle)]">
           {job.created_at ? new Date(job.created_at).toLocaleString() : "—"}
         </span>
+      ),
+    },
+  ];
+
+  const pageColumns: DataTableColumn<(typeof pages)[number]>[] = [
+    {
+      key: "page",
+      header: "Page",
+      cell: (page) => (
+        <span className="whitespace-nowrap text-[var(--text-sm)] font-medium text-[var(--text)]">
+          Page {page.page_number}
+        </span>
+      ),
+    },
+    {
+      key: "confidence",
+      header: "Confidence",
+      hideBelow: "sm",
+      cell: (page) =>
+        page.ocr_confidence != null ? (
+          <Chip
+            tone={
+              page.ocr_confidence >= 80
+                ? "success"
+                : page.ocr_confidence >= 60
+                  ? "warning"
+                  : "danger"
+            }
+          >
+            {Math.round(page.ocr_confidence)}%
+          </Chip>
+        ) : (
+          <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+            —
+          </span>
+        ),
+    },
+    {
+      key: "text",
+      header: "OCR text",
+      hideBelow: "md",
+      cell: (page) => (
+        <span className="block max-w-[420px] truncate text-[var(--text-xs)] text-[var(--text-subtle)]">
+          {page.ocr_text ? `${page.ocr_text.substring(0, 80)}…` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "toggle",
+      header: <span className="sr-only">Details</span>,
+      className: "text-right",
+      cell: (page) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-expanded={expandedPageId === page.id}
+          onClick={() =>
+            setExpandedPageId((prev) => (prev === page.id ? null : page.id))
+          }
+        >
+          {expandedPageId === page.id ? "Hide" : "Show"}
+        </Button>
       ),
     },
   ];
@@ -539,89 +601,40 @@ export default function BookDetailPage() {
                   </Chip>
                 </span>
               }
-              description="Click a row to view the page image and OCR text."
+              description="Expand a row to see the page image and its OCR text."
+              flush
             >
-              <div className="divide-y divide-[var(--border)] -mx-5">
-                {pages.map((page, idx) => (
-                  <div key={page.id}>
-                    <button
-                      onClick={() =>
-                        setExpandedPage(expandedPage === idx ? null : idx)
-                      }
-                      className="w-full px-5 py-3 flex items-center justify-between hover:bg-[var(--surface-sunken)] text-left transition-colors"
-                      aria-expanded={expandedPage === idx}
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                          Page {page.page_number}
-                        </span>
-                        {page.ocr_confidence != null && (
-                          <Chip
-                            tone={
-                              page.ocr_confidence >= 80
-                                ? "success"
-                                : page.ocr_confidence >= 60
-                                  ? "warning"
-                                  : "danger"
-                            }
-                          >
-                            {Math.round(page.ocr_confidence)}% confidence
-                          </Chip>
-                        )}
-                        {page.ocr_text && (
-                          <span className="text-[var(--text-xs)] text-[var(--text-subtle)] truncate max-w-[200px] sm:max-w-[300px]">
-                            {page.ocr_text.substring(0, 80)}...
-                          </span>
-                        )}
-                      </div>
-                      <svg
-                        className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${
-                          expandedPage === idx ? "rotate-180" : ""
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
-                    {expandedPage === idx && (
-                      <div className="px-5 pb-4 flex flex-col md:flex-row gap-4">
-                        <div className="md:w-1/2">
-                          {/* The backend returns `image_url` as a relative
-                              `/api/pages/...` path. Resolve it against the
-                              configured API base URL so it works whether the
-                              backend is same-origin (`/api`) or a separate
-                              host (e.g. `https://...-api...`). */}
-                          <Image
-                            src={getPageImageUrl(page.id)}
-                            alt={`Page ${page.page_number}`}
-                            width={800}
-                            height={1100}
-                            sizes="(min-width: 768px) 50vw, 100vw"
-                            className="max-h-[500px] w-auto h-auto border border-[var(--border)] rounded-[var(--radius)]"
-                            unoptimized
-                          />
-                        </div>
-                        <div className="md:w-1/2">
-                          <h4 className="text-[var(--text-xs)] font-medium text-[var(--text-muted)] mb-2">
-                            OCR Text
-                          </h4>
-                          <pre className="text-[var(--text-xs)] bg-[var(--surface-sunken)] p-3 rounded-[var(--radius)] overflow-auto max-h-[500px] whitespace-pre-wrap text-[var(--text)]">
-                            {page.ocr_text || "(No OCR text available)"}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
+              <DataTable
+                bare
+                caption="Pages"
+                columns={pageColumns}
+                rows={pages}
+                rowKey={(page) => page.id}
+                expandedRowKey={expandedPageId}
+                renderExpandedRow={(page) => (
+                  <div className="flex flex-col gap-4 md:flex-row">
+                    <div className="md:w-1/2">
+                      <Image
+                        src={getPageImageUrl(page.id)}
+                        alt={`Page ${page.page_number}`}
+                        width={800}
+                        height={1100}
+                        sizes="(min-width: 768px) 50vw, 100vw"
+                        className="h-auto max-h-[500px] w-auto rounded-[var(--radius)] border border-[var(--border)]"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="md:w-1/2">
+                      <h4 className="mb-2 text-[var(--text-xs)] font-medium text-[var(--text-muted)]">
+                        OCR Text
+                      </h4>
+                      <pre className="max-h-[500px] overflow-auto whitespace-pre-wrap rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[var(--text-xs)] text-[var(--text)]">
+                        {page.ocr_text || "(No OCR text available)"}
+                      </pre>
+                    </div>
                   </div>
-                ))}
-              </div>
+                )}
+              />
             </Card>
           )}
 
