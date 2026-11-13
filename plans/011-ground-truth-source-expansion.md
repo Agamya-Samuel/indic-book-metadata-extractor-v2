@@ -9,6 +9,10 @@ Fetched **+16 Hindi + 6 Telugu** CC/PD books from Commons (`--cc-pd-only`, 40 MB
 
 **Limitation found:** the IA-based adapters (`ia_dc`, `pustaka_nidhi`) matched **0 of the 22 new books** — they are Commons-only uploads with no Internet Archive identifier, so catalogue-based depth cannot reach them. Depth for those must come from OCR/LLM. The DLI/IA-hosted books (the original 35) are where the catalogue adapters apply.
 
+## Phase 2 — DLI Catalogue: **blocked** (2026-11-13)
+
+The DLI Catalogue (`sanskritdocuments.org/.../DLI_Catalog/*.html`) is the one source with real `publisher` / `year` / `pages`, but it is behind **Cloudflare bot protection** — direct fetches return **403 "Just a moment…"** even with a browser User-Agent. Programmatic access would need a real browser session (or is disallowed by ToS); **parked**. Its data overlaps the DLI `dc.*` fields already read from IA, so the loss is small.
+
 ## Phase 1 result (2026-11-13)
 
 Built [`enrich_catalogues.py`](../backend/scripts/enrich_catalogues.py) (`ia_dc` + `pustaka_nidhi`) and [`fix_script.py`](../backend/scripts/fix_script.py) (OpenRouter `ernie-5.5-flash:free` transliteration), applied to the existing 49 books.
