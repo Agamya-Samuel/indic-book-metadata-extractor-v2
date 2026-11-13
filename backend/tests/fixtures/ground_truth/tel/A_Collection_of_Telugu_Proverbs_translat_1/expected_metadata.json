@@ -16,7 +16,7 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": "పుస్తకం",
-    "genre": null,
+    "genre": "proverbs",
     "subject": null,
     "original_language": "Telugu",
     "edition_or_translation_of": null,
@@ -67,7 +67,7 @@
     "compiler": "empty_needs_annotation",
     "inception": "empty_needs_annotation",
     "form_of_creative_work": "prefilled_needs_verification",
-    "genre": "empty_needs_annotation",
+    "genre": "prefilled_needs_verification",
     "subject": "empty_needs_annotation",
     "original_language": "prefilled_needs_verification",
     "edition_or_translation_of": "empty_needs_annotation",
@@ -119,7 +119,7 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": "wikisource_index",
-    "genre": null,
+    "genre": "commons_category",
     "subject": null,
     "original_language": null,
     "edition_or_translation_of": null,
@@ -164,13 +164,13 @@
     "sources": [
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95:A_Collection_of_Telugu_Proverbs_translat(1).pdf"
     ],
-    "enriched_at": "2026-11-12T08:35:32.616394+00:00",
-    "prefilled_fields": 8
+    "enriched_at": "2026-11-13T04:27:30.668672+00:00",
+    "prefilled_fields": 9
   },
   "verification": {
-    "checked_at": "2026-11-12T08:36:57.794653+00:00",
-    "prefilled": 8,
-    "scan_confirmed": 7,
+    "checked_at": "2026-11-13T05:53:29.346611+00:00",
+    "prefilled": 9,
+    "scan_confirmed": 8,
     "fields": {
       "label": {
         "status": "scan_confirmed",
@@ -204,7 +204,8 @@
         "source": "wikisource_index"
       },
       "genre": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "commons_category"
       },
       "subject": {
         "status": "empty"

@@ -16,8 +16,8 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": "పుస్తకం",
-    "genre": null,
-    "subject": null,
+    "genre": "drama",
+    "subject": "Telugu Drama:Drama, Telugu, MinistryOfCulture",
     "original_language": "Telugu",
     "edition_or_translation_of": null,
     "based_on": null,
@@ -67,8 +67,8 @@
     "compiler": "empty_needs_annotation",
     "inception": "empty_needs_annotation",
     "form_of_creative_work": "prefilled_needs_verification",
-    "genre": "empty_needs_annotation",
-    "subject": "empty_needs_annotation",
+    "genre": "prefilled_needs_verification",
+    "subject": "prefilled_needs_verification",
     "original_language": "prefilled_needs_verification",
     "edition_or_translation_of": "empty_needs_annotation",
     "based_on": "empty_needs_annotation",
@@ -119,8 +119,8 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": null,
-    "genre": null,
-    "subject": null,
+    "genre": "commons_category",
+    "subject": "internet_archive",
     "original_language": null,
     "edition_or_translation_of": null,
     "based_on": null,
@@ -165,12 +165,12 @@
       "https://archive.org/details/dli.ministry.30404",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A19230101_SangeetagoloBakavali_Telugu_PDF.pdf"
     ],
-    "enriched_at": "2026-11-12T08:35:05.274226+00:00",
-    "prefilled_fields": 10
+    "enriched_at": "2026-11-13T04:26:58.182714+00:00",
+    "prefilled_fields": 12
   },
   "verification": {
-    "checked_at": "2026-11-12T08:36:57.774638+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T05:53:29.328525+00:00",
+    "prefilled": 12,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -205,10 +205,12 @@
         "source": "commons"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "commons_category"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "original_language": {
         "status": "catalog_only",

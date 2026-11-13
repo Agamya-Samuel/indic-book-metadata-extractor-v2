@@ -17,7 +17,7 @@
     "inception": null,
     "form_of_creative_work": "పుస్తకం",
     "genre": null,
-    "subject": null,
+    "subject": "SV",
     "original_language": "Telugu",
     "edition_or_translation_of": null,
     "based_on": null,
@@ -68,7 +68,7 @@
     "inception": "empty_needs_annotation",
     "form_of_creative_work": "prefilled_needs_verification",
     "genre": "empty_needs_annotation",
-    "subject": "empty_needs_annotation",
+    "subject": "prefilled_needs_verification",
     "original_language": "prefilled_needs_verification",
     "edition_or_translation_of": "empty_needs_annotation",
     "based_on": "empty_needs_annotation",
@@ -120,7 +120,7 @@
     "inception": null,
     "form_of_creative_work": null,
     "genre": null,
-    "subject": null,
+    "subject": "internet_archive",
     "original_language": null,
     "edition_or_translation_of": null,
     "based_on": null,
@@ -165,12 +165,12 @@
       "https://archive.org/details/in.ernet.dli.2015.497541",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A1917_Prataparudreeyamu_Ratnapanasahitam_Telugu_PDF.pdf"
     ],
-    "enriched_at": "2026-11-12T08:34:56.879678+00:00",
-    "prefilled_fields": 12
+    "enriched_at": "2026-11-13T04:26:49.627436+00:00",
+    "prefilled_fields": 13
   },
   "verification": {
-    "checked_at": "2026-11-12T08:36:57.771872+00:00",
-    "prefilled": 12,
+    "checked_at": "2026-11-13T05:53:29.326392+00:00",
+    "prefilled": 13,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -209,7 +209,8 @@
         "status": "empty"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "original_language": {
         "status": "catalog_only",

@@ -55,6 +55,28 @@ TE_LABELS = {
     "రకం": "form_of_creative_work",
     "సంపుటి": "volume",
     "ఆధారము": "based_on",
+    "ఆధారం": "based_on",
+    "భాష": "language",
+    "ISBN": "isbn",
+}
+HI_LABELS = {
+    "शीर्षक": "title",
+    "लेखक": "author",
+    "अनुवादक": "translator",
+    "संपादक": "editor",
+    "चित्रकार": "illustrators",
+    "प्रकाशक": "publisher",
+    "स्थान": "place_of_publication",
+    "पता": "place_of_publication",
+    "वर्ष": "publication_date",
+    "साल": "publication_date",
+    "प्रकार": "form_of_creative_work",
+    "खंड": "volume",
+    "भाग": "volume",
+    "आधार": "based_on",
+    "स्रोत": "based_on",
+    "भाषा": "language",
+    "ISBN": "isbn",
 }
 EN_LABELS = {
     "title": "title",
@@ -70,8 +92,27 @@ EN_LABELS = {
     "type": "form_of_creative_work",
     "volume": "volume",
     "source": "based_on",
+    "isbn": "isbn",
+    "language": "language",
 }
 LANG_LABEL = {"tel": "Telugu", "te": "Telugu", "hin": "Hindi", "hi": "Hindi"}
+
+# Commons category substrings -> schema field values (conservative, curated).
+GENRE_HINTS = {
+    "autobiograph": "autobiography",
+    "memoir": "memoir",
+    "biograph": "biography",
+    "novel": "novel",
+    "poetry": "poetry",
+    "poems": "poetry",
+    "dictionary": "dictionary",
+    "encyclopedia": "encyclopedia",
+    "drama": "drama",
+    "play": "drama",
+    "essay": "essay",
+    "short stories": "short stories",
+    "proverb": "proverbs",
+}
 
 
 _NAMESPACE_RE = re.compile(r"^(రచయిత|వర్గం|మూస|పుట|సూచిక|Author|Category|File|Index|Template|Page)\s*:")
@@ -108,7 +149,7 @@ def parse_index_header(wikitext: str) -> dict[str, str]:
         if not m:
             continue
         label, raw = m.group(1).strip(), m.group(2).strip()
-        field = TE_LABELS.get(label) or EN_LABELS.get(label.lower())
+        field = TE_LABELS.get(label) or HI_LABELS.get(label) or EN_LABELS.get(label.lower())
         if not field:
             continue
         value = _clean_value(raw)
@@ -158,23 +199,68 @@ def fetch_ia_metadata(client: httpx.Client, ident: str) -> dict[str, str]:
     out: dict[str, str] = {}
 
     def put(field: str, raw: object) -> None:
-        val = _clean_value(str(raw)) if raw is not None else None
+        if raw is None:
+            return
+        if isinstance(raw, list):
+            raw = ", ".join(str(x) for x in raw)
+        val = _clean_value(str(raw))
         if val:
             out[field] = val
 
     put("title", meta.get("title"))
     put("author", meta.get("creator"))
-    put("publication_date", meta.get("date"))
+    put("publication_date", meta.get("date") or meta.get("year"))
+    put("subject", meta.get("subject"))
+    put("sponsor", meta.get("sponsor"))
+    put("publisher", meta.get("publisher"))
     desc = str(meta.get("description", ""))
     pub = re.search(r"dc\.publisher:\s*([^<\n]+)", desc)
     if pub:
-        put("publisher", pub.group(1))
+        out["publisher"] = _clean_value(pub.group(1)) or out.get("publisher", "")
     pages = re.search(r"dc\.description\.totalpages:\s*(\d+)", desc)
     if pages:
         out["pages"] = pages.group(1)
+    elif meta.get("imagecount"):
+        out["pages"] = str(meta["imagecount"])
     lang = str(meta.get("language", "")).strip()
     if lang in LANG_LABEL:
         out["language"] = LANG_LABEL[lang]
+    return out
+
+
+def fetch_commons_categories(client: httpx.Client, commons_title: str | None) -> dict[str, str]:
+    """Derive genre / subject / language hints from a Commons file's categories."""
+    if not commons_title:
+        return {}
+    data = client.get(
+        "https://commons.wikimedia.org/w/api.php",
+        params={
+            "action": "query",
+            "titles": commons_title,
+            "prop": "imageinfo",
+            "iiprop": "extmetadata",
+            "iiextmetadatafilter": "Categories",
+            "format": "json",
+            "formatversion": "2",
+        },
+    ).json()
+    pages = data.get("query", {}).get("pages", [])
+    if not pages or "imageinfo" not in pages[0]:
+        return {}
+    raw = pages[0]["imageinfo"][0].get("extmetadata", {}).get("Categories", {}).get("value", "")
+    cats = [c.strip() for c in str(raw).split("|") if c.strip()]
+    out: dict[str, str] = {}
+    genres: list[str] = []
+    for cat in cats:
+        low = cat.lower()
+        for hint, genre in GENRE_HINTS.items():
+            if hint in low and genre not in genres:
+                genres.append(genre)
+        for lang in ("telugu", "hindi"):
+            if lang in low and low.endswith("language books"):
+                out.setdefault("language", lang.capitalize())
+    if genres:
+        out["genre"] = ", ".join(genres)
     return out
 
 
@@ -189,6 +275,7 @@ def enrich_book(client: httpx.Client, gt_path: Path, delay: float) -> dict[str, 
 
     ia_found: dict[str, str] = {}
     ws_found: dict[str, str] = {}
+    commons_found: dict[str, str] = {}
     provenance_used: list[str] = []
 
     # 1) Internet Archive
@@ -211,7 +298,14 @@ def enrich_book(client: httpx.Client, gt_path: Path, delay: float) -> dict[str, 
             print(f"  Wikisource error {index_urls[0]}: {e}", file=sys.stderr)
         time.sleep(delay)
 
-    # 3) Merge: fill empty fields, and replace filename/DLI-id placeholders.
+    # 3) Commons categories (genre/subject/language hints, lowest priority)
+    try:
+        commons_found = fetch_commons_categories(client, provenance.get("commons_title"))
+    except Exception as e:  # noqa: BLE001
+        print(f"  Commons error {provenance.get('commons_title')}: {e}", file=sys.stderr)
+    time.sleep(delay)
+
+    # 4) Merge: fill empty fields, and replace filename/DLI-id placeholders.
     slug = gt_path.parent.name
     changed = 0
     for field in FIELD_NAMES:
@@ -219,11 +313,13 @@ def enrich_book(client: httpx.Client, gt_path: Path, delay: float) -> dict[str, 
             origin: str | None = "wikisource_index"
         elif field in ia_found:
             origin = "internet_archive"
+        elif field in commons_found:
+            origin = "commons_category"
         else:
             origin = None
         cur = expected.get(field)
         if origin and (not cur or _is_placeholder(str(cur), slug)):
-            expected[field] = ws_found.get(field) or ia_found.get(field)
+            expected[field] = ws_found.get(field) or ia_found.get(field) or commons_found.get(field)
             source[field] = origin
             changed += 1
         if expected.get(field):

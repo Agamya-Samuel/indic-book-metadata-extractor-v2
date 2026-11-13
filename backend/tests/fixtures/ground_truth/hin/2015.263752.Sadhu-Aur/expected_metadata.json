@@ -17,7 +17,7 @@
     "inception": null,
     "form_of_creative_work": null,
     "genre": null,
-    "subject": null,
+    "subject": "IIIT",
     "original_language": "Hindi",
     "edition_or_translation_of": null,
     "based_on": null,
@@ -68,7 +68,7 @@
     "inception": "empty_needs_annotation",
     "form_of_creative_work": "empty_needs_annotation",
     "genre": "empty_needs_annotation",
-    "subject": "empty_needs_annotation",
+    "subject": "prefilled_needs_verification",
     "original_language": "prefilled_needs_verification",
     "edition_or_translation_of": "empty_needs_annotation",
     "based_on": "empty_needs_annotation",
@@ -120,7 +120,7 @@
     "inception": null,
     "form_of_creative_work": null,
     "genre": null,
-    "subject": null,
+    "subject": "internet_archive",
     "original_language": null,
     "edition_or_translation_of": null,
     "based_on": null,
@@ -164,12 +164,12 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.263752"
     ],
-    "enriched_at": "2026-11-12T08:34:40.842724+00:00",
-    "prefilled_fields": 9
+    "enriched_at": "2026-11-13T04:26:07.040869+00:00",
+    "prefilled_fields": 10
   },
   "verification": {
-    "checked_at": "2026-11-12T08:36:57.763083+00:00",
-    "prefilled": 9,
+    "checked_at": "2026-11-13T05:53:29.309914+00:00",
+    "prefilled": 10,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -206,7 +206,8 @@
         "status": "empty"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "original_language": {
         "status": "catalog_only",

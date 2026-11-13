@@ -4,8 +4,8 @@
   "rule": "sha256(work_key) within language stratum; work-groups are disjoint",
   "counts": {
     "hin": {
-      "dev": 2,
-      "test": 3
+      "dev": 6,
+      "test": 13
     },
     "tel": {
       "dev": 9,
@@ -23,7 +23,11 @@
     "2015.328360.Andhra-Mahaniyulu",
     "2015.372978.Andhra-Kavithva",
     "5व_जल_सम_म_लन_9-12_नवम_बर_05",
-    "Aanandhanga_Undalante_VBS_JVV"
+    "Aanandhanga_Undalante_VBS_JVV",
+    "Gandhi_-_Delhi_Diary_Hindi",
+    "Lūka_racita_susamācāra_aura_Preritoṃkī_kriyāoṃkā_vṛttānta._IA_lukaracitasusama00unse",
+    "Prabhu-Padhare",
+    "Śiva_parīkshā._IA_sivapariksha00unse"
   ],
   "test": [
     ".Kalidasa-Charitra_by_chilakamarthi_lakshminarasimham",
@@ -49,7 +53,17 @@
     "A_Collection_of_Telugu_Proverbs_translat_1",
     "Abalaa_sachcharitra_ratnamaala",
     "Abalaa_sachcharitra_ratnamaala_Dvitiiya_Sanputa",
-    "Antarrashtriya_Gyankosh"
+    "Antarrashtriya_Gyankosh",
+    "Bhakta_Mala_of_Nabhadas_Ayodhya_Edition_1905",
+    "Bharatiya_Sampatti_Shastra",
+    "Biography_of_Freedom_fighter_Mahadev_Mishra",
+    "Dayanand_Granthmala_Bhag_1_1925",
+    "Gandhi_-_Dakshin_Afrika_Ke_Satyagraha_Hindi",
+    "Godan_-_Premchand_-_Hindi_Novel",
+    "Hindi_Ke_Musalman_Kavi_-_Ganga_Prasad_Singh",
+    "Hindi_Sahitya_ka_Itihas_by_Acharya_Ramchandra_Shukla",
+    "Muntakhabat-i-hindi_Vol._1_Ed._5th_IA_in.ernet.dli.2015.94432",
+    "Shri_Chandravali_-_Bharatendu_Harishchandra_-_1933"
   ],
-  "created_at": "2026-11-13T03:59:54.460671+00:00"
+  "created_at": "2026-11-13T05:53:31.625379+00:00"
 }
