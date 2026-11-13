@@ -12,8 +12,8 @@
     "description_work": "Report of 5th Water Conference in 2005",
     "description_edition": null,
     "translator": null,
-    "editor": null,
-    "compiler": null,
+    "editor": "अरुण तिवारी",
+    "compiler": "शीला डागा",
     "inception": "23-24 मार्च, 2000",
     "form_of_creative_work": null,
     "genre": "सार-संक्षेप",
@@ -56,7 +56,7 @@
     "authors_in_compilation": [
       "अरुण तिवारी"
     ],
-    "opinions_messages": null,
+    "opinions_messages": "आपका राजेन्द्र सिंह अध्यक्ष, जलबिरादरी",
     "scribes": null
   },
   "field_status": {
@@ -65,8 +65,8 @@
     "description_work": "prefilled_needs_verification",
     "description_edition": "empty_needs_annotation",
     "translator": "empty_needs_annotation",
-    "editor": "empty_needs_annotation",
-    "compiler": "empty_needs_annotation",
+    "editor": "prefilled_needs_verification",
+    "compiler": "prefilled_needs_verification",
     "inception": "prefilled_needs_verification",
     "form_of_creative_work": "empty_needs_annotation",
     "genre": "prefilled_needs_verification",
@@ -107,7 +107,7 @@
     "forewords": "empty_needs_annotation",
     "abbreviations": "empty_needs_annotation",
     "authors_in_compilation": "prefilled_needs_verification",
-    "opinions_messages": "empty_needs_annotation",
+    "opinions_messages": "prefilled_needs_verification",
     "scribes": "empty_needs_annotation"
   },
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
@@ -117,8 +117,8 @@
     "description_work": null,
     "description_edition": null,
     "translator": null,
-    "editor": null,
-    "compiler": null,
+    "editor": "node_llm_extraction",
+    "compiler": "node_llm_extraction",
     "inception": "node_llm_extraction",
     "form_of_creative_work": null,
     "genre": "node_llm_extraction",
@@ -159,7 +159,7 @@
     "forewords": null,
     "abbreviations": null,
     "authors_in_compilation": "node_llm_extraction",
-    "opinions_messages": null,
+    "opinions_messages": "node_llm_extraction",
     "scribes": null
   },
   "enrichment": {
@@ -336,11 +336,17 @@
       4,
       5,
       6,
+      7,
+      8,
+      9,
+      10,
+      63,
+      64,
       65,
       66
     ],
-    "ocr_pages": 8,
-    "filled_at": "2026-11-13T05:59:52.974036+00:00",
-    "fields_added": 7
+    "ocr_pages": 14,
+    "filled_at": "2026-11-13T12:05:32.053253+00:00",
+    "fields_added": 3
   }
 }

@@ -27,7 +27,7 @@
     "publication_date": "1924",
     "publisher": null,
     "place_of_publication": null,
-    "printer": null,
+    "printer": "శ్రి గ్‌ కరా అచ్చయ్య అండు సన్సువారిచే",
     "place_of_printing": "రాజమండ్రి",
     "language": "Telugu",
     "cover_artist": null,
@@ -78,7 +78,7 @@
     "publication_date": "prefilled_needs_verification",
     "publisher": "empty_needs_annotation",
     "place_of_publication": "empty_needs_annotation",
-    "printer": "empty_needs_annotation",
+    "printer": "prefilled_needs_verification",
     "place_of_printing": "prefilled_needs_verification",
     "language": "prefilled_needs_verification",
     "cover_artist": "empty_needs_annotation",
@@ -130,7 +130,7 @@
     "publication_date": "internet_archive",
     "publisher": null,
     "place_of_publication": null,
-    "printer": null,
+    "printer": "node_llm_extraction",
     "place_of_printing": "node_llm_extraction",
     "language": null,
     "cover_artist": null,
@@ -341,11 +341,17 @@
       4,
       5,
       6,
+      7,
+      8,
+      9,
+      10,
+      105,
+      106,
       107,
       108
     ],
-    "ocr_pages": 8,
-    "filled_at": "2026-11-13T07:14:51.325595+00:00",
-    "fields_added": 2
+    "ocr_pages": 14,
+    "filled_at": "2026-11-13T14:37:31.703059+00:00",
+    "fields_added": 1
   }
 }
