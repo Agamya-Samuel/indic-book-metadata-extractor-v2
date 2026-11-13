@@ -89,8 +89,8 @@ export default function OcrProcessingPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)]">
-      <WorkflowShell bookId={bookId} />
+    <WorkflowShell bookId={bookId}>
+      <div className="flex min-h-[calc(100dvh-var(--nav-height))] flex-col bg-[var(--background)]">
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center max-w-md mx-auto">
@@ -207,6 +207,7 @@ export default function OcrProcessingPage() {
           </div>
         </PageContainer>
       </div>
-    </div>
+      </div>
+    </WorkflowShell>
   );
 }

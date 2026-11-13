@@ -223,9 +223,7 @@ export default function MetadataReviewPage() {
   const alreadyComplete = book.status === "complete";
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col">
-      <WorkflowShell bookId={bookId} />
-
+    <WorkflowShell bookId={bookId}>
       <PageContainer className="flex-1 flex flex-col">
         <PageHeader
           title="Metadata Review"
@@ -474,6 +472,6 @@ export default function MetadataReviewPage() {
           loading={completeMutation.isPending}
         />
       </PageContainer>
-    </div>
+    </WorkflowShell>
   );
 }

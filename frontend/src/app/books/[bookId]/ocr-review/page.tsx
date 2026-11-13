@@ -178,8 +178,8 @@ export default function OcrReviewPage() {
   const showPollingOverlay = isPolling && !ocrResult;
 
   return (
-    <div className="h-screen bg-[var(--background)] flex flex-col overflow-hidden">
-      <WorkflowShell bookId={bookId} />
+    <WorkflowShell bookId={bookId}>
+      <div className="flex h-[calc(100dvh-var(--nav-height))] flex-col overflow-hidden bg-[var(--background)]">
 
       <div className="border-b border-[var(--border)] bg-[var(--surface)]">
         <PageContainer className="!py-4">
@@ -364,6 +364,7 @@ export default function OcrReviewPage() {
           </div>
         </PageContainer>
       </div>
-    </div>
+      </div>
+    </WorkflowShell>
   );
 }

@@ -215,9 +215,7 @@ export default function PreprocessingPage() {
       : `${getPageImageUrl(currentPage.id)}?v=${previewVersion}`;
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowShell bookId={bookId} />
-
+    <WorkflowShell bookId={bookId}>
       <PageContainer>
         <PageHeader
           eyebrow="Image Preprocessing"
@@ -665,7 +663,7 @@ export default function PreprocessingPage() {
           loading={runOcrMutation.isPending}
         />
       </PageContainer>
-    </div>
+    </WorkflowShell>
   );
 }
 

@@ -185,9 +185,7 @@ export default function LlmConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowShell bookId={bookId} />
-
+    <WorkflowShell bookId={bookId}>
       <PageContainer>
         <PageHeader
           title="LLM Configuration"
@@ -416,6 +414,6 @@ export default function LlmConfigPage() {
           </div>
         </div>
       </PageContainer>
-    </div>
+    </WorkflowShell>
   );
 }

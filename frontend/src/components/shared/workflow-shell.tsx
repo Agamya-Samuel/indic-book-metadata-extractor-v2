@@ -8,22 +8,35 @@ import {
   getBookPages,
 } from "@/lib/api";
 import { deriveWorkflowState } from "@/lib/workflow-state";
-import WorkflowStepper from "@/components/shared/workflow-stepper";
+import { StageRail, StageRailMobile } from "@/components/shared/stage-rail";
+import { cn } from "@/lib/utils";
 
 interface WorkflowShellProps {
   bookId: string;
+  /**
+   * Page content. Pages currently render the shell as a top bar; Phase 1
+   * migrates them to pass children, at which point this becomes required.
+   */
+  children?: React.ReactNode;
+  /** Heading above the desktop rail. */
+  railLabel?: string;
   className?: string;
 }
 
 /**
- * Shared workflow chrome. Fetches the server truth (book, current stages,
- * pages, jobs) and renders a stepper driven by `deriveWorkflowState`.
+ * Shared workflow chrome: a persistent stage rail on the left (sticky, 15rem)
+ * wrapping the page content, with a sticky stage bar + sheet on narrow screens.
  *
  * Query keys are shared with the stage pages (`["book", id]`,
  * `["book", id, "pages"]`, `["book", id, "jobs"]`) so React Query dedupes the
  * requests instead of double-fetching.
  */
-export default function WorkflowShell({ bookId, className }: WorkflowShellProps) {
+export default function WorkflowShell({
+  bookId,
+  children,
+  railLabel = "Workflow",
+  className,
+}: WorkflowShellProps) {
   const bookQuery = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
@@ -61,10 +74,28 @@ export default function WorkflowShell({ bookId, className }: WorkflowShellProps)
   });
 
   return (
-    <WorkflowStepper
-      steps={state.steps}
-      currentStep={state.currentStep}
-      className={className}
-    />
+    <div className={cn("flex w-full items-stretch", className)}>
+      <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] lg:block">
+        <div className="sticky top-[var(--nav-height)] max-h-[calc(100dvh-var(--nav-height))] overflow-y-auto px-3 py-4">
+          <p className="mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            {railLabel}
+          </p>
+          <StageRail
+            steps={state.steps}
+            currentStep={state.currentStep}
+            processing={state.processing}
+          />
+        </div>
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <StageRailMobile
+          steps={state.steps}
+          currentStep={state.currentStep}
+          processing={state.processing}
+        />
+        {children}
+      </div>
+    </div>
   );
 }

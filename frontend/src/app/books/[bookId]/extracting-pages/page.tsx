@@ -72,8 +72,7 @@ export default function ExtractingPagesPage() {
 
   if (!progress.job && !jobId) {
     return (
-      <div className="min-h-screen bg-[var(--background)]">
-        <WorkflowShell bookId={bookId} />
+      <WorkflowShell bookId={bookId}>
         <PageContainer>
           <PageHeader
             eyebrow={getLanguageName(book.language)}
@@ -90,14 +89,12 @@ export default function ExtractingPagesPage() {
             </LinkButton>
           </div>
         </PageContainer>
-      </div>
+      </WorkflowShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <WorkflowShell bookId={bookId} />
-
+    <WorkflowShell bookId={bookId}>
       <PageContainer>
         <PageHeader
           eyebrow={getLanguageName(book.language)}
@@ -138,6 +135,6 @@ export default function ExtractingPagesPage() {
           </div>
         </Card>
       </PageContainer>
-    </div>
+    </WorkflowShell>
   );
 }
