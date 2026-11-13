@@ -28,7 +28,7 @@ import {
 } from "@/components/shared/action-menu";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
 import Pagination from "@/components/shared/pagination";
-import { PageContainer, Card, Stack } from "@/components/shared/card";
+import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
 import { LinkButton } from "@/components/shared/button";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -206,17 +206,28 @@ export default function DashboardPage() {
   const summaryJobs = summary?.jobs;
   const activeJobs = (summaryJobs?.queued ?? 0) + (summaryJobs?.running ?? 0);
   const busy = summaryJobs ? activeJobs > 0 : undefined;
+  const bookCount = summary?.books.total;
 
   return (
     <PageContainer>
-      <PageHeaderWrapper
-        summary={summary}
-        busy={busy}
+      <PageHeader
+        eyebrow="Dashboard"
+        title="Your workspace"
+        description={
+          busy === undefined
+            ? "Loading your books and jobs..."
+            : busy
+              ? "Jobs are processing — this page refreshes automatically."
+              : bookCount
+                ? `${bookCount} book${bookCount !== 1 ? "s" : ""} in your library. Everything is up to date.`
+                : "Upload a book to get started."
+        }
+        actions={<LinkButton href="/upload">Upload book</LinkButton>}
       />
 
       {/* ── Summary ──────────────────────────────────────────────────────── */}
       <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-        <Card title="Your books" description="Books you have uploaded">
+        <Card title="Library summary" description="Books you have uploaded">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
             <StatCard
               label="Total books"
@@ -245,7 +256,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card title="Your jobs" description="OCR and extraction activity on your books">
+        <Card title="Job activity" description="OCR and extraction activity on your books">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] -my-4">
             <StatCard
               label="Active jobs"
@@ -486,42 +497,6 @@ export default function DashboardPage() {
 function bookTitle(book: BookSearchResult): string {
   return (
     book.title || book.filename.replace(/\.pdf$/i, "")
-  );
-}
-
-function PageHeaderWrapper({
-  summary,
-  busy,
-}: {
-  summary: Awaited<ReturnType<typeof getDashboardSummary>> | undefined;
-  busy: boolean | undefined;
-}) {
-  const books = summary?.books.total;
-  return (
-    <header className="mb-6 sm:mb-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="min-w-0 flex-1">
-          <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--accent-soft-text)] mb-2">
-            Dashboard
-          </p>
-          <h1 className="text-[var(--text-2xl)] sm:text-[var(--text-3xl)] font-semibold tracking-tight text-[var(--text)] leading-tight">
-            Your workspace
-          </h1>
-          <p className="mt-2 text-[var(--text-sm)] sm:text-[var(--text-base)] text-[var(--text-muted)] max-w-[var(--reading-max)]">
-            {busy === undefined
-              ? "Loading your books and jobs…"
-              : busy
-                ? "Jobs are processing — this page refreshes automatically."
-                : books
-                  ? `${books} book${books !== 1 ? "s" : ""} in your library. Everything is up to date.`
-                  : "Upload a book to get started."}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <LinkButton href="/upload">Upload book</LinkButton>
-        </div>
-      </div>
-    </header>
   );
 }
 
