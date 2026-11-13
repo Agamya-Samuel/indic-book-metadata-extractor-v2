@@ -314,7 +314,7 @@ async def deliver_emails_in_session(
                 sent += 1
         await db.flush()
         logger.info(
-            "Notification email delivery: %d/%d sent, %d skipped (preference off)",
+            "Notification email delivery: %d/%d sent, %d skipped by preference",
             sent,
             attempted,
             skipped,
