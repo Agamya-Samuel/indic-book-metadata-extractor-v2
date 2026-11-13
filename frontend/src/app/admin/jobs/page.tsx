@@ -10,6 +10,7 @@ import {
   type AdminJobRow,
 } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
+import { Progress } from "@/components/shared/progress";
 import { Button, LinkButton } from "@/components/shared/button";
 import DataTable, { type DataTableColumn } from "@/components/shared/data-table";
 import ConfirmDialog from "@/components/admin/confirm-dialog";
@@ -20,7 +21,6 @@ import { Field, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
-import { cn } from "@/lib/utils";
 
 const STATUSES = ["queued", "running", "completed", "failed", "cancelled"];
 const JOB_TYPES = ["page_extraction", "ocr", "llm", "preprocessing"];
@@ -168,22 +168,11 @@ export default function AdminJobsPage() {
       className: "min-w-[140px]",
       cell: (job) =>
         job.status === "running" || job.status === "completed" ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-[var(--surface-sunken)] border border-[var(--border)]">
-              <div
-                className={cn(
-                  "h-full transition-[width]",
-                  job.status === "completed"
-                    ? "bg-[var(--success-500)]"
-                    : "bg-[var(--info-500)]",
-                )}
-                style={{ width: `${Math.round(job.progress)}%` }}
-              />
-            </div>
-            <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)] w-9 text-right">
-              {Math.round(job.progress)}%
-            </span>
-          </div>
+          <Progress
+            value={job.progress}
+            tone={job.status === "completed" ? "success" : "accent"}
+            showValue
+          />
         ) : (
           <span className="text-[var(--text-muted)] text-[var(--text-xs)]">—</span>
         ),
@@ -244,9 +233,6 @@ export default function AdminJobsPage() {
       />
       <Card className="mb-4" title="Filters">
         <div>
-          <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
-            Filters
-          </p>
           <div className="flex flex-wrap gap-3 items-end">
             <div className="w-40">
               <Field label="Status" htmlFor="admin-job-status">
