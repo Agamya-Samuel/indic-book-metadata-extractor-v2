@@ -14,6 +14,7 @@ import {
   type BookSearchResult,
 } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
+import DataTable, { type DataTableColumn } from "@/components/shared/data-table";
 import { Button } from "@/components/shared/button";
 import {
   ActionMenu,
@@ -29,7 +30,6 @@ import { Field, Input, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
-import { cn } from "@/lib/utils";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -95,6 +95,10 @@ export default function AdminBooksPage() {
   const [owner, setOwner] = React.useState<OwnerSelection | null>(null);
   const [page, setPage] = React.useState(1);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [confirmAction, setConfirmAction] = React.useState<null | {
+    type: "reset" | "delete";
+    book: BookSearchResult;
+  }>(null);
 
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350);
@@ -140,6 +144,8 @@ export default function AdminBooksPage() {
   });
 
   const items = data?.items ?? [];
+  const bookLabel = (book: BookSearchResult) =>
+    book.title || book.filename.replace(/\.pdf$/i, "");
   const totalPages = data?.total_pages ?? 0;
   const total = data?.total ?? 0;
 
@@ -232,6 +238,175 @@ export default function AdminBooksPage() {
           ? rerunExt.variables ?? null
           : null;
 
+  const columns: DataTableColumn<BookSearchResult>[] = [
+    {
+      key: "select",
+      header: (
+        <input
+          type="checkbox"
+          aria-label="Select all on this page"
+          checked={allChecked}
+          ref={(el) => {
+            if (el) el.indeterminate = !allChecked && someChecked;
+          }}
+          onChange={toggleAll}
+          className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
+        />
+      ),
+      className: "w-10",
+      cell: (book) => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${bookLabel(book)}`}
+          checked={selected.has(book.id)}
+          onChange={() => toggleOne(book.id)}
+          className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
+        />
+      ),
+    },
+    {
+      key: "book",
+      header: "Book",
+      cell: (book) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded-[var(--radius-xs)] border border-[var(--border)] bg-[var(--surface-sunken)]">
+            {book.total_pages ? (
+              <Image
+                src={getThumbnailUrl(book.id, 1)}
+                alt=""
+                fill
+                sizes="32px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : null}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-[var(--text)]" title={bookLabel(book)}>
+              {bookLabel(book)}
+            </p>
+            <p
+              className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+              title={book.filename}
+            >
+              {book.filename}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "owner",
+      header: "Owner",
+      hideBelow: "xl",
+      cell: (book) => (
+        <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+          {book.owner_display_name ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "language",
+      header: "Language",
+      hideBelow: "md",
+      cell: (book) => (
+        <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+          {LANGUAGE_LABELS[book.language] || book.language}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (book) => <StatusBadge status={book.status} />,
+    },
+    {
+      key: "pages",
+      header: "Pages",
+      hideBelow: "sm",
+      cell: (book) => (
+        <span className="tabular-nums text-[var(--text-sm)] text-[var(--text-muted)]">
+          {book.total_pages ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "metadata",
+      header: "Metadata",
+      hideBelow: "lg",
+      cell: (book) =>
+        book.metadata_fields ? (
+          <span className="inline-flex items-center gap-1 text-[var(--text-sm)] text-[var(--success-700)] dark:text-[var(--success-100)]">
+            <svg
+              viewBox="0 0 20 20"
+              className="size-3.5 fill-current"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Yes
+          </span>
+        ) : (
+          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">—</span>
+        ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (book) => {
+        const canRerunOcr =
+          book.status === "pages_selected" ||
+          book.status === "ocr_running" ||
+          book.status === "ocr_complete" ||
+          book.status === "llm_running" ||
+          book.status === "complete";
+        const canRerunExt =
+          book.status === "ocr_complete" || book.status === "complete";
+        return (
+          <div className="flex justify-end">
+            <ActionMenu
+              disabled={pendingId === book.id}
+              ariaLabel={`Actions for ${bookLabel(book)}`}
+            >
+              <MenuLink href={`/books/${book.id}`}>Open book detail</MenuLink>
+              <MenuLink href={workflowHref(book)}>
+                {workflowLabel(book.status)}
+              </MenuLink>
+              <MenuSeparator />
+              {canRerunOcr && (
+                <MenuButton onClick={() => rerunOcr.mutate(book.id)}>
+                  Re-run OCR
+                </MenuButton>
+              )}
+              {canRerunExt && (
+                <MenuButton onClick={() => rerunExt.mutate(book.id)}>
+                  Re-run extraction
+                </MenuButton>
+              )}
+              <MenuButton
+                onClick={() => setConfirmAction({ type: "reset", book })}
+              >
+                Reset to uploaded…
+              </MenuButton>
+              <MenuButton
+                danger
+                onClick={() => setConfirmAction({ type: "delete", book })}
+              >
+                Delete…
+              </MenuButton>
+            </ActionMenu>
+          </div>
+        );
+      },
+    },
+  ];
+
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => {
       for (const id of ids) {
@@ -277,9 +452,6 @@ export default function AdminBooksPage() {
       <Card className="mb-4" title="Filters">
         <Stack gap={3}>
           <div>
-            <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
-              Filters
-            </p>
             <div className="flex flex-wrap gap-3 items-end">
               <div className="flex-1 min-w-[220px]">
                 <Field label="Search" htmlFor="admin-book-search">
@@ -387,50 +559,15 @@ export default function AdminBooksPage() {
         />
       ) : (
         <>
-          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
-                  <tr>
-                    <th className="px-3 py-2.5 w-10">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all on this page"
-                        checked={allChecked}
-                        ref={(el) => {
-                          if (el) el.indeterminate = !allChecked && someChecked;
-                        }}
-                        onChange={toggleAll}
-                        className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
-                      />
-                    </th>
-                    <th className="px-3 py-2.5 text-left font-medium">Book</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden xl:table-cell">Owner</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Language</th>
-                    <th className="px-3 py-2.5 text-left font-medium">Status</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden sm:table-cell">Pages</th>
-                    <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Metadata</th>
-                    <th className="px-3 py-2.5 text-right font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {items.map((book) => (
-                    <BookRow
-                      key={book.id}
-                      book={book}
-                      isSelected={selected.has(book.id)}
-                      onToggleSelect={() => toggleOne(book.id)}
-                      onReset={() => resetOne.mutate(book.id)}
-                      onDelete={() => deleteOne.mutate(book.id)}
-                      onRerunOcr={() => rerunOcr.mutate(book.id)}
-                      onRerunExtraction={() => rerunExt.mutate(book.id)}
-                      pending={pendingId === book.id}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            caption="Books"
+            columns={columns}
+            rows={items}
+            rowKey={(book) => book.id}
+            rowClassName={(book) =>
+              selected.has(book.id) ? "bg-[var(--accent-soft)]/40" : undefined
+            }
+          />
 
           <Pagination
             page={page}
@@ -439,170 +576,61 @@ export default function AdminBooksPage() {
           />
         </>
       )}
-    </PageContainer>
-  );
-}
-
-function BookRow({
-  book,
-  isSelected,
-  onToggleSelect,
-  onReset,
-  onDelete,
-  onRerunOcr,
-  onRerunExtraction,
-  pending,
-}: {
-  book: BookSearchResult;
-  isSelected: boolean;
-  onToggleSelect: () => void;
-  onReset: () => void;
-  onDelete: () => void;
-  onRerunOcr: () => void;
-  onRerunExtraction: () => void;
-  pending: boolean;
-}) {
-  const [confirm, setConfirm] = React.useState<null | "reset" | "delete">(null);
-
-  const title = book.title || book.filename.replace(/\.pdf$/i, "");
-
-  const canRerunOcr =
-    book.status === "pages_selected" ||
-    book.status === "ocr_running" ||
-    book.status === "ocr_complete" ||
-    book.status === "llm_running" ||
-    book.status === "complete";
-
-  const canRerunExt =
-    book.status === "ocr_complete" || book.status === "complete";
-
-  return (
-    <tr className={cn("hover:bg-[var(--surface-sunken)]/40", isSelected && "bg-[var(--accent-soft)]/40")}>
-      <td className="px-3 py-2.5 align-middle">
-        <input
-          type="checkbox"
-          aria-label={`Select ${title}`}
-          checked={isSelected}
-          onChange={onToggleSelect}
-          className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
-        />
-      </td>
-      <td className="px-3 py-2.5 align-middle">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded-[var(--radius-xs)] bg-[var(--surface-sunken)] border border-[var(--border)]">
-            {book.total_pages ? (
-              <Image
-                src={getThumbnailUrl(book.id, 1)}
-                alt=""
-                fill
-                sizes="32px"
-                className="object-cover"
-                unoptimized
-              />
-            ) : null}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate font-medium text-[var(--text)]" title={title}>
-              {title}
-            </p>
-            <p className="truncate text-[var(--text-xs)] text-[var(--text-muted)]" title={book.filename}>
-              {book.filename}
-            </p>
-          </div>
-        </div>
-      </td>
-      <td className="px-3 py-2.5 align-middle hidden xl:table-cell text-[var(--text-sm)] text-[var(--text-muted)]">
-        {book.owner_display_name ?? "—"}
-      </td>
-      <td className="px-3 py-2.5 align-middle hidden md:table-cell text-[var(--text-sm)] text-[var(--text-muted)]">
-        {LANGUAGE_LABELS[book.language] || book.language}
-      </td>
-      <td className="px-3 py-2.5 align-middle">
-        <StatusBadge status={book.status} />
-      </td>
-      <td className="px-3 py-2.5 align-middle hidden sm:table-cell tabular-nums text-[var(--text-sm)] text-[var(--text-muted)]">
-        {book.total_pages ?? "—"}
-      </td>
-      <td className="px-3 py-2.5 align-middle hidden lg:table-cell">
-        {book.metadata_fields ? (
-          <span className="inline-flex items-center gap-1 text-[var(--success-700)] dark:text-[var(--success-100)] text-[var(--text-sm)]">
-            <svg viewBox="0 0 20 20" className="size-3.5 fill-current" aria-hidden="true">
-              <path
-                fillRule="evenodd"
-                d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 011.42-1.42L8.5 12.08l6.79-6.79a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Yes
-          </span>
-        ) : (
-          <span className="text-[var(--text-muted)] text-[var(--text-sm)]">—</span>
-        )}
-      </td>
-      <td className="px-3 py-2.5 align-middle text-right">
-        {/*
-          The ActionMenu renders its panel in a portal-equivalent (fixed
-          position) so it escapes any `overflow-x-auto` wrapping the table
-          on narrow viewports. Anchored to the trigger's bounding rect at
-          the moment it opens.
-        */}
-        <ActionMenu disabled={pending} ariaLabel={`Actions for ${title}`}>
-          <MenuLink href={`/books/${book.id}`}>Open book detail</MenuLink>
-          <MenuLink href={workflowHref(book)}>{workflowLabel(book.status)}</MenuLink>
-          <MenuSeparator />
-          {canRerunOcr && (
-            <MenuButton onClick={onRerunOcr}>Re-run OCR</MenuButton>
-          )}
-          {canRerunExt && (
-            <MenuButton onClick={onRerunExtraction}>Re-run extraction</MenuButton>
-          )}
-          <MenuButton onClick={() => setConfirm("reset")}>
-            Reset to uploaded…
-          </MenuButton>
-          <MenuButton danger onClick={() => setConfirm("delete")}>
-            Delete…
-          </MenuButton>
-        </ActionMenu>
-      </td>
-
-      <ConfirmDialog
-        open={confirm === "delete"}
-        onClose={() => setConfirm(null)}
+    <ConfirmDialog
+        open={confirmAction?.type === "delete"}
+        onClose={() => setConfirmAction(null)}
         onConfirm={async () => {
-          await onDelete();
-          setConfirm(null);
+          if (!confirmAction) return;
+          try {
+            await deleteOne.mutateAsync(confirmAction.book.id);
+          } finally {
+            setConfirmAction(null);
+          }
         }}
         title="Delete this book?"
         description={
-          <span>
-            This permanently deletes{" "}
-            <strong className="font-semibold text-[var(--text)]">{title}</strong>{" "}
-            and all of its pages, OCR results, metadata, and jobs. This cannot
-            be undone.
-          </span>
+          confirmAction ? (
+            <span>
+              This permanently deletes{" "}
+              <strong className="font-semibold text-[var(--text)]">
+                {bookLabel(confirmAction.book)}
+              </strong>{" "}
+              and all of its pages, OCR results, metadata, and jobs. This cannot
+              be undone.
+            </span>
+          ) : null
         }
         confirmLabel="Delete book"
         requireTyped="delete"
       />
       <ConfirmDialog
-        open={confirm === "reset"}
-        onClose={() => setConfirm(null)}
+        open={confirmAction?.type === "reset"}
+        onClose={() => setConfirmAction(null)}
         onConfirm={async () => {
-          await onReset();
-          setConfirm(null);
+          if (!confirmAction) return;
+          try {
+            await resetOne.mutateAsync(confirmAction.book.id);
+          } finally {
+            setConfirmAction(null);
+          }
         }}
         title="Reset this book?"
         description={
-          <span>
-            Removes pages, OCR results, metadata, and jobs for{" "}
-            <strong className="font-semibold text-[var(--text)]">{title}</strong>.
-            The original PDF is kept — you can re-select pages and re-run
-            processing.
-          </span>
+          confirmAction ? (
+            <span>
+              Removes pages, OCR results, metadata, and jobs for{" "}
+              <strong className="font-semibold text-[var(--text)]">
+                {bookLabel(confirmAction.book)}
+              </strong>
+              . The original PDF is kept — you can re-select pages and re-run
+              processing.
+            </span>
+          ) : null
         }
         confirmLabel="Reset"
         variant="warning"
       />
-    </tr>
+    </PageContainer>
   );
 }
+
