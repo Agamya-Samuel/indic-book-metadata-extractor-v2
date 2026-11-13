@@ -28,6 +28,10 @@ Same method (page-level CER/WER) on **24 Hindi pages** from the IndicVisionBench
 
 Tesseract is **strong on Hindi (~7 % CER)** — the opposite of its Telugu behaviour, and consistent with published real-print Hindi results (CER ~9 %, WER ~29 %). The language, not a blanket "general engines fail", drives the decision.
 
+### IndicOCR (Hindi step-change candidate) — not CPU-viable
+
+`bodhan-ai/indic-ocr` (gated; access granted) was installed and run on the node. It needs **Python 3.11+** (`enum.StrEnum`); with 3.11 + torch 2.15 CPU + transformers 5.23 it loads both stages (layout 33 M + a Qwen3.5-**0.8 B** recognizer; ~**3.1 GB RSS**) and accepts `device="cpu"`. But on the 4-vCPU CPU box **no single page completed in >12 minutes** — the 0.8 B hybrid-attention VLM falls back to slow reference kernels (`flash-linear-attention`/`causal_conv1d` absent). At book scale that is hours-to-days per book: **excluded by the CPU constraint regardless of its published ~96 % Hindi accuracy.** (A GPU, or the optimised kernels, would change this.)
+
 ## Key findings
 
 1. **General-purpose engines are not usable on real Telugu scans.** Tesseract and PaddleOCR both leave roughly **40–50 % of characters wrong** (median CER 0.40 / 0.51) and ~**99 % of words wrong** (WER ~0.97–0.99). This matches [learning 004](004-ocr-stage-cer.md) and confirms OCR is the pipeline ceiling.
@@ -50,7 +54,7 @@ Every viable option fits the 4 vCPU / 16 GB box; Paddle's penalty is time, not m
 
 The answer is **not one engine for all languages**:
 
-- **Hindi → keep Tesseract 5 (`hin`).** Already high-accuracy on real printed Hindi (median CER 0.072, WER 0.25) and the lightest option (44 MB, 2.3 s/page). An Indic-specific Hindi model would have to beat ~7 % CER to justify added complexity; IndicOCR (published ~96 % word-acc) is the only candidate for a step change, but it is gated and 0.8 B.
+- **Hindi → keep Tesseract 5 (`hin`).** Already high-accuracy on real printed Hindi (median CER 0.072, WER 0.25) and the lightest option (44 MB, 2.3 s/page). The only step-change candidate, IndicOCR (published ~96 % word-acc), is gated **and not CPU-viable** (0.8 B VLM, >12 min/page on CPU) → keep Tesseract.
 - **Telugu → switch to `harsha-desaraju/telugu-ocr-model`.** Tesseract is unusable on Telugu (median CER 0.402); the Indic-specific line model more than halves error (median 0.163) and still fits CPU/RAM (3.8 s/page, 0.78 GB). Pipeline: page render → line detection (Tesseract boxes work) → per-line transcribe → concatenate.
 - **Do not adopt PaddleOCR** for either language: no accuracy gain over Tesseract, 6–13× slower, ~1.3 GB RAM, and PaddlePaddle 3.x segfaults on this CPU.
 
