@@ -5,10 +5,10 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "Gandhi - Delhi Diary (Hindi)",
-    "author": "Mahatma Gandhi",
+    "author": "महात्मा गांधी",
     "description_work": "Delhi Diary in Hindi by M. K. Gandhi.",
     "description_edition": null,
     "translator": null,
@@ -111,7 +111,7 @@
   "notes": "Prefilled from Commons catalog metadata. EVERY field must be human-verified against the PDF + Wikisource index; set verification_status=verified before scoring.",
   "field_source": {
     "label": null,
-    "author": null,
+    "author": "openrouter_transliteration",
     "description_work": null,
     "description_edition": null,
     "translator": null,
@@ -164,12 +164,12 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.319505"
     ],
-    "enriched_at": "2026-11-13T11:35:10.742956+00:00",
-    "prefilled_fields": 13
+    "enriched_at": "2026-11-13T20:38:11.509731+00:00",
+    "prefilled_fields": 15
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.314165+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T20:44:06.034907+00:00",
+    "prefilled": 15,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -178,7 +178,7 @@
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
@@ -203,7 +203,8 @@
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
         "status": "catalog_only",
@@ -240,10 +241,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -297,7 +300,8 @@
         "source": "commons"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -315,7 +319,8 @@
         "status": "empty"
       },
       "forewords": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "abbreviations": {
         "status": "empty"

@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": null,
     "author": "प्रेमचंद",
@@ -164,12 +164,12 @@
   },
   "enrichment": {
     "sources": [],
-    "enriched_at": "2026-11-13T11:35:11.479584+00:00",
+    "enriched_at": "2026-11-13T20:38:12.151640+00:00",
     "prefilled_fields": 5
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.314713+00:00",
-    "prefilled": 4,
+    "checked_at": "2026-11-13T20:44:06.035327+00:00",
+    "prefilled": 5,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -177,7 +177,7 @@
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
@@ -315,7 +315,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

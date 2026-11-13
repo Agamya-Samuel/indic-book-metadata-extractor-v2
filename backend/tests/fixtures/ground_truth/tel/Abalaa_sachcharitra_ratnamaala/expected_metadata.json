@@ -5,7 +5,7 @@
   "source_category": "Category:PDF books in Telugu",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "అబలా సచ్చరిత్ర రత్నమాల",
     "author": "Achamamba Bhandaru",
@@ -166,13 +166,13 @@
     "sources": [
       "https://te.wikisource.org/wiki/%E0%B0%85%E0%B0%AC%E0%B0%B2%E0%B0%BE_%E0%B0%B8%E0%B0%9A%E0%B1%8D%E0%B0%9A%E0%B0%B0%E0%B0%BF%E0%B0%A4%E0%B1%8D%E0%B0%B0_%E0%B0%B0%E0%B0%A4%E0%B1%8D%E0%B0%A8%E0%B0%AE%E0%B0%BE%E0%B0%B2"
     ],
-    "enriched_at": "2026-11-13T04:27:33.892025+00:00",
-    "prefilled_fields": 7
+    "enriched_at": "2026-11-13T20:39:44.983770+00:00",
+    "prefilled_fields": 15
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.349000+00:00",
-    "prefilled": 7,
-    "scan_confirmed": 2,
+    "checked_at": "2026-11-13T20:44:06.080032+00:00",
+    "prefilled": 15,
+    "scan_confirmed": 5,
     "fields": {
       "label": {
         "status": "scan_confirmed",
@@ -199,16 +199,19 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "subject": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "not_in_scan",
@@ -240,10 +243,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "not_in_scan",
@@ -296,7 +301,8 @@
         "source": "wikisource_index"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -305,7 +311,8 @@
         "status": "empty"
       },
       "publisher_telugu": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "sponsor": {
         "status": "empty"
@@ -320,7 +327,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

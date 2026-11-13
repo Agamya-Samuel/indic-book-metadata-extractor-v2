@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "प्रिय प्रवास",
     "author": "अयोध्या सिंह उपाध्याय हरिऔध",
@@ -164,21 +164,21 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.473775"
     ],
-    "enriched_at": "2026-11-13T11:34:51.157434+00:00",
+    "enriched_at": "2026-11-13T20:37:44.320193+00:00",
     "prefilled_fields": 11
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.309316+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T20:44:06.030289+00:00",
+    "prefilled": 11,
     "scan_confirmed": 0,
     "fields": {
       "label": {
         "status": "catalog_only",
-        "source": "internet_archive"
+        "source": "openrouter_transliteration"
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
@@ -203,7 +203,8 @@
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
         "status": "catalog_only",
@@ -294,7 +295,7 @@
       },
       "title": {
         "status": "catalog_only",
-        "source": "internet_archive"
+        "source": "openrouter_transliteration"
       },
       "subtitle": {
         "status": "empty"

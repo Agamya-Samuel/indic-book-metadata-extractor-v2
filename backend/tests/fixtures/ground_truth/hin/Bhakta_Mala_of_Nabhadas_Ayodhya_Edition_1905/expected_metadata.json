@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "Bhakta Mala of Nabhadas Ayodhya Edition (1905)",
     "author": "नाभदास (Author), बाबू श्री बालदेव नारायण सिंह (Publisher/Editor)",
@@ -162,12 +162,12 @@
   },
   "enrichment": {
     "sources": [],
-    "enriched_at": "2026-11-13T11:34:58.474147+00:00",
+    "enriched_at": "2026-11-13T20:37:55.194778+00:00",
     "prefilled_fields": 11
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.311534+00:00",
-    "prefilled": 6,
+    "checked_at": "2026-11-13T20:44:06.032416+00:00",
+    "prefilled": 11,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -176,7 +176,7 @@
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
@@ -201,10 +201,12 @@
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "catalog_only",
@@ -235,7 +237,8 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
         "status": "empty"
@@ -291,7 +294,8 @@
         "source": "commons"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -315,7 +319,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "Muntakhabat-i-hindi Vol. 1, Ed. 5th",
     "author": "Shakespear,john",
@@ -164,12 +164,12 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.94432"
     ],
-    "enriched_at": "2026-11-13T11:35:19.261808+00:00",
+    "enriched_at": "2026-11-13T20:38:17.159294+00:00",
     "prefilled_fields": 17
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.316858+00:00",
-    "prefilled": 6,
+    "checked_at": "2026-11-13T20:44:06.037149+00:00",
+    "prefilled": 17,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -185,7 +185,8 @@
         "source": "commons"
       },
       "description_edition": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "translator": {
         "status": "empty"
@@ -206,7 +207,8 @@
         "status": "empty"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "original_language": {
         "status": "catalog_only",
@@ -222,25 +224,31 @@
         "status": "empty"
       },
       "volume": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "edition_number": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "publication_date": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "publisher": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "place_of_publication": {
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -262,10 +270,12 @@
         "status": "empty"
       },
       "distributors": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "pages": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "dedication": {
         "status": "empty"
@@ -293,7 +303,8 @@
         "source": "commons"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"

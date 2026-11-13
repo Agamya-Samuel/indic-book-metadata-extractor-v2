@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "हिंदी के मुसलमान कवि",
     "author": "गंगा प्रसाद सिंह",
@@ -243,21 +243,21 @@
     "sources": [
       "https://archive.org/details/in.ernet.dli.2015.483105"
     ],
-    "enriched_at": "2026-11-13T11:35:14.125916+00:00",
+    "enriched_at": "2026-11-13T20:38:14.011930+00:00",
     "prefilled_fields": 13
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.315205+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T20:44:06.035788+00:00",
+    "prefilled": 13,
     "scan_confirmed": 0,
     "fields": {
       "label": {
         "status": "catalog_only",
-        "source": "internet_archive"
+        "source": "openrouter_transliteration"
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
@@ -319,10 +319,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -373,7 +375,7 @@
       },
       "title": {
         "status": "catalog_only",
-        "source": "internet_archive"
+        "source": "openrouter_transliteration"
       },
       "subtitle": {
         "status": "empty"
@@ -400,7 +402,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

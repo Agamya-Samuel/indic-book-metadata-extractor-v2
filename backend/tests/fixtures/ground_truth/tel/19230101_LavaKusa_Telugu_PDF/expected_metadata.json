@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "లవకుశ",
     "author": "చక్రావధానుల మాణిక్యశర్మ",
@@ -165,12 +165,12 @@
       "https://archive.org/details/dli.ministry.29269",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A19230101_LavaKusa_Telugu_PDF.pdf"
     ],
-    "enriched_at": "2026-11-13T04:26:56.068385+00:00",
-    "prefilled_fields": 10
+    "enriched_at": "2026-11-13T20:39:03.833737+00:00",
+    "prefilled_fields": 11
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.328042+00:00",
-    "prefilled": 10,
+    "checked_at": "2026-11-13T20:44:06.056734+00:00",
+    "prefilled": 11,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -245,7 +245,8 @@
         "status": "empty"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",

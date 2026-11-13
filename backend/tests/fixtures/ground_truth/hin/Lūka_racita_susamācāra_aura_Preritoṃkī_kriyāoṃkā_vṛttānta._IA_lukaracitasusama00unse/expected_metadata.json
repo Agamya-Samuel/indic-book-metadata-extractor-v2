@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "Lūka racita susamācāra aura Preritoṃkī kriyāoṃkā vṛttānta.",
     "author": null,
@@ -164,12 +164,12 @@
     "sources": [
       "https://archive.org/details/lukaracitasusama00unse"
     ],
-    "enriched_at": "2026-11-13T11:35:16.972732+00:00",
+    "enriched_at": "2026-11-13T20:38:15.957799+00:00",
     "prefilled_fields": 11
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.316385+00:00",
-    "prefilled": 5,
+    "checked_at": "2026-11-13T20:44:06.036717+00:00",
+    "prefilled": 11,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -227,19 +227,23 @@
         "status": "empty"
       },
       "publication_date": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "publisher": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "place_of_publication": {
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -264,7 +268,8 @@
         "status": "empty"
       },
       "pages": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "dedication": {
         "status": "empty"
@@ -304,7 +309,8 @@
         "status": "empty"
       },
       "sponsor": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "internet_archive"
       },
       "first_published_in": {
         "status": "empty"

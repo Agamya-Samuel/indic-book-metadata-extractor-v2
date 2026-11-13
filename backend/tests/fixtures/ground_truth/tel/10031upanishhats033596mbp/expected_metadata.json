@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "ఉపనిషత్సార గీతములు",
     "author": "పరవస్తు వేంకట రంగాచార్యులు",
@@ -165,13 +165,13 @@
       "https://archive.org/details/10031upanishhats033596mbp",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A10031upanishhats033596mbp.pdf"
     ],
-    "enriched_at": "2026-11-13T04:26:38.902336+00:00",
-    "prefilled_fields": 12
+    "enriched_at": "2026-11-13T20:38:45.582619+00:00",
+    "prefilled_fields": 14
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.321833+00:00",
-    "prefilled": 12,
-    "scan_confirmed": 4,
+    "checked_at": "2026-11-13T20:44:06.050670+00:00",
+    "prefilled": 14,
+    "scan_confirmed": 6,
     "fields": {
       "label": {
         "status": "scan_confirmed",
@@ -198,7 +198,8 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "not_in_scan",
@@ -324,7 +325,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "తెలుగు కావ్యములు",
     "author": "మదిన సుభద్రయ్యమ్మ",
@@ -168,13 +168,13 @@
       "https://archive.org/details/10879telugukaavy034400mbp",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A10879telugukaavy034400mbp.pdf"
     ],
-    "enriched_at": "2026-11-13T04:26:43.921698+00:00",
-    "prefilled_fields": 12
+    "enriched_at": "2026-11-13T20:38:51.797912+00:00",
+    "prefilled_fields": 19
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.323783+00:00",
-    "prefilled": 12,
-    "scan_confirmed": 7,
+    "checked_at": "2026-11-13T20:44:06.052618+00:00",
+    "prefilled": 19,
+    "scan_confirmed": 11,
     "fields": {
       "label": {
         "status": "scan_confirmed",
@@ -202,14 +202,16 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "not_in_scan",
         "source": "commons"
       },
       "genre": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "subject": {
         "status": "not_in_scan",
@@ -246,10 +248,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "scan_confirmed",
@@ -284,7 +288,8 @@
         "status": "empty"
       },
       "part_of_series": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "serial_number_in_series": {
         "status": "empty"
@@ -321,13 +326,15 @@
         "status": "empty"
       },
       "forewords": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "abbreviations": {
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

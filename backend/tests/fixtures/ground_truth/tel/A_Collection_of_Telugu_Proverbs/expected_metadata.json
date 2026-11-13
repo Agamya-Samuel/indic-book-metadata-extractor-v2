@@ -5,7 +5,7 @@
   "source_category": "Category:PDF books in Telugu",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "ఆంధ్రలోకోక్తిచంద్రిక",
     "author": "Captain M. W. Carr",
@@ -164,13 +164,13 @@
     "sources": [
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95:A_Collection_of_Telugu_Proverbs.pdf"
     ],
-    "enriched_at": "2026-11-13T04:27:29.280289+00:00",
-    "prefilled_fields": 10
+    "enriched_at": "2026-11-13T20:39:41.019300+00:00",
+    "prefilled_fields": 18
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.345144+00:00",
-    "prefilled": 10,
-    "scan_confirmed": 8,
+    "checked_at": "2026-11-13T20:44:06.075860+00:00",
+    "prefilled": 18,
+    "scan_confirmed": 15,
     "fields": {
       "label": {
         "status": "scan_confirmed",
@@ -188,7 +188,8 @@
         "status": "empty"
       },
       "translator": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "editor": {
         "status": "empty"
@@ -197,7 +198,8 @@
         "status": "empty"
       },
       "inception": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "not_in_scan",
@@ -208,7 +210,8 @@
         "source": "commons_category"
       },
       "subject": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "scan_confirmed",
@@ -241,10 +244,12 @@
         "source": "wikisource_index"
       },
       "printer": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "scan_confirmed",
@@ -266,7 +271,8 @@
         "status": "empty"
       },
       "distributors": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "pages": {
         "status": "empty"
@@ -297,7 +303,8 @@
         "source": "wikisource_index"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -309,7 +316,8 @@
         "status": "empty"
       },
       "sponsor": {
-        "status": "empty"
+        "status": "not_in_scan",
+        "source": "node_llm_extraction"
       },
       "first_published_in": {
         "status": "empty"

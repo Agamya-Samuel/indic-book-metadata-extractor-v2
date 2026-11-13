@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": null,
     "author": "आचार्य रामचंद्र शुक्ल (1884–1941)",
@@ -162,12 +162,12 @@
   },
   "enrichment": {
     "sources": [],
-    "enriched_at": "2026-11-13T11:35:14.847535+00:00",
+    "enriched_at": "2026-11-13T20:38:14.609701+00:00",
     "prefilled_fields": 13
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.315778+00:00",
-    "prefilled": 4,
+    "checked_at": "2026-11-13T20:44:06.036250+00:00",
+    "prefilled": 13,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -175,14 +175,15 @@
       },
       "author": {
         "status": "catalog_only",
-        "source": "commons"
+        "source": "openrouter_transliteration"
       },
       "description_work": {
         "status": "catalog_only",
         "source": "commons"
       },
       "description_edition": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "translator": {
         "status": "empty"
@@ -191,7 +192,8 @@
         "status": "empty"
       },
       "compiler": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "inception": {
         "status": "empty"
@@ -200,10 +202,12 @@
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "catalog_only",
@@ -222,7 +226,8 @@
         "status": "empty"
       },
       "edition_number": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "publication_date": {
         "status": "empty"
@@ -234,10 +239,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -289,7 +296,8 @@
         "status": "empty"
       },
       "subtitle": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "awards": {
         "status": "empty"
@@ -313,7 +321,8 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
         "status": "empty"

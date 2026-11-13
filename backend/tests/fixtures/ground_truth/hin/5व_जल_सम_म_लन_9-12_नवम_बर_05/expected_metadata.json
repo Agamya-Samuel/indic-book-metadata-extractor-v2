@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "5वां जल सम्मेलन 9-12 नवम्बर'05",
     "author": "Books published by Tarun Bharat Sangh",
@@ -164,12 +164,12 @@
   },
   "enrichment": {
     "sources": [],
-    "enriched_at": "2026-11-13T11:34:55.504896+00:00",
-    "prefilled_fields": 13
+    "enriched_at": "2026-11-13T20:37:52.522722+00:00",
+    "prefilled_fields": 16
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.310490+00:00",
-    "prefilled": 6,
+    "checked_at": "2026-11-13T20:44:06.031420+00:00",
+    "prefilled": 16,
     "scan_confirmed": 0,
     "fields": {
       "label": {
@@ -191,22 +191,27 @@
         "status": "empty"
       },
       "editor": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "compiler": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "inception": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "form_of_creative_work": {
         "status": "empty"
       },
       "genre": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "subject": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "original_language": {
         "status": "catalog_only",
@@ -237,10 +242,12 @@
         "status": "empty"
       },
       "printer": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "catalog_only",
@@ -299,7 +306,8 @@
         "status": "empty"
       },
       "context": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "publisher_telugu": {
         "status": "empty"
@@ -317,10 +325,12 @@
         "status": "empty"
       },
       "authors_in_compilation": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "opinions_messages": {
-        "status": "empty"
+        "status": "catalog_only",
+        "source": "node_llm_extraction"
       },
       "scribes": {
         "status": "empty"

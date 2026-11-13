@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "prefilled_llm_unverified",
+  "verification_status": "verified",
   "expected_metadata": {
     "label": "జయ సంవత్సరాదిని చేసిన ఉపన్యాసము",
     "author": "గోడే నారాయణ గజపతి రావు",
@@ -165,13 +165,13 @@
       "https://archive.org/details/10049upanyaasans033612mbp",
       "https://te.wikisource.org/wiki/%E0%B0%B8%E0%B1%82%E0%B0%9A%E0%B0%BF%E0%B0%95%3A10049upanyaasans033612mbp.pdf"
     ],
-    "enriched_at": "2026-11-13T04:26:41.064492+00:00",
-    "prefilled_fields": 12
+    "enriched_at": "2026-11-13T20:38:48.349599+00:00",
+    "prefilled_fields": 14
   },
   "verification": {
-    "checked_at": "2026-11-13T05:53:29.322597+00:00",
-    "prefilled": 12,
-    "scan_confirmed": 5,
+    "checked_at": "2026-11-13T20:44:06.051416+00:00",
+    "prefilled": 14,
+    "scan_confirmed": 7,
     "fields": {
       "label": {
         "status": "scan_confirmed",
@@ -243,10 +243,12 @@
         "source": "commons"
       },
       "printer": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "place_of_printing": {
-        "status": "empty"
+        "status": "scan_confirmed",
+        "source": "node_llm_extraction"
       },
       "language": {
         "status": "not_in_scan",
