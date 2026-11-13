@@ -1,23 +1,32 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** Page-level container with consistent gutter. */
+/**
+ * Page layout modes. `reading` is the default and is the original
+ * content-max column, so it is byte-identical to the pre-redesign output.
+ * `workspace` and `gallery` go full-bleed for image-heavy screens.
+ */
+export type PageLayout = "reading" | "workspace" | "gallery";
+
+const PAGE_LAYOUT_CLASSES: Record<PageLayout, string> = {
+  reading:
+    "mx-auto w-full max-w-[var(--content-max)] px-4 sm:px-6 lg:px-8 py-6 sm:py-8",
+  workspace: "w-full px-2 py-3 sm:px-3 sm:py-4",
+  gallery: "w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8",
+};
+
+/** Page-level container with a consistent gutter for its layout mode. */
 export function PageContainer({
   children,
   className,
+  layout = "reading",
 }: {
   children: React.ReactNode;
   className?: string;
+  layout?: PageLayout;
 }) {
   return (
-    <div
-      className={cn(
-        "mx-auto w-full max-w-[var(--content-max)] px-4 sm:px-6 lg:px-8 py-6 sm:py-8",
-        className,
-      )}
-    >
-      {children}
-    </div>
+    <div className={cn(PAGE_LAYOUT_CLASSES[layout], className)}>{children}</div>
   );
 }
 
