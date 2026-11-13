@@ -443,7 +443,9 @@ class LLMService:
                 outcome = await fut
                 completed += 1
                 if isinstance(outcome, Exception):
-                    failed_batch = getattr(outcome, "batch_name", needed_batches[0])
+                    failed_batch = getattr(
+                        outcome, "batch_name", next(iter(needed_batches), "unknown")
+                    )
                     logger.error(
                         "Hybrid LLM batch '%s' failed: %s", failed_batch, outcome
                     )
