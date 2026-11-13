@@ -190,9 +190,14 @@ again).
 
 ## Health Check
 
+### `GET /api/health`
+
+Public liveness probe for external monitors. Unauthenticated, uncached, and
+deliberately free of dependency detail: `200 {"status": "ok"}`.
+
 ### `GET /health`
 
-Returns application health status.
+Returns application health status (dependency checks; not routed publicly).
 
 **Response**:
 ```json
