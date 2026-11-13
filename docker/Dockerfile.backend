@@ -1,7 +1,26 @@
-FROM python:3.11-slim
+# Pinned by digest. `python:3.11-slim` is a mutable tag that Debian re-publishes;
+# when its digest moves every later layer is invalidated, so a frontend-only
+# deploy silently rebuilds this image from scratch (and can silently move the
+# runtime onto a new Debian release). Bump deliberately with:
+#   docker buildx imagetools inspect python:3.11-slim
+FROM python:3.11-slim@sha256:07d4824036af339fa1b6ef769cc99d9c10a141769538b52b3b597c84f7a7b535
 
-# System dependencies for Tesseract, OpenCV, and PDF processing
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# System dependencies for Tesseract, OpenCV, and PDF processing.
+# The deploy host cannot pull from deb.debian.org (measured ~60 KB/s with stalls
+# and apt retries; this step ran past 30 minutes). IIT Kanpur's mirror reached
+# ~12 MB/s from that same host, so point the sources at it first. The Debian
+# archive is signature-verified, so plain http is not a weaker guarantee here;
+# this mirror serves no https.
+RUN set -eux; \
+    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources; do \
+      if [ -f "$f" ]; then \
+        sed -i \
+          -e 's|https://deb.debian.org/debian|http://mirror.cse.iitk.ac.in/debian|g' \
+          -e 's|http://deb.debian.org/debian|http://mirror.cse.iitk.ac.in/debian|g' \
+          "$f"; \
+      fi; \
+    done; \
+    apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-osd \
     tesseract-ocr-tel \
