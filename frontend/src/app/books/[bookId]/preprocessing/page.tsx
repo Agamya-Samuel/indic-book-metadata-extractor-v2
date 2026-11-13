@@ -26,6 +26,7 @@ import CollapsibleSection from "@/components/shared/collapsible-section";
 import { getLanguageName } from "@/lib/utils";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
+import { Toolbar, ToolbarGroup } from "@/components/shared/toolbar";
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
@@ -42,6 +43,61 @@ function mergeConfig(page: PageResponse | undefined): PreprocessingConfig {
     ...(page?.preprocessing_config ?? {}),
   };
 }
+
+/**
+ * Starting points, not guarantees. Each writes a partial config through the same
+ * `updateConfig` path the sliders use, so every value stays editable afterwards.
+ */
+const PRESETS: {
+  name: string;
+  description: string;
+  patch: Partial<PreprocessingConfig>;
+}[] = [
+  {
+    name: "Original",
+    description: "Turn every stage off",
+    patch: {
+      grayscale: false,
+      brightness: 0,
+      contrast: 0,
+      binarization: null,
+      deskew: false,
+      denoise: false,
+      rotation: 0,
+      rotation_angle: 0,
+    },
+  },
+  {
+    name: "Standard scan",
+    description: "Grayscale, deskew, trimmed borders, 300 DPI",
+    patch: {
+      grayscale: true,
+      brightness: 0,
+      contrast: 0,
+      binarization: null,
+      deskew: true,
+      denoise: false,
+      remove_borders: true,
+      upscale_to_300dpi: true,
+    },
+  },
+  {
+    name: "Faded print",
+    description: "Lift contrast and reduce noise",
+    patch: {
+      grayscale: true,
+      brightness: 8,
+      contrast: 25,
+      denoise: true,
+      deskew: true,
+    },
+  },
+  {
+    name: "High-contrast text",
+    description: "Sauvola binarization for clean text extraction",
+    patch: { grayscale: true, binarization: "sauvola", deskew: true },
+  },
+];
 
 export default function PreprocessingPage() {
   useDocumentTitle("Preprocessing");
@@ -216,7 +272,7 @@ export default function PreprocessingPage() {
 
   return (
     <WorkflowShell bookId={bookId}>
-      <PageContainer>
+      <PageContainer layout="workspace">
         <PageHeader
           eyebrow="Image Preprocessing"
           title={book.title || book.filename}
@@ -227,6 +283,30 @@ export default function PreprocessingPage() {
             </>
           }
         />
+
+        <Toolbar className="mb-4">
+          <ToolbarGroup>
+            <span className="mr-1 text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+              Presets
+            </span>
+            {PRESETS.map((preset) => (
+              <Button
+                key={preset.name}
+                variant="outline"
+                size="sm"
+                title={preset.description}
+                onClick={() => updateConfig(preset.patch)}
+              >
+                {preset.name}
+              </Button>
+            ))}
+          </ToolbarGroup>
+          <ToolbarGroup align="end">
+            <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+              Presets set sliders — nothing is applied until you click Apply.
+            </span>
+          </ToolbarGroup>
+        </Toolbar>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-2">
