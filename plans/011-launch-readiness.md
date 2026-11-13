@@ -1,7 +1,9 @@
 # 011 — Launch readiness
 
 - **Date:** 2026-11-14
-- **Status:** Audit in progress; fixes landing incrementally.
+- **Status:** Code workstreams done, deployed and verified on the host. Four
+  operator actions remain: close origin ingress, edge WAF/rate rules, offsite
+  backups, alerting.
 - **Context:** The core product is complete and the notification feature shipped.
   Production is deployed behind Cloudflare on a 4 vCPU / 15 GiB host with no swap.
   This phase hardens what a public launch needs and records the audit evidence.
