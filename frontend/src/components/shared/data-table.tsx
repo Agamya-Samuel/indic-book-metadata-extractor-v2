@@ -29,6 +29,11 @@ interface DataTableProps<T> {
   stickyHeader?: boolean;
   /** Cap the scroll area, in pixels, so `stickyHeader` has an effect. */
   maxHeight?: number;
+  /**
+   * Drop the outer border, rounding and shadow so the table can sit flush
+   * inside a Card instead of drawing a second box around itself.
+   */
+  bare?: boolean;
 }
 
 const HIDE_BELOW: Record<NonNullable<DataTableColumn<unknown>["hideBelow"]>, string> = {
@@ -53,6 +58,7 @@ export function DataTable<T>({
   empty,
   stickyHeader = false,
   maxHeight,
+  bare = false,
 }: DataTableProps<T>) {
   if (loading) {
     return <SkeletonTable rows={5} />;
@@ -65,7 +71,8 @@ export function DataTable<T>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]",
+        !bare &&
+          "overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]",
         className,
       )}
     >

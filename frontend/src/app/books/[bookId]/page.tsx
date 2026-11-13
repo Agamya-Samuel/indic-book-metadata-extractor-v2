@@ -14,6 +14,8 @@ import Image from "next/image";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import WorkflowResumeBanner from "@/components/book/workflow-resume-banner";
+import WorkflowShell from "@/components/shared/workflow-shell";
+import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -203,8 +205,61 @@ export default function BookDetailPage() {
             : "partial";
   const latestLlmRun = llm_runs[0]; // runs are returned newest-first by the API
 
+  const jobColumns: DataTableColumn<(typeof jobs)[number]>[] = [
+    {
+      key: "job",
+      header: "Job",
+      cell: (job) => (
+        <div className="min-w-0">
+          <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+            {job.job_type === "ocr"
+              ? "OCR"
+              : job.job_type === "llm"
+                ? "LLM Extraction"
+                : job.job_type}
+          </span>
+          {job.error_log && (
+            <p className="mt-1 text-[var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-100)]">
+              {job.error_log}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (job) => <StatusBadge status={job.status} />,
+    },
+    {
+      key: "progress",
+      header: "Progress",
+      hideBelow: "sm",
+      cell: (job) =>
+        job.progress != null && job.status === "running" ? (
+          <div className="w-32">
+            <Progress value={job.progress} showValue />
+          </div>
+        ) : (
+          <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+            &#8212;
+          </span>
+        ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      hideBelow: "md",
+      cell: (job) => (
+        <span className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-subtle)]">
+          {job.created_at ? new Date(job.created_at).toLocaleString() : "—"}
+        </span>
+      ),
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <WorkflowShell bookId={bookId}>
       <PageContainer>
         <PageHeader
           back={
@@ -545,42 +600,15 @@ export default function BookDetailPage() {
                 </span>
               }
               description="Past and current jobs for this book."
+              flush
             >
-              <div className="divide-y divide-[var(--border)] -mx-5">
-                {jobs.map((job) => (
-                  <div key={job.id} className="px-5 py-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                          {job.job_type === "ocr"
-                            ? "OCR"
-                            : job.job_type === "llm"
-                              ? "LLM Extraction"
-                              : job.job_type}
-                        </span>
-                        <StatusBadge status={job.status} />
-                      </div>
-                      <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
-                        {job.created_at
-                          ? new Date(job.created_at).toLocaleString()
-                          : ""}
-                      </span>
-                    </div>
-                    {job.error_log && (
-                      <ErrorState
-                        className="mt-2"
-                        title="Job error"
-                        description={job.error_log}
-                      />
-                    )}
-                    {job.progress != null && job.status === "running" && (
-                      <div className="mt-2">
-                        <Progress value={job.progress} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <DataTable
+                bare
+                caption="Processing history"
+                columns={jobColumns}
+                rows={jobs}
+                rowKey={(job) => job.id}
+              />
             </Card>
           )}
 
@@ -653,6 +681,6 @@ export default function BookDetailPage() {
           )}
         </Stack>
       </PageContainer>
-    </div>
+    </WorkflowShell>
   );
 }
