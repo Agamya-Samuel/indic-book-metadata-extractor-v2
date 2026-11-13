@@ -43,6 +43,31 @@ class CircuitBreakerOpen(Exception):
     pass
 
 
+# Errors that mean "the model could not be reached", as opposed to "the model
+# answered with something unusable". Instructor wraps both in
+# ``InstructorRetryException``, so the cause chain is the only way to tell them
+# apart — and the difference decides whether a run is reported as failed or as
+# a completed run that happened to return nothing.
+_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = (
+    httpx.TransportError,
+    openai.APIConnectionError,
+    openai.APITimeoutError,
+    openai.InternalServerError,
+)
+
+
+def _transport_failure(exc: BaseException) -> BaseException | None:
+    """Walk the exception chain and return the first transport error found."""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, _TRANSPORT_ERRORS):
+            return current
+        current = current.__cause__ or current.__context__
+    return None
+
+
 class LLMService:
     # Circuit breaker configuration
     FAILURE_THRESHOLD: int = 3
@@ -163,16 +188,28 @@ class LLMService:
             self._record_success()
 
         except InstructorRetryException as e:
-            logger.warning("Instructor retry exhausted for batch '%s': %s", batch_name, e)
-            last_response = e.last_completion
-            if last_response and hasattr(last_response, "choices") and last_response.choices:
-                raw_response_text = last_response.choices[0].message.content or ""
-            result = _fallback_parse(raw_response_text, batch_schema)
-            if all(v is None for v in result.model_dump().values()):
-                usage_stats = {"status": "empty_response", "error": str(e)}
+            transport_error = _transport_failure(e)
+            if transport_error is not None:
+                # The model never answered. Reporting this as an "empty
+                # response" would turn a dead backend into a successful-looking
+                # run with no fields, so surface it as a batch error instead.
+                logger.error(
+                    "LLM unreachable for batch '%s': %s", batch_name, transport_error
+                )
+                result = _empty_batch(batch_schema)
+                usage_stats = {"status": "error", "error": str(transport_error)}
+                self._record_failure()
             else:
-                usage_stats = {"status": "fallback", "error": str(e)}
-            self._record_success()  # fallback is still a response
+                logger.warning("Instructor retry exhausted for batch '%s': %s", batch_name, e)
+                last_response = e.last_completion
+                if last_response and hasattr(last_response, "choices") and last_response.choices:
+                    raw_response_text = last_response.choices[0].message.content or ""
+                result = _fallback_parse(raw_response_text, batch_schema)
+                if all(v is None for v in result.model_dump().values()):
+                    usage_stats = {"status": "empty_response", "error": str(e)}
+                else:
+                    usage_stats = {"status": "fallback", "error": str(e)}
+                self._record_success()  # fallback is still a response
 
         except (httpx.TimeoutException, openai.APITimeoutError) as e:
             logger.error("Timeout for batch '%s': %s", batch_name, e)
