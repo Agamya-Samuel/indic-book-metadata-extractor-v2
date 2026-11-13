@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type { MetadataFieldDefinition } from "@/lib/api";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { Button } from "@/components/shared/button";
@@ -19,10 +19,18 @@ interface MetadataFormProps {
   fieldDefinitions: MetadataFieldDefinition[];
   values: Record<string, string>;
   onSave: (fields: Record<string, string | Record<string, string>>) => void;
-  isSaving: boolean;
+  /** Retained for callers; the page's save bar owns the saving state now. */
+  isSaving?: boolean;
   confidenceByField?: Record<string, FieldConfidence>;
   /** Reports which field the reviewer is working on, for the evidence pane. */
   onFieldFocus?: (fieldName: string) => void;
+  /** Reports the unsaved-change count so the page can own the save bar. */
+  onDirtyCountChange?: (count: number) => void;
+  /** Hands the save and discard actions up to the page's save bar. */
+  onRegisterActions?: (actions: {
+    save: () => void;
+    discard: () => void;
+  }) => void;
 }
 
 const BATCH_DISPLAY_NAMES: Record<string, string> = {
@@ -95,9 +103,10 @@ export default function MetadataForm({
   fieldDefinitions,
   values,
   onSave,
-  isSaving,
   confidenceByField,
   onFieldFocus,
+  onDirtyCountChange,
+  onRegisterActions,
 }: MetadataFormProps) {
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [customFieldName, setCustomFieldName] = useState("");
@@ -172,6 +181,19 @@ export default function MetadataForm({
     }
     onSave(toSave);
   }, [dirtyKeys, currentValues, onSave]);
+
+  const handleDiscard = useCallback(() => {
+    setEditedValues({});
+    setCustomFields({});
+  }, []);
+
+  useEffect(() => {
+    onDirtyCountChange?.(dirtyKeys.size);
+  }, [dirtyKeys.size, onDirtyCountChange]);
+
+  useEffect(() => {
+    onRegisterActions?.({ save: handleSave, discard: handleDiscard });
+  }, [onRegisterActions, handleSave, handleDiscard]);
 
   const fieldsByBatch = useMemo(() => {
     const grouped: Record<string, MetadataFieldDefinition[]> = {};
@@ -329,22 +351,6 @@ export default function MetadataForm({
           )}
         </Stack>
       </Card>
-
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
-          {dirtyKeys.size > 0
-            ? `${dirtyKeys.size} unsaved change${dirtyKeys.size !== 1 ? "s" : ""}`
-            : "No unsaved changes"}
-        </span>
-        <Button
-          type="button"
-          onClick={handleSave}
-          loading={isSaving}
-          disabled={dirtyKeys.size === 0}
-        >
-          Save metadata
-        </Button>
-      </div>
     </div>
   );
 }
