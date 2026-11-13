@@ -258,6 +258,61 @@ export default function BookDetailPage() {
     },
   ];
 
+  const runColumns: DataTableColumn<(typeof llm_runs)[number]>[] = [
+    {
+      key: "model",
+      header: "Model",
+      cell: (run) => (
+        <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          {run.model}
+        </span>
+      ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      hideBelow: "sm",
+      cell: (run) => (
+        <span className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-subtle)]">
+          {run.created_at ? new Date(run.created_at).toLocaleString() : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "details",
+      header: "Details",
+      cell: (run) => (
+        <div className="space-y-1">
+          {run.prompt_template && (
+            <details>
+              <summary className="cursor-pointer text-[var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text)]">
+                View prompt
+              </summary>
+              <pre className="mt-1 whitespace-pre-wrap rounded-[var(--radius)] bg-[var(--surface-sunken)] p-2 text-[var(--text-xs)] text-[var(--text)]">
+                {run.prompt_template}
+              </pre>
+            </details>
+          )}
+          {run.parsed_fields && (
+            <details>
+              <summary className="cursor-pointer text-[var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text)]">
+                View extracted fields ({Object.keys(run.parsed_fields).length})
+              </summary>
+              <div className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                {Object.entries(run.parsed_fields).map(([k, v]) => (
+                  <div key={k} className="text-[var(--text-xs)]">
+                    <span className="text-[var(--text-muted)]">{k}:</span>{" "}
+                    <span className="text-[var(--text)]">{v ?? "null"}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <WorkflowShell bookId={bookId}>
       <PageContainer>
@@ -632,51 +687,15 @@ export default function BookDetailPage() {
                 </span>
               }
               description="Past LLM extraction runs and their results."
+              flush
             >
-              <div className="divide-y divide-[var(--border)] -mx-5">
-                {llm_runs.map((run) => (
-                  <div key={run.id} className="px-5 py-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
-                        {run.model}
-                      </span>
-                      <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
-                        {run.created_at
-                          ? new Date(run.created_at).toLocaleString()
-                          : ""}
-                      </span>
-                    </div>
-                    {run.prompt_template && (
-                      <details className="mt-1">
-                        <summary className="text-[var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
-                          View prompt
-                        </summary>
-                        <pre className="mt-1 text-[var(--text-xs)] bg-[var(--surface-sunken)] p-2 rounded-[var(--radius)] overflow-x-auto whitespace-pre-wrap text-[var(--text)]">
-                          {run.prompt_template}
-                        </pre>
-                      </details>
-                    )}
-                    {run.parsed_fields && (
-                      <details className="mt-1">
-                        <summary className="text-[var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
-                          View extracted fields (
-                          {Object.keys(run.parsed_fields).length})
-                        </summary>
-                        <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
-                          {Object.entries(run.parsed_fields).map(([k, v]) => (
-                            <div key={k} className="text-[var(--text-xs)]">
-                              <span className="text-[var(--text-muted)]">{k}:</span>{" "}
-                              <span className="text-[var(--text)]">
-                                {v ?? "null"}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <DataTable
+                bare
+                caption="LLM run history"
+                columns={runColumns}
+                rows={llm_runs}
+                rowKey={(run) => run.id}
+              />
             </Card>
           )}
         </Stack>
