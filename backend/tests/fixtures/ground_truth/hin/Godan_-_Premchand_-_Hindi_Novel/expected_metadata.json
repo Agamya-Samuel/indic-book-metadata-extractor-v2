@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": null,
     "author": "Premchand",
@@ -53,7 +53,9 @@
     "first_published_in": null,
     "forewords": null,
     "abbreviations": null,
-    "authors_in_compilation": null,
+    "authors_in_compilation": [
+      "प्रेमचंद"
+    ],
     "opinions_messages": null,
     "scribes": null
   },
@@ -104,7 +106,7 @@
     "first_published_in": "empty_needs_annotation",
     "forewords": "empty_needs_annotation",
     "abbreviations": "empty_needs_annotation",
-    "authors_in_compilation": "empty_needs_annotation",
+    "authors_in_compilation": "prefilled_needs_verification",
     "opinions_messages": "empty_needs_annotation",
     "scribes": "empty_needs_annotation"
   },
@@ -156,7 +158,7 @@
     "first_published_in": null,
     "forewords": null,
     "abbreviations": null,
-    "authors_in_compilation": null,
+    "authors_in_compilation": "node_llm_extraction",
     "opinions_messages": null,
     "scribes": null
   },
@@ -322,5 +324,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      610,
+      611
+    ],
+    "ocr_pages": 8,
+    "filled_at": "2026-11-13T06:24:09.483924+00:00",
+    "fields_added": 1
   }
 }

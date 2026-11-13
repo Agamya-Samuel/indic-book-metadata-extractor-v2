@@ -5,7 +5,7 @@
   "source_category": "Category:Hindi-language books",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "Lūka racita susamācāra aura Preritoṃkī kriyāoṃkā vṛttānta.",
     "author": null,
@@ -27,8 +27,8 @@
     "publication_date": null,
     "publisher": null,
     "place_of_publication": null,
-    "printer": null,
-    "place_of_printing": null,
+    "printer": "ALLAHABAD MISSION PRESS",
+    "place_of_printing": "ALLAHABAD",
     "language": "Hindi",
     "cover_artist": null,
     "cover_page_designer": null,
@@ -78,8 +78,8 @@
     "publication_date": "empty_needs_annotation",
     "publisher": "empty_needs_annotation",
     "place_of_publication": "empty_needs_annotation",
-    "printer": "empty_needs_annotation",
-    "place_of_printing": "empty_needs_annotation",
+    "printer": "prefilled_needs_verification",
+    "place_of_printing": "prefilled_needs_verification",
     "language": "prefilled_needs_verification",
     "cover_artist": "empty_needs_annotation",
     "cover_page_designer": "empty_needs_annotation",
@@ -130,8 +130,8 @@
     "publication_date": null,
     "publisher": null,
     "place_of_publication": null,
-    "printer": null,
-    "place_of_printing": null,
+    "printer": "node_llm_extraction",
+    "place_of_printing": "node_llm_extraction",
     "language": null,
     "cover_artist": null,
     "cover_page_designer": null,
@@ -323,5 +323,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      217,
+      218
+    ],
+    "ocr_pages": 4,
+    "filled_at": "2026-11-13T06:33:38.973876+00:00",
+    "fields_added": 2
   }
 }

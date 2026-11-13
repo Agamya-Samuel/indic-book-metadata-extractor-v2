@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "ఉపనిషత్సార గీతములు",
     "author": "పరవస్తు వేంకట రంగాచార్యులు",
@@ -14,7 +14,7 @@
     "translator": null,
     "editor": null,
     "compiler": null,
-    "inception": null,
+    "inception": "1839 సంవత్సరము",
     "form_of_creative_work": "పుస్తకం",
     "genre": null,
     "subject": "RELIGION. THEOLOGY",
@@ -53,7 +53,7 @@
     "first_published_in": null,
     "forewords": null,
     "abbreviations": null,
-    "authors_in_compilation": null,
+    "authors_in_compilation": "వేంకట రంగాచార్యులయ్యవారలు",
     "opinions_messages": null,
     "scribes": null
   },
@@ -65,7 +65,7 @@
     "translator": "empty_needs_annotation",
     "editor": "empty_needs_annotation",
     "compiler": "empty_needs_annotation",
-    "inception": "empty_needs_annotation",
+    "inception": "prefilled_needs_verification",
     "form_of_creative_work": "prefilled_needs_verification",
     "genre": "empty_needs_annotation",
     "subject": "prefilled_needs_verification",
@@ -104,7 +104,7 @@
     "first_published_in": "empty_needs_annotation",
     "forewords": "empty_needs_annotation",
     "abbreviations": "empty_needs_annotation",
-    "authors_in_compilation": "empty_needs_annotation",
+    "authors_in_compilation": "prefilled_needs_verification",
     "opinions_messages": "empty_needs_annotation",
     "scribes": "empty_needs_annotation"
   },
@@ -117,7 +117,7 @@
     "translator": null,
     "editor": null,
     "compiler": null,
-    "inception": null,
+    "inception": "node_llm_extraction",
     "form_of_creative_work": null,
     "genre": null,
     "subject": "internet_archive",
@@ -156,7 +156,7 @@
     "first_published_in": null,
     "forewords": null,
     "abbreviations": null,
-    "authors_in_compilation": null,
+    "authors_in_compilation": "node_llm_extraction",
     "opinions_messages": null,
     "scribes": null
   },
@@ -333,5 +333,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      74,
+      75
+    ],
+    "ocr_pages": 3,
+    "filled_at": "2026-11-13T06:48:53.182271+00:00",
+    "fields_added": 2
   }
 }

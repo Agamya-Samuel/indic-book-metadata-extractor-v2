@@ -5,7 +5,7 @@
   "source_category": "Index:te.wikisource.org",
   "total_pages": null,
   "recommended_pages": null,
-  "verification_status": "verified",
+  "verification_status": "prefilled_llm_unverified",
   "expected_metadata": {
     "label": "వసంత కుమారి",
     "author": "జి.జోసఫు",
@@ -16,7 +16,7 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": "పుస్తకం",
-    "genre": null,
+    "genre": "Poetry",
     "subject": "VASANTHA KUMARI",
     "original_language": "Telugu",
     "edition_or_translation_of": null,
@@ -51,9 +51,9 @@
     "publisher_telugu": null,
     "sponsor": null,
     "first_published_in": null,
-    "forewords": null,
+    "forewords": "PREFACE",
     "abbreviations": null,
-    "authors_in_compilation": null,
+    "authors_in_compilation": "Joseph Kavi",
     "opinions_messages": null,
     "scribes": null
   },
@@ -67,7 +67,7 @@
     "compiler": "empty_needs_annotation",
     "inception": "empty_needs_annotation",
     "form_of_creative_work": "prefilled_needs_verification",
-    "genre": "empty_needs_annotation",
+    "genre": "prefilled_needs_verification",
     "subject": "prefilled_needs_verification",
     "original_language": "prefilled_needs_verification",
     "edition_or_translation_of": "empty_needs_annotation",
@@ -102,9 +102,9 @@
     "publisher_telugu": "empty_needs_annotation",
     "sponsor": "empty_needs_annotation",
     "first_published_in": "empty_needs_annotation",
-    "forewords": "empty_needs_annotation",
+    "forewords": "prefilled_needs_verification",
     "abbreviations": "empty_needs_annotation",
-    "authors_in_compilation": "empty_needs_annotation",
+    "authors_in_compilation": "prefilled_needs_verification",
     "opinions_messages": "empty_needs_annotation",
     "scribes": "empty_needs_annotation"
   },
@@ -119,7 +119,7 @@
     "compiler": null,
     "inception": null,
     "form_of_creative_work": null,
-    "genre": null,
+    "genre": "node_llm_extraction",
     "subject": "internet_archive",
     "original_language": null,
     "edition_or_translation_of": null,
@@ -154,9 +154,9 @@
     "publisher_telugu": null,
     "sponsor": null,
     "first_published_in": null,
-    "forewords": null,
+    "forewords": "node_llm_extraction",
     "abbreviations": null,
-    "authors_in_compilation": null,
+    "authors_in_compilation": "node_llm_extraction",
     "opinions_messages": null,
     "scribes": null
   },
@@ -331,5 +331,21 @@
         "status": "empty"
       }
     }
+  },
+  "node_fill": {
+    "model": "gemma4:e4b",
+    "pages_used": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      99,
+      100
+    ],
+    "ocr_pages": 8,
+    "filled_at": "2026-11-13T07:36:04.205712+00:00",
+    "fields_added": 3
   }
 }
