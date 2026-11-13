@@ -166,9 +166,19 @@ def load_expected(path: str) -> dict:
 
 
 def run_pipeline_on_pdf(
-    pdf_path: str, model: str = "qwen2.5", max_pages: int = 20, language: str = "tel", max_tokens: int = 1024
+    pdf_path: str,
+    model: str = "qwen2.5",
+    max_pages: int = 20,
+    language: str = "tel",
+    max_tokens: int = 1024,
+    native: bool = False,
 ) -> dict:
     """Run the full pipeline (preprocess + OCR + LLM extraction) on a PDF.
+
+    With ``native=True`` the model is called on Ollama's native ``/api/chat``
+    endpoint (``think:false``), which is required to score thinking models
+    (gemma4) — the production OpenAI-compatible path drops the flag and returns
+    empty content.
 
     This is a thin wrapper around the existing services. It uses
     ``PDFService`` to render pages, the OCR service to read them, and
@@ -179,6 +189,11 @@ def run_pipeline_on_pdf(
     reachable, this function returns a stub dict so the harness can
     still be invoked for testing the diff logic.
     """
+    if native:
+        from scripts.native_extract import run_native
+
+        return run_native(pdf_path, model=model, language=language, max_pages=max_pages, max_tokens=max_tokens)
+
     try:
         # Lazy imports so unit tests that only need the validator can
         # import this module without pulling the OCR / LLM stack.
@@ -259,6 +274,11 @@ def main() -> int:
     parser.add_argument("--pages", type=int, default=12, help="Max pages to render/OCR per book (default 12)")
     parser.add_argument("--max-tokens", type=int, default=1024, help="Max output tokens per batch (default 1024)")
     parser.add_argument(
+        "--native",
+        action="store_true",
+        help="Call Ollama's native /api/chat (think:false); required to score thinking models like gemma4",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -309,7 +329,12 @@ def main() -> int:
             t0 = time.time()
             book_lang = env.get("language", "tel") if isinstance(env, dict) else "tel"
             predicted = run_pipeline_on_pdf(
-                sample["pdf_path"], model=args.model, max_pages=args.pages, language=book_lang, max_tokens=args.max_tokens
+                sample["pdf_path"],
+                model=args.model,
+                max_pages=args.pages,
+                language=book_lang,
+                max_tokens=args.max_tokens,
+                native=args.native,
             )
             dt = time.time() - t0
             print(f"Pipeline took {dt:.1f}s")
