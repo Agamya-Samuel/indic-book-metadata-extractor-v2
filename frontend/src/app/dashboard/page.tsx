@@ -20,6 +20,8 @@ import {
 } from "@/lib/api";
 import StatCard from "@/components/shared/stat-card";
 import StatusBadge from "@/components/shared/status-badge";
+import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { Progress } from "@/components/shared/progress";
 import {
   ActionMenu,
   MenuButton,
@@ -34,7 +36,7 @@ import { LinkButton } from "@/components/shared/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/shared/skeleton";
 
 const JOB_STATUSES = ["queued", "running", "completed", "failed", "cancelled"];
 const JOB_TYPES = ["page_extraction", "ocr", "llm", "preprocessing"];
@@ -317,10 +319,7 @@ export default function DashboardPage() {
         {booksLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-sunken)] animate-pulse"
-              />
+              <Skeleton key={i} className="h-16" />
             ))}
           </div>
         ) : books.length === 0 ? (
@@ -409,10 +408,7 @@ export default function DashboardPage() {
           {jobsLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-14 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-sunken)] animate-pulse"
-                />
+                <Skeleton key={i} className="h-14" />
               ))}
             </div>
           ) : jobs.length === 0 ? (
@@ -613,129 +609,145 @@ function JobTable({
   onCancel: (job: DashboardJobRow) => void;
   cancelPending: boolean;
 }) {
+  const columns: DataTableColumn<DashboardJobRow>[] = [
+    {
+      key: "type",
+      header: "Type",
+      cell: (job) => (
+        <span className="text-[var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          {job.job_type}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (job) => (
+        <div className="flex flex-col gap-1">
+          <StatusBadge status={job.status} />
+          {job.error_log && (
+            <span
+              className="max-w-xs truncate text-[10px] text-[var(--danger-700)] dark:text-[var(--danger-100)]"
+              title={job.error_log}
+            >
+              {job.error_log}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "book",
+      header: "Book",
+      hideBelow: "md",
+      cell: (job) =>
+        job.book_id ? (
+          <Link
+            href={`/books/${job.book_id}`}
+            className="text-[var(--text-sm)] text-[var(--text)] hover:underline"
+          >
+            {job.book_title || job.book_filename}
+          </Link>
+        ) : (
+          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+            {job.book_filename}
+          </span>
+        ),
+    },
+    {
+      key: "queue",
+      header: "Queue",
+      cell: (job) => {
+        const active = job.status === "queued" || job.status === "running";
+        if (!active) {
+          return (
+            <span aria-hidden="true" className="text-[var(--text-xs)] text-[var(--text-muted)]">
+              -
+            </span>
+          );
+        }
+        return (
+          <span
+            className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-muted)]"
+            title={
+              job.queue_ahead === 0
+                ? "This job runs next"
+                : `${job.queue_ahead} job(s) will run before this one`
+            }
+          >
+            {queueLabel(job)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "progress",
+      header: "Progress",
+      hideBelow: "lg",
+      cell: (job) =>
+        job.status === "running" || job.status === "completed" ? (
+          <div className="min-w-[140px]">
+            <Progress
+              value={job.progress}
+              tone={job.status === "completed" ? "success" : "accent"}
+              showValue
+            />
+          </div>
+        ) : (
+          <span aria-hidden="true" className="text-[var(--text-xs)] text-[var(--text-muted)]">
+            -
+          </span>
+        ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      hideBelow: "lg",
+      cell: (job) => (
+        <span className="whitespace-nowrap text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+          {job.created_at ? new Date(job.created_at).toLocaleString() : "-"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (job) => {
+        const active = job.status === "queued" || job.status === "running";
+        return (
+          <div className="flex items-center justify-end gap-3">
+            {job.book_id && (
+              <Link
+                href={`/books/${job.book_id}`}
+                className="text-[var(--text-sm)] text-[var(--accent)] hover:underline"
+              >
+                Open
+              </Link>
+            )}
+            {active && (
+              <button
+                type="button"
+                onClick={() => onCancel(job)}
+                disabled={cancelPending}
+                className="text-[var(--text-sm)] text-[var(--danger-700)] hover:underline disabled:opacity-50 dark:text-[var(--danger-100)]"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
-            <tr>
-              <th className="px-3 py-2.5 text-left font-medium">Type</th>
-              <th className="px-3 py-2.5 text-left font-medium">Status</th>
-              <th className="px-3 py-2.5 text-left font-medium hidden md:table-cell">Book</th>
-              <th className="px-3 py-2.5 text-left font-medium">Queue</th>
-              <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Progress</th>
-              <th className="px-3 py-2.5 text-left font-medium hidden lg:table-cell">Created</th>
-              <th className="px-3 py-2.5 text-right font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {jobs.map((job) => {
-              const active = job.status === "queued" || job.status === "running";
-              return (
-                <tr key={job.id} className="hover:bg-[var(--surface-sunken)]/40">
-                  <td className="px-3 py-2.5 align-middle uppercase tracking-wide text-[var(--text-xs)] font-semibold text-[var(--text-muted)]">
-                    {job.job_type}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle">
-                    <div className="flex flex-col gap-1">
-                      <StatusBadge status={job.status} />
-                      {job.error_log && (
-                        <span
-                          className="text-[10px] text-[var(--danger-700)] dark:text-[var(--danger-300)] truncate max-w-xs"
-                          title={job.error_log}
-                        >
-                          {job.error_log}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 align-middle hidden md:table-cell">
-                    {job.book_id ? (
-                      <Link
-                        href={`/books/${job.book_id}`}
-                        className={cn(
-                          "text-[var(--text-sm)] text-[var(--text)] hover:underline rounded-[var(--radius-xs)]",
-                        )}
-                      >
-                        {job.book_title || job.book_filename}
-                      </Link>
-                    ) : (
-                      <span className="text-[var(--text-muted)] text-[var(--text-sm)]">
-                        {job.book_filename}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle text-[var(--text-xs)] text-[var(--text-muted)] whitespace-nowrap">
-                    {active ? (
-                      <span
-                        title={
-                          job.queue_ahead === 0
-                            ? "This job runs next"
-                            : `${job.queue_ahead} job(s) will run before this one`
-                        }
-                      >
-                        {queueLabel(job)}
-                      </span>
-                    ) : (
-                      <span aria-hidden="true">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle hidden lg:table-cell min-w-[140px]">
-                    {job.status === "running" || job.status === "completed" ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-[var(--surface-sunken)] border border-[var(--border)]">
-                          <div
-                            className={cn(
-                              "h-full transition-[width]",
-                              job.status === "completed"
-                                ? "bg-[var(--success-500)]"
-                                : "bg-[var(--info-500)]",
-                            )}
-                            style={{
-                              width: `${Math.round(job.progress)}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)] w-9 text-right">
-                          {Math.round(job.progress)}%
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-[var(--text-muted)] text-[var(--text-xs)]">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle hidden lg:table-cell text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
-                    {job.created_at
-                      ? new Date(job.created_at).toLocaleString()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 align-middle text-right">
-                    {job.book_id && (
-                      <Link
-                        href={`/books/${job.book_id}`}
-                        className="text-[var(--text-sm)] text-[var(--accent)] hover:underline mr-3 rounded-[var(--radius-xs)]"
-                      >
-                        Open
-                      </Link>
-                    )}
-                    {active && (
-                      <button
-                        type="button"
-                        onClick={() => onCancel(job)}
-                        disabled={cancelPending}
-                        className="text-[var(--text-sm)] text-[var(--danger-700)] dark:text-[var(--danger-300)] hover:underline disabled:opacity-50 rounded-[var(--radius-xs)]"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                    {!active && <span aria-hidden="true">—</span>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <DataTable
+      caption="Your jobs"
+      columns={columns}
+      rows={jobs}
+      rowKey={(job) => job.id}
+    />
   );
 }
