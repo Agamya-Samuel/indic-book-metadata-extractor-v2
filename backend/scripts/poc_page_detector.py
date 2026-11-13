@@ -49,13 +49,20 @@ def is_body(text: str) -> bool:
 
 
 def silver_pages(page_text: dict[int, str], em: dict) -> set[int]:
+    """A page is a metadata page if >=50% of a GT identity value's tokens appear.
+
+    Token overlap (not exact substring) so OCR errors do not blank every label.
+    """
     vals = [norm(str(em.get(f))) for f in IDENTITY_FIELDS if em.get(f)]
     vals = [v for v in vals if len(v) >= 4]
     out = set()
     for p, t in page_text.items():
         nt = norm(t)
-        if any(v in nt for v in vals):
-            out.add(p)
+        for v in vals:
+            toks = [x for x in v.split() if len(x) >= 3]
+            if toks and sum(1 for x in toks if x in nt) / len(toks) >= 0.5:
+                out.add(p)
+                break
     return out
 
 
