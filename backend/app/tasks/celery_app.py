@@ -40,6 +40,7 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
         from app.core.database import async_session_factory
         from app.models.book import Book, BookStatus
         from app.models.job import Job, JobStatus
+        from app.services import notification_service
         from app.services.sse_service import event_id, publish_sync
         from app.services.stage_manager import StageManager
 
@@ -74,6 +75,10 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
                             await StageManager.fail_stage(stage_db, book_id, "ocr", error[:1000])
                             await stage_db.commit()
                     await db.commit()
+                    notification_id = await notification_service.notify_job_terminal(
+                        db, job=job, book=book, status=JobStatus.FAILED
+                    )
+                    await notification_service.notify_and_deliver(db, [notification_id])
                     publish_sync(
                         book_id,
                         {

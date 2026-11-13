@@ -15,6 +15,7 @@ from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services.batch_routing import PageText
+from app.services import notification_service
 from app.services.llm_service import llm_service as llm_service_singleton
 from app.services.prompts import render_extraction_prompt
 from app.services.search_service import SearchService
@@ -260,6 +261,10 @@ async def _persist_extraction_results(
         new_book_status = book.status if book else None
         job_uuid = job.id
         book_uuid = book.id
+        notification_id = await notification_service.notify_job_terminal(
+            db, job=job, book=book, status=terminal_status
+        )
+        await notification_service.notify_and_deliver(db, [notification_id])
 
         publish_sync(
             book_uuid,
@@ -412,6 +417,11 @@ def run_llm_extraction(
 
                 await db.commit()
                 book_uuid = book.id if book else None
+                if job is not None:
+                    notification_id = await notification_service.notify_job_terminal(
+                        db, job=job, book=book, status=JobStatus.FAILED
+                    )
+                    await notification_service.notify_and_deliver(db, [notification_id])
 
             if book_uuid is not None:
                 publish_sync(

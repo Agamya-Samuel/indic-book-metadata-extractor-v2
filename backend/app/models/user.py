@@ -49,6 +49,11 @@ class User(UUIDMixin, TimestampMixin, Base):
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Email mirror of in-app notifications. In-app delivery is never gated by
+    # this flag; it only decides whether an alert email is sent.
+    email_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
 
     books = relationship("Book", back_populates="owner")
     jobs = relationship("Job", back_populates="requested_by")

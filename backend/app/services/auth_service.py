@@ -29,6 +29,7 @@ from app.models.user import (
     User,
     UserRole,
 )
+from app.services import notification_service
 from app.services.email_service import send_password_reset_email, send_verification_email
 
 logger = logging.getLogger(__name__)
@@ -130,7 +131,12 @@ async def create_email_token(
 
 async def register_user(
     db: AsyncSession, *, email: str, display_name: str, password: str
-) -> User:
+) -> tuple[User, list[UUID]]:
+    """Create a pending account and alert the admins who must approve it.
+
+    Returns the user and the notification ids created for admins, so the route
+    can deliver their emails after responding.
+    """
     user = await create_user(
         db,
         email=email,
@@ -145,8 +151,12 @@ async def register_user(
         ),
     )
     token = await create_email_token(db, user, EmailTokenPurpose.VERIFY_EMAIL)
+    notification_ids: list[UUID] = []
+    if user.account_status == AccountStatus.PENDING:
+        notification_ids = await notification_service.notify_admins_registration(db, user)
+        await db.commit()
     await send_verification_email(user, token)
-    return user
+    return user, notification_ids
 
 
 async def resend_verification(db: AsyncSession, email: str) -> None:
@@ -454,14 +464,23 @@ def _apply_account_status(
     target.rejection_reason = reason if status == AccountStatus.REJECTED else None
 
 
-async def approve_user(db: AsyncSession, admin: User, target: User) -> User:
+async def approve_user(
+    db: AsyncSession, admin: User, target: User
+) -> tuple[User, UUID | None]:
+    """Approve a pending account and tell its owner.
+
+    Returns the user and the notification id (None if one already existed), so
+    the route can deliver the alert email after responding.
+    """
     _ensure_admin_target_preserved(
         admin, target, new_role=None, new_active=None, new_account_status=AccountStatus.APPROVED
     )
     _apply_account_status(admin, target, AccountStatus.APPROVED)
     await db.commit()
     await db.refresh(target)
-    return target
+    notification_id = await notification_service.notify_account_approved(db, target)
+    await db.commit()
+    return target, notification_id
 
 
 async def reject_user(

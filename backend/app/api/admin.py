@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_admin
@@ -26,6 +26,7 @@ from app.schemas.book import (
 )
 from app.services import admin_service, auth_service
 from app.services.auth_service import AuthError
+from app.services.notification_service import deliver_notification_emails
 from app.services.search_service import SearchService
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -140,14 +141,17 @@ async def admin_update_user(
 @router.post("/users/{user_id}/approve", response_model=UserResponse)
 async def admin_approve_user(
     user_id: UUID,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
 ) -> UserResponse:
     target = await _get_user_or_404(db, user_id)
     try:
-        user = await auth_service.approve_user(db, admin, target)
+        user, notification_id = await auth_service.approve_user(db, admin, target)
     except AuthError as exc:
         raise _auth_http_error(exc)
+    if notification_id is not None:
+        background_tasks.add_task(deliver_notification_emails, [notification_id])
     return UserResponse.model_validate(user)
 
 
@@ -377,12 +381,15 @@ async def admin_list_jobs(
 @router.post("/jobs/{job_id}/cancel")
 async def admin_cancel_job(
     job_id: UUID,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     try:
-        job = await admin_service.cancel_job(db, job_id)
+        job, notification_id = await admin_service.cancel_job(db, job_id)
     except LookupError:
         raise HTTPException(status_code=404, detail="Job not found")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    if notification_id is not None:
+        background_tasks.add_task(deliver_notification_emails, [notification_id])
     return {"id": str(job.id), "status": job.status}
