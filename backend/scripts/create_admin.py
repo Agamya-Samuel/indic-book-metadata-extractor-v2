@@ -15,6 +15,12 @@ import argparse
 import asyncio
 import getpass
 import sys
+from pathlib import Path
+
+# Running from inside the deployed image means the package is not installed;
+# put the application root on the path so `python scripts/create_admin.py`
+# works from any working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.database import async_session_factory
 from app.models.user import UserRole
