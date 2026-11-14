@@ -15,7 +15,7 @@ class TestUpdatePreprocessing:
         book_id = book["id"]
 
         pages_resp = await client.get(f"/api/books/{book_id}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         response = await client.put(
             f"/api/pages/{page_id}/preprocessing",
@@ -38,7 +38,7 @@ class TestUpdatePreprocessing:
         book_id = book["id"]
 
         pages_resp = await client.get(f"/api/books/{book_id}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         await client.put(
             f"/api/pages/{page_id}/preprocessing",
@@ -56,7 +56,7 @@ class TestGetPageImage:
     async def test_get_page_image_original(self, client, make_book_with_pages):
         book = await make_book_with_pages()
         pages_resp = await client.get(f"/api/books/{book['id']}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         response = await client.get(f"/api/pages/{page_id}/image")
         assert response.status_code == 200
@@ -64,7 +64,7 @@ class TestGetPageImage:
     async def test_get_page_image_processed(self, client, make_book_with_pages):
         book = await make_book_with_pages()
         pages_resp = await client.get(f"/api/books/{book['id']}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         await client.put(
             f"/api/pages/{page_id}/preprocessing",
@@ -84,7 +84,7 @@ class TestGetOcrResult:
     async def test_get_ocr_not_found(self, client, make_book_with_pages):
         book = await make_book_with_pages()
         pages_resp = await client.get(f"/api/books/{book['id']}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         response = await client.get(f"/api/pages/{page_id}/ocr")
         assert response.status_code == 404
@@ -92,7 +92,7 @@ class TestGetOcrResult:
     async def test_get_ocr_result_with_data(self, client, make_book_with_pages, db_session):
         book = await make_book_with_pages()
         pages_resp = await client.get(f"/api/books/{book['id']}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         ocr = OcrResult(
             page_id=uuid.UUID(page_id),
@@ -116,7 +116,7 @@ class TestUpdateOcrCorrection:
     async def test_update_correction(self, client, make_book_with_pages, db_session):
         book = await make_book_with_pages()
         pages_resp = await client.get(f"/api/books/{book['id']}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         ocr = OcrResult(
             page_id=uuid.UUID(page_id),
@@ -138,7 +138,7 @@ class TestUpdateOcrCorrection:
     async def test_update_correction_not_found(self, client, make_book_with_pages):
         book = await make_book_with_pages()
         pages_resp = await client.get(f"/api/books/{book['id']}/pages")
-        page_id = pages_resp.json()[0]["id"]
+        page_id = pages_resp.json()["items"][0]["id"]
 
         response = await client.put(
             f"/api/pages/{page_id}/ocr",

@@ -59,7 +59,9 @@ class TestListModels:
         # (which would 422 on UUID validation).
         response = await client.get("/api/books/models")
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
+        data = response.json()
+        assert isinstance(data["items"], list)
+        assert data["total"] == len(data["items"])
 
 
 class TestRunExtraction:

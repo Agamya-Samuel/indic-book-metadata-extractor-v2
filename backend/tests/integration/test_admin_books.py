@@ -95,8 +95,16 @@ class TestBookDetail:
         assert response.status_code == 200
         data = response.json()
         assert data["book"]["id"] == book["id"]
-        assert len(data["pages"]) == 2
-        assert data["pages"][0]["ocr_text"] == "OCR text here"
+        assert "pages" not in data
+        assert "jobs" not in data
+        assert "llm_runs" not in data
+
+        pages_response = await client.get(
+            f"/api/books/{book['id']}/pages?include_ocr=true"
+        )
+        pages = pages_response.json()["items"]
+        assert len(pages) == 2
+        assert pages[0]["ocr_text"] == "OCR text here"
 
     async def test_get_book_detail_not_found(self, client):
         fake_id = str(uuid.uuid4())

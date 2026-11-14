@@ -74,9 +74,13 @@ class TestUpdateMetadata:
 class TestFieldDefinitions:
     async def test_get_field_definitions(self, client, make_book):
         book = await make_book()
-        response = await client.get(f"/api/books/{book['id']}/metadata/fields")
+        response = await client.get(
+            f"/api/books/{book['id']}/metadata/fields?page_size=100"
+        )
         assert response.status_code == 200
-        fields = response.json()
+        data = response.json()
+        fields = data["items"]
+        assert data["total"] > 40
         assert len(fields) > 40
         field_names = [f["field_name"] for f in fields]
         assert "title" in field_names
@@ -89,7 +93,9 @@ class TestLlmRuns:
         book = await make_book()
         response = await client.get(f"/api/books/{book['id']}/llm-runs")
         assert response.status_code == 200
-        assert response.json() == []
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
 
     async def test_get_llm_runs_with_data(self, client, make_book, db_session):
         book = await make_book()
@@ -116,6 +122,8 @@ class TestLlmRuns:
 
         response = await client.get(f"/api/books/{book['id']}/llm-runs")
         assert response.status_code == 200
-        runs = response.json()
+        data = response.json()
+        runs = data["items"]
+        assert data["total"] == 1
         assert len(runs) == 1
         assert runs[0]["model"] == "qwen2.5"
