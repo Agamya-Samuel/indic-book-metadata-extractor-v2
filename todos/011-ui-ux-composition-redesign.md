@@ -100,6 +100,16 @@ tests. See `plans/010-notifications.md` and `todos/013-notifications.md`.
       themes, was 2.65 in dark) on the page thumbnails, bounding-box buttons,
       preprocessing preview and the upload dropzone; three rows in the contrast
       check cover it.
+- [x] **Navbar panels (reported 2026-11-14).** The account menu is a native
+      `<details>` and only closed by clicking its summary — outside clicks and
+      Escape did nothing, unlike the notification panel. Both now close on
+      outside-pointer-down and Escape (focus returns to the trigger), and the
+      menu closes when one of its own links is chosen. Both panels were also
+      absolutely anchored with a fixed width, so on a phone the 20 rem panel ran
+      past the left screen edge; below `sm` they are fixed to the viewport with
+      0.75 rem insets and a 70vh cap, anchored again from `sm` up. The nav link
+      group scrolls horizontally on very narrow screens so the utilities stay
+      pinned.
 - [ ] Re-verify the fixes above on a deployed build (they are committed locally,
       not pushed).
 
