@@ -14,6 +14,7 @@ import openai
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.core.errors import JobCancelled
 from app.schemas.metadata import (
     METADATA_BATCHES,
     BATCH_FIELD_ORDER,
@@ -26,7 +27,6 @@ from app.services.batch_routing import (
 )
 from app.services.extractors import ExtractedField
 from app.services.extractors.hybrid import (
-    NON_LLM_FIELDS,
     run_hybrid_extraction,
 )
 from app.schemas.metadata import FIELD_TO_BATCH
@@ -367,6 +367,7 @@ class LLMService:
         extraction_prompt_override: str | None = None,
         progress_callback: Callable[[int, int, str], Awaitable[None]] | None = None,
         pages: list[PageText] | None = None,
+        cancel_check: Callable[[], Awaitable[bool]] | None = None,
     ) -> tuple[FullMetadata, list[dict], dict[str, "ExtractedField"]]:
         """Hybrid extraction: cheap extractors first, LLM only for gaps.
 
@@ -409,6 +410,8 @@ class LLMService:
             llm_results: dict[str, ExtractedField] = {}
             if not needed_batches:
                 return llm_results
+            if cancel_check is not None and await cancel_check():
+                raise JobCancelled("LLM extraction cancelled before batching")
 
             total_needed = len(needed_batches)
             semaphore = asyncio.Semaphore(self.MAX_PARALLEL_BATCHES)
@@ -416,6 +419,8 @@ class LLMService:
             async def _guarded(bn: str):
                 async with semaphore:
                     try:
+                        if cancel_check is not None and await cancel_check():
+                            raise JobCancelled("LLM extraction cancelled")
                         return await self._run_one_batch_for_hybrid(
                             batch_name=bn,
                             ocr_text=ocr_text,
@@ -429,6 +434,8 @@ class LLMService:
                             extraction_prompt_override=extraction_prompt_override,
                             gap_fields={f for f in gaps if FIELD_TO_BATCH.get(f) == bn},
                         )
+                    except JobCancelled:
+                        raise
                     except Exception as e:
                         # Keep the real batch name: finalisation renders a prompt
                         # per batch, and a placeholder is not a known batch.
@@ -440,7 +447,13 @@ class LLMService:
             ]
             completed = 0
             for fut in asyncio.as_completed(in_flight):
-                outcome = await fut
+                try:
+                    outcome = await fut
+                except JobCancelled:
+                    for task in in_flight:
+                        task.cancel()
+                    await asyncio.gather(*in_flight, return_exceptions=True)
+                    raise
                 completed += 1
                 if isinstance(outcome, Exception):
                     failed_batch = getattr(
@@ -486,6 +499,8 @@ class LLMService:
                 if progress_callback:
                     await progress_callback(completed, total_needed, batch_name)
 
+            if cancel_check is not None and await cancel_check():
+                raise JobCancelled("LLM extraction cancelled before persisting")
             return llm_results
 
         results = await run_hybrid_extraction(

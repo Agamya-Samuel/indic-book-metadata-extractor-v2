@@ -7,6 +7,7 @@ from sqlalchemy import exc as sa_exc, select
 
 from app.core.config import settings
 from app.core.database import async_session_factory
+from app.core.errors import JobCancelled
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
@@ -20,8 +21,9 @@ from app.services.llm_service import llm_service as llm_service_singleton
 from app.services.prompts import render_extraction_prompt
 from app.services.search_service import SearchService
 from app.services.sse_service import event_id, publish_sync
-from app.services.stage_manager import StageManager
+from app.services.stage_manager import StageManager, StageTransitionError
 from app.tasks.async_utils import run_async
+from app.tasks.cancellation import is_superseded_async
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,10 @@ async def _validate_book_context(
         job = job_result.scalar_one_or_none()
         if job is None:
             raise ValueError(f"Job {job_id} not found")
+        if job.status == JobStatus.CANCELLED:
+            raise JobCancelled(f"LLM job {job_id} was cancelled before it started")
+        if await is_superseded_async(db, job):
+            raise JobCancelled(f"LLM job {job_id} was superseded before it started")
 
         job.status = JobStatus.RUNNING
         job.started_at = datetime.now(timezone.utc)
@@ -128,6 +134,17 @@ async def _persist_extraction_results(
     """
     evidence = evidence or {}
     async with async_session_factory() as db:
+        job = await db.get(Job, job_id)
+        if job is None:
+            logger.info("LLM job %s no longer exists; not persisting", job_id)
+            return
+        if job.status == JobStatus.CANCELLED:
+            logger.info("LLM job %s was cancelled; not persisting results", job_id)
+            return
+        if await is_superseded_async(db, job):
+            logger.info("LLM job %s was superseded; not persisting results", job_id)
+            return
+
         metadata_result = await db.execute(
             select(BookMetadata)
             .where(BookMetadata.book_id == book_id)
@@ -229,29 +246,45 @@ async def _persist_extraction_results(
         # this coroutine is waiting on that session the two deadlock until the
         # statement timeout. Same session means the lock is self-owned and the
         # stage write commits atomically with the metadata it describes.
-        if error_batches and len(error_batches) == len(batch_results):
-            job.status = JobStatus.FAILED
-            job.error_log = f"All batches failed: {', '.join(error_batches)}"
-            if book:
-                await StageManager.fail_stage(db, book_id, "llm_extraction", job.error_log)
-        elif error_batches:
-            job.status = JobStatus.COMPLETED
-            job.error_log = f"Partial failures: {', '.join(error_batches)}"
-            if book:
-                await StageManager.complete_stage(db, book_id, "llm_extraction")
-        elif empty_batches:
-            job.status = JobStatus.COMPLETED
-            job.error_log = (
-                f"LLM returned no values for {len(empty_batches)} "
-                f"batch(es): {', '.join(empty_batches)}. "
-                "Likely context-length truncation; check num_ctx and per-batch OCR cap."
+        try:
+            if error_batches and len(error_batches) == len(batch_results):
+                job.status = JobStatus.FAILED
+                job.error_log = f"All batches failed: {', '.join(error_batches)}"
+                if book:
+                    await StageManager.fail_stage(db, book_id, "llm_extraction", job.error_log)
+            elif error_batches:
+                job.status = JobStatus.COMPLETED
+                job.error_log = f"Partial failures: {', '.join(error_batches)}"
+                if book:
+                    await StageManager.complete_stage(db, book_id, "llm_extraction")
+            elif empty_batches:
+                job.status = JobStatus.COMPLETED
+                job.error_log = (
+                    f"LLM returned no values for {len(empty_batches)} "
+                    f"batch(es): {', '.join(empty_batches)}. "
+                    "Likely context-length truncation; check num_ctx and per-batch OCR cap."
+                )
+                if book:
+                    await StageManager.complete_stage(db, book_id, "llm_extraction")
+            else:
+                job.status = JobStatus.COMPLETED
+                if book:
+                    await StageManager.complete_stage(db, book_id, "llm_extraction")
+        except StageTransitionError:
+            await db.refresh(job)
+            if job.status == JobStatus.CANCELLED or await is_superseded_async(db, job):
+                logger.info(
+                    "LLM job %s lost its stage to a newer run; dropping its results",
+                    job_id,
+                )
+                await db.rollback()
+                return
+            logger.warning(
+                "LLM stage for book %s was already terminal; keeping job %s result",
+                book_id,
+                job_id,
+                exc_info=True,
             )
-            if book:
-                await StageManager.complete_stage(db, book_id, "llm_extraction")
-        else:
-            job.status = JobStatus.COMPLETED
-            if book:
-                await StageManager.complete_stage(db, book_id, "llm_extraction")
 
         job.progress = 100.0
         job.completed_at = datetime.now(timezone.utc)
@@ -335,18 +368,28 @@ def run_llm_extraction(
 
         llm = llm_service_singleton
 
+        async def _should_stop() -> bool:
+            async with async_session_factory() as check_db:
+                check_job = await check_db.get(Job, job_id)
+                if check_job is None or check_job.status == JobStatus.CANCELLED:
+                    return True
+                return await is_superseded_async(check_db, check_job)
+
         async def on_progress(current: int, total: int, batch_name: str):
             async with async_session_factory() as progress_db:
                 result = await progress_db.execute(
                     select(Job).where(Job.id == job_id)
                 )
                 progress_job = result.scalar_one_or_none()
-                if progress_job:
-                    progress_job.progress = round((current / total) * 100, 1)
-                    await progress_db.commit()
-                    progress_pct = progress_job.progress
-                else:
-                    progress_pct = round((current / total) * 100, 1)
+                if (
+                    progress_job is None
+                    or progress_job.status == JobStatus.CANCELLED
+                    or await is_superseded_async(progress_db, progress_job)
+                ):
+                    return
+                progress_job.progress = round((current / total) * 100, 1)
+                await progress_db.commit()
+                progress_pct = progress_job.progress
             publish_sync(
                 book_id,
                 {
@@ -371,6 +414,7 @@ def run_llm_extraction(
             extraction_prompt_override=extraction_prompt_override,
             progress_callback=on_progress,
             pages=page_texts,
+            cancel_check=_should_stop,
         )
 
         await _persist_extraction_results(
@@ -380,6 +424,9 @@ def run_llm_extraction(
 
     try:
         return run_async(_process())
+    except JobCancelled:
+        logger.info("LLM job %s stopped: cancelled or superseded", job_id_str)
+        return
     except (
         ConnectionError,
         TimeoutError,
@@ -399,10 +446,21 @@ def run_llm_extraction(
                     select(Job).where(Job.id == uuid.UUID(job_id_str))
                 )
                 job = job_result.scalar_one_or_none()
-                if job:
-                    job.status = JobStatus.FAILED
-                    job.error_log = error_message
-                    job.completed_at = datetime.now(timezone.utc)
+                if job is None:
+                    return
+                if job.status == JobStatus.CANCELLED:
+                    logger.info(
+                        "LLM job %s was cancelled; not marking it failed", job_id_str
+                    )
+                    return
+                if await is_superseded_async(db, job):
+                    logger.info(
+                        "LLM job %s was superseded; not marking it failed", job_id_str
+                    )
+                    return
+                job.status = JobStatus.FAILED
+                job.error_log = error_message
+                job.completed_at = datetime.now(timezone.utc)
 
                 book_result = await db.execute(
                     select(Book).where(
