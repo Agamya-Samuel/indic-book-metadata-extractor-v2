@@ -82,12 +82,22 @@ function RailItem({
   monitor: WorkflowProcessing | null;
 }) {
   const clickable = step.state !== "not_started";
+  const running = monitor !== null;
   const isCurrent = current || step.state === "current";
-  const label = `${step.label}, ${STATE_LABEL[step.state]}`;
+  // A stage whose job is running is the live state; it outranks "stale" (the
+  // previous output is out of date precisely because this run is redoing it).
+  const label = running
+    ? `${step.label}, running`
+    : `${step.label}, ${STATE_LABEL[step.state]}`;
 
   const inner = (
     <>
-      <StepMarker state={step.state} index={index} busy={isCurrent && !!monitor} size="md" />
+      <StepMarker
+        state={running ? "current" : step.state}
+        index={index}
+        busy={running}
+        size="md"
+      />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate">{step.label}</span>
         {step.detail && !monitor && (
@@ -103,7 +113,7 @@ function RailItem({
     "flex min-h-11 w-full items-center gap-2.5 rounded-[var(--radius)] px-2.5 py-2",
     "text-[length:var(--text-sm)] font-medium",
     "transition-colors duration-[var(--duration-fast)]",
-    isCurrent
+    running || isCurrent
       ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
       : step.state === "failed"
         ? "text-[var(--danger-700)] dark:text-[var(--danger-100)] hover:bg-[var(--danger-50)] dark:hover:bg-[var(--danger-900)]/20"
@@ -136,14 +146,31 @@ function RailItem({
       )}
 
       {monitor && (
-        <div className="mb-1 ml-[22px] flex items-center gap-2 rounded-[var(--radius)] border-l-2 border-[var(--accent)] bg-[var(--surface-sunken)] px-2.5 py-1.5">
-          <Spinner className="size-3 text-[var(--accent-text)]" />
-          <span className="truncate text-[length:var(--text-xs)] text-[var(--text-muted)]">
-            {step.detail ?? "Running"}
-          </span>
-          <span className="ml-auto text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
-            {Math.round(monitor.progress)}%
-          </span>
+        <div className="mb-1 ml-[34px] mr-1 rounded-[var(--radius)] bg-[var(--surface-sunken)] px-2.5 py-2">
+          <div className="flex items-center gap-2">
+            <Spinner className="size-3 shrink-0 text-[var(--accent-text)]" />
+            <span className="min-w-0 flex-1 truncate text-[length:var(--text-xs)] text-[var(--text-muted)]">
+              {step.detail ?? "Running"}
+            </span>
+            <span className="shrink-0 text-[length:var(--text-xs)] font-medium tabular-nums text-[var(--text)]">
+              {Math.round(monitor.progress)}%
+            </span>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="Job progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(monitor.progress)}
+            className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--border)]"
+          >
+            <div
+              className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-out"
+              style={{
+                width: `${Math.max(0, Math.min(100, monitor.progress))}%`,
+              }}
+            />
+          </div>
         </div>
       )}
     </li>
