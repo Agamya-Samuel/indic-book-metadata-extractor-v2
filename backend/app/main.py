@@ -126,6 +126,57 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 REAPER_INTERVAL_SECONDS = 300
 
 
+class UploadSizeLimitMiddleware:
+    """Reject an oversized upload from its Content-Length before it is spooled.
+
+    Starlette parses and spools the multipart part to disk before the route
+    runs, so the handler-level check is too late to protect the disk. Bodies
+    without a length still hit the copy-loop cap in the upload endpoint.
+    """
+
+    def __init__(self, app):
+        self.app = app
+        self.max_bytes = settings.max_upload_size_mb * 1024 * 1024
+        self.headroom = 1024 * 1024  # multipart envelope
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope.get("path") != "/api/books/upload":
+            return await self.app(scope, receive, send)
+
+        headers = dict(scope.get("headers") or [])
+        raw_length = headers.get(b"content-length")
+        if raw_length:
+            try:
+                length = int(raw_length)
+            except ValueError:
+                length = -1
+            if length > self.max_bytes + self.headroom:
+                response = JSONResponse(
+                    status_code=413,
+                    content={
+                        "detail": f"File exceeds {settings.max_upload_size_mb} MB limit",
+                        "type": "http_error",
+                    },
+                )
+                await response(scope, receive, send)
+                return
+        return await self.app(scope, receive, send)
+
+
+def _validate_security_settings() -> None:
+    """Refuse an insecure production start rather than discovering it later."""
+    if not settings.debug and len(settings.jwt_secret_key) < 32:
+        raise RuntimeError(
+            "JWT_SECRET_KEY must be at least 32 characters outside DEBUG mode."
+        )
+    origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    if "*" in origins:
+        logger.warning(
+            "CORS_ORIGINS contains '*': credentialed browser requests from any "
+            "origin will be accepted. Set the public frontend origin instead."
+        )
+
+
 async def _reaper_loop() -> None:
     """Periodically fail jobs no worker will ever finish."""
     from app.core.database import async_session_factory
@@ -145,6 +196,7 @@ async def _reaper_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    _validate_security_settings()
 
     global _redis_pool
     from app.core.database import get_engine
@@ -222,6 +274,9 @@ if settings.new_relic_enabled:
 
 # Rate limiting middleware (must be added BEFORE CORS — runs after CORS in the stack)
 app.add_middleware(RateLimitMiddleware)
+
+# Reject oversized upload bodies before the multipart part is spooled.
+app.add_middleware(UploadSizeLimitMiddleware)
 
 # CORS from config
 _cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]

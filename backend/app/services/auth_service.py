@@ -325,12 +325,26 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
     await send_password_reset_email(user, token)
 
 
+async def _invalidate_password_reset_tokens(db: AsyncSession, user_id: UUID) -> None:
+    """Burn every outstanding reset link after the password changes."""
+    await db.execute(
+        update(EmailToken)
+        .where(
+            EmailToken.user_id == user_id,
+            EmailToken.purpose == EmailTokenPurpose.RESET_PASSWORD,
+            EmailToken.used_at.is_(None),
+        )
+        .values(used_at=utcnow())
+    )
+
+
 async def reset_password(db: AsyncSession, raw_token: str, new_password: str) -> User:
     token = await _consume_email_token(db, raw_token, EmailTokenPurpose.RESET_PASSWORD)
     user = await db.get(User, token.user_id)
     if user is None:
         raise AuthError("This link is invalid", 400, "invalid_token")
     user.password_hash = hash_password(new_password)
+    await _invalidate_password_reset_tokens(db, user.id)
     await db.commit()
     await revoke_all_sessions(db, user.id)
     await db.refresh(user)
@@ -343,6 +357,7 @@ async def change_password(
     if not verify_password(current_password, user.password_hash):
         raise AuthError("Current password is incorrect", 400, "invalid_password")
     user.password_hash = hash_password(new_password)
+    await _invalidate_password_reset_tokens(db, user.id)
     await db.commit()
     await revoke_all_sessions(db, user.id)
 

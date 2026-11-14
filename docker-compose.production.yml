@@ -102,7 +102,7 @@ services:
     environment:
       APP_NAME: ${APP_NAME:-Indic Book Metadata Extractor}
       DEBUG: "false"
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-200}
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       REDIS_URL: redis://redis:6379/0
