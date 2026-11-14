@@ -164,9 +164,7 @@ class TestOcrStatus:
         from app.models.page import Page
 
         book = await make_book_with_pages()
-        row = (
-            await db_session.execute(select(Page).where(Page.book_id == uuid.UUID(book["id"])))
-        ).scalars().first()
+        row = (await db_session.execute(select(Page).where(Page.book_id == uuid.UUID(book["id"])))).scalars().first()
         assert row is not None
         row.ocr_error = "Tesseract failed on this page"
         await db_session.commit()
