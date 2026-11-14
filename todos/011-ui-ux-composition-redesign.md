@@ -72,13 +72,30 @@ In-app notifications + email alerts — bell with unread polling, `/notification
 page, per-account email switch, job/approval/registration events, SMTP transport
 tests. See `plans/010-notifications.md` and `todos/013-notifications.md`.
 
-## Remaining — UI verification not yet done
+## Remaining — UI verification
 
-- [ ] **Per-screen light + dark check** of every changed screen. Only the design
-      kit, one workflow page and the auth pages were checked in both themes.
-- [ ] **Keyboard-only pass** over the rail, filmstrip, evidence pane, `SaveBar`
-      and the notification bell/dropdown (tab order, focus visibility, Escape,
-      dialogs' focus trap). Only a "no positive tabindex" check was run.
+- [x] **Light + dark pass over the token system.** `scripts/check-contrast.mjs`
+      (`npm run lint:contrast`) resolves the OKLCH tokens offline and checks the
+      semantic pairs in both themes. It found a real dark-mode defect — the
+      accent fill (brand-600 in dark) was also used as link/spinner foreground at
+      **2.65:1**. Added `--accent-text` (brand-700 light / brand-300 dark) and
+      repointed 41 foreground usages; all pairs now pass (dark links 9.12:1).
+      Measuring the DOM directly is not possible: `getComputedStyle` returns
+      `lab()`/`oklch()` and canvas `fillStyle` rejects them.
+- [x] **Keyboard pass (shared surfaces).** Tab order on a workflow page:
+      skip link → brand → primary nav → bell → account menu → theme toggle →
+      stage picker → toolbar → filmstrip → word buttons. Found the only elements
+      in the app without a `focus-visible` ring — the primary-nav links and the
+      account-menu items — and fixed them. The rail, filmstrip, toolbar and
+      `SaveBar` all use the shared ring.
+- [ ] **Dialog focus trap + Escape** (confirm dialogs, notification dropdown) not
+      yet verified.
+- [ ] Re-verify the two fixes above on a deployed build (they are committed
+      locally, not pushed).
+- [ ] Minor: selection indicators (`border-[var(--accent)]` on chosen pages and
+      thumbnails) sit at ~2.65:1 in dark; they are never the only cue (ring +
+      shadow + background), so this is cosmetic — left as-is pending a visual
+      review by the user.
 
 ## Notes / open sub-items
 
