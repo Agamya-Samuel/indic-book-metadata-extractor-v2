@@ -103,8 +103,8 @@ partial-OCR page flags, and `plans/013-production-hardening.md`.
 | Single-book lock and reaper heartbeat | Verified by config and unit tests; not stress-tested with two real books. | Load test on a GCP node (same hardware) when offered. |
 | Partial-OCR per-page flag | Logic tested; no real page failure was induced in production. | Covered automatically on the next OCR incident. |
 | Origin reachable without Cloudflare; no offsite backups; no alerting | Pre-existing operator items documented in `docs/known-issues.md`. | Operator. |
-| Page images via `<img>` can 401 after the access token expires | Pre-existing; reload recovers. | Future: signed thumbnail URLs or blob fetch. |
-| No per-user quotas; rate limits are per-IP only | Pre-existing. | Product decision. |
+| Page images via `<img>` can 401 after the access token expires | Resolved in the follow-up below: signed page/thumbnail URLs. | — |
+| Per-user quotas | Removed in the follow-up below by the owner's rule: approved, verified users are unlimited. | — |
 
 ## Reproduction
 
@@ -123,3 +123,28 @@ It creates one book and one user, then deletes both. `E2E_BASE_URL`,
 parallel session (`881c6b5` … `96cf6e5`). They were exercised by this pass
 (admin/dashboard/book pages, no console errors) but are not part of this
 hardening work.
+## Follow-up (2026-11-15)
+
+- **Resend is live and verified on production.** Dokploy's compose env was
+  updated (encrypted blob re-encrypted with its own key, then the generated
+  `.env` and services restarted). A real signup received the verification email
+  in an external inbox, verified, and was correctly held at
+  `/pending-approval`; a password reset email was received, the reset worked,
+  the old password was rejected and the new one worked. All test users and
+  inboxes were deleted.
+- **CI is green again.** `ruff check .` and `ruff format --check .` pass
+  (145 files formatted; the handful of real findings were fixed in
+  scripts/tests), and `npm run lint` reports only warnings.
+- **Compose drift is gone.** Staging now mirrors production (phi4-mini model
+  and Ollama tuning, 7 GB cap, worker SMTP/FRONTEND_URL), so
+  `make check-compose-drift` passes.
+- **Per-user quotas were removed at the owner's direction.** Approved, verified
+  accounts may upload and queue without limit.
+- **Signed media URLs.** Page images and thumbnails now carry six-hour tokens
+  scoped to one page or one book; media endpoints sit outside the
+  approved-session gate and accept a session or a matching token. This removes
+  the post-15-minute broken-image problem.
+- **Telugu OCR remains the accuracy ceiling.** No runtime change: the chosen
+  line model's dependency/weight download is not viable on the production
+  host's egress. Integration design, fallback, packaging options and success
+  criteria are in `plans/017-telugu-ocr-engine-integration.md`.
