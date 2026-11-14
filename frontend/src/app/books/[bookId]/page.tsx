@@ -29,6 +29,7 @@ import WorkflowResumeBanner from "@/components/book/workflow-resume-banner";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import Pagination from "@/components/shared/pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -153,7 +154,7 @@ export default function BookDetailPage() {
   const bookId = params.bookId as string;
   const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
   const [pagesPage, setPagesPage] = useState(1);
-  const [pagesPageSize, setPagesPageSize] = useState(20);
+  const [pagesPageSize, setPagesPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [jobsPage, setJobsPage] = useState(1);
   const [runsPage, setRunsPage] = useState(1);
 
@@ -185,7 +186,8 @@ export default function BookDetailPage() {
 
   const { data: jobsData, isLoading: jobsLoading } = useQuery({
     queryKey: ["book", bookId, "jobs", jobsPage],
-    queryFn: () => getBookJobs(bookId, { page: jobsPage, page_size: 20 }),
+    queryFn: () =>
+      getBookJobs(bookId, { page: jobsPage, page_size: DEFAULT_PAGE_SIZE }),
     enabled: !!bookId,
     staleTime: 10 * 1000,
   });
@@ -206,7 +208,8 @@ export default function BookDetailPage() {
 
   const { data: llmRunsData, isLoading: runsLoading } = useQuery({
     queryKey: ["book", bookId, "llm-runs", runsPage],
-    queryFn: () => getLlmRuns(bookId, { page: runsPage, page_size: 20 }),
+    queryFn: () =>
+      getLlmRuns(bookId, { page: runsPage, page_size: DEFAULT_PAGE_SIZE }),
     enabled: !!bookId,
     staleTime: 30 * 1000,
   });

@@ -21,6 +21,7 @@ import { Field, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 const STATUSES = ["queued", "running", "completed", "failed", "cancelled"];
 const JOB_TYPES = ["page_extraction", "ocr", "llm", "preprocessing"];
@@ -34,7 +35,7 @@ export default function AdminJobsPage() {
   const [typeFilter, setTypeFilter] = React.useState("");
   const [owner, setOwner] = React.useState<OwnerSelection | null>(null);
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
 
   const handleStatusChange = (v: string) => {
     setStatusFilter(v);

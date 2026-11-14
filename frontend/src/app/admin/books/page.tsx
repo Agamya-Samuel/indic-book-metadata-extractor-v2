@@ -30,6 +30,7 @@ import { Field, Input, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -105,7 +106,7 @@ export default function AdminBooksPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
 
   const resetPagination = React.useCallback(() => {
     setPage(1);

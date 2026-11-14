@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/shared/button";
+import { PAGE_SIZE_OPTIONS } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 interface PaginationProps {
@@ -16,7 +17,6 @@ interface PaginationProps {
   className?: string;
 }
 
-const DEFAULT_PAGE_SIZES = [20, 50, 100];
 
 function pageItems(page: number, totalPages: number): Array<number | "left" | "right"> {
   if (totalPages <= 7) {
@@ -41,7 +41,7 @@ export default function Pagination({
   onPageChange,
   pageSize,
   onPageSizeChange,
-  pageSizeOptions = DEFAULT_PAGE_SIZES,
+  pageSizeOptions = PAGE_SIZE_OPTIONS,
   disabled = false,
   className,
 }: PaginationProps) {

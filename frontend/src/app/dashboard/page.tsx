@@ -37,11 +37,12 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
 import { Skeleton } from "@/components/shared/skeleton";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 const JOB_STATUSES = ["queued", "running", "completed", "failed", "cancelled"];
 const JOB_TYPES = ["page_extraction", "ocr", "llm", "preprocessing"];
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function workflowHref(book: BookSearchResult): string {
   switch (book.status) {

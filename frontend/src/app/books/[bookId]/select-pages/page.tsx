@@ -19,6 +19,7 @@ import { EmptyState, ErrorState } from "@/components/shared/empty-state";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import Pagination from "@/components/shared/pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
 
@@ -74,7 +75,7 @@ export default function SelectPagesPage() {
     },
   });
 
-  const ITEMS_PER_PAGE = 12;
+  const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE;
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
 

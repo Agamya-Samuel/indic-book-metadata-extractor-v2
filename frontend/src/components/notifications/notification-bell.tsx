@@ -13,6 +13,7 @@ import {
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
 import { Spinner } from "@/components/shared/spinner";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 const POLL_MS = 30_000;
 
@@ -33,7 +34,7 @@ export function NotificationBell() {
 
   const { data: recent, isLoading } = useQuery({
     queryKey: ["notifications", "recent"],
-    queryFn: () => getNotifications({ page: 1, page_size: 8 }),
+    queryFn: () => getNotifications({ page: 1, page_size: DEFAULT_PAGE_SIZE }),
     enabled: open,
     staleTime: 10_000,
   });

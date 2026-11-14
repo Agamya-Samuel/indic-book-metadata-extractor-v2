@@ -23,8 +23,9 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/error-handler";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 const TYPE_META: Record<
   NotificationRow["type"],

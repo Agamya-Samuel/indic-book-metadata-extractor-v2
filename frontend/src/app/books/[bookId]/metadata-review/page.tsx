@@ -35,6 +35,7 @@ import SaveBar from "@/components/shared/save-bar";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import Pagination from "@/components/shared/pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 export default function MetadataReviewPage() {
   useDocumentTitle("Metadata review");
@@ -82,7 +83,8 @@ export default function MetadataReviewPage() {
 
   const { data: llmRuns } = useQuery({
     queryKey: ["llm-runs", bookId, runsPage],
-    queryFn: () => getLlmRuns(bookId, { page: runsPage, page_size: 20 }),
+    queryFn: () =>
+      getLlmRuns(bookId, { page: runsPage, page_size: DEFAULT_PAGE_SIZE }),
     enabled: !!bookId && showLlmHistory,
   });
 
