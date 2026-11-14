@@ -10,7 +10,7 @@ import { useBookStore } from "@/stores/book-store";
 import { toast } from "sonner";
 import { Button } from "@/components/shared/button";
 import { Field, Input, Select } from "@/components/shared/input";
-import { ErrorState } from "@/components/shared/empty-state";
+import { ErrorState, Banner } from "@/components/shared/empty-state";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
@@ -87,6 +87,15 @@ export default function UploadPage() {
         title="Upload a book"
         description="Drop a PDF of an Indic-language book. The system will extract text with OCR, identify bibliographic fields with a fine-tuned language model, and prepare the records for review."
       />
+
+      <div className="mx-auto mb-4 max-w-2xl">
+        <Banner tone="info">
+          <strong className="font-medium">Beta.</strong> OCR and metadata quality
+          vary with scan quality, so expect to correct some text. Processing runs
+          on CPU and takes roughly 10–20 minutes per book; you can leave the page
+          and come back.
+        </Banner>
+      </div>
 
       <div className="mx-auto max-w-2xl">
         <Card>
