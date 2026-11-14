@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -18,7 +18,6 @@ from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.schemas.book import (
     BookDetail,
-    BookDetailPage,
     BookDetailResponse,
     BookUploadResponse,
     OcrStatusResponse,
@@ -27,16 +26,18 @@ from app.schemas.book import (
     PageSelectionRequest,
     PageSelectionResponse,
 )
+from app.schemas.common import Page as PageEnvelope
 from app.schemas.job import JobResponse
-from app.schemas.metadata import LlmRunResponse
 from app.schemas.page import PreprocessingConfig
 from app.services import pdf_service, storage
 from app.services.ocr_service import LANGUAGE_MAP
 from app.services.search_service import SearchService
 from app.services.stage_manager import StageManager
 from app.api.deps import (
+    PaginationParams,
     get_current_user,
     get_owned_book_or_404,
+    get_pagination,
 )
 from app.models.user import User
 from app.services import admin_service
@@ -97,9 +98,24 @@ async def upload_book(
     book_id = uuid.uuid4()
     pdf_path = storage.original_pdf_path(str(book_id))
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(pdf_path, "wb") as f:
-        while chunk := await file.read(1024 * 1024):
-            f.write(chunk)
+    written = 0
+    try:
+        with open(pdf_path, "wb") as f:
+            while chunk := await file.read(1024 * 1024):
+                written += len(chunk)
+                if written > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File exceeds {settings.max_upload_size_mb} MB limit",
+                    )
+                f.write(chunk)
+    except HTTPException:
+        pdf_path.unlink(missing_ok=True)
+        raise
+    except OSError:
+        pdf_path.unlink(missing_ok=True)
+        logger.exception("Could not store upload for book %s", book_id)
+        raise HTTPException(status_code=500, detail="Could not store the uploaded file")
 
     try:
         page_count = pdf_service.get_page_count(pdf_path)
@@ -171,23 +187,6 @@ async def get_book_detail(
         raise HTTPException(status_code=404, detail="Book not found")
 
     metadata = detail["metadata"]
-    pages = detail["pages"]
-    jobs = detail["jobs"]
-    llm_runs = detail["llm_runs"]
-    page_responses = [
-        BookDetailPage(
-            id=p["id"],
-            page_number=p["page_number"],
-            image_url=p["image_url"],
-            ocr_text=p["ocr_text"],
-            ocr_confidence=p["ocr_confidence"],
-        )
-        for p in pages
-    ]
-    llm_run_responses = [
-        LlmRunResponse.model_validate(r).model_dump() for r in llm_runs
-    ]
-    job_responses = [JobResponse.model_validate(j).model_dump() for j in jobs]
 
     book_detail = await _build_book_detail(
         db,
@@ -200,9 +199,6 @@ async def get_book_detail(
         book=book_detail,
         metadata=metadata.fields if metadata else None,
         metadata_updated_at=metadata.updated_at if metadata else None,
-        pages=page_responses,
-        llm_runs=llm_run_responses,
-        jobs=job_responses,
         owner_display_name=detail.get("owner_display_name"),
     )
 
@@ -368,16 +364,55 @@ async def apply_preprocessing_all(
     return JobResponse.model_validate(job)
 
 
-@router.get("/{book_id}/pages", response_model=list[PageResponse])
+@router.get("/{book_id}/pages", response_model=PageEnvelope[PageResponse])
 async def list_pages(
+    include_ocr: bool = Query(default=False),
+    pagination: PaginationParams = Depends(get_pagination),
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-) -> list[PageResponse]:
+) -> PageEnvelope[PageResponse]:
+    total = int(
+        await db.scalar(
+            select(func.count(Page.id)).where(Page.book_id == book.id)
+        )
+        or 0
+    )
     result = await db.execute(
-        select(Page).where(Page.book_id == book.id).order_by(Page.page_number)
+        select(Page)
+        .where(Page.book_id == book.id)
+        .order_by(Page.page_number)
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
     )
     pages = result.scalars().all()
-    return [PageResponse.model_validate(p) for p in pages]
+
+    ocr_by_page: dict = {}
+    if include_ocr and pages:
+        ocr_rows = await db.execute(
+            select(OcrResult).where(OcrResult.page_id.in_([p.id for p in pages]))
+        )
+        ocr_by_page = {row.page_id: row for row in ocr_rows.scalars().all()}
+
+    items: list[PageResponse] = []
+    for page in pages:
+        item = PageResponse.model_validate(page)
+        if include_ocr:
+            ocr = ocr_by_page.get(page.id)
+            item.image_url = f"/api/pages/{page.id}/image"
+            item.ocr_text = (
+                ocr.corrected_text
+                if ocr and ocr.corrected_text
+                else (ocr.raw_text if ocr else None)
+            )
+            item.ocr_confidence = ocr.confidence if ocr else None
+        items.append(item)
+
+    return PageEnvelope[PageResponse].create(
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 @router.post("/{book_id}/run-ocr", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
@@ -493,18 +528,32 @@ async def get_ocr_status(
     )
 
 
-@router.get("/{book_id}/jobs", response_model=list[JobResponse])
+@router.get("/{book_id}/jobs", response_model=PageEnvelope[JobResponse])
 async def list_jobs(
+    pagination: PaginationParams = Depends(get_pagination),
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-) -> list[JobResponse]:
+) -> PageEnvelope[JobResponse]:
+    total = int(
+        await db.scalar(
+            select(func.count(Job.id)).where(Job.book_id == book.id)
+        )
+        or 0
+    )
     result = await db.execute(
         select(Job)
         .where(Job.book_id == book.id)
         .order_by(Job.created_at.desc())
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
     )
     jobs = result.scalars().all()
-    return [JobResponse.model_validate(j) for j in jobs]
+    return PageEnvelope[JobResponse].create(
+        items=[JobResponse.model_validate(j) for j in jobs],
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -47,13 +47,12 @@ async def list_notifications(
         )
     ).scalars().all()
 
-    return NotificationListResponse(
+    return NotificationListResponse.create(
         items=[NotificationRow.model_validate(row, from_attributes=True) for row in rows],
         total=total,
-        unread_count=await notification_service.unread_count(db, user.id),
         page=page,
         page_size=page_size,
-        total_pages=max(1, -(-total // page_size)),
+        unread_count=await notification_service.unread_count(db, user.id),
     )
 
 

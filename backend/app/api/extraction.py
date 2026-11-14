@@ -4,13 +4,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_owned_book_or_404
+from app.api.deps import (
+    PaginationParams,
+    get_current_user,
+    get_owned_book_or_404,
+    get_pagination,
+)
 from app.core.database import get_db
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.models.user import User
+from app.schemas.common import Page as PageEnvelope
 from app.schemas.metadata import (
     BATCH_FIELD_ORDER,
     ExtractionRequest,
@@ -23,12 +29,19 @@ from app.services.stage_manager import StageManager, StageStatus
 router = APIRouter()
 
 
-@router.get("/models", response_model=list[ModelInfo])
+@router.get("/models", response_model=PageEnvelope[ModelInfo])
 async def list_models(
+    pagination: PaginationParams = Depends(get_pagination),
     _user: User = Depends(get_current_user),
-) -> list[ModelInfo]:
-    models = await llm_service.list_available_models()
-    return [ModelInfo(**m) for m in models]
+) -> PageEnvelope[ModelInfo]:
+    models = [ModelInfo(**m) for m in await llm_service.list_available_models()]
+    items = models[pagination.offset : pagination.offset + pagination.page_size]
+    return PageEnvelope[ModelInfo].create(
+        items=items,
+        total=len(models),
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 @router.post(

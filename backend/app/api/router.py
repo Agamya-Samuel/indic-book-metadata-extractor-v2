@@ -8,6 +8,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.deps import require_approved_user
 from app.api.extraction import router as extraction_router
 from app.api.health import router as health_router
+from app.api.jobs import router as jobs_router
 from app.api.metadata import router as metadata_router
 from app.api.notifications import router as notifications_router
 from app.api.pages import router as pages_router
@@ -45,6 +46,12 @@ api_router.include_router(
     metadata_router,
     prefix="/books",
     tags=["metadata"],
+    dependencies=[Depends(require_approved_user)],
+)
+api_router.include_router(
+    jobs_router,
+    prefix="/jobs",
+    tags=["jobs"],
     dependencies=[Depends(require_approved_user)],
 )
 api_router.include_router(

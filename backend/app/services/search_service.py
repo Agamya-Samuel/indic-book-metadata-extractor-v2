@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book
 from app.models.metadata import BookMetadata
-from app.models.page import Page
 from app.models.user import User
 
 
@@ -246,10 +245,10 @@ class SearchService:
         book_id: UUID,
         book: Book | None = None,
     ) -> dict | None:
-        from app.models.job import Job
-        from app.models.llm_run import LlmRun
-        from app.models.ocr_result import OcrResult
+        """Book + owner + metadata.
 
+        Pages, jobs, and LLM runs are served by their own paginated endpoints.
+        """
         if book is None:
             book_result = await db.execute(select(Book).where(Book.id == book_id))
             book = book_result.scalar_one_or_none()
@@ -263,55 +262,11 @@ class SearchService:
         )
         metadata = meta_result.scalar_one_or_none()
 
-        pages_result = await db.execute(
-            select(Page)
-            .where(Page.book_id == book_id)
-            .order_by(Page.page_number)
-        )
-        pages = pages_result.scalars().all()
-
-        page_ids = [p.id for p in pages]
-        ocr_by_page = {}
-        if page_ids:
-            ocr_results_raw = await db.execute(
-                select(OcrResult).where(OcrResult.page_id.in_(page_ids))
-            )
-            ocr_by_page = {r.page_id: r for r in ocr_results_raw.scalars().all()}
-
-        page_details = []
-        for p in pages:
-            ocr = ocr_by_page.get(p.id)
-            page_details.append({
-                "id": p.id,
-                "page_number": p.page_number,
-                "image_url": f"/api/pages/{p.id}/image",
-                "ocr_text": ocr.corrected_text if ocr and ocr.corrected_text else (ocr.raw_text if ocr else None),
-                "ocr_confidence": ocr.confidence if ocr else None,
-            })
-
-        jobs_result = await db.execute(
-            select(Job).where(Job.book_id == book_id).order_by(Job.created_at.desc())
-        )
-        jobs = jobs_result.scalars().all()
-
-        job_ids = [j.id for j in jobs if j.id is not None]
-        llm_runs = []
-        if job_ids:
-            runs_result = await db.execute(
-                select(LlmRun)
-                .where(LlmRun.job_id.in_(job_ids))
-                .order_by(LlmRun.created_at.desc())
-            )
-            llm_runs = runs_result.scalars().all()
-
         return {
             "book": book,
             "owner_display_name": owner.display_name if owner else None,
             "owner_email": owner.email if owner else None,
             "metadata": metadata,
-            "pages": page_details,
-            "jobs": jobs,
-            "llm_runs": llm_runs,
         }
 
     @staticmethod

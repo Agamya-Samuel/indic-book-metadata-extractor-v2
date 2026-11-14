@@ -1,7 +1,6 @@
 """Admin HTTP endpoints: users, library stats, book CRUD, cross-book job control."""
 from __future__ import annotations
 
-import math
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
@@ -24,6 +23,7 @@ from app.schemas.book import (
     BookSearchResult,
     FilterOptionsResponse,
 )
+from app.schemas.job import AdminJobsResponse
 from app.services import admin_service, auth_service
 from app.services.auth_service import AuthError
 from app.services.notification_service import deliver_notification_emails
@@ -66,12 +66,11 @@ async def admin_list_users(
         page=page,
         page_size=page_size,
     )
-    return UserListResponse(
+    return UserListResponse.create(
         items=[UserResponse.model_validate(u) for u in users],
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=math.ceil(total / page_size) if total > 0 else 0,
     )
 
 
@@ -272,12 +271,11 @@ async def admin_list_books(
             owner_email=item.get("owner_email"),
         ))
 
-    return BookListResponse(
+    return BookListResponse.create(
         items=items,
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=math.ceil(total / page_size) if total > 0 else 0,
     )
 
 
@@ -350,7 +348,7 @@ async def admin_rerun_extraction(
 # Jobs (cross-book)
 # ---------------------------------------------------------------------------
 
-@router.get("/jobs")
+@router.get("/jobs", response_model=AdminJobsResponse)
 async def admin_list_jobs(
     status: str | None = Query(default=None),
     job_type: str | None = Query(default=None, alias="job_type"),
@@ -359,7 +357,7 @@ async def admin_list_jobs(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> AdminJobsResponse:
     items, total = await admin_service.list_admin_jobs(
         db,
         status=status,
@@ -369,13 +367,12 @@ async def admin_list_jobs(
         page=page,
         page_size=page_size,
     )
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": math.ceil(total / page_size) if total > 0 else 0,
-    }
+    return AdminJobsResponse.create(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.post("/jobs/{job_id}/cancel")
