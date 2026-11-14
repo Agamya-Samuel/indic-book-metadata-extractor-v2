@@ -2,13 +2,9 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-
-from app.models.book import Book
 from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
-from app.models.page import Page
 
 
 class TestGetMetadata:
@@ -69,6 +65,15 @@ class TestUpdateMetadata:
         assert data["fields"]["title"] == "Updated"
         assert data["fields"]["author"] == "Author"
         assert data["fields"]["genre"] == "Fiction"
+
+    async def test_update_metadata_rejects_unknown_field(self, client, make_book):
+        book = await make_book()
+        response = await client.put(
+            f"/api/books/{book['id']}/metadata",
+            json={"fields": {"not_a_metadata_field": "x"}},
+        )
+        assert response.status_code == 422
+        assert "Unknown metadata field" in str(response.json()["detail"])
 
 
 class TestFieldDefinitions:

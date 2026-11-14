@@ -56,6 +56,24 @@ async def run_extraction(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ExtractionResponse:
+    # Check for an active run before the status gate: after the first request
+    # the book is llm_running, and a duplicate must see 409 (with the job id),
+    # not an "invalid status" 400.
+    running_jobs = await db.execute(
+        select(Job).where(
+            Job.book_id == book_id,
+            Job.job_type == JobType.LLM,
+            Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+        )
+    )
+    running_job = running_jobs.scalars().first()
+    if running_job:
+        raise HTTPException(
+            status_code=409,
+            detail="An LLM extraction job is already running or queued for this book",
+            headers={"X-Existing-Job-Id": str(running_job.id)},
+        )
+
     if book.status not in (
         BookStatus.OCR_COMPLETE,
         BookStatus.AWAITING_REVIEW,
@@ -88,21 +106,6 @@ async def run_extraction(
         raise HTTPException(
             status_code=400,
             detail="No OCR text available for extraction. Run OCR first.",
-        )
-
-    running_jobs = await db.execute(
-        select(Job).where(
-            Job.book_id == book_id,
-            Job.job_type == JobType.LLM,
-            Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
-        )
-    )
-    running_job = running_jobs.scalars().first()
-    if running_job:
-        raise HTTPException(
-            status_code=409,
-            detail="An LLM extraction job is already running or queued for this book",
-            headers={"X-Existing-Job-Id": str(running_job.id)},
         )
 
     if book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):

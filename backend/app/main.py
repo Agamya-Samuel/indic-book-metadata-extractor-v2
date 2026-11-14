@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 import httpx
 import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -359,12 +360,16 @@ async def health_check():
 # ---------------------------------------------------------------------------
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # ``ctx`` can hold the original Exception from a custom validator, which is
+    # not JSON serializable; dropping it and encoding the rest keeps a bad
+    # payload a 422 instead of a 500.
+    errors = [
+        {key: value for key, value in error.items() if key != "ctx"}
+        for error in exc.errors()
+    ]
     return JSONResponse(
         status_code=422,
-        content={
-            "detail": exc.errors(),
-            "type": "validation_error",
-        },
+        content={"detail": jsonable_encoder(errors), "type": "validation_error"},
     )
 
 
