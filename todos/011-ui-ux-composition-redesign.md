@@ -110,8 +110,13 @@ tests. See `plans/010-notifications.md` and `todos/013-notifications.md`.
       0.75 rem insets and a 70vh cap, anchored again from `sm` up. The nav link
       group scrolls horizontally on very narrow screens so the utilities stay
       pinned.
-- [ ] Re-verify the fixes above on a deployed build (they are committed locally,
-      not pushed).
+- [x] Re-verified on the deployed build: navbar `z-40` over the page sub-header
+      (hit-tested inside both open panels), account menu closes on outside
+      click/Escape with focus return, monitor row accent + spinner while running
+      with its text aligned to the stage label (x=56/56), `progressbar` live.
+      Also fixed en route: the size tokens were emitting `color`, which broke
+      the text hierarchy app-wide (`text-[length:var(--text-…)]`), and the nav's
+      `overflow-x-auto` was scrolling the open panels out of view.
 
 ## Notes / open sub-items
 
