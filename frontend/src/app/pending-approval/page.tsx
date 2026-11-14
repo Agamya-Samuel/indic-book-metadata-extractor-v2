@@ -52,6 +52,12 @@ export default function PendingApprovalPage() {
               Your email is already verified. You will be able to use the app as
               soon as an administrator approves your account.
             </p>
+            <p>
+              This project is in its pilot phase and runs on limited resources,
+              so signups are moderated: an administrator approves each account
+              to keep out spam. As we grow and scale, registration will open to
+              all users.
+            </p>
           </>
         )}
         <Button

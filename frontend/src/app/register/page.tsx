@@ -67,6 +67,11 @@ export default function RegisterPage() {
             You will get access once it is approved.
           </p>
           <p>
+            This project is in its pilot phase and runs on limited resources, so
+            new accounts are approved manually to keep out spam. As we grow and
+            scale, registration will open to all users.
+          </p>
+          <p>
             Didn&apos;t receive it? Check your spam folder, or request another
             link from the verification page.
           </p>
@@ -96,6 +101,13 @@ export default function RegisterPage() {
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {error && <Banner tone="danger">{error}</Banner>}
+        <Banner tone="info">
+          <span className="font-medium">Pilot phase:</span> signups are
+          approval-based. Because the project runs on limited resources, an
+          administrator reviews and approves each new account before it can be
+          used. As the project grows and scales, registration will open to all
+          users.
+        </Banner>
         <Field label="Display name" htmlFor="display-name">
           <Input
             id="display-name"
