@@ -104,6 +104,31 @@ per-page progress and cancel is planned (see
 
 ## Deployment and operations
 
+### Production SMTP still points at the retired host
+
+The deployed environment still sets `SMTP_HOST=mx.msgwing.com`, which has no
+DNS record. Verification, password-reset and notification emails are therefore
+logged and skipped; in-app notifications are unaffected and registration still
+returns 201 with the "check your email" screen.
+
+**Fix (operator, Dokploy environment):** point the existing SMTP variables at
+Resend's raw SMTP endpoint — `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`,
+`SMTP_USERNAME=resend`, `SMTP_PASSWORD=<RESEND_API_KEY>`,
+`SMTP_FROM=<RESEND_FROM_EMAIL>` — then redeploy. The transport was verified with
+a live send; see `learnings/023-production-hardening-outcome.md`.
+
+### CI lint/format gate is red
+
+`uv run ruff check .` reports 60 issues and `ruff format --check .` would
+reformat 131 files, so the CI lint job cannot gate merges. Touched files are
+clean; the backlog predates the hardening pass.
+
+### Compose files have drifted
+
+`make check-compose-drift` fails: staging lacks `FRONTEND_URL`, the SMTP
+variables and the Ollama memory/thread tuning that production carries.
+Production is unaffected, but the staging template no longer matches it.
+
 ### The origin is reachable without Cloudflare
 
 `https://187.127.174.246/` answers directly, so Cloudflare's WAF and rate rules
