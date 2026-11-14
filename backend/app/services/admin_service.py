@@ -441,9 +441,14 @@ async def rerun_extraction(
     if book is None:
         raise LookupError("Book not found")
 
-    if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
+    if book.status not in (
+        BookStatus.OCR_COMPLETE,
+        BookStatus.AWAITING_REVIEW,
+        BookStatus.COMPLETE,
+    ):
         raise ValueError(
-            f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'"
+            "Book status must be 'ocr_complete', 'awaiting_review' or "
+            f"'complete', got '{book.status}'"
         )
 
     pages_result = await db.execute(select(Page).where(Page.book_id == book_id))

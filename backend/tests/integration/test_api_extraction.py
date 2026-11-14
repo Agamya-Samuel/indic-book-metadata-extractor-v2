@@ -141,3 +141,72 @@ class TestRetryExtraction:
             json={"model": "qwen2.5"},
         )
         assert response.status_code == 201
+
+
+async def _drive_to_awaiting_review(db_session, book_id: uuid.UUID) -> None:
+    from app.services.stage_manager import StageManager
+
+    await StageManager.initiate_stage(db_session, book_id, "llm_extraction")
+    await StageManager.start_stage(db_session, book_id, "llm_extraction")
+    await StageManager.complete_stage(db_session, book_id, "llm_extraction")
+    await db_session.commit()
+
+
+class TestRerunFromAwaitingReview:
+    async def test_run_extraction_accepted_from_awaiting_review(
+        self, client, make_book, db_session, mock_celery
+    ):
+        book = await _create_book_with_ocr(client, make_book, db_session)
+        book_id = uuid.UUID(book["id"])
+        await _drive_to_awaiting_review(db_session, book_id)
+
+        detail = await client.get(f"/api/books/{book['id']}")
+        assert detail.json()["status"] == "awaiting_review"
+
+        response = await client.post(
+            f"/api/books/{book['id']}/run-extraction",
+            json={"model": "qwen2.5"},
+        )
+        assert response.status_code == 201
+
+    async def test_rerun_extraction_accepted_from_awaiting_review(
+        self, client, make_book, db_session, mock_celery
+    ):
+        book = await _create_book_with_ocr(client, make_book, db_session)
+        book_id = uuid.UUID(book["id"])
+        await _drive_to_awaiting_review(db_session, book_id)
+
+        response = await client.post(
+            f"/api/books/{book['id']}/rerun-extraction"
+        )
+        assert response.status_code == 201
+
+    async def test_rerun_releases_downstream_stages(
+        self, client, make_book, db_session, mock_celery
+    ):
+        from sqlalchemy import select
+
+        from app.models.stage import BookStageStatus, StageStatus
+
+        book = await _create_book_with_ocr(client, make_book, db_session)
+        book_id = uuid.UUID(book["id"])
+        await _drive_to_awaiting_review(db_session, book_id)
+
+        response = await client.post(
+            f"/api/books/{book['id']}/rerun-extraction"
+        )
+        assert response.status_code == 201
+
+        rows = (
+            await db_session.execute(
+                select(BookStageStatus).where(
+                    BookStageStatus.book_id == book_id,
+                    BookStageStatus.stage_name == "llm_extraction",
+                )
+            )
+        ).scalars().all()
+        attempts = sorted(row.attempt for row in rows)
+        assert len(attempts) == 2, "a re-run must open a new attempt"
+        latest = max(rows, key=lambda row: row.attempt)
+        assert latest.status == StageStatus.PROCESSING
+        assert any(row.status == StageStatus.CANCELLED for row in rows)
