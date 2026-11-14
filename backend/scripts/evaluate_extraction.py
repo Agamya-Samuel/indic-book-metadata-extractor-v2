@@ -190,7 +190,10 @@ def run_pipeline_on_pdf(
     still be invoked for testing the diff logic.
     """
     if native:
-        from scripts.native_extract import run_native
+        try:
+            from scripts.native_extract import run_native
+        except ImportError:  # run by file path, so the package prefix is absent
+            from native_extract import run_native
 
         return run_native(pdf_path, model=model, language=language, max_pages=max_pages, max_tokens=max_tokens)
 
