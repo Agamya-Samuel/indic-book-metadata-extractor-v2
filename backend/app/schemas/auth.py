@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.config import settings
 from app.models.user import AccountStatus, UserRole
+from app.schemas.common import Page
 
 
 def _validate_password(value: str) -> str:
@@ -100,12 +101,8 @@ class AdminPasswordResetRequest(BaseModel):
     _password = field_validator("new_password")(_validate_password)
 
 
-class UserListResponse(BaseModel):
-    items: list[UserResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+class UserListResponse(Page[UserResponse]):
+    pass
 
 
 class AdminUserDetailResponse(UserResponse):

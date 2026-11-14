@@ -7,6 +7,8 @@ import uuid
 
 from pydantic import BaseModel
 
+from app.schemas.common import Page
+
 
 class NotificationRow(BaseModel):
     id: uuid.UUID
@@ -19,13 +21,8 @@ class NotificationRow(BaseModel):
     created_at: datetime.datetime | None = None
 
 
-class NotificationListResponse(BaseModel):
-    items: list[NotificationRow]
-    total: int
+class NotificationListResponse(Page[NotificationRow]):
     unread_count: int
-    page: int
-    page_size: int
-    total_pages: int
 
 
 class UnreadCountResponse(BaseModel):

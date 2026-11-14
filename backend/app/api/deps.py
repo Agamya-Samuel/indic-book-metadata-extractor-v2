@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import hmac
+from dataclasses import dataclass
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +21,24 @@ from app.models.job import Job
 from app.models.user import AccountStatus, User, UserRole
 
 _MUTATION_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+@dataclass(frozen=True)
+class PaginationParams:
+    page: int
+    page_size: int
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
+
+
+def get_pagination(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> PaginationParams:
+    """Standard ``?page=&page_size=`` dependency (1-based, capped at 100)."""
+    return PaginationParams(page=page, page_size=page_size)
 
 
 def _unauthorized(detail: str = "Not authenticated") -> HTTPException:

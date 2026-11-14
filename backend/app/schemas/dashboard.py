@@ -7,6 +7,8 @@ import uuid
 
 from pydantic import BaseModel
 
+from app.schemas.common import Page
+
 
 class DashboardJobRow(BaseModel):
     id: uuid.UUID
@@ -23,12 +25,8 @@ class DashboardJobRow(BaseModel):
     error_log: str | None = None
 
 
-class DashboardJobsResponse(BaseModel):
-    items: list[DashboardJobRow]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
+class DashboardJobsResponse(Page[DashboardJobRow]):
+    pass
 
 
 class DashboardSummary(BaseModel):
