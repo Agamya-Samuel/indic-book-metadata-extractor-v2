@@ -330,6 +330,7 @@ export interface OcrPageStatus {
   page_id: string;
   has_ocr: boolean;
   confidence: number | null;
+  ocr_error?: string | null;
 }
 
 export interface OcrStatusResponse {

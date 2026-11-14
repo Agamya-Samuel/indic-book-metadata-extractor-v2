@@ -158,6 +158,25 @@ class TestOcrStatus:
         assert data["ocr_complete_count"] == 0
         assert data["ocr_pending_count"] == 2
 
+    async def test_get_ocr_status_flags_failed_pages(self, client, make_book_with_pages, db_session):
+        from sqlalchemy import select
+
+        from app.models.page import Page
+
+        book = await make_book_with_pages()
+        row = (
+            await db_session.execute(select(Page).where(Page.book_id == uuid.UUID(book["id"])))
+        ).scalars().first()
+        assert row is not None
+        row.ocr_error = "Tesseract failed on this page"
+        await db_session.commit()
+
+        response = await client.get(f"/api/books/{book['id']}/ocr-status")
+        assert response.status_code == 200
+        failed = [p for p in response.json()["pages"] if p["ocr_error"]]
+        assert len(failed) == 1
+        assert failed[0]["ocr_error"] == "Tesseract failed on this page"
+
 
 class TestListJobs:
     async def test_list_jobs_empty(self, client, make_book):

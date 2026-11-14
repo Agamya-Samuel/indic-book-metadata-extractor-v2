@@ -63,6 +63,9 @@ class OcrPageStatus(BaseModel):
     page_id: uuid.UUID
     has_ocr: bool
     confidence: float | None
+    # Set when this page's OCR attempt failed, so a partial run can be
+    # reviewed page-by-page instead of only via the aggregate job error.
+    ocr_error: str | None = None
 
 
 class OcrStatusResponse(BaseModel):

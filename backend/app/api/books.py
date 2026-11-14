@@ -471,6 +471,7 @@ async def get_ocr_status(
                 page_id=page.id,
                 has_ocr=has_ocr,
                 confidence=conf,
+                ocr_error=page.ocr_error,
             )
         )
 
