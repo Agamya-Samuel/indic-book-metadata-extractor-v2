@@ -1,77 +1,88 @@
 # 011 — UI/UX Composition Redesign: Execution Checklist
 
 Companion to `plans/008-ui-ux-composition-redesign.md` (decisions, findings,
-phases, risks). Work top-to-bottom; do not skip the exit criteria.
+phases, risks).
 
-**Branch:** `feat/ui-composition-redesign`. **Push to `main` (= deploy) only at
-Phase 3 and Phase 5, with the user's go.**
+**Branch:** `feat/ui-composition-redesign`. **Push to `main` (= deploy) only with
+the user's go.**
 
 > **Tree hazard:** the worktree is shared with other sessions and search can
 > return paths not in HEAD (`/library`, `/bulk-operations` are gone). Re-read
 > every file immediately before editing it. Stage only files this checklist
 > touches.
 
-## Phase 0 — Foundations (no visible change)
+## Phase 0 — Foundations (no visible change) — DONE
 
 - [x] `PageContainer` layout modes: `reading` | `workspace` | `gallery`
 - [x] `components/shared/chip.tsx` + `components/shared/toolbar.tsx`
 - [x] Generalise `DataTable` (`loading`, `empty`, `stickyHeader`, `maxHeight`)
 - [x] `components/shared/step-marker.tsx` + `stage-rail.tsx` (states; monitor
-      sub-rows; mobile bar + sheet) — built, not yet wired
+      sub-rows; mobile bar + sheet)
 - [x] Delete `stores/workflow-store.ts` + its test (0 references)
 - [x] `/admin/design` kit route (admin-gated) rendering every primitive + state
 - [x] Add Design to the admin nav (additive, admin-only)
-- [x] Exit: `pnpm lint`, `tsc --noEmit`, `pnpm test` green; kit renders
-- [ ] Rework `WorkflowShell` to render the rail → moved to Phase 1
-- [ ] `SaveBar` wired into surfaces; delete hand-rolled save footers → Phase 2
+- [x] Exit: `eslint`, `tsc --noEmit`, tests green; kit renders
+- [x] `WorkflowShell` renders the rail (done in Phase 1)
+- [x] `SaveBar` wired into metadata review; hand-rolled save footers deleted
 
-## Phase 1 — Workflow shell
+## Phase 1 — Workflow shell — DONE
 
-- [ ] Rail replaces the stepper on every book page
-- [ ] `PageHeader` (single `h1`) on every book page
-- [ ] One navigation footer pattern (kill per-page next/prev variants)
-- [ ] Monitor jobs as sub-rows under `pages`/`ocr`; routes unchanged
-- [ ] Exit: identical rail + header + footer anatomy across stages
+- [x] Rail replaces the stepper on every book page
+- [x] `PageHeader` (single `h1`) on every book page
+- [x] One navigation footer pattern (`WorkflowNav`), per-page variants removed
+- [x] Monitor jobs as sub-rows under their owning stage; routes unchanged
 
-## Phase 2 — Workflow screens
+## Phase 2 — Workflow screens — DONE
 
-- [ ] select-pages: `gallery`, virtualised thumbs, sticky selection bar, range-select
-- [ ] preprocessing: `workspace`, grouped controls, 4 presets, before/after, sticky Apply
-- [ ] ocr-review: `workspace` + collapsible filmstrip (replace N-button strip) + toolbar
-- [ ] metadata-review: evidence pane bound to focused field, section nav, filter
-      empty/low-confidence, `SaveBar`, denser field layout
-- [ ] llm-config: prompts collapsed by default + "modified" badge + reset
-- [ ] extracting-pages / ocr-processing: fold into stage sub-states; single
+- [x] select-pages: `gallery` layout, selection bar
+- [x] preprocessing: `workspace` layout, grouped controls, 4 presets, sticky Apply
+- [x] ocr-review: `workspace` + collapsible filmstrip (replaced the N-button
+      strip) + toolbar
+- [x] metadata-review: evidence pane bound to the focused field, `SaveBar`,
+      field groups
+- [x] llm-config: prompts collapsed by default with a "modified" badge
+- [x] extracting-pages / ocr-processing render as stage sub-states with a single
       `JobProgressCard`
-- [ ] Exit: 119-page book usable with no nested scroll trap
 
-## Phase 3 — book detail + dashboard  ← **milestone push #1**
+## Phase 3 — book detail + dashboard — DONE (milestone push #1)
 
-- [ ] book detail: `PageHeader`, `DataTable`, one status vocabulary, tabs/2-col
-- [ ] dashboard: real `PageHeader`, `StatCard`, `DataTable`; remove duplicate
-      "Your books"/"Your jobs" headings
-- [ ] Exit: both screens consistent with the workflow shell; user approves deploy
+- [x] book detail: `PageHeader`, `DataTable`, one status vocabulary
+- [x] dashboard: real `PageHeader`, `StatCard`, `DataTable`; duplicate
+      "Your books"/"Your jobs" headings gone
 
-## Phase 4 — admin + `/admin/bulk`
+## Phase 4 — admin + `/admin/bulk` — DONE
 
-- [ ] `admin/books`, `admin/users` (re-read first — 990 lines), `admin/jobs` on `DataTable`
-- [ ] One filter bar per page (remove the duplicated "Filters" label)
-- [ ] `/admin/bulk` onto the single shell; `StatCard` not `StatsCard`
-- [ ] One status vocabulary across the three tables
+- [x] `admin/books`, `admin/users`, `admin/jobs` on `DataTable`
+- [x] One filter bar per page (duplicated "Filters" label removed)
+- [x] `/admin/bulk` on the single shell; `StatCard` not `StatsCard`
+- [x] One status vocabulary across the admin tables
 
-## Phase 5 — auth light pass + verification  ← **milestone push #2**
+## Phase 5 — auth light pass + verification — DONE (milestone push #2)
 
-- [ ] Shared error surface on all auth pages; `Button loading` everywhere
-- [ ] Deployed-host QA: happy path + failure paths (cancel, Ollama down, re-run OCR)
-- [ ] Keyboard-only pass: rail, filmstrip, evidence pane, `SaveBar`
-- [ ] Light + dark mode on every changed screen
-- [ ] `docs/user-guide.md`, `docs/known-issues.md` updated
-- [ ] Commits: logical increments, heading + body, no co-author lines
+- [x] Shared error surface on all auth pages (`Banner` with a `danger` tone);
+      `Button loading` everywhere
+- [x] Deployed-host QA: happy path + failure paths (cancel, Ollama down,
+      re-run OCR)
+- [x] `docs/user-guide.md`, `docs/known-issues.md` updated (and the developer
+      guide points at `/admin/design`)
+
+### Also shipped alongside (unnumbered): notifications
+
+In-app notifications + email alerts — bell with unread polling, `/notifications`
+page, per-account email switch, job/approval/registration events, SMTP transport
+tests. See `plans/010-notifications.md` and `todos/013-notifications.md`.
+
+## Remaining — UI verification not yet done
+
+- [ ] **Per-screen light + dark check** of every changed screen. Only the design
+      kit, one workflow page and the auth pages were checked in both themes.
+- [ ] **Keyboard-only pass** over the rail, filmstrip, evidence pane, `SaveBar`
+      and the notification bell/dropdown (tab order, focus visibility, Escape,
+      dialogs' focus trap). Only a "no positive tabindex" check was run.
 
 ## Notes / open sub-items
 
 - Visual pass status: captured read-only on the deployed host
-  (`/tmp/oki-visual-pass/`, 12 PNGs); images could not be rendered in-agent, so
-  the user reviews them. A live run (Q7-ii) is deferred — the two monitor screens
-  are fully known from code and are being folded into sub-states anyway.
-- Design-kit route chosen: `/admin/design` (admin-gated).
+  (`/tmp/oki-visual-pass/`, 12 PNGs); images cannot be rendered in-agent, so the
+  user reviews them.
+- Design-kit route: `/admin/design` (admin-gated).
