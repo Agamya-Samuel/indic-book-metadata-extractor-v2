@@ -162,7 +162,7 @@ async def test_cancel_body_carries_an_admin_reason_only(db_session) -> None:
     assert "Cancelled by owner" not in by_owner.body
 
 
-async def test_job_terminal_prefers_requester_and_falls_back_to_owner(db_session) -> None:
+async def test_job_terminal_notifies_the_book_owner(db_session) -> None:
     owner = await _make_user(db_session)
     requester = await _make_user(db_session)
     book = await _make_book(db_session, owner)
@@ -192,8 +192,28 @@ async def test_job_terminal_prefers_requester_and_falls_back_to_owner(db_session
     )
     await db_session.commit()
 
-    assert (await db_session.get(Notification, first)).user_id == requester.id
+    assert (await db_session.get(Notification, first)).user_id == owner.id
     assert (await db_session.get(Notification, second)).user_id == owner.id
+
+
+async def test_book_less_job_notifies_its_requester(db_session) -> None:
+    requester = await _make_user(db_session)
+    job = Job(
+        id=uuid.uuid4(),
+        book_id=None,
+        requested_by_id=requester.id,
+        job_type=JobType.OCR,
+        status=JobStatus.COMPLETED,
+    )
+    db_session.add(job)
+    await db_session.commit()
+
+    notification_id = await notification_service.notify_job_terminal(
+        db_session, job=job, book=None, status=JobStatus.COMPLETED
+    )
+    await db_session.commit()
+
+    assert (await db_session.get(Notification, notification_id)).user_id == requester.id
 
 
 async def test_registration_alert_reaches_only_active_admins(db_session) -> None:

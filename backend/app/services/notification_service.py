@@ -120,9 +120,10 @@ async def notify_job_terminal(
     if type_ is None:
         return None
 
-    recipient_id = job.requested_by_id
-    if recipient_id is None and book is not None:
-        recipient_id = book.owner_id
+    # The book owner is the person whose work the job changes, even when an
+    # administrator triggered it (a re-run acts on someone else's book). Only
+    # a book-less job (none exist today) falls back to its requester.
+    recipient_id = book.owner_id if book is not None else job.requested_by_id
     if recipient_id is None:
         return None
 
