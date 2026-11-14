@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   getBook,
-  getBookCurrentStages,
-  getBookJobs,
-  getBookPages,
+  getAllBookCurrentStages,
+  getAllBookJobs,
+  getAllBookPages,
 } from "@/lib/api";
 import { deriveWorkflowState } from "@/lib/workflow-state";
 import { StageRail, StageRailMobile } from "@/components/shared/stage-rail";
@@ -45,23 +45,23 @@ export default function WorkflowShell({
   });
 
   const stagesQuery = useQuery({
-    queryKey: ["book", bookId, "stages", "current"],
-    queryFn: () => getBookCurrentStages(bookId),
+    queryKey: ["book", bookId, "stages", "current", "all"],
+    queryFn: () => getAllBookCurrentStages(bookId),
     enabled: !!bookId,
     staleTime: 5_000,
     retry: false,
   });
 
   const pagesQuery = useQuery({
-    queryKey: ["book", bookId, "pages"],
-    queryFn: () => getBookPages(bookId),
+    queryKey: ["book", bookId, "pages", "all"],
+    queryFn: () => getAllBookPages(bookId),
     enabled: !!bookId,
     staleTime: 10_000,
   });
 
   const jobsQuery = useQuery({
-    queryKey: ["book", bookId, "jobs"],
-    queryFn: () => getBookJobs(bookId),
+    queryKey: ["book", bookId, "jobs", "all"],
+    queryFn: () => getAllBookJobs(bookId),
     enabled: !!bookId,
     staleTime: 2_000,
   });

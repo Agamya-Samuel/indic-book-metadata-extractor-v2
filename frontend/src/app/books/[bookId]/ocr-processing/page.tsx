@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBook, getBookPages } from "@/lib/api";
+
 import { getLanguageName } from "@/lib/utils";
 import { useJobProgress } from "@/hooks/use-job-progress";
 import { useSSE } from "@/hooks/use-sse";
@@ -30,14 +31,14 @@ export default function OcrProcessingPage() {
   });
 
   const { data: pages } = useQuery({
-    queryKey: ["book", bookId, "pages"],
-    queryFn: () => getBookPages(bookId),
+    queryKey: ["book", bookId, "pages", "count"],
+    queryFn: () => getBookPages(bookId, { page: 1, page_size: 1 }),
     enabled: !!bookId,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  const pageCount = pages?.length ?? 0;
+  const pageCount = pages?.total ?? 0;
 
   const {
     job,

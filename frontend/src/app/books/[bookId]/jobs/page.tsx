@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,6 +16,7 @@ import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card
 import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, EmptyState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import Pagination from "@/components/shared/pagination";
 import { cn } from "@/lib/utils";
 
 export default function JobsPage() {
@@ -22,6 +24,8 @@ export default function JobsPage() {
   const params = useParams();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -31,15 +35,14 @@ export default function JobsPage() {
   });
 
   const { data: jobs, isLoading: isLoadingJobs } = useQuery({
-    queryKey: ["book", bookId, "jobs"],
-    queryFn: () => getBookJobs(bookId),
+    queryKey: ["book", bookId, "jobs", page],
+    queryFn: () => getBookJobs(bookId, { page, page_size: PAGE_SIZE }),
     staleTime: 0,
     gcTime: 60 * 1000,
     refetchInterval: (query) => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible")
         return false;
-      const data = query.state.data;
-      const anyRunning = data?.some(
+      const anyRunning = query.state.data?.items.some(
         (j) => !["completed", "failed", "cancelled"].includes(j.status)
       );
       return anyRunning ? 2000 : false;
@@ -68,11 +71,12 @@ export default function JobsPage() {
     );
   }
 
-  const sortedJobs = [...(jobs ?? [])].sort((a, b) => {
+  const sortedJobs = [...(jobs?.items ?? [])].sort((a, b) => {
     const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
     const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
     return dateB - dateA;
   });
+  const totalJobs = jobs?.total ?? 0;
 
   const anyRunning = sortedJobs.some(
     (j) => !["completed", "failed", "cancelled"].includes(j.status)
@@ -86,7 +90,7 @@ export default function JobsPage() {
           description={
             <>
               {book?.title || book?.filename || "Book"} &bull;{" "}
-              {sortedJobs.length} job{sortedJobs.length !== 1 ? "s" : ""}
+              {totalJobs} job{totalJobs !== 1 ? "s" : ""}
             </>
           }
           actions={
@@ -110,7 +114,7 @@ export default function JobsPage() {
           }
         />
 
-        {sortedJobs.length === 0 ? (
+        {totalJobs === 0 ? (
           <EmptyState
             title="No jobs found"
             description="This book has no processing jobs yet."
@@ -232,6 +236,14 @@ export default function JobsPage() {
               );
             })}
           </Stack>
+        )}
+
+        {totalJobs > 0 && (
+          <Pagination
+            page={page}
+            totalPages={jobs?.total_pages ?? 0}
+            onPageChange={setPage}
+          />
         )}
       </PageContainer>
     </div>

@@ -18,6 +18,7 @@ import Image from "next/image";
 import { EmptyState, ErrorState } from "@/components/shared/empty-state";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import Pagination from "@/components/shared/pagination";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
 
@@ -272,81 +273,15 @@ export default function SelectPagesPage() {
           </div>
         )}
 
+        <Pagination
+          page={currentPage}
+          totalPages={totalPaginationPages}
+          onPageChange={setCurrentPage}
+        />
         {totalPaginationPages > 1 && (
-          <nav
-            aria-label="Pagination"
-            className="mt-6 flex items-center justify-center gap-2"
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              aria-label="First page"
-            >
-              ««
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              aria-label="Previous page"
-            >
-              «
-            </Button>
-            {Array.from({ length: totalPaginationPages }, (_, i) => i + 1)
-              .filter((p) => {
-                if (totalPaginationPages <= 7) return true;
-                if (p === 1 || p === totalPaginationPages) return true;
-                return Math.abs(p - currentPage) <= 1;
-              })
-              .reduce<(number | "...")[]>((acc, p, i, arr) => {
-                if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
-                acc.push(p);
-                return acc;
-              }, [])
-              .map((item, i) =>
-                item === "..." ? (
-                  <span
-                    key={`ellipsis-${i}`}
-                    className="px-2 text-[var(--text-muted)]"
-                    aria-hidden="true"
-                  >
-                    …
-                  </span>
-                ) : (
-                  <Button
-                    key={item}
-                    variant={currentPage === item ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(item as number)}
-                    aria-label={`Page ${item}`}
-                    aria-current={currentPage === item ? "page" : undefined}
-                  >
-                    {item}
-                  </Button>
-                )
-              )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPaginationPages, p + 1))}
-              disabled={currentPage === totalPaginationPages}
-              aria-label="Next page"
-            >
-              »
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(totalPaginationPages)}
-              disabled={currentPage === totalPaginationPages}
-              aria-label="Last page"
-            >
-              »»
-            </Button>
-          </nav>
+          <p className="mt-1 text-center text-[length:var(--text-xs)] text-[var(--text-subtle)]">
+            Showing pages {startPage}–{endPage} of {totalPages}
+          </p>
         )}
       </PageContainer>
     </WorkflowShell>

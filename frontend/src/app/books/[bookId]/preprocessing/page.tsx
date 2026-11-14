@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
-  getBookPages,
+  getAllBookPages,
   updatePreprocessing,
   previewPreprocessing,
   getPageImageUrl,
@@ -114,8 +114,8 @@ export default function PreprocessingPage() {
   });
 
   const { data: pages, isLoading: isLoadingPages } = useQuery({
-    queryKey: ["book", bookId, "pages"],
-    queryFn: () => getBookPages(bookId),
+    queryKey: ["book", bookId, "pages", "all"],
+    queryFn: () => getAllBookPages(bookId),
     enabled: !!bookId,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,

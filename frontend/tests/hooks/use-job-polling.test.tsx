@@ -6,11 +6,11 @@ import { useJobPolling } from "@/hooks/use-job-polling";
 import type { JobResponse } from "@/lib/api";
 
 vi.mock("@/lib/api", () => ({
-  getBookJobs: vi.fn(),
+  getAllBookJobs: vi.fn(),
 }));
 
-import { getBookJobs } from "@/lib/api";
-const mockGetBookJobs = vi.mocked(getBookJobs);
+import { getAllBookJobs } from "@/lib/api";
+const mockGetBookJobs = vi.mocked(getAllBookJobs);
 
 function createWrapper() {
   const queryClient = new QueryClient({
