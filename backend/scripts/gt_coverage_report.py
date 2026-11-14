@@ -46,31 +46,40 @@ def main() -> int:
 
     order = {b: i for i, b in enumerate(BATCH_FIELD_ORDER)}
     out = ["# Ground Truth vs. Metadata Fields (49-field conformance & coverage)\n"]
-    out.append("Comparison of the corpus in `backend/tests/fixtures/ground_truth/` against "
-               "[`docs/metadata-fields.md`](metadata-fields.md) (source: `app/schemas/metadata.py`). "
-               "Regenerate with `uv run python -m scripts.gt_coverage_report`.\n")
+    out.append(
+        "Comparison of the corpus in `backend/tests/fixtures/ground_truth/` against "
+        "[`docs/metadata-fields.md`](metadata-fields.md) (source: `app/schemas/metadata.py`). "
+        "Regenerate with `uv run python -m scripts.gt_coverage_report`.\n"
+    )
     out.append("## Conformance\n")
     out.append(f"- Books **{len(books)}** · canonical fields **{len(CANON)}**.")
-    out.append("- Every book's `expected_metadata`, `field_status` and `field_source` hold **exactly** "
-               "the 49 keys (0 missing, 0 extra; `scripts/apply_field_schema.py --check`).")
+    out.append(
+        "- Every book's `expected_metadata`, `field_status` and `field_source` hold **exactly** "
+        "the 49 keys (0 missing, 0 extra; `scripts/apply_field_schema.py --check`)."
+    )
     out.append(f"- Status: {', '.join(f'`{k}`={v}' for k, v in status.items())}.\n")
     out.append("## Coverage\n")
-    out.append(f"- **{sum(filled.values())}** non-null values; **{sum(1 for f in CANON if filled[f])}/49** "
-               "fields populated.")
+    out.append(
+        f"- **{sum(filled.values())}** non-null values; **{sum(1 for f in CANON if filled[f])}/49** fields populated."
+    )
     out.append(f"- Empty in every book ({len(empty)}): {', '.join(f'`{e}`' for e in empty)}.\n")
     out.append("## Per-field\n")
     out.append("| # | Field | Batch | Wikidata | Telugu | Hindi | Total | Source(s) |")
     out.append("|---|---|---|---|---|---|---|---|")
     for i, f in enumerate(sorted(CANON, key=lambda x: (order[BATCH[x]], x)), 1):
         s = ", ".join(f"{k}:{v}" for k, v in src[f].most_common()) or "—"
-        out.append(f"| {i} | `{f}` | {BATCH[f]} | {WD[f] or '—'} | {by_lang['tel'][f]} | {by_lang['hin'][f]} | {filled[f]} | {s} |")
+        out.append(
+            f"| {i} | `{f}` | {BATCH[f]} | {WD[f] or '—'} | {by_lang['tel'][f]} | {by_lang['hin'][f]} | {filled[f]} | {s} |"
+        )
     out.append("\n## Per-book\n")
     out.append("| Book | Lang | Filled / 49 | Status |")
     out.append("|---|---|---|---|")
     for lang, slug, n, st in sorted(per_book, key=lambda x: (x[0], -x[2], x[1])):
         out.append(f"| {slug} | {lang} | {n} | {st} |")
-    out.append("\nSource key: `unmapped` = value present but `field_source` unset; `node_llm_extraction` = "
-               "unverified model prefill (see `learnings/019`); catalog sources as named.")
+    out.append(
+        "\nSource key: `unmapped` = value present but `field_source` unset; `node_llm_extraction` = "
+        "unverified model prefill (see `learnings/019`); catalog sources as named."
+    )
     OUT.write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"wrote {OUT} ({len(books)} books, {len(empty)} empty fields)")
     return 0

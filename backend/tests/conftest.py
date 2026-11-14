@@ -5,7 +5,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import fitz
 import pytest
@@ -150,9 +150,7 @@ def _user_factory():
                 role=role,
                 is_active=is_active,
                 account_status=account_status,
-                email_verified_at=(
-                    datetime.now(timezone.utc) if verified else None
-                ),
+                email_verified_at=(datetime.now(timezone.utc) if verified else None),
             )
             session.add(user)
             await session.commit()
@@ -169,9 +167,7 @@ def create_user(test_app):
 
 @pytest.fixture
 async def regular_user(test_app) -> User:
-    return await _user_factory()(
-        email="user@example.com", display_name="Regular User"
-    )
+    return await _user_factory()(email="user@example.com", display_name="Regular User")
 
 
 @pytest.fixture
@@ -347,13 +343,9 @@ def make_book_with_pages(client, make_book, db_session, sample_pdf, test_storage
         await db_session.commit()
 
         # Mirror the production end state of the asynchronous render task.
-        await StageManager.initiate_stage(
-            db_session, uuid.UUID(book_id), "page_selection"
-        )
+        await StageManager.initiate_stage(db_session, uuid.UUID(book_id), "page_selection")
         await StageManager.start_stage(db_session, uuid.UUID(book_id), "page_selection")
-        await StageManager.complete_stage(
-            db_session, uuid.UUID(book_id), "page_selection"
-        )
+        await StageManager.complete_stage(db_session, uuid.UUID(book_id), "page_selection")
         await db_session.commit()
         return book
 

@@ -24,15 +24,11 @@ logger = logging.getLogger(__name__)
 
 async def is_cancelled_async(db: AsyncSession, job_id: uuid.UUID) -> bool:
     """True when the job is cancelled or its row no longer exists."""
-    status = (
-        await db.execute(select(Job.status).where(Job.id == job_id))
-    ).scalar_one_or_none()
+    status = (await db.execute(select(Job.status).where(Job.id == job_id))).scalar_one_or_none()
     return status is None or status == JobStatus.CANCELLED
 
 
-async def is_superseded_async(
-    db: AsyncSession, job: Job, *, newer_statuses: tuple[str, ...] | None = None
-) -> bool:
+async def is_superseded_async(db: AsyncSession, job: Job, *, newer_statuses: tuple[str, ...] | None = None) -> bool:
     """True when a newer job of the same type exists for the same book.
 
     A re-run cancels the old row and creates a new one. If the old worker is
@@ -54,9 +50,7 @@ async def is_superseded_async(
     return result.scalar_one_or_none() is not None
 
 
-async def is_cancelled_or_superseded_async(
-    db: AsyncSession, job: Job
-) -> bool:
+async def is_cancelled_or_superseded_async(db: AsyncSession, job: Job) -> bool:
     if await is_cancelled_async(db, job.id):
         return True
     return await is_superseded_async(db, job)

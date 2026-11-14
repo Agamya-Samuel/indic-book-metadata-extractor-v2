@@ -177,22 +177,22 @@ def test_pdf(
             else:
                 word_avg_conf = 0
 
-            page_results.append({
-                "page_number": page["page_number"],
-                "word_count": word_count,
-                "text_length": text_len,
-                "avg_confidence": avg_conf,
-                "word_avg_confidence": round(word_avg_conf, 1),
-                "detected_language": detected_lang,
-            })
+            page_results.append(
+                {
+                    "page_number": page["page_number"],
+                    "word_count": word_count,
+                    "text_length": text_len,
+                    "avg_confidence": avg_conf,
+                    "word_avg_confidence": round(word_avg_conf, 1),
+                    "detected_language": detected_lang,
+                }
+            )
 
     return {
         "pdf": pdf_path.name,
         "config": config_name,
         "pages": page_results,
-        "avg_confidence": round(
-            sum(p["avg_confidence"] or 0 for p in page_results) / max(len(page_results), 1), 1
-        ),
+        "avg_confidence": round(sum(p["avg_confidence"] or 0 for p in page_results) / max(len(page_results), 1), 1),
         "avg_word_confidence": round(
             sum(p["word_avg_confidence"] for p in page_results) / max(len(page_results), 1), 1
         ),

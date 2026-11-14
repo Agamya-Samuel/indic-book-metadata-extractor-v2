@@ -64,18 +64,12 @@ async def get_bulk_stats(
     """Get summary statistics for the library."""
     total = await db.scalar(select(func.count(Book.id)))
 
-    with_meta = await db.scalar(
-        select(func.count(BookMetadata.id))
-    )
+    with_meta = await db.scalar(select(func.count(BookMetadata.id)))
 
-    lang_result = await db.execute(
-        select(Book.language, func.count(Book.id)).group_by(Book.language)
-    )
+    lang_result = await db.execute(select(Book.language, func.count(Book.id)).group_by(Book.language))
     languages = {row[0]: row[1] for row in lang_result.all()}
 
-    status_result = await db.execute(
-        select(Book.status, func.count(Book.id)).group_by(Book.status)
-    )
+    status_result = await db.execute(select(Book.status, func.count(Book.id)).group_by(Book.status))
     statuses = {row[0]: row[1] for row in status_result.all()}
 
     return BulkStatsResponse(
@@ -99,10 +93,7 @@ async def bulk_export(
     (UUID) which is used for matching during re-import.
     """
     # Build query: join Book + BookMetadata
-    query = (
-        select(Book, BookMetadata)
-        .outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
-    )
+    query = select(Book, BookMetadata).outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
 
     if language:
         query = query.where(Book.language == language)
@@ -163,9 +154,7 @@ async def bulk_import(
     max_import_rows = 5000
     content = await file.read(max_import_bytes + 1)
     if len(content) > max_import_bytes:
-        raise HTTPException(
-            status_code=413, detail="CSV import is limited to 10 MB"
-        )
+        raise HTTPException(status_code=413, detail="CSV import is limited to 10 MB")
     try:
         text = content.decode("utf-8-sig")  # handle BOM
     except UnicodeDecodeError:
@@ -173,9 +162,7 @@ async def bulk_import(
     reader = csv.DictReader(io.StringIO(text))
 
     if "book_id" not in (reader.fieldnames or []):
-        raise HTTPException(
-            status_code=400, detail="CSV must contain a 'book_id' column"
-        )
+        raise HTTPException(status_code=400, detail="CSV must contain a 'book_id' column")
 
     total_rows = 0
     books_updated = 0
@@ -185,15 +172,11 @@ async def bulk_import(
 
     # Metadata field names (everything except book_id and book-level fields)
     book_level_cols = {"book_id", "title", "language", "filename"}
-    meta_field_names = [
-        c for c in (reader.fieldnames or []) if c not in book_level_cols
-    ]
+    meta_field_names = [c for c in (reader.fieldnames or []) if c not in book_level_cols]
 
     for row_num, row in enumerate(reader, start=2):
         if total_rows >= max_import_rows:
-            errors.append(
-                f"Import stopped at {max_import_rows} rows; split the file"
-            )
+            errors.append(f"Import stopped at {max_import_rows} rows; split the file")
             break
         total_rows += 1
         book_id_str = row.get("book_id", "").strip()
@@ -236,9 +219,7 @@ async def bulk_import(
 
         if new_fields:
             # Get or create metadata record
-            meta_result = await db.execute(
-                select(BookMetadata).where(BookMetadata.book_id == book_id)
-            )
+            meta_result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id))
             metadata = meta_result.scalar_one_or_none()
 
             if metadata is None:
@@ -286,10 +267,7 @@ async def bulk_export_wikibase(
     """
     prop_map = _load_property_mapping()
 
-    query = (
-        select(Book, BookMetadata)
-        .outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
-    )
+    query = select(Book, BookMetadata).outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
 
     if language:
         query = query.where(Book.language == language)

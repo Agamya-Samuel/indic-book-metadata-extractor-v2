@@ -20,7 +20,9 @@ API = "http://localhost:11434"
 def call(payload):
     data = json.dumps(payload).encode()
     req = urllib.request.Request(
-        API + "/api/chat", data=data, method="POST",
+        API + "/api/chat",
+        data=data,
+        method="POST",
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=1800) as r:
@@ -71,8 +73,14 @@ def main():
 
     # Warm load so load time is excluded from the first measured call.
     try:
-        call({"model": model, "messages": [{"role": "user", "content": "hi"}],
-              "stream": False, "options": {"num_predict": 1}})
+        call(
+            {
+                "model": model,
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": False,
+                "options": {"num_predict": 1},
+            }
+        )
     except Exception as exc:  # noqa: BLE001
         print("warm failed:", exc, flush=True)
 
@@ -81,8 +89,7 @@ def main():
             rec = {"model": model, "batch": batch["name"], "think_false": think}
             t0 = time.time()
             try:
-                res = gen(model, bundle["system_prompt"], batch["prompt"],
-                          batch["schema"], think)
+                res = gen(model, bundle["system_prompt"], batch["prompt"], batch["schema"], think)
             except Exception as exc:  # noqa: BLE001
                 rec["error"] = str(exc)
                 out.write(json.dumps(rec) + "\n")
@@ -103,9 +110,12 @@ def main():
                 rec["raw_snippet"] = content[:200]
             out.write(json.dumps(rec, ensure_ascii=False) + "\n")
             out.flush()
-            print(f"  {batch['name']:20s} wall={rec['wall_s']}s "
-                  f"gen={rec['gen_tok_s']} parse={'ok' if rec['parsed'] else 'FAIL'} "
-                  f"think={rec['thinking_chars']}ch", flush=True)
+            print(
+                f"  {batch['name']:20s} wall={rec['wall_s']}s "
+                f"gen={rec['gen_tok_s']} parse={'ok' if rec['parsed'] else 'FAIL'} "
+                f"think={rec['thinking_chars']}ch",
+                flush=True,
+            )
     print("DONE", flush=True)
 
 

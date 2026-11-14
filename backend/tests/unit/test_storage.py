@@ -10,6 +10,7 @@ from app.services import storage
 
 VALID_UUID = "12345678-1234-5678-1234-567812345678"
 
+
 class TestStoragePaths:
     @pytest.fixture(autouse=True)
     def setup_storage(self, tmp_path, monkeypatch):

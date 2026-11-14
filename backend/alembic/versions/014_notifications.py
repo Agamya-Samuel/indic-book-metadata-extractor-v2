@@ -7,6 +7,7 @@ Create Date: 2026-11-13
 Additive only. Existing users get ``email_notifications_enabled = true`` via the
 column server default, matching the in-app-is-always-on rule.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -58,9 +59,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.UniqueConstraint(
-            "user_id", "event_key", name="uq_notifications_user_event"
-        ),
+        sa.UniqueConstraint("user_id", "event_key", name="uq_notifications_user_event"),
     )
     op.create_index("ix_notifications_user_id", "notifications", ["user_id"])
     op.create_index("ix_notifications_created_at", "notifications", ["created_at"])

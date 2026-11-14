@@ -25,9 +25,21 @@ GT_ROOT = BACKEND / "tests" / "fixtures" / "ground_truth"
 
 # Fields whose values are expected to be findable in the front-matter text.
 CHECKABLE = [
-    "label", "title", "subtitle", "author", "publisher", "publisher_telugu",
-    "place_of_publication", "publication_date", "language", "original_language",
-    "form_of_creative_work", "edition_number", "volume", "pages", "isbn",
+    "label",
+    "title",
+    "subtitle",
+    "author",
+    "publisher",
+    "publisher_telugu",
+    "place_of_publication",
+    "publication_date",
+    "language",
+    "original_language",
+    "form_of_creative_work",
+    "edition_number",
+    "volume",
+    "pages",
+    "isbn",
 ]
 
 _STRIP = re.compile(r"[\s\u200c\u200d]+")
@@ -117,8 +129,9 @@ def main() -> int:
     print(f"\nTotal: {totals}")
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps({"totals": totals, "books": reports},
-                                          ensure_ascii=False, indent=2), encoding="utf-8")
+        args.output.write_text(
+            json.dumps({"totals": totals, "books": reports}, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         print(f"Report -> {args.output}")
     return 0
 

@@ -60,9 +60,7 @@ def _ensure_engine():
             if elapsed > 1.0:
                 logger.warning("Slow query (%.2fs): %s", elapsed, statement[:300])
 
-        _async_session_factory = async_sessionmaker(
-            _engine, class_=AsyncSession, expire_on_commit=False
-        )
+        _async_session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 class _LazySessionFactory:

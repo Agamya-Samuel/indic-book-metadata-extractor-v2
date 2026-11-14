@@ -56,11 +56,7 @@ def _redis_client() -> redis.Redis:
 def acquire(owner: str) -> bool:
     """Take the lock, or return False when another book holds it."""
     try:
-        return bool(
-            _redis_client().set(
-                LOCK_KEY, owner, nx=True, ex=LOCK_TTL_SECONDS
-            )
-        )
+        return bool(_redis_client().set(LOCK_KEY, owner, nx=True, ex=LOCK_TTL_SECONDS))
     except Exception:  # noqa: BLE001
         logger.warning(
             "Single-book pipeline lock unavailable; continuing without it",
@@ -72,9 +68,7 @@ def acquire(owner: str) -> bool:
 def refresh(owner: str) -> None:
     """Extend the lock while work is still progressing."""
     try:
-        _redis_client().eval(
-            _REFRESH_SCRIPT, 1, LOCK_KEY, owner, LOCK_TTL_SECONDS
-        )
+        _redis_client().eval(_REFRESH_SCRIPT, 1, LOCK_KEY, owner, LOCK_TTL_SECONDS)
     except Exception:  # noqa: BLE001
         logger.debug("Could not refresh the pipeline lock", exc_info=True)
 
@@ -97,9 +91,7 @@ def single_book_task(fn):
     @functools.wraps(fn)
     def wrapper(self, job_id_str, *args, **kwargs):
         if not acquire(job_id_str):
-            logger.info(
-                "Job %s is waiting for the single-book pipeline lock", job_id_str
-            )
+            logger.info("Job %s is waiting for the single-book pipeline lock", job_id_str)
             # ~3 hours of 15s waits; with concurrency 1 this is only reached
             # when a second worker container is added.
             raise self.retry(countdown=15, max_retries=720)

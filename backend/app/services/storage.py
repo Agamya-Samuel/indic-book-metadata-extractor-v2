@@ -71,6 +71,4 @@ def relative(path: Path) -> str:
     try:
         return str(resolved.relative_to(base))
     except ValueError:
-        raise ValueError(
-            f"Path {path} escapes storage root — refusing to process"
-        ) from None
+        raise ValueError(f"Path {path} escapes storage root — refusing to process") from None

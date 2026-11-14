@@ -34,9 +34,7 @@ async def get_metadata(
 ) -> MetadataResponse:
     book_id = book.id
 
-    result = await db.execute(
-        select(BookMetadata).where(BookMetadata.book_id == book_id)
-    )
+    result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id))
     metadata = result.scalar_one_or_none()
 
     if metadata is None:
@@ -56,11 +54,7 @@ async def update_metadata(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> MetadataResponse:
-    result = await db.execute(
-        select(BookMetadata)
-        .where(BookMetadata.book_id == book_id)
-        .with_for_update()
-    )
+    result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id).with_for_update())
     metadata = result.scalar_one_or_none()
 
     if metadata is None:
@@ -104,9 +98,7 @@ async def complete_review(
     Requires metadata to exist and no queued/running jobs. Idempotent: calling
     it on an already-complete book is a no-op.
     """
-    result = await db.execute(
-        select(BookMetadata).where(BookMetadata.book_id == book_id)
-    )
+    result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id))
     metadata = result.scalar_one_or_none()
     if metadata is None or not (metadata.fields or {}):
         raise HTTPException(
@@ -169,9 +161,7 @@ async def get_field_definitions(
     pagination: PaginationParams = Depends(get_pagination),
     book: Book = Depends(get_owned_book_or_404),
 ) -> Page[MetadataFieldDefinition]:
-    items = ALL_METADATA_FIELDS[
-        pagination.offset : pagination.offset + pagination.page_size
-    ]
+    items = ALL_METADATA_FIELDS[pagination.offset : pagination.offset + pagination.page_size]
     return Page[MetadataFieldDefinition].create(
         items=items,
         total=len(ALL_METADATA_FIELDS),
@@ -191,11 +181,7 @@ async def get_metadata_evidence(
 ) -> Page[FieldEvidenceResponse]:
     """Return per-field provenance (confidence, source page, method)."""
     total = int(
-        await db.scalar(
-            select(func.count(MetadataFieldEvidence.id)).where(
-                MetadataFieldEvidence.book_id == book.id
-            )
-        )
+        await db.scalar(select(func.count(MetadataFieldEvidence.id)).where(MetadataFieldEvidence.book_id == book.id))
         or 0
     )
     result = await db.execute(
@@ -222,9 +208,7 @@ async def get_llm_runs(
 ) -> Page[LlmRunResponse]:
     book_id = book.id
 
-    job_ids_result = await db.execute(
-        select(Job.id).where(Job.book_id == book_id, Job.job_type == JobType.LLM)
-    )
+    job_ids_result = await db.execute(select(Job.id).where(Job.book_id == book_id, Job.job_type == JobType.LLM))
     job_ids = [row[0] for row in job_ids_result.all()]
 
     if not job_ids:
@@ -235,12 +219,7 @@ async def get_llm_runs(
             page_size=pagination.page_size,
         )
 
-    total = int(
-        await db.scalar(
-            select(func.count(LlmRun.id)).where(LlmRun.job_id.in_(job_ids))
-        )
-        or 0
-    )
+    total = int(await db.scalar(select(func.count(LlmRun.id)).where(LlmRun.job_id.in_(job_ids))) or 0)
     runs_result = await db.execute(
         select(LlmRun)
         .where(LlmRun.job_id.in_(job_ids))

@@ -32,6 +32,7 @@ def _init_newrelic(**kwargs):
 @task_failure.connect
 def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
     """Map a Celery failure back to the Job row via ``jobs.celery_task_id``."""
+
     async def _do():
         from datetime import datetime, timezone
 
@@ -46,9 +47,7 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
 
         try:
             async with async_session_factory() as db:
-                job_result = await db.execute(
-                    select(Job).where(Job.celery_task_id == task_id)
-                )
+                job_result = await db.execute(select(Job).where(Job.celery_task_id == task_id))
                 job = job_result.scalar_one_or_none()
                 if not job or job.status in (
                     JobStatus.COMPLETED,
@@ -60,10 +59,7 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
 
                 if await is_superseded_async(db, job):
                     return
-                error = (
-                    f"{type(exception).__name__}: {exception}"
-                    if exception else "unknown"
-                )
+                error = f"{type(exception).__name__}: {exception}" if exception else "unknown"
                 job.status = JobStatus.FAILED
                 job.error_log = error[:1000]
                 job.completed_at = datetime.now(timezone.utc)
@@ -71,9 +67,7 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
 
                 book_id = job.book_id
                 if book_id:
-                    book_result = await db.execute(
-                        select(Book).where(Book.id == book_id)
-                    )
+                    book_result = await db.execute(select(Book).where(Book.id == book_id))
                     book = book_result.scalar_one_or_none()
                     if book and book.status in (
                         BookStatus.OCR_RUNNING,

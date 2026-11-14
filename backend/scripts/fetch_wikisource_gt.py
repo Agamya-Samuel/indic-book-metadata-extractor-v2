@@ -45,8 +45,7 @@ from pathlib import Path
 import httpx
 
 USER_AGENT = (
-    "IndicBookMetadataExtractor-OCRStudy/0.1 "
-    "(https://github.com/Agamya-Samuel/indic-book-metadata-extractor-v2) httpx"
+    "IndicBookMetadataExtractor-OCRStudy/0.1 (https://github.com/Agamya-Samuel/indic-book-metadata-extractor-v2) httpx"
 )
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 # Proofreading levels that count as human-verified text.
@@ -390,7 +389,9 @@ def pdf_page_count(path: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--book-dir", type=Path, required=True, help="Ground-truth book dir (original.pdf + provenance.json)")
+    parser.add_argument(
+        "--book-dir", type=Path, required=True, help="Ground-truth book dir (original.pdf + provenance.json)"
+    )
     parser.add_argument("--wiki", default=None, help="Override wiki host (default: derived from lang)")
     parser.add_argument("--max-text", type=int, default=40, help="Verified pages whose text to download (default 40)")
     parser.add_argument("--delay", type=float, default=1.0, help="Seconds between API calls (default 1.0)")
@@ -431,7 +432,9 @@ def main() -> int:
         local = local_sha1(pdf_path)
         pages_in_pdf = pdf_page_count(pdf_path)
         identity = remote_sha == local
-        print(f"identity  : local sha1 {local[:12]}… vs commons {str(remote_sha)[:12]}… -> {'MATCH' if identity else 'MISMATCH'}")
+        print(
+            f"identity  : local sha1 {local[:12]}… vs commons {str(remote_sha)[:12]}… -> {'MATCH' if identity else 'MISMATCH'}"
+        )
         print(f"pdf pages : {pages_in_pdf} (commons size {remote_size} bytes)")
 
         index_title = find_index_page(
@@ -489,7 +492,9 @@ def main() -> int:
         print(f"fetched   : {len(texts)} verified page texts")
         residue = sum(1 for t in texts if t["markup_residue"])
         if residue:
-            print(f"residue   : {residue}/{len(texts)} page texts still contain wiki markup (flagged, not silently dropped)")
+            print(
+                f"residue   : {residue}/{len(texts)} page texts still contain wiki markup (flagged, not silently dropped)"
+            )
 
     payload = {
         "book": book_dir.name,

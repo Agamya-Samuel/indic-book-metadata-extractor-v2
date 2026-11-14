@@ -18,13 +18,13 @@ async def stream_book_events(
 ):
     """
     Stream real-time events for a book's jobs.
-    
+
     Clients connect to this endpoint to receive SSE events when:
     - A job starts (job_started)
     - A job makes progress (job_progress)
     - A job completes (job_complete)
     - A job fails (job_failed)
-    
+
     The connection is kept alive until the client disconnects.
     """
     return await sse_service.connect(str(book.id), request)

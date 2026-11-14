@@ -23,8 +23,6 @@ class LlmRun(UUIDMixin, Base):
     batch_config: Mapped[dict | None] = mapped_column(JSONB)
     raw_response: Mapped[str | None] = mapped_column(Text)
     parsed_fields: Mapped[dict | None] = mapped_column(JSONB)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     job = relationship("Job", back_populates="llm_runs")

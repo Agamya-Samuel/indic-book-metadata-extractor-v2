@@ -48,9 +48,7 @@ STAGE_ORDER = [
 class BookStageStatus(UUIDMixin, Base):
     __tablename__ = "book_stage_status"
 
-    book_id: Mapped[UUID] = mapped_column(
-        ForeignKey("books.id", ondelete="CASCADE"), nullable=False
-    )
+    book_id: Mapped[UUID] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
     stage_name: Mapped[str] = mapped_column(String(30), nullable=False)
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default=StageStatus.INITIATED.value)
@@ -58,10 +56,14 @@ class BookStageStatus(UUIDMixin, Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error_log: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     __table_args__ = (
-        CheckConstraint("status IN ('initiated','processing','completed','failed','cancelled')", name="ck_stage_status"),
+        CheckConstraint(
+            "status IN ('initiated','processing','completed','failed','cancelled')", name="ck_stage_status"
+        ),
         CheckConstraint(f"stage_name IN ({','.join(repr(s.value) for s in BookStage)})", name="ck_stage_name"),
     )
 
@@ -77,7 +79,10 @@ async def get_current_stages(book_id: UUID) -> list[BookStageStatus]:
     async with async_session_factory() as db:
         result = await db.execute(
             select(BookStageStatus)
-            .join(latest, (BookStageStatus.stage_name == latest.c.stage_name) & (BookStageStatus.attempt == latest.c.max_attempt))
+            .join(
+                latest,
+                (BookStageStatus.stage_name == latest.c.stage_name) & (BookStageStatus.attempt == latest.c.max_attempt),
+            )
             .where(BookStageStatus.book_id == book_id)
             .order_by(BookStageStatus.stage_name)
         )

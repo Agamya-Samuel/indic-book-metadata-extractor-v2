@@ -8,6 +8,7 @@ Additive only; existing rows (including the bootstrap admin) are backfilled to
 ``approved`` via the column server default so no one is locked out by the new
 gate.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -52,9 +53,7 @@ def upgrade() -> None:
         "users",
         "account_status IN ('pending','approved','rejected')",
     )
-    op.create_index(
-        "ix_users_account_status", "users", ["account_status"]
-    )
+    op.create_index("ix_users_account_status", "users", ["account_status"])
 
 
 def downgrade() -> None:

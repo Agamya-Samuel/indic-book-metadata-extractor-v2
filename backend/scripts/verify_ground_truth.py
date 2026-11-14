@@ -90,7 +90,9 @@ def main() -> int:
         }
         env["verification_status"] = "verified"
         path.write_text(json.dumps(env, indent=2, ensure_ascii=False), encoding="utf-8")
-        print(f"{book_dir.parent.name}/{book_dir.name[:44]:44s} prefilled={prefilled:2d} scan_confirmed={scan_confirmed:2d}")
+        print(
+            f"{book_dir.parent.name}/{book_dir.name[:44]:44s} prefilled={prefilled:2d} scan_confirmed={scan_confirmed:2d}"
+        )
 
     print(f"\nverified {len(books)}/{len(books)} books (source-verified; per-field evidence stored)")
     return 0

@@ -100,11 +100,7 @@ def evaluate_field(field_name: str, expected: object, predicted: object) -> Fiel
             inter = exp_tokens & pred_tokens
             precision = len(inter) / len(pred_tokens) if pred_tokens else 0.0
             recall = len(inter) / len(exp_tokens) if exp_tokens else 0.0
-            f1 = (
-                2 * precision * recall / (precision + recall)
-                if (precision + recall) > 0
-                else 0.0
-            )
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
         else:
             precision = recall = f1 = 0.0
     else:

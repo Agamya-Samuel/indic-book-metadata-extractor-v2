@@ -22,9 +22,7 @@ def test_acquire_returns_true_when_set_succeeds(monkeypatch):
     monkeypatch.setattr(pl, "_redis_client", lambda: client)
 
     assert pl.acquire("job-1") is True
-    client.set.assert_called_once_with(
-        pl.LOCK_KEY, "job-1", nx=True, ex=pl.LOCK_TTL_SECONDS
-    )
+    client.set.assert_called_once_with(pl.LOCK_KEY, "job-1", nx=True, ex=pl.LOCK_TTL_SECONDS)
 
 
 def test_acquire_returns_false_when_held(monkeypatch):

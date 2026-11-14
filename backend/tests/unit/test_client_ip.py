@@ -13,10 +13,7 @@ def _request(headers: dict[str, str] | None = None, client=("10.0.0.5", 1234)) -
         "method": "GET",
         "path": "/",
         "query_string": b"",
-        "headers": [
-            (name.lower().encode(), value.encode())
-            for name, value in (headers or {}).items()
-        ],
+        "headers": [(name.lower().encode(), value.encode()) for name, value in (headers or {}).items()],
         "client": client,
         "scheme": "https",
         "server": ("testserver", 443),
@@ -25,9 +22,7 @@ def _request(headers: dict[str, str] | None = None, client=("10.0.0.5", 1234)) -
 
 
 def test_prefers_cloudflare_header() -> None:
-    request = _request(
-        {"CF-Connecting-IP": "203.0.113.7", "X-Forwarded-For": "10.9.9.9, 172.16.0.1"}
-    )
+    request = _request({"CF-Connecting-IP": "203.0.113.7", "X-Forwarded-For": "10.9.9.9, 172.16.0.1"})
     assert client_ip(request) == "203.0.113.7"
 
 

@@ -19,9 +19,7 @@ async def test_bulk_endpoints_are_admin_only(anon_client, client, admin_client):
     assert (await admin_client.get("/api/bulk/stats")).status_code == 200
 
 
-async def test_other_user_cannot_reach_private_book(
-    make_book_with_pages, auth_client, create_user, db_session
-):
+async def test_other_user_cannot_reach_private_book(make_book_with_pages, auth_client, create_user, db_session):
     book = await make_book_with_pages(selected_pages=[1, 2])
     book_id = book["id"]
 
@@ -46,26 +44,20 @@ async def test_other_user_cannot_reach_private_book(
 
     from app.models.page import Page
 
-    result = await db_session.execute(
-        select(Page).where(Page.book_id == uuid.UUID(book_id))
-    )
+    result = await db_session.execute(select(Page).where(Page.book_id == uuid.UUID(book_id)))
     page = result.scalars().first()
     assert page is not None
     assert (await other_client.get(f"/api/pages/{page.id}/ocr")).status_code == 404
     assert (await other_client.get(f"/api/pages/{page.id}/image")).status_code == 404
 
 
-async def test_owner_and_admin_reach_private_book(
-    client, admin_client, make_book
-):
+async def test_owner_and_admin_reach_private_book(client, admin_client, make_book):
     book = await make_book()
     assert (await client.get(f"/api/books/{book['id']}")).status_code == 200
     assert (await admin_client.get(f"/api/books/{book['id']}")).status_code == 200
 
 
-async def test_completed_book_is_still_owner_only(
-    make_book_with_pages, auth_client, create_user, db_session
-):
+async def test_completed_book_is_still_owner_only(make_book_with_pages, auth_client, create_user, db_session):
     book = await make_book_with_pages(selected_pages=[1, 2])
     # Even a "complete" book is no longer a public catalog entry.
     from app.models.book import Book
@@ -77,9 +69,7 @@ async def test_completed_book_is_still_owner_only(
     other = await create_user(email="reader@example.com")
     other_client = await auth_client(other)
 
-    assert (
-        await other_client.get(f"/api/books/{book['id']}/detail")
-    ).status_code == 404
+    assert (await other_client.get(f"/api/books/{book['id']}/detail")).status_code == 404
     assert (await other_client.get(f"/api/books/{book['id']}")).status_code == 404
 
 
@@ -97,9 +87,7 @@ async def test_library_listing_is_admin_only(anon_client, client, admin_client, 
     assert admin_response.json()["total"] == 2
 
 
-async def test_admin_user_crud_and_safety_rules(
-    admin_client, create_user, regular_user
-):
+async def test_admin_user_crud_and_safety_rules(admin_client, create_user, regular_user):
     listed = await admin_client.get("/api/admin/users")
     assert listed.status_code == 200
     assert listed.json()["total"] >= 2
@@ -139,33 +127,23 @@ async def test_admin_user_crud_and_safety_rules(
 
 
 async def test_last_admin_protection(admin_client, admin_user):
-    demote = await admin_client.patch(
-        f"/api/admin/users/{admin_user.id}", json={"role": "user"}
-    )
+    demote = await admin_client.patch(f"/api/admin/users/{admin_user.id}", json={"role": "user"})
     assert demote.status_code == 400
 
-    deactivate = await admin_client.patch(
-        f"/api/admin/users/{admin_user.id}", json={"is_active": False}
-    )
+    deactivate = await admin_client.patch(f"/api/admin/users/{admin_user.id}", json={"is_active": False})
     assert deactivate.status_code == 400
 
     delete = await admin_client.delete(f"/api/admin/users/{admin_user.id}")
     assert delete.status_code == 400
 
 
-async def test_admin_cannot_demote_self_when_other_admin_exists(
-    admin_client, admin_user, create_user
-):
+async def test_admin_cannot_demote_self_when_other_admin_exists(admin_client, admin_user, create_user):
     await create_user(email="second-admin@example.com", role="admin")
-    demote = await admin_client.patch(
-        f"/api/admin/users/{admin_user.id}", json={"role": "user"}
-    )
+    demote = await admin_client.patch(f"/api/admin/users/{admin_user.id}", json={"role": "user"})
     assert demote.status_code == 400
 
 
-async def test_user_deletion_blocked_while_owning_books(
-    admin_client, make_book, regular_user
-):
+async def test_user_deletion_blocked_while_owning_books(admin_client, make_book, regular_user):
     await make_book()
     response = await admin_client.delete(f"/api/admin/users/{regular_user.id}")
     assert response.status_code == 409

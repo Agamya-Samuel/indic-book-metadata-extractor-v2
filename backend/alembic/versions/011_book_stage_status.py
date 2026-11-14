@@ -8,6 +8,7 @@ Tracks per-stage lifecycle (initiated → processing → completed / failed / ca
 with retry history via an `attempt` integer. The view `book_current_stage` exposes
 the latest attempt per stage for easy querying.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -23,8 +24,18 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "book_stage_status",
-        sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("book_id", sa.dialects.postgresql.UUID(as_uuid=True), sa.ForeignKey("books.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "book_id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("books.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("stage_name", sa.String(30), nullable=False),
         sa.Column("attempt", sa.Integer, nullable=False, server_default="1"),
         sa.Column("status", sa.String(20), nullable=False, server_default="initiated"),
@@ -35,7 +46,9 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
 
-    op.create_check_constraint("ck_stage_status", "book_stage_status", "status IN ('initiated','processing','completed','failed','cancelled')")
+    op.create_check_constraint(
+        "ck_stage_status", "book_stage_status", "status IN ('initiated','processing','completed','failed','cancelled')"
+    )
     op.create_check_constraint(
         "ck_stage_name",
         "book_stage_status",
@@ -44,7 +57,9 @@ def upgrade() -> None:
 
     op.create_index("ix_book_stage_status_book_id", "book_stage_status", ["book_id"])
     op.create_index("ix_book_stage_status_status", "book_stage_status", ["status"])
-    op.create_unique_constraint("uq_book_stage_status_book_stage_attempt", "book_stage_status", ["book_id", "stage_name", "attempt"])
+    op.create_unique_constraint(
+        "uq_book_stage_status_book_stage_attempt", "book_stage_status", ["book_id", "stage_name", "attempt"]
+    )
 
     op.execute("""
         CREATE VIEW book_current_stage AS

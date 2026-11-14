@@ -104,9 +104,7 @@ async def test_same_event_key_is_per_recipient(db_session) -> None:
         (JobStatus.CANCELLED, NotificationType.JOB_CANCELLED, "metadata-review"),
     ],
 )
-async def test_job_terminal_maps_status_to_notification(
-    db_session, status, type_, link_suffix
-) -> None:
+async def test_job_terminal_maps_status_to_notification(db_session, status, type_, link_suffix) -> None:
     owner = await _make_user(db_session)
     book = await _make_book(db_session, owner)
     job = Job(
@@ -120,9 +118,7 @@ async def test_job_terminal_maps_status_to_notification(
     db_session.add(job)
     await db_session.commit()
 
-    notification_id = await notification_service.notify_job_terminal(
-        db_session, job=job, book=book, status=status
-    )
+    notification_id = await notification_service.notify_job_terminal(db_session, job=job, book=book, status=status)
     await db_session.commit()
 
     row = await db_session.get(Notification, notification_id)
@@ -287,9 +283,7 @@ async def test_email_failure_is_swallowed(db_session, monkeypatch) -> None:
     )
     await db_session.commit()
 
-    monkeypatch.setattr(
-        notification_service, "send_email", AsyncMock(side_effect=RuntimeError("smtp down"))
-    )
+    monkeypatch.setattr(notification_service, "send_email", AsyncMock(side_effect=RuntimeError("smtp down")))
 
     sent = await notification_service.deliver_emails_in_session(db_session, [notification_id])
     assert sent == 0

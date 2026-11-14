@@ -50,11 +50,7 @@ async def _queue_ahead(db: AsyncSession, job: Job) -> int | None:
 
 async def get_summary(db: AsyncSession, user_id: UUID) -> dict:
     book_status_rows = (
-        await db.execute(
-            select(Book.status, func.count(Book.id))
-            .where(Book.owner_id == user_id)
-            .group_by(Book.status)
-        )
+        await db.execute(select(Book.status, func.count(Book.id)).where(Book.owner_id == user_id).group_by(Book.status))
     ).all()
     books_by_status = {status: count for status, count in book_status_rows}
     total_books = sum(books_by_status.values())
@@ -133,11 +129,7 @@ async def list_jobs(
 
     total = int(await db.scalar(count_query) or 0)
 
-    query = (
-        query.order_by(Job.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    query = query.order_by(Job.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     rows = (await db.execute(query)).all()
 
     items: list[dict] = []

@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import fitz
-import pytest
 
 from app.services.pdf_service import get_page_count, render_full_page, render_thumbnail
 

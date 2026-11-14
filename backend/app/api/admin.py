@@ -1,4 +1,5 @@
 """Admin HTTP endpoints: users, library stats, book CRUD, cross-book job control."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -46,6 +47,7 @@ async def _get_user_or_404(db: AsyncSession, user_id: UUID) -> User:
 # ---------------------------------------------------------------------------
 # Users
 # ---------------------------------------------------------------------------
+
 
 @router.get("/users", response_model=UserListResponse)
 async def admin_list_users(
@@ -196,15 +198,16 @@ async def admin_delete_user(
 # Stats
 # ---------------------------------------------------------------------------
 
+
 @router.get("/stats")
 async def admin_stats(db: AsyncSession = Depends(get_db)) -> dict:
     return await admin_service.get_admin_stats(db)
 
 
-
 # ---------------------------------------------------------------------------
 # Books
 # ---------------------------------------------------------------------------
+
 
 @router.get("/filters", response_model=FilterOptionsResponse)
 async def admin_filter_options(
@@ -256,20 +259,22 @@ async def admin_list_books(
     items = []
     for item in items_raw:
         thumb = f"/api/books/{item['id']}/pages/1/thumbnail"
-        items.append(BookSearchResult(
-            id=item["id"],
-            title=item["title"],
-            filename=item["filename"],
-            language=item["language"],
-            status=item["status"],
-            total_pages=item["total_pages"],
-            created_at=item["created_at"],
-            metadata_fields=item["metadata_fields"],
-            thumbnail_url=thumb,
-            owner_id=item.get("owner_id"),
-            owner_display_name=item.get("owner_display_name"),
-            owner_email=item.get("owner_email"),
-        ))
+        items.append(
+            BookSearchResult(
+                id=item["id"],
+                title=item["title"],
+                filename=item["filename"],
+                language=item["language"],
+                status=item["status"],
+                total_pages=item["total_pages"],
+                created_at=item["created_at"],
+                metadata_fields=item["metadata_fields"],
+                thumbnail_url=thumb,
+                owner_id=item.get("owner_id"),
+                owner_display_name=item.get("owner_display_name"),
+                owner_email=item.get("owner_email"),
+            )
+        )
 
     return BookListResponse.create(
         items=items,
@@ -309,9 +314,7 @@ async def admin_rerun_ocr(
     admin: User = Depends(require_admin),
 ) -> dict:
     try:
-        job = await admin_service.rerun_ocr(
-            db, book_id, requested_by_id=admin.id
-        )
+        job = await admin_service.rerun_ocr(db, book_id, requested_by_id=admin.id)
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
@@ -330,9 +333,7 @@ async def admin_rerun_extraction(
     admin: User = Depends(require_admin),
 ) -> dict:
     try:
-        job = await admin_service.rerun_extraction(
-            db, book_id, requested_by_id=admin.id
-        )
+        job = await admin_service.rerun_extraction(db, book_id, requested_by_id=admin.id)
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
@@ -347,6 +348,7 @@ async def admin_rerun_extraction(
 # ---------------------------------------------------------------------------
 # Jobs (cross-book)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/jobs", response_model=AdminJobsResponse)
 async def admin_list_jobs(

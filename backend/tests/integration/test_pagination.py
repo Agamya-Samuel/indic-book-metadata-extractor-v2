@@ -9,9 +9,7 @@ class TestBookPagesPagination:
     async def test_slices_items(self, client, make_book_with_pages):
         book = await make_book_with_pages(selected_pages=[1, 2, 3])
 
-        response = await client.get(
-            f"/api/books/{book['id']}/pages?page=2&page_size=1"
-        )
+        response = await client.get(f"/api/books/{book['id']}/pages?page=2&page_size=1")
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 3
@@ -23,9 +21,7 @@ class TestBookPagesPagination:
     async def test_out_of_range_page_is_empty(self, client, make_book_with_pages):
         book = await make_book_with_pages(selected_pages=[1, 2, 3])
 
-        response = await client.get(
-            f"/api/books/{book['id']}/pages?page=99&page_size=2"
-        )
+        response = await client.get(f"/api/books/{book['id']}/pages?page=99&page_size=2")
         assert response.status_code == 200
         data = response.json()
         assert data["items"] == []
@@ -34,12 +30,8 @@ class TestBookPagesPagination:
     async def test_page_size_bounds(self, client, make_book_with_pages):
         book = await make_book_with_pages()
 
-        assert (
-            await client.get(f"/api/books/{book['id']}/pages?page_size=0")
-        ).status_code == 422
-        assert (
-            await client.get(f"/api/books/{book['id']}/pages?page_size=101")
-        ).status_code == 422
+        assert (await client.get(f"/api/books/{book['id']}/pages?page_size=0")).status_code == 422
+        assert (await client.get(f"/api/books/{book['id']}/pages?page_size=101")).status_code == 422
 
 
 class TestOtherCollections:
@@ -61,9 +53,7 @@ class TestOtherCollections:
 
     async def test_metadata_fields_envelope(self, client, make_book):
         book = await make_book()
-        response = await client.get(
-            f"/api/books/{book['id']}/metadata/fields?page=1&page_size=10"
-        )
+        response = await client.get(f"/api/books/{book['id']}/metadata/fields?page=1&page_size=10")
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 10
@@ -102,9 +92,7 @@ class TestAdminJobsEnvelope:
 class TestJobById:
     async def test_owner_can_fetch_job(self, client, make_book_with_pages, mock_celery):
         book = await make_book_with_pages()
-        created = (
-            await client.post(f"/api/books/{book['id']}/run-ocr")
-        ).json()
+        created = (await client.post(f"/api/books/{book['id']}/run-ocr")).json()
 
         response = await client.get(f"/api/jobs/{created['id']}")
         assert response.status_code == 200

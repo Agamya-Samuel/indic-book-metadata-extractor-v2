@@ -24,9 +24,7 @@ async def _seed(db_session, user_id, count: int = 2) -> list[Notification]:
     return rows
 
 
-async def test_list_returns_only_own_notifications(
-    client, regular_user, admin_user, db_session
-) -> None:
+async def test_list_returns_only_own_notifications(client, regular_user, admin_user, db_session) -> None:
     mine = await _seed(db_session, regular_user.id, count=2)
     await _seed(db_session, admin_user.id, count=3)
 
@@ -49,13 +47,9 @@ async def test_pagination_and_unread_filter(client, regular_user, db_session) ->
 
     # Mark one read, then ask for unread only.
     await client.post(f"/api/notifications/{rows[0].id}/read")
-    unread = await client.get(
-        "/api/notifications", params={"unread_only": "true", "page_size": 100}
-    )
+    unread = await client.get("/api/notifications", params={"unread_only": "true", "page_size": 100})
     assert unread.json()["total"] == 4
-    assert str(rows[0].id) not in {
-        row["id"] for row in unread.json()["items"]
-    }
+    assert str(rows[0].id) not in {row["id"] for row in unread.json()["items"]}
 
 
 async def test_read_and_read_all(client, regular_user, db_session) -> None:
@@ -74,9 +68,7 @@ async def test_read_and_read_all(client, regular_user, db_session) -> None:
     assert (await client.get("/api/notifications/unread-count")).json()["count"] == 0
 
 
-async def test_cannot_read_another_users_notification(
-    client, admin_user, db_session
-) -> None:
+async def test_cannot_read_another_users_notification(client, admin_user, db_session) -> None:
     theirs = await _seed(db_session, admin_user.id, count=1)
 
     response = await client.post(f"/api/notifications/{theirs[0].id}/read")
@@ -88,9 +80,7 @@ async def test_preferences_round_trip(client, regular_user) -> None:
     assert initial.status_code == 200
     assert initial.json()["email_enabled"] is True
 
-    updated = await client.patch(
-        "/api/notifications/preferences", json={"email_enabled": False}
-    )
+    updated = await client.patch("/api/notifications/preferences", json={"email_enabled": False})
     assert updated.status_code == 200
     assert updated.json()["email_enabled"] is False
 
@@ -98,12 +88,8 @@ async def test_preferences_round_trip(client, regular_user) -> None:
     assert again.json()["email_enabled"] is False
 
 
-async def test_in_app_notifications_survive_preference_off(
-    client, regular_user, db_session
-) -> None:
-    await client.patch(
-        "/api/notifications/preferences", json={"email_enabled": False}
-    )
+async def test_in_app_notifications_survive_preference_off(client, regular_user, db_session) -> None:
+    await client.patch("/api/notifications/preferences", json={"email_enabled": False})
     await _seed(db_session, regular_user.id, count=1)
 
     response = await client.get("/api/notifications")

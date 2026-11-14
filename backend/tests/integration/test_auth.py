@@ -10,9 +10,7 @@ PASSWORD = "correct horse battery staple"
 NEW_PASSWORD = "an entirely different passphrase"
 
 
-async def test_register_requires_email_verification_and_sets_session(
-    anon_client, monkeypatch
-):
+async def test_register_requires_email_verification_and_sets_session(anon_client, monkeypatch):
     captured: dict[str, str] = {}
 
     async def fake_send(user, token):
@@ -41,9 +39,7 @@ async def test_register_requires_email_verification_and_sets_session(
     assert login.status_code == 403
     assert "verify" in login.json()["detail"].lower()
 
-    verified = await anon_client.post(
-        "/api/auth/verify-email", json={"token": captured["token"]}
-    )
+    verified = await anon_client.post("/api/auth/verify-email", json={"token": captured["token"]})
     assert verified.status_code == 200
     assert verified.json()["role"] == UserRole.USER
     assert verified.cookies.get("access_token")
@@ -109,9 +105,7 @@ async def test_login_rejects_bad_password(anon_client, create_user):
 
 
 async def test_inactive_user_cannot_login(anon_client, create_user):
-    await create_user(
-        email="inactive@example.com", password=PASSWORD, is_active=False
-    )
+    await create_user(email="inactive@example.com", password=PASSWORD, is_active=False)
     response = await anon_client.post(
         "/api/auth/login",
         json={"email": "inactive@example.com", "password": PASSWORD},
@@ -160,9 +154,7 @@ async def test_forgot_and_reset_password(anon_client, create_user, monkeypatch):
 
     monkeypatch.setattr(auth_service, "send_password_reset_email", fake_send)
 
-    requested = await anon_client.post(
-        "/api/auth/forgot-password", json={"email": user.email}
-    )
+    requested = await anon_client.post("/api/auth/forgot-password", json={"email": user.email})
     assert requested.status_code == 202
     assert captured["token"]
 
@@ -194,27 +186,17 @@ async def test_email_token_is_single_use(anon_client, create_user, monkeypatch):
 
     monkeypatch.setattr(auth_service, "send_verification_email", fake_send)
     await create_user(email="once@example.com", verified=False)
-    await anon_client.post(
-        "/api/auth/resend-verification", json={"email": "once@example.com"}
-    )
+    await anon_client.post("/api/auth/resend-verification", json={"email": "once@example.com"})
 
-    first = await anon_client.post(
-        "/api/auth/verify-email", json={"token": captured["token"]}
-    )
+    first = await anon_client.post("/api/auth/verify-email", json={"token": captured["token"]})
     assert first.status_code == 200
-    second = await anon_client.post(
-        "/api/auth/verify-email", json={"token": captured["token"]}
-    )
+    second = await anon_client.post("/api/auth/verify-email", json={"token": captured["token"]})
     assert second.status_code == 400
 
 
-async def test_deactivation_revokes_existing_session(
-    client, admin_client, regular_user
-):
+async def test_deactivation_revokes_existing_session(client, admin_client, regular_user):
     # The regular user already has a live session via the `client` fixture.
     assert (await client.get("/api/auth/me")).status_code == 200
-    response = await admin_client.patch(
-        f"/api/admin/users/{regular_user.id}", json={"is_active": False}
-    )
+    response = await admin_client.patch(f"/api/admin/users/{regular_user.id}", json={"is_active": False})
     assert response.status_code == 200
     assert (await client.get("/api/auth/me")).status_code == 401

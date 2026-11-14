@@ -131,6 +131,7 @@ class TestPreprocessingConfig:
 class TestMetadataResponse:
     def test_create(self):
         import uuid
+
         resp = MetadataResponse(
             book_id=uuid.uuid4(),
             fields={"title": "Test"},
@@ -139,6 +140,7 @@ class TestMetadataResponse:
 
     def test_empty_fields(self):
         import uuid
+
         resp = MetadataResponse(
             book_id=uuid.uuid4(),
             fields={},
@@ -152,9 +154,7 @@ class TestMetadataUpdateRequest:
         assert req.fields["title"] == "New Title"
 
     def test_custom_fields_object_is_accepted(self):
-        req = MetadataUpdateRequest(
-            fields={"title": "T", "custom_fields": {"printer": "Press"}}
-        )
+        req = MetadataUpdateRequest(fields={"title": "T", "custom_fields": {"printer": "Press"}})
         assert req.fields["custom_fields"] == {"printer": "Press"}
 
     def test_unknown_field_is_rejected(self):
@@ -175,8 +175,4 @@ class TestMetadataUpdateRequest:
 
     def test_custom_field_limit(self):
         with pytest.raises(ValidationError, match="custom fields"):
-            MetadataUpdateRequest(
-                fields={
-                    "custom_fields": {f"f{i}": "v" for i in range(51)}
-                }
-            )
+            MetadataUpdateRequest(fields={"custom_fields": {f"f{i}": "v" for i in range(51)}})

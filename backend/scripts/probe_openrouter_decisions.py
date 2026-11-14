@@ -36,11 +36,7 @@ TELUGU = (
     "ప్రచురణకర్త: ఆంధ్ర పత్రికా ముద్రాలయము\nమద్రాసు 1933\n"
     "  ॥ ౧ ॥  (పుట 2)  ---  ఆం.ప.ముద్రాలయము, చెన్నపురి"
 )
-HINDI = (
-    "उम्मेदसिंह चरित्र\nलेखक: लज्जाराम शर्मा\n"
-    "प्रकाशक: श्रीवेंकटेश्वर स्टीम् प्रेस, बम्बई\n१९१३\n"
-    "  ---  पृष्ठ २ ..... मूल्य ४ आना"
-)
+HINDI = "उम्मेदसिंह चरित्र\nलेखक: लज्जाराम शर्मा\nप्रकाशक: श्रीवेंकटेश्वर स्टीम् प्रेस, बम्बई\n१९१३\n  ---  पृष्ठ २ ..... मूल्य ४ आना"
 TELUGU_POOL = "అఆఇఈఉఊకఖగఘచఛజఝటఠడఢణతథదధనపఫబభమయరలవశషసహాిీుూెేొో్క్ం"
 
 QUESTIONS = {
@@ -101,9 +97,7 @@ def post(key: str, body: dict) -> tuple[int, object]:
 
 def corrupt(text: str, p: float, seed: int = 7) -> str:
     rnd = random.Random(seed)
-    return "".join(
-        ch if (ch in "\n: " or rnd.random() > p) else rnd.choice(TELUGU_POOL) for ch in text
-    )
+    return "".join(ch if (ch in "\n: " or rnd.random() > p) else rnd.choice(TELUGU_POOL) for ch in text)
 
 
 def show(label: str, status: int, body: object) -> None:
@@ -121,8 +115,7 @@ def show(label: str, status: int, body: object) -> None:
         else:
             print(f"  {qid:14s} {kind}={a.get(kind)} conf={a.get('confidence')}")
     usage = body.get("usage", {})
-    print(f"  usage: in={usage.get('input_tokens')} out={usage.get('output_tokens')} "
-          f"cost=${usage.get('cost')}")
+    print(f"  usage: in={usage.get('input_tokens')} out={usage.get('output_tokens')} cost=${usage.get('cost')}")
 
 
 def main() -> int:
@@ -146,9 +139,7 @@ def main() -> int:
     # 3. robustness under simulated OCR corruption
     if args.corrupt:
         for p in (0.20, 0.45):
-            status, body = post(
-                key, {"model": args.model, "state": corrupt(TELUGU, p), "questions": QUESTIONS}
-            )
+            status, body = post(key, {"model": args.model, "state": corrupt(TELUGU, p), "questions": QUESTIONS})
             show(f"TELUGU corrupted p={p}", status, body)
     return 0
 

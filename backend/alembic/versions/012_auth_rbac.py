@@ -8,6 +8,7 @@ The deployment is expected to start from an empty database. Existing books
 have no owner and cannot be attributed safely, so this migration refuses to
 run while books exist rather than inventing an owner.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

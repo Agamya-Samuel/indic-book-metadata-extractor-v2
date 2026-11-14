@@ -3,8 +3,6 @@ from __future__ import annotations
 import io
 import uuid
 
-import pytest
-
 
 class TestUploadBook:
     async def test_upload_book_success(self, client, sample_pdf, test_storage):
@@ -185,42 +183,28 @@ class TestListJobs:
 class TestDuplicateSubmissions:
     """A repeated submission returns 409 with the existing job id, not a second job."""
 
-    async def test_select_pages_twice_conflicts(
-        self, client, make_book, mock_celery
-    ):
+    async def test_select_pages_twice_conflicts(self, client, make_book, mock_celery):
         book = await make_book()
-        first = await client.post(
-            f"/api/books/{book['id']}/pages", json={"selected_pages": [1, 2]}
-        )
+        first = await client.post(f"/api/books/{book['id']}/pages", json={"selected_pages": [1, 2]})
         assert first.status_code == 200
         existing_job_id = first.json()["job_id"]
 
-        second = await client.post(
-            f"/api/books/{book['id']}/pages", json={"selected_pages": [1, 2]}
-        )
+        second = await client.post(f"/api/books/{book['id']}/pages", json={"selected_pages": [1, 2]})
         assert second.status_code == 409
         assert second.headers.get("X-Existing-Job-Id") == existing_job_id
         mock_celery["pages"].delay.assert_called_once()
 
-    async def test_preprocessing_twice_conflicts(
-        self, client, make_book_with_pages, mock_celery
-    ):
+    async def test_preprocessing_twice_conflicts(self, client, make_book_with_pages, mock_celery):
         book = await make_book_with_pages()
         payload = {"grayscale": True}
-        first = await client.post(
-            f"/api/books/{book['id']}/preprocessing", json=payload
-        )
+        first = await client.post(f"/api/books/{book['id']}/preprocessing", json=payload)
         assert first.status_code == 201
 
-        second = await client.post(
-            f"/api/books/{book['id']}/preprocessing", json=payload
-        )
+        second = await client.post(f"/api/books/{book['id']}/preprocessing", json=payload)
         assert second.status_code == 409
         assert second.headers.get("X-Existing-Job-Id") == first.json()["id"]
 
-    async def test_run_ocr_twice_conflicts(
-        self, client, make_book_with_pages, mock_celery
-    ):
+    async def test_run_ocr_twice_conflicts(self, client, make_book_with_pages, mock_celery):
         book = await make_book_with_pages()
         first = await client.post(f"/api/books/{book['id']}/run-ocr")
         assert first.status_code == 201

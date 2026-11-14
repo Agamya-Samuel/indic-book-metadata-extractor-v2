@@ -4,6 +4,7 @@ Revision ID: 005
 Revises: 004
 Create Date: 2026-05-23
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -15,24 +16,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_books_status ON books(status)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_books_language ON books(language)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_books_created_at ON books(created_at DESC)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_jobs_status ON jobs(status)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_jobs_book_id_status ON jobs(book_id, status)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_pages_book_id ON pages(book_id)"
-    )
+    op.execute("CREATE INDEX IF NOT EXISTS ix_books_status ON books(status)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_books_language ON books(language)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_books_created_at ON books(created_at DESC)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_jobs_status ON jobs(status)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_jobs_book_id_status ON jobs(book_id, status)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_pages_book_id ON pages(book_id)")
 
 
 def downgrade() -> None:

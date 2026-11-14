@@ -79,9 +79,7 @@ class TestUpdateMetadata:
 class TestFieldDefinitions:
     async def test_get_field_definitions(self, client, make_book):
         book = await make_book()
-        response = await client.get(
-            f"/api/books/{book['id']}/metadata/fields?page_size=100"
-        )
+        response = await client.get(f"/api/books/{book['id']}/metadata/fields?page_size=100")
         assert response.status_code == 200
         data = response.json()
         fields = data["items"]

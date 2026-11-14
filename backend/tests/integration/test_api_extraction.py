@@ -96,6 +96,7 @@ class TestRunExtraction:
         )
 
         from sqlalchemy import select
+
         book_result = await db_session.execute(select(Book).where(Book.id == book_id))
         book_obj = book_result.scalar_one()
         book_obj.status = BookStatus.OCR_COMPLETE
@@ -126,9 +127,7 @@ class TestRunExtraction:
         )
         assert response.status_code == 409
 
-    async def test_duplicate_run_after_start_is_409(
-        self, client, make_book, db_session, mock_celery
-    ):
+    async def test_duplicate_run_after_start_is_409(self, client, make_book, db_session, mock_celery):
         book = await _create_book_with_ocr(client, make_book, db_session)
 
         first = await client.post(
@@ -151,6 +150,7 @@ class TestRetryExtraction:
         book_id = uuid.UUID(book["id"])
 
         from sqlalchemy import select
+
         book_result = await db_session.execute(select(Book).where(Book.id == book_id))
         book_obj = book_result.scalar_one()
         book_obj.status = BookStatus.COMPLETE
@@ -173,9 +173,7 @@ async def _drive_to_awaiting_review(db_session, book_id: uuid.UUID) -> None:
 
 
 class TestRerunFromAwaitingReview:
-    async def test_run_extraction_accepted_from_awaiting_review(
-        self, client, make_book, db_session, mock_celery
-    ):
+    async def test_run_extraction_accepted_from_awaiting_review(self, client, make_book, db_session, mock_celery):
         book = await _create_book_with_ocr(client, make_book, db_session)
         book_id = uuid.UUID(book["id"])
         await _drive_to_awaiting_review(db_session, book_id)
@@ -189,21 +187,15 @@ class TestRerunFromAwaitingReview:
         )
         assert response.status_code == 201
 
-    async def test_rerun_extraction_accepted_from_awaiting_review(
-        self, client, make_book, db_session, mock_celery
-    ):
+    async def test_rerun_extraction_accepted_from_awaiting_review(self, client, make_book, db_session, mock_celery):
         book = await _create_book_with_ocr(client, make_book, db_session)
         book_id = uuid.UUID(book["id"])
         await _drive_to_awaiting_review(db_session, book_id)
 
-        response = await client.post(
-            f"/api/books/{book['id']}/rerun-extraction"
-        )
+        response = await client.post(f"/api/books/{book['id']}/rerun-extraction")
         assert response.status_code == 201
 
-    async def test_rerun_releases_downstream_stages(
-        self, client, make_book, db_session, mock_celery
-    ):
+    async def test_rerun_releases_downstream_stages(self, client, make_book, db_session, mock_celery):
         from sqlalchemy import select
 
         from app.models.stage import BookStageStatus, StageStatus
@@ -212,19 +204,21 @@ class TestRerunFromAwaitingReview:
         book_id = uuid.UUID(book["id"])
         await _drive_to_awaiting_review(db_session, book_id)
 
-        response = await client.post(
-            f"/api/books/{book['id']}/rerun-extraction"
-        )
+        response = await client.post(f"/api/books/{book['id']}/rerun-extraction")
         assert response.status_code == 201
 
         rows = (
-            await db_session.execute(
-                select(BookStageStatus).where(
-                    BookStageStatus.book_id == book_id,
-                    BookStageStatus.stage_name == "llm_extraction",
+            (
+                await db_session.execute(
+                    select(BookStageStatus).where(
+                        BookStageStatus.book_id == book_id,
+                        BookStageStatus.stage_name == "llm_extraction",
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         attempts = sorted(row.attempt for row in rows)
         assert len(attempts) == 2, "a re-run must open a new attempt"
         latest = max(rows, key=lambda row: row.attempt)

@@ -335,25 +335,18 @@ class MetadataUpdateRequest(BaseModel):
                 if not isinstance(value, dict):
                     raise ValueError("custom_fields must be an object")
                 if len(value) > max_custom_fields:
-                    raise ValueError(
-                        f"At most {max_custom_fields} custom fields are allowed"
-                    )
+                    raise ValueError(f"At most {max_custom_fields} custom fields are allowed")
                 for key, custom_value in value.items():
                     if not key.strip() or len(key) > 100:
-                        raise ValueError(
-                            "Custom field names must be 1-100 characters"
-                        )
+                        raise ValueError("Custom field names must be 1-100 characters")
                     if not isinstance(custom_value, str) or len(custom_value) > max_value_chars:
                         raise ValueError(
-                            f"Custom field '{key}' must be a string of at most "
-                            f"{max_value_chars} characters"
+                            f"Custom field '{key}' must be a string of at most {max_value_chars} characters"
                         )
             elif not isinstance(value, str):
                 raise ValueError(f"Field '{name}' must be a string")
             elif len(value) > max_value_chars:
-                raise ValueError(
-                    f"Field '{name}' exceeds {max_value_chars} characters"
-                )
+                raise ValueError(f"Field '{name}' exceeds {max_value_chars} characters")
         return fields
 
 

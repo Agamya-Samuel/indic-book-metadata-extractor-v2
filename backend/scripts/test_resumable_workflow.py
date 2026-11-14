@@ -122,7 +122,7 @@ def test_resume_after_ocr(client: httpx.Client, book_id: str):
             print(f"  [FAIL] Job {job_id} not found")
             sys.exit(1)
         if current["status"] == "completed":
-            print(f"  OCR completed!")
+            print("  OCR completed!")
             break
         elif current["status"] == "failed":
             print(f"  [FAIL] OCR failed: {current.get('error_log')}")
@@ -177,7 +177,7 @@ def test_resume_after_extraction(client: httpx.Client, book_id: str):
             print(f"  [FAIL] Job {job_id} not found")
             sys.exit(1)
         if current["status"] == "completed":
-            print(f"  Extraction completed!")
+            print("  Extraction completed!")
             break
         elif current["status"] == "failed":
             print(f"  [WARN] Extraction failed: {current.get('error_log')}")
@@ -227,7 +227,7 @@ def test_ocr_corrections_persist(client: httpx.Client, book_id: str):
     assert r.status_code == 200
     ocr2 = r.json()
     assert ocr2["corrected_text"] == corrected, "Correction not persisted!"
-    print(f"  [OK] OCR correction preserved across session")
+    print("  [OK] OCR correction preserved across session")
 
 
 def main():

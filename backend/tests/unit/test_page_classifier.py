@@ -7,11 +7,9 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-import pytest
 
 from app.services.page_classifier import (
     PSM,
-    Classification,
     classify_page,
     psm_to_tesseract_arg,
 )

@@ -3,6 +3,7 @@
 These helpers keep DB transactions and storage cleanup together so the
 HTTP layer stays thin.
 """
+
 from __future__ import annotations
 
 import logging
@@ -86,49 +87,43 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     total_books = await db.scalar(select(func.count(Book.id))) or 0
     books_with_metadata = await db.scalar(select(func.count(BookMetadata.id))) or 0
 
-    lang_result = await db.execute(
-        select(Book.language, func.count(Book.id)).group_by(Book.language)
-    )
+    lang_result = await db.execute(select(Book.language, func.count(Book.id)).group_by(Book.language))
     languages = {row[0]: row[1] for row in lang_result.all()}
 
-    status_result = await db.execute(
-        select(Book.status, func.count(Book.id)).group_by(Book.status)
-    )
+    status_result = await db.execute(select(Book.status, func.count(Book.id)).group_by(Book.status))
     statuses = {row[0]: row[1] for row in status_result.all()}
 
-    queued = await db.scalar(
-        select(func.count(Job.id)).where(Job.status == JobStatus.QUEUED)
-    ) or 0
-    running = await db.scalar(
-        select(func.count(Job.id)).where(Job.status == JobStatus.RUNNING)
-    ) or 0
+    queued = await db.scalar(select(func.count(Job.id)).where(Job.status == JobStatus.QUEUED)) or 0
+    running = await db.scalar(select(func.count(Job.id)).where(Job.status == JobStatus.RUNNING)) or 0
 
     seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    failed_recent = await db.scalar(
-        select(func.count(Job.id)).where(
-            Job.status == JobStatus.FAILED,
-            Job.created_at >= seven_days_ago,
+    failed_recent = (
+        await db.scalar(
+            select(func.count(Job.id)).where(
+                Job.status == JobStatus.FAILED,
+                Job.created_at >= seven_days_ago,
+            )
         )
-    ) or 0
-    completed_recent = await db.scalar(
-        select(func.count(Job.id)).where(
-            Job.status == JobStatus.COMPLETED,
-            Job.created_at >= seven_days_ago,
+        or 0
+    )
+    completed_recent = (
+        await db.scalar(
+            select(func.count(Job.id)).where(
+                Job.status == JobStatus.COMPLETED,
+                Job.created_at >= seven_days_ago,
+            )
         )
-    ) or 0
+        or 0
+    )
 
     disk_usage_bytes = _storage_disk_usage_bytes()
     disk_usage_mb = round(disk_usage_bytes / (1024 * 1024), 2)
 
     total_users = await db.scalar(select(func.count(User.id))) or 0
-    active_users = await db.scalar(
-        select(func.count(User.id)).where(User.is_active.is_(True))
-    ) or 0
-    pending_users = await db.scalar(
-        select(func.count(User.id)).where(
-            User.account_status == AccountStatus.PENDING
-        )
-    ) or 0
+    active_users = await db.scalar(select(func.count(User.id)).where(User.is_active.is_(True))) or 0
+    pending_users = (
+        await db.scalar(select(func.count(User.id)).where(User.account_status == AccountStatus.PENDING)) or 0
+    )
 
     return {
         "total_books": total_books,
@@ -182,9 +177,7 @@ async def list_admin_jobs(
     if book_id:
         query = query.where(Job.book_id == book_id)
     if owner_id is not None:
-        query = query.where(
-            func.coalesce(Job.requested_by_id, Book.owner_id) == owner_id
-        )
+        query = query.where(func.coalesce(Job.requested_by_id, Book.owner_id) == owner_id)
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
@@ -196,29 +189,29 @@ async def list_admin_jobs(
 
     items = []
     for job, book_title, book_filename, owner_display_name, owner_email in rows:
-        items.append({
-            "id": str(job.id),
-            "book_id": str(job.book_id) if job.book_id else None,
-            "requested_by_id": str(job.requested_by_id) if job.requested_by_id else None,
-            "book_title": book_title,
-            "book_filename": book_filename or "(deleted book)",
-            "owner_display_name": owner_display_name,
-            "owner_email": owner_email,
-            "job_type": job.job_type,
-            "status": job.status,
-            "progress": job.progress,
-            "created_at": job.created_at.isoformat() if job.created_at else None,
-            "started_at": job.started_at.isoformat() if job.started_at else None,
-            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
-            "error_log": job.error_log,
-        })
+        items.append(
+            {
+                "id": str(job.id),
+                "book_id": str(job.book_id) if job.book_id else None,
+                "requested_by_id": str(job.requested_by_id) if job.requested_by_id else None,
+                "book_title": book_title,
+                "book_filename": book_filename or "(deleted book)",
+                "owner_display_name": owner_display_name,
+                "owner_email": owner_email,
+                "job_type": job.job_type,
+                "status": job.status,
+                "progress": job.progress,
+                "created_at": job.created_at.isoformat() if job.created_at else None,
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+                "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+                "error_log": job.error_log,
+            }
+        )
 
     return items, total
 
 
-async def find_active_job(
-    db: AsyncSession, book_id: UUID, job_type: str
-) -> Job | None:
+async def find_active_job(db: AsyncSession, book_id: UUID, job_type: str) -> Job | None:
     """The newest queued/running job of this type for the book, if any.
 
     Used to reject duplicate submissions instead of silently spawning a second
@@ -237,9 +230,7 @@ async def find_active_job(
     return result.scalar_one_or_none()
 
 
-async def cancel_job(
-    db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled by admin"
-) -> tuple[Job, UUID | None]:
+async def cancel_job(db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled by admin") -> tuple[Job, UUID | None]:
     """Cancel a queued/running job.
 
     Returns the job and the id of the notification created for its requester
@@ -266,10 +257,7 @@ async def cancel_job(
     if book is not None:
         if job.job_type == JobType.LLM and book.status == BookStatus.LLM_RUNNING:
             book.status = BookStatus.OCR_COMPLETE
-        elif (
-            job.job_type == JobType.OCR
-            and book.status == BookStatus.OCR_RUNNING
-        ):
+        elif job.job_type == JobType.OCR and book.status == BookStatus.OCR_RUNNING:
             book.status = BookStatus.PAGES_SELECTED
 
     # Terminalise the matching stage row too. Cancelling only the job leaves the
@@ -285,9 +273,7 @@ async def cancel_job(
         ):
             await StageManager.cancel_stage(db, job.book_id, stage_name, reason)
 
-    notification_id = await notification_service.notify_job_terminal(
-        db, job=job, book=book, status=JobStatus.CANCELLED
-    )
+    notification_id = await notification_service.notify_job_terminal(db, job=job, book=book, status=JobStatus.CANCELLED)
     await db.commit()
     _revoke_task_ids([(job.celery_task_id, terminate)])
     await db.refresh(job)
@@ -368,9 +354,7 @@ async def reset_book(db: AsyncSession, book_id: UUID) -> Book:
     return book
 
 
-async def rerun_ocr(
-    db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None
-) -> Job:
+async def rerun_ocr(db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None) -> Job:
     """Cancel active jobs, clear OCR outputs, then dispatch a fresh OCR job.
 
     Mirrors the semantics of POST /api/books/{id}/run-ocr but is safe to
@@ -449,14 +433,13 @@ async def rerun_ocr(
             pass
 
     from app.tasks.ocr_tasks import preprocess_pages_for_book
+
     preprocess_pages_for_book.delay(str(job.id), str(book_id), book.language)
 
     return job
 
 
-async def rerun_extraction(
-    db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None
-) -> Job:
+async def rerun_extraction(db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None) -> Job:
     """Re-run LLM extraction on existing OCR outputs with default config."""
     book = await db.get(Book, book_id)
     if book is None:
@@ -467,10 +450,7 @@ async def rerun_extraction(
         BookStatus.AWAITING_REVIEW,
         BookStatus.COMPLETE,
     ):
-        raise ValueError(
-            "Book status must be 'ocr_complete', 'awaiting_review' or "
-            f"'complete', got '{book.status}'"
-        )
+        raise ValueError(f"Book status must be 'ocr_complete', 'awaiting_review' or 'complete', got '{book.status}'")
 
     pages_result = await db.execute(select(Page).where(Page.book_id == book_id))
     pages = pages_result.scalars().all()
@@ -478,9 +458,7 @@ async def rerun_extraction(
         raise ValueError("No pages selected for this book")
 
     page_ids = [p.id for p in pages]
-    ocr_results = await db.execute(
-        select(OcrResult).where(OcrResult.page_id.in_(page_ids))
-    )
+    ocr_results = await db.execute(select(OcrResult).where(OcrResult.page_id.in_(page_ids)))
     ocr_list = ocr_results.scalars().all()
     if not any((o.corrected_text or o.raw_text or "").strip() for o in ocr_list):
         raise ValueError("No OCR text available. Run OCR first.")
@@ -510,14 +488,13 @@ async def rerun_extraction(
 
     # Same as rerun_ocr: release the downstream chain too, or an orphaned
     # metadata_review row keeps the derived book status stuck at the old stage.
-    await StageManager.reset_from_stage(
-        db, book_id, "llm_extraction", "Superseded by re-run extraction"
-    )
+    await StageManager.reset_from_stage(db, book_id, "llm_extraction", "Superseded by re-run extraction")
     await StageManager.initiate_stage(db, book_id, "llm_extraction")
     await StageManager.start_stage(db, book_id, "llm_extraction")
     await db.commit()
 
     from app.tasks.llm_tasks import run_llm_extraction
+
     run_llm_extraction.delay(str(job.id), str(book_id))
 
     return job
@@ -526,6 +503,7 @@ async def rerun_extraction(
 # ---------------------------------------------------------------------------
 # Storage helpers
 # ---------------------------------------------------------------------------
+
 
 def _purge_book_storage(book_id: UUID) -> None:
     """Remove all on-disk artifacts for a book."""

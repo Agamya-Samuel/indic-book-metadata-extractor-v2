@@ -58,7 +58,9 @@ def main() -> int:
             continue
         deviating += 1
         label = f"{gt.parent.parent.name}/{gt.parent.name}"
-        print(f"  {label[:52]:52s} em(-{len(em_miss)}/+{len(em_extra)}) fs(-{len(fs_miss)}/+{len(fs_extra)}) src(-{len(src_miss)}/+{len(src_extra)})")
+        print(
+            f"  {label[:52]:52s} em(-{len(em_miss)}/+{len(em_extra)}) fs(-{len(fs_miss)}/+{len(fs_extra)}) src(-{len(src_miss)}/+{len(src_extra)})"
+        )
         if em_extra or fs_extra or src_extra:
             print(f"      unexpected keys: em={em_extra} fs={fs_extra} src={src_extra}")
         if args.write:

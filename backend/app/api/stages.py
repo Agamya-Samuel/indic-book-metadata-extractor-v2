@@ -18,14 +18,7 @@ async def list_stages(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> Page[StageStatusResponse]:
-    total = int(
-        await db.scalar(
-            select(func.count(BookStageStatus.id)).where(
-                BookStageStatus.book_id == book.id
-            )
-        )
-        or 0
-    )
+    total = int(await db.scalar(select(func.count(BookStageStatus.id)).where(BookStageStatus.book_id == book.id)) or 0)
     result = await db.execute(
         select(BookStageStatus)
         .where(BookStageStatus.book_id == book.id)

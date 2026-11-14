@@ -21,21 +21,15 @@ class MetadataFieldEvidence(UUIDMixin, TimestampMixin, Base):
 
     __tablename__ = "metadata_field_evidence"
 
-    book_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    book_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
     field_name: Mapped[str] = mapped_column(String(64), nullable=False)
     value: Mapped[str | None] = mapped_column(Text)
     confidence: Mapped[float | None] = mapped_column(Float)
-    source_page_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("pages.id", ondelete="SET NULL"), nullable=True
-    )
+    source_page_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pages.id", ondelete="SET NULL"), nullable=True)
     source_page_number: Mapped[int | None] = mapped_column()
     source_text_snippet: Mapped[str | None] = mapped_column(Text)
     source_bbox: Mapped[dict | None] = mapped_column(JSONB)
-    extraction_method: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="llm"
-    )
+    extraction_method: Mapped[str] = mapped_column(String(32), nullable=False, default="llm")
 
     __table_args__ = (
         Index(

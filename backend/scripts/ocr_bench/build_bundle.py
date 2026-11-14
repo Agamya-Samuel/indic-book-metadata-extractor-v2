@@ -16,7 +16,9 @@ from pathlib import Path
 
 import fitz
 
-GT = Path("/run/media/agamya/Storage/WikiProjects/OKI/Indic-Book-Metadata-Extractor/backend/tests/fixtures/ground_truth")
+GT = Path(
+    "/run/media/agamya/Storage/WikiProjects/OKI/Indic-Book-Metadata-Extractor/backend/tests/fixtures/ground_truth"
+)
 OUT = Path("/tmp/ocr_bundle")
 BOOKS = int(sys.argv[1]) if len(sys.argv) > 1 else 8
 PAGES = int(sys.argv[2]) if len(sys.argv) > 2 else 3

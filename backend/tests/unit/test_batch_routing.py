@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from app.services.batch_routing import (
     BATCH_PAGE_SLICES,
@@ -13,7 +12,7 @@ from app.services.batch_routing import (
 
 
 def _pages(n: int) -> list[PageText]:
-    return [PageText(page_number=i + 1, text=f"page {i+1} content") for i in range(n)]
+    return [PageText(page_number=i + 1, text=f"page {i + 1} content") for i in range(n)]
 
 
 class TestSelectPagesForBatch:

@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 class CircuitBreakerOpen(Exception):
     """Raised when the LLM circuit breaker is open (service unavailable)."""
+
     pass
 
 
@@ -193,9 +194,7 @@ class LLMService:
                 # The model never answered. Reporting this as an "empty
                 # response" would turn a dead backend into a successful-looking
                 # run with no fields, so surface it as a batch error instead.
-                logger.error(
-                    "LLM unreachable for batch '%s': %s", batch_name, transport_error
-                )
+                logger.error("LLM unreachable for batch '%s': %s", batch_name, transport_error)
                 result = _empty_batch(batch_schema)
                 usage_stats = {"status": "error", "error": str(transport_error)}
                 self._record_failure()
@@ -289,9 +288,7 @@ class LLMService:
                 async with semaphore:
                     return await _run_one(name)
 
-            in_flight = [
-                asyncio.create_task(_guarded(name)) for name in BATCH_FIELD_ORDER
-            ]
+            in_flight = [asyncio.create_task(_guarded(name)) for name in BATCH_FIELD_ORDER]
             completed = 0
             for fut in asyncio.as_completed(in_flight):
                 batch_name, result, raw_response, usage, prompt = await fut
@@ -314,9 +311,7 @@ class LLMService:
                 )
 
                 if usage.get("status") != "success":
-                    errors.append(
-                        f"Batch '{batch_name}': {usage.get('status')} - {usage.get('error', 'unknown')}"
-                    )
+                    errors.append(f"Batch '{batch_name}': {usage.get('status')} - {usage.get('error', 'unknown')}")
 
                 if progress_callback:
                     await progress_callback(completed, total_batches, batch_name)
@@ -341,9 +336,7 @@ class LLMService:
                 )
 
                 if usage.get("status") != "success":
-                    errors.append(
-                        f"Batch '{bn}': {usage.get('status')} - {usage.get('error', 'unknown')}"
-                    )
+                    errors.append(f"Batch '{bn}': {usage.get('status')} - {usage.get('error', 'unknown')}")
 
                 if progress_callback:
                     await progress_callback(i + 1, total_batches, bn)
@@ -442,9 +435,7 @@ class LLMService:
                         e.batch_name = bn  # type: ignore[attr-defined]
                         return e
 
-            in_flight = [
-                asyncio.create_task(_guarded(bn)) for bn in needed_batches
-            ]
+            in_flight = [asyncio.create_task(_guarded(bn)) for bn in needed_batches]
             completed = 0
             for fut in asyncio.as_completed(in_flight):
                 try:
@@ -456,12 +447,8 @@ class LLMService:
                     raise
                 completed += 1
                 if isinstance(outcome, Exception):
-                    failed_batch = getattr(
-                        outcome, "batch_name", next(iter(needed_batches), "unknown")
-                    )
-                    logger.error(
-                        "Hybrid LLM batch '%s' failed: %s", failed_batch, outcome
-                    )
+                    failed_batch = getattr(outcome, "batch_name", next(iter(needed_batches), "unknown"))
+                    logger.error("Hybrid LLM batch '%s' failed: %s", failed_batch, outcome)
                     batch_results.append(
                         {
                             "batch_name": failed_batch,
@@ -572,9 +559,7 @@ class LLMService:
                     {
                         "name": name,
                         "size_gb": round(size_bytes / (1024**3), 2) if size_bytes else None,
-                        "parameter_count": m.get("details", {}).get(
-                            "parameter_size", None
-                        ),
+                        "parameter_count": m.get("details", {}).get("parameter_size", None),
                     }
                 )
             return models
@@ -612,8 +597,7 @@ class LLMService:
                 elapsed = time.monotonic() - self._circuit_opened_at
                 if elapsed < self.COOLDOWN_SECONDS:
                     raise CircuitBreakerOpen(
-                        f"LLM service circuit breaker open. "
-                        f"{self.COOLDOWN_SECONDS - elapsed:.0f}s until retry."
+                        f"LLM service circuit breaker open. {self.COOLDOWN_SECONDS - elapsed:.0f}s until retry."
                     )
                 else:
                     # Cooldown elapsed — allow a half-open attempt
@@ -632,8 +616,7 @@ class LLMService:
         if self._consecutive_failures >= self.FAILURE_THRESHOLD:
             self._circuit_opened_at = time.monotonic()
             logger.warning(
-                "Circuit breaker OPEN after %d consecutive failures. "
-                "Cooldown: %.0fs.",
+                "Circuit breaker OPEN after %d consecutive failures. Cooldown: %.0fs.",
                 self._consecutive_failures,
                 self.COOLDOWN_SECONDS,
             )

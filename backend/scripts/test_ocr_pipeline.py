@@ -51,7 +51,7 @@ def main():
     print()
 
     processed_path = output_dir / f"{image_path.stem}_processed.png"
-    print(f"Running preprocessing pipeline...")
+    print("Running preprocessing pipeline...")
     try:
         preprocessing.run_pipeline(image_path, config, processed_path)
         print(f"Processed image saved to: {processed_path}")
@@ -60,13 +60,13 @@ def main():
         sys.exit(1)
 
     print()
-    print(f"Running OCR on processed image...")
+    print("Running OCR on processed image...")
     try:
         ocr_data = ocr_service.run_ocr(processed_path, args.language)
     except Exception as e:
         print(f"OCR failed on processed image: {e}")
         print()
-        print(f"Trying OCR on original image...")
+        print("Trying OCR on original image...")
         try:
             ocr_data = ocr_service.run_ocr(image_path, args.language)
         except Exception as e2:

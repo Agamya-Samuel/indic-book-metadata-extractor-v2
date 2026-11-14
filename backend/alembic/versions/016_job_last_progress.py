@@ -8,6 +8,7 @@ The stale-job reaper compared ``started_at``, so a legitimate long extraction
 was failed after 90 minutes even while it kept reporting progress. Record the
 last progress timestamp and reap on that instead.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

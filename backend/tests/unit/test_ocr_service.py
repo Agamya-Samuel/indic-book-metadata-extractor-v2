@@ -3,9 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import numpy as np
-import pytest
-from PIL import Image
 
 from app.services.ocr_service import (
     LANGUAGE_MAP,
@@ -37,7 +34,6 @@ class TestGetTesseractLang:
 
 
 def _mock_tesseract_data(words):
-    n = len(words)
     data = {
         "text": [w["text"] for w in words],
         "conf": [str(w["conf"]) for w in words],
@@ -60,10 +56,12 @@ class TestRunOcr:
         mock_image_cls.open.return_value = mock_img
 
         mock_pyt.Output.DICT = "dict"
-        mock_pyt.image_to_data.return_value = _mock_tesseract_data([
-            {"text": "Hello", "conf": 95},
-            {"text": "World", "conf": 88},
-        ])
+        mock_pyt.image_to_data.return_value = _mock_tesseract_data(
+            [
+                {"text": "Hello", "conf": 95},
+                {"text": "World", "conf": 88},
+            ]
+        )
 
         result = run_ocr(Path("/fake/image.png"), "tel")
 
@@ -82,12 +80,14 @@ class TestRunOcr:
         mock_image_cls.open.return_value = mock_img
 
         mock_pyt.Output.DICT = "dict"
-        mock_pyt.image_to_data.return_value = _mock_tesseract_data([
-            {"text": "Keep", "conf": 90},
-            {"text": "", "conf": 80},
-            {"text": "Also", "conf": -1},
-            {"text": "  ", "conf": 70},
-        ])
+        mock_pyt.image_to_data.return_value = _mock_tesseract_data(
+            [
+                {"text": "Keep", "conf": 90},
+                {"text": "", "conf": 80},
+                {"text": "Also", "conf": -1},
+                {"text": "  ", "conf": 70},
+            ]
+        )
 
         result = run_ocr(Path("/fake/image.png"), "tel")
         assert result["word_count"] == 1
@@ -100,10 +100,12 @@ class TestRunOcr:
         mock_image_cls.open.return_value = mock_img
 
         mock_pyt.Output.DICT = "dict"
-        mock_pyt.image_to_data.return_value = _mock_tesseract_data([
-            {"text": "A", "conf": 80},
-            {"text": "B", "conf": 100},
-        ])
+        mock_pyt.image_to_data.return_value = _mock_tesseract_data(
+            [
+                {"text": "A", "conf": 80},
+                {"text": "B", "conf": 100},
+            ]
+        )
 
         result = run_ocr(Path("/fake/image.png"), "tel")
         assert result["avg_confidence"] == 90.0
@@ -115,9 +117,11 @@ class TestRunOcr:
         mock_image_cls.open.return_value = mock_img
 
         mock_pyt.Output.DICT = "dict"
-        mock_pyt.image_to_data.return_value = _mock_tesseract_data([
-            {"text": "", "conf": -1},
-        ])
+        mock_pyt.image_to_data.return_value = _mock_tesseract_data(
+            [
+                {"text": "", "conf": -1},
+            ]
+        )
 
         result = run_ocr(Path("/fake/image.png"), "tel")
         assert result["word_count"] == 0
@@ -131,9 +135,20 @@ class TestRunOcr:
         mock_image_cls.open.return_value = mock_img
 
         mock_pyt.Output.DICT = "dict"
-        mock_pyt.image_to_data.return_value = _mock_tesseract_data([
-            {"text": "Word", "conf": 90, "left": 10, "top": 20, "width": 50, "height": 15, "block_num": 1, "line_num": 1},
-        ])
+        mock_pyt.image_to_data.return_value = _mock_tesseract_data(
+            [
+                {
+                    "text": "Word",
+                    "conf": 90,
+                    "left": 10,
+                    "top": 20,
+                    "width": 50,
+                    "height": 15,
+                    "block_num": 1,
+                    "line_num": 1,
+                },
+            ]
+        )
 
         result = run_ocr(Path("/fake/image.png"), "tel")
         word = result["words"][0]

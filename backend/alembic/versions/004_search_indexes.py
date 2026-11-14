@@ -4,6 +4,7 @@ Revision ID: 004
 Revises: 003
 Create Date: 2026-05-23
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -16,15 +17,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_books_title_trgm ON books USING gin (title gin_trgm_ops)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_books_filename_trgm ON books USING gin (filename gin_trgm_ops)"
-    )
-    op.execute(
-        "CREATE INDEX IF NOT EXISTS ix_metadata_fields_gin ON metadata USING gin (fields)"
-    )
+    op.execute("CREATE INDEX IF NOT EXISTS ix_books_title_trgm ON books USING gin (title gin_trgm_ops)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_books_filename_trgm ON books USING gin (filename gin_trgm_ops)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_metadata_fields_gin ON metadata USING gin (fields)")
     op.execute(
         "CREATE INDEX IF NOT EXISTS ix_metadata_author_trgm ON metadata USING gin ((fields->>'author') gin_trgm_ops)"
     )

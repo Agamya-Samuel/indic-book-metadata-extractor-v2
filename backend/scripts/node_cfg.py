@@ -70,14 +70,11 @@ def probe():
     out = {}
     cmds = [
         ["sudo", "docker", "exec", "ollama", "ollama", "ps"],
-        ["sudo", "docker", "stats", "--no-stream", "--format",
-         "{{.CPUPerc}} {{.MemUsage}}", "ollama"],
+        ["sudo", "docker", "stats", "--no-stream", "--format", "{{.CPUPerc}} {{.MemUsage}}", "ollama"],
     ]
     for i, cmd in enumerate(cmds):
         try:
-            out[f"cmd{i}"] = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=60
-            ).stdout.strip()
+            out[f"cmd{i}"] = subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout.strip()
         except Exception as exc:
             out[f"cmd{i}"] = f"err: {exc}"
     return out
@@ -116,9 +113,15 @@ def main():
     if args.num_thread:
         warm_opts["num_thread"] = args.num_thread
     try:
-        call({"model": args.model,
-              "messages": [{"role": "user", "content": "hi"}],
-              "stream": False, "keep_alive": "30m", "options": warm_opts})
+        call(
+            {
+                "model": args.model,
+                "messages": [{"role": "user", "content": "hi"}],
+                "stream": False,
+                "keep_alive": "30m",
+                "options": warm_opts,
+            }
+        )
     except Exception as exc:
         print("warm failed:", exc, flush=True)
 
@@ -141,12 +144,18 @@ def main():
                 {"role": "user", "content": batch["prompt"]},
             ]
             rec = {
-                "tag": args.tag, "model": args.model, "batch": batch["name"],
-                "book": bundle["book"], "num_ctx": args.num_ctx,
-                "temperature": args.temperature, "seed": args.seed,
+                "tag": args.tag,
+                "model": args.model,
+                "batch": batch["name"],
+                "book": bundle["book"],
+                "num_ctx": args.num_ctx,
+                "temperature": args.temperature,
+                "seed": args.seed,
                 "repeat_penalty": args.repeat_penalty,
-                "num_predict": args.num_predict, "fmt": args.fmt,
-                "think_false": args.think, "num_thread": args.num_thread,
+                "num_predict": args.num_predict,
+                "fmt": args.fmt,
+                "think_false": args.think,
+                "num_thread": args.num_thread,
                 "text_chars": batch["text_chars"],
             }
             sampler = Sampler()
@@ -170,9 +179,7 @@ def main():
             rec["eval_count"] = res.get("eval_count")
             rec["prompt_eval_count"] = res.get("prompt_eval_count")
             rec["gen_tok_s"] = tps(res.get("eval_count"), res.get("eval_duration"))
-            rec["prefill_tok_s"] = tps(
-                res.get("prompt_eval_count"), res.get("prompt_eval_duration")
-            )
+            rec["prefill_tok_s"] = tps(res.get("prompt_eval_count"), res.get("prompt_eval_duration"))
             rec["response_chars"] = len(content)
             rec["done_reason"] = res.get("done_reason")
             rec["parsed"] = None

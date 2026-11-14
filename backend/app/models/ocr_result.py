@@ -10,9 +10,7 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 class OcrResult(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "ocr_results"
 
-    page_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("pages.id", ondelete="CASCADE"), unique=True
-    )
+    page_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pages.id", ondelete="CASCADE"), unique=True)
     raw_text: Mapped[str | None] = mapped_column(Text)
     bounding_boxes: Mapped[dict | None] = mapped_column(JSONB)
     corrected_text: Mapped[str | None] = mapped_column(Text)

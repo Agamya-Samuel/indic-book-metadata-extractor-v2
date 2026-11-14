@@ -98,9 +98,7 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
         if settings.ocr_postprocess:
             cleaned_text, corrections = ocr_postprocess.normalize_text(raw_text, language)
 
-        ocr_result = await db.execute(
-            select(OcrResult).where(OcrResult.page_id == page.id)
-        )
+        ocr_result = await db.execute(select(OcrResult).where(OcrResult.page_id == page.id))
         existing = ocr_result.scalar_one_or_none()
 
         if existing:
@@ -139,9 +137,7 @@ def _process_page_threadsafe(page_id_str: str, book_id_str: str, language: str) 
 # ---------------------------------------------------------------------------
 # Progress tracking
 # ---------------------------------------------------------------------------
-def _update_job_progress(
-    job_id_str: str, completed: int, total: int, book_id_str: str | None = None
-) -> None:
+def _update_job_progress(job_id_str: str, completed: int, total: int, book_id_str: str | None = None) -> None:
     """Update job progress percentage in the database atomically.
 
     Takes a row-level lock so concurrent progress updates serialise and
@@ -162,9 +158,7 @@ def _update_job_progress(
             new_progress = round((completed / total) * 100, 1) if total else 0.0
             # Lock the row so concurrent progress updates serialise and we
             # never regress the value.
-            job_result = await db.execute(
-                select(Job).where(Job.id == job_id).with_for_update()
-            )
+            job_result = await db.execute(select(Job).where(Job.id == job_id).with_for_update())
             job = job_result.scalar_one_or_none()
             if not job:
                 return
@@ -213,9 +207,7 @@ def _publish_book_status(book_id: uuid.UUID, status: str, job_id: uuid.UUID | No
     )
 
 
-def _publish_job_terminal(
-    book_id: uuid.UUID, job_id: uuid.UUID, status: str, error_log: str | None = None
-) -> None:
+def _publish_job_terminal(book_id: uuid.UUID, job_id: uuid.UUID, status: str, error_log: str | None = None) -> None:
     publish_sync(
         book_id,
         {
@@ -229,9 +221,7 @@ def _publish_job_terminal(
     )
 
 
-def _has_active_job_for_book(
-    book_id: uuid.UUID, exclude_job_id: uuid.UUID | None = None
-) -> bool:
+def _has_active_job_for_book(book_id: uuid.UUID, exclude_job_id: uuid.UUID | None = None) -> bool:
     """Return True if the book already has a queued/running OCR or PREPROCESSING job.
 
     ``exclude_job_id`` skips the job that dispatched this task — the API creates
@@ -289,9 +279,7 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
     async def _run():
         async with async_session_factory() as db:
             job_uuid = uuid.UUID(job_id_str)
-            job_result = await db.execute(
-                select(Job).where(Job.id == job_uuid).with_for_update()
-            )
+            job_result = await db.execute(select(Job).where(Job.id == job_uuid).with_for_update())
             job = job_result.scalar_one_or_none()
             if job is None or job.status == JobStatus.CANCELLED:
                 return None
@@ -305,9 +293,7 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
                 job.celery_task_id = self.request.id
             await db.commit()
 
-            pages_result = await db.execute(
-                select(Page).where(Page.book_id == book_uuid).order_by(Page.page_number)
-            )
+            pages_result = await db.execute(select(Page).where(Page.book_id == book_uuid).order_by(Page.page_number))
             pages = pages_result.scalars().all()
 
             preprocessed = 0
@@ -405,9 +391,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
             job.celery_task_id = self.request.id
             await db.commit()
 
-            pages_result = await db.execute(
-                select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
-            )
+            pages_result = await db.execute(select(Page).where(Page.book_id == book_id).order_by(Page.page_number))
             pages = pages_result.scalars().all()
 
             if not pages:
@@ -437,9 +421,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
                 return
             try:
                 _process_page_threadsafe(page_id, book_id_str, language)
-                ocr_row_result = run_async_threadsafe(
-                    _capture_page_confidence(page_id)
-                )
+                ocr_row_result = run_async_threadsafe(_capture_page_confidence(page_id))
                 if ocr_row_result is not None:
                     avg_conf_sum += ocr_row_result
                     avg_conf_count += 1
@@ -455,9 +437,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
             logger.info("OCR job %s cancelled or superseded before finalising", job_id_str)
             return
 
-        avg_confidence = (
-            round(avg_conf_sum / avg_conf_count, 2) if avg_conf_count else None
-        )
+        avg_confidence = round(avg_conf_sum / avg_conf_count, 2) if avg_conf_count else None
         duration = (datetime.now(timezone.utc) - started).total_seconds()
         from app.services.metrics import record_ocr_completion
 
@@ -482,9 +462,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 async def _capture_page_confidence(page_id_str: str) -> float | None:
     """Return the most-recent OcrResult confidence for a page, or None."""
     async with async_session_factory() as db:
-        result = await db.execute(
-            select(OcrResult).where(OcrResult.page_id == uuid.UUID(page_id_str))
-        )
+        result = await db.execute(select(OcrResult).where(OcrResult.page_id == uuid.UUID(page_id_str)))
         row = result.scalar_one_or_none()
         return row.confidence if row and row.confidence is not None else None
 
@@ -528,9 +506,7 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
                 job.error_log = outcome_log
                 if book:
                     if status == JobStatus.FAILED:
-                        await StageManager.fail_stage(
-                            db, book_id, "ocr", outcome_log or ""
-                        )
+                        await StageManager.fail_stage(db, book_id, "ocr", outcome_log or "")
                     else:
                         # Partial runs advance: the failed pages stay flagged via
                         # pages.ocr_error, but the book reaches ocr_complete so
@@ -572,9 +548,7 @@ def _mark_job_failed(job_id_str: str, book_id: uuid.UUID, error: str):
 
     async def _do() -> bool:
         async with async_session_factory() as db:
-            job_result = await db.execute(
-                select(Job).where(Job.id == uuid.UUID(job_id_str))
-            )
+            job_result = await db.execute(select(Job).where(Job.id == uuid.UUID(job_id_str)))
             job = job_result.scalar_one_or_none()
             if not job:
                 return False

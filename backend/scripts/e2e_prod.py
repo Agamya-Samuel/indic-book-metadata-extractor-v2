@@ -18,9 +18,7 @@ from pathlib import Path
 
 import httpx
 
-BASE = os.environ.get(
-    "E2E_BASE_URL", "https://indic-book-metadata-extractor.agamya.us.kg"
-)
+BASE = os.environ.get("E2E_BASE_URL", "https://indic-book-metadata-extractor.agamya.us.kg")
 PDF = Path(
     os.environ.get(
         "E2E_PDF",
@@ -63,9 +61,7 @@ def csrf(client: httpx.Client) -> str:
 
 
 def login(client: httpx.Client, email: str, password: str) -> httpx.Response:
-    response = client.post(
-        "/api/auth/login", json={"email": email, "password": password}
-    )
+    response = client.post("/api/auth/login", json={"email": email, "password": password})
     token = csrf(client)
     if token:
         client.headers["X-CSRF-Token"] = token
@@ -183,14 +179,10 @@ def main() -> int:
     record("upload: page count", (book.get("total_pages") or 0) > 0, str(book.get("total_pages")))
 
     # ── Page selection + duplicate submission ────────────────────────────
-    selection = authed(
-        user, "POST", f"/api/books/{book_id}/pages", json={"selected_pages": [1, 2]}
-    )
+    selection = authed(user, "POST", f"/api/books/{book_id}/pages", json={"selected_pages": [1, 2]})
     record("pages: select two", selection.status_code == 200, str(selection.status_code))
     job_id = selection.json().get("job_id") if selection.status_code == 200 else None
-    duplicate = authed(
-        user, "POST", f"/api/books/{book_id}/pages", json={"selected_pages": [1, 2]}
-    )
+    duplicate = authed(user, "POST", f"/api/books/{book_id}/pages", json={"selected_pages": [1, 2]})
     record(
         "pages: duplicate submission is 409",
         duplicate.status_code == 409 and bool(duplicate.headers.get("x-existing-job-id")),
@@ -261,20 +253,15 @@ def main() -> int:
         reread = authed(user, "GET", f"/api/pages/{page_id}/ocr")
         record(
             "ocr: correction read back",
-            reread.status_code == 200
-            and reread.json().get("corrected_text") == "QA correction persisted",
+            reread.status_code == 200 and reread.json().get("corrected_text") == "QA correction persisted",
         )
 
     # ── LLM extraction + duplicate guard ─────────────────────────────────
     payload = {"model": "phi4-mini", "temperature": 0.3, "max_tokens": 512}
-    extraction = authed(
-        user, "POST", f"/api/books/{book_id}/run-extraction", json=payload
-    )
+    extraction = authed(user, "POST", f"/api/books/{book_id}/run-extraction", json=payload)
     record("llm: run accepted", extraction.status_code == 201, str(extraction.status_code))
     llm_job_id = extraction.json().get("job_id") if extraction.status_code == 201 else None
-    duplicate_llm = authed(
-        user, "POST", f"/api/books/{book_id}/run-extraction", json=payload
-    )
+    duplicate_llm = authed(user, "POST", f"/api/books/{book_id}/run-extraction", json=payload)
     record(
         "llm: duplicate submission is 409",
         duplicate_llm.status_code == 409,
@@ -298,9 +285,7 @@ def main() -> int:
     record("llm: evidence present", evidence.status_code == 200, str(evidence.status_code))
 
     # ── Re-run extraction from awaiting_review, then cancel ─────────────
-    rerun_ext = authed(
-        user, "POST", f"/api/books/{book_id}/run-extraction", json=payload
-    )
+    rerun_ext = authed(user, "POST", f"/api/books/{book_id}/run-extraction", json=payload)
     record(
         "llm: re-run from awaiting_review accepted",
         rerun_ext.status_code == 201,
@@ -308,9 +293,7 @@ def main() -> int:
     )
     if rerun_ext.status_code == 201:
         time.sleep(4)
-        cancelled_ext = authed(
-            user, "POST", f"/api/dashboard/jobs/{rerun_ext.json()['job_id']}/cancel"
-        )
+        cancelled_ext = authed(user, "POST", f"/api/dashboard/jobs/{rerun_ext.json()['job_id']}/cancel")
         record("llm: re-run cancel accepted", cancelled_ext.status_code == 200)
 
     # ── Metadata validation + save + complete ───────────────────────────
@@ -372,9 +355,7 @@ def main() -> int:
     )
     record("admin: create user", created_user.status_code == 201, str(created_user.status_code))
     if created_user.status_code == 201:
-        deleted_user = authed(
-            admin, "DELETE", f"/api/admin/users/{created_user.json()['id']}"
-        )
+        deleted_user = authed(admin, "DELETE", f"/api/admin/users/{created_user.json()['id']}")
         record("admin: delete user", deleted_user.status_code == 204, str(deleted_user.status_code))
 
     admin_jobs = authed(admin, "GET", f"/api/admin/jobs?book_id={book_id}")

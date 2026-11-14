@@ -26,16 +26,12 @@ class Book(UUIDMixin, TimestampMixin, Base):
     language: Mapped[str] = mapped_column(String(10), default="tel")
     status: Mapped[str] = mapped_column(String(30), default=BookStatus.UPLOADED)
     total_pages: Mapped[int | None] = mapped_column(Integer)
-    owner_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
-    )
+    owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
 
     owner = relationship("User", back_populates="books")
     pages = relationship("Page", back_populates="book", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="book", cascade="all, delete-orphan")
-    metadata_record = relationship(
-        "BookMetadata", back_populates="book", uselist=False, cascade="all, delete-orphan"
-    )
+    metadata_record = relationship("BookMetadata", back_populates="book", uselist=False, cascade="all, delete-orphan")
     metadata_evidence = relationship(
         "MetadataFieldEvidence",
         back_populates="book",

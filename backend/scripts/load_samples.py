@@ -44,14 +44,16 @@ def discover_samples(language: str | None = None) -> list[dict]:
             with open(expected_path) as f:
                 expected = json.load(f)
 
-            samples.append({
-                "language": lang_dir.name,
-                "quality": quality_dir.name,
-                "dir": quality_dir,
-                "pdf_path": pdf_path,
-                "expected": expected,
-                "has_pdf": pdf_path.exists(),
-            })
+            samples.append(
+                {
+                    "language": lang_dir.name,
+                    "quality": quality_dir.name,
+                    "dir": quality_dir,
+                    "pdf_path": pdf_path,
+                    "expected": expected,
+                    "has_pdf": pdf_path.exists(),
+                }
+            )
 
     return samples
 
@@ -112,27 +114,24 @@ async def load_samples(samples: list[dict], api_base: str) -> None:
 
 
 async def validate_samples(samples: list[dict], api_base: str) -> None:
-    import httpx
+    for sample in samples:
+        if not sample["has_pdf"]:
+            continue
 
-    async with httpx.AsyncClient(base_url=api_base, timeout=120.0) as client:
-        for sample in samples:
-            if not sample["has_pdf"]:
-                continue
+        print(f"\nValidating: {sample['language']}/{sample['quality']}")
+        expected_fields = sample["expected"].get("expected_metadata", {})
 
-            print(f"\nValidating: {sample['language']}/{sample['quality']}")
-            expected_fields = sample["expected"].get("expected_metadata", {})
+        if not expected_fields:
+            print("  No expected metadata to validate against.")
+            continue
 
-            if not expected_fields:
-                print("  No expected metadata to validate against.")
-                continue
+        filled = {k: v for k, v in expected_fields.items() if v}
+        if not filled:
+            print("  Expected metadata is empty (template). Fill in expected_metadata.json first.")
+            continue
 
-            filled = {k: v for k, v in expected_fields.items() if v}
-            if not filled:
-                print("  Expected metadata is empty (template). Fill in expected_metadata.json first.")
-                continue
-
-            print(f"  Expected {len(filled)} non-empty fields: {list(filled.keys())}")
-            print("  Note: Full validation requires running the complete pipeline first.")
+        print(f"  Expected {len(filled)} non-empty fields: {list(filled.keys())}")
+        print("  Note: Full validation requires running the complete pipeline first.")
 
 
 def main():

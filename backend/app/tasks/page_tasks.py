@@ -5,6 +5,7 @@ which blocked the request for the whole render and gave the user no cancel or
 progress. It now creates a PAGE_EXTRACTION job and this task renders pages
 one-by-one, updating progress and honouring cancellation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -68,9 +69,7 @@ def _publish_terminal(
 def _is_cancelled(job_id: uuid.UUID) -> bool:
     async def _do():
         async with async_session_factory() as db:
-            status = (
-                await db.execute(select(Job.status).where(Job.id == job_id))
-            ).scalar_one_or_none()
+            status = (await db.execute(select(Job.status).where(Job.id == job_id))).scalar_one_or_none()
             return status is None or status == JobStatus.CANCELLED
 
     try:
@@ -79,18 +78,12 @@ def _is_cancelled(job_id: uuid.UUID) -> bool:
         return False
 
 
-def _update_progress(
-    job_id: uuid.UUID, book_id: uuid.UUID, done: int, total: int
-) -> None:
+def _update_progress(job_id: uuid.UUID, book_id: uuid.UUID, done: int, total: int) -> None:
     pct = round(done / total * 100, 2) if total else 0.0
 
     async def _do():
         async with async_session_factory() as db:
-            job = (
-                await db.execute(
-                    select(Job).where(Job.id == job_id).with_for_update()
-                )
-            ).scalar_one_or_none()
+            job = (await db.execute(select(Job).where(Job.id == job_id).with_for_update())).scalar_one_or_none()
             if job is None or job.status == JobStatus.CANCELLED:
                 return None
             job.last_progress_at = datetime.now(timezone.utc)
@@ -113,11 +106,7 @@ def _insert_page(book_id: uuid.UUID, page_number: int, rel_path: str) -> None:
     async def _do():
         async with async_session_factory() as db:
             existing = (
-                await db.execute(
-                    select(Page).where(
-                        Page.book_id == book_id, Page.page_number == page_number
-                    )
-                )
+                await db.execute(select(Page).where(Page.book_id == book_id, Page.page_number == page_number))
             ).scalar_one_or_none()
             if existing is not None:
                 existing.image_path = rel_path
@@ -140,9 +129,7 @@ def _insert_page(book_id: uuid.UUID, page_number: int, rel_path: str) -> None:
 def _fail(job_id: uuid.UUID, book_id: uuid.UUID, message: str) -> None:
     async def _do():
         async with async_session_factory() as db:
-            job = (
-                await db.execute(select(Job).where(Job.id == job_id))
-            ).scalar_one_or_none()
+            job = (await db.execute(select(Job).where(Job.id == job_id))).scalar_one_or_none()
             if job is not None and job.status not in (
                 JobStatus.CANCELLED,
                 JobStatus.COMPLETED,
@@ -151,9 +138,7 @@ def _fail(job_id: uuid.UUID, book_id: uuid.UUID, message: str) -> None:
                 job.error_log = message[:2000]
                 job.completed_at = datetime.now(timezone.utc)
             try:
-                await StageManager.fail_stage(
-                    db, book_id, "page_selection", message[:2000]
-                )
+                await StageManager.fail_stage(db, book_id, "page_selection", message[:2000])
             except Exception:
                 logger.debug("Could not fail page_selection stage", exc_info=True)
             await db.commit()
@@ -179,9 +164,7 @@ def _finalize(
 ) -> None:
     async def _do():
         async with async_session_factory() as db:
-            job = (
-                await db.execute(select(Job).where(Job.id == job_id))
-            ).scalar_one_or_none()
+            job = (await db.execute(select(Job).where(Job.id == job_id))).scalar_one_or_none()
             if job is None:
                 return None
             if job.status == JobStatus.CANCELLED:
@@ -190,26 +173,18 @@ def _finalize(
             if await is_superseded_async(db, job):
                 logger.info("Page extraction job %s was superseded; not finalising", job_id)
                 return None
-            book = (
-                await db.execute(select(Book).where(Book.id == book_id))
-            ).scalar_one_or_none()
+            book = (await db.execute(select(Book).where(Book.id == book_id))).scalar_one_or_none()
             page_count = (
-                await db.execute(
-                    select(func.count()).select_from(Page).where(Page.book_id == book_id)
-                )
+                await db.execute(select(func.count()).select_from(Page).where(Page.book_id == book_id))
             ).scalar() or 0
 
             if page_count == 0:
                 job.status = JobStatus.FAILED
                 job.error_log = (
-                    "No pages could be rendered:\n" + "\n".join(errors)
-                    if errors
-                    else "No pages were rendered"
+                    "No pages could be rendered:\n" + "\n".join(errors) if errors else "No pages were rendered"
                 )[:2000]
                 try:
-                    await StageManager.fail_stage(
-                        db, book_id, "page_selection", job.error_log
-                    )
+                    await StageManager.fail_stage(db, book_id, "page_selection", job.error_log)
                 except Exception:
                     logger.debug("Could not fail page_selection stage", exc_info=True)
             else:
@@ -265,9 +240,7 @@ def _finalize(
 )
 @newrelic.agent.background_task(name="Pages: Render", group="CeleryTask")
 @single_book_task
-def render_pages_for_book(
-    self, job_id_str: str, book_id_str: str, page_numbers: list[int]
-) -> None:
+def render_pages_for_book(self, job_id_str: str, book_id_str: str, page_numbers: list[int]) -> None:
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
 
@@ -277,9 +250,7 @@ def render_pages_for_book(
 
     async def _start() -> bool:
         async with async_session_factory() as db:
-            job = (
-                await db.execute(select(Job).where(Job.id == job_id))
-            ).scalar_one_or_none()
+            job = (await db.execute(select(Job).where(Job.id == job_id))).scalar_one_or_none()
             if job is None:
                 raise ValueError(f"Job {job_id_str} not found")
             if job.status == JobStatus.CANCELLED:
@@ -322,17 +293,14 @@ def render_pages_for_book(
 
     _finalize(job_id, book_id, errors, total)
 
+
 # ---------------------------------------------------------------------------
 # Bulk preprocessing: apply one config to every page of a book
 # ---------------------------------------------------------------------------
-def _store_preprocessed(
-    page_id_str: str, config: dict, processed_rel: str
-) -> None:
+def _store_preprocessed(page_id_str: str, config: dict, processed_rel: str) -> None:
     async def _do():
         async with async_session_factory() as db:
-            page = (
-                await db.execute(select(Page).where(Page.id == uuid.UUID(page_id_str)))
-            ).scalar_one_or_none()
+            page = (await db.execute(select(Page).where(Page.id == uuid.UUID(page_id_str)))).scalar_one_or_none()
             if page is None:
                 return
             page.preprocessing_config = config
@@ -345,9 +313,7 @@ def _store_preprocessed(
 def _finalize_bulk(job_id: uuid.UUID, errors: list[str]) -> None:
     async def _do():
         async with async_session_factory() as db:
-            job = (
-                await db.execute(select(Job).where(Job.id == job_id))
-            ).scalar_one_or_none()
+            job = (await db.execute(select(Job).where(Job.id == job_id))).scalar_one_or_none()
             if job is None or job.status == JobStatus.CANCELLED:
                 return None
             if await is_superseded_async(db, job):
@@ -382,9 +348,7 @@ def _finalize_bulk(job_id: uuid.UUID, errors: list[str]) -> None:
 )
 @newrelic.agent.background_task(name="Preprocessing: Bulk Apply", group="CeleryTask")
 @single_book_task
-def apply_preprocessing_bulk(
-    self, job_id_str: str, book_id_str: str, config: dict
-) -> None:
+def apply_preprocessing_bulk(self, job_id_str: str, book_id_str: str, config: dict) -> None:
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
 
@@ -393,9 +357,7 @@ def apply_preprocessing_bulk(
 
     async def _setup():
         async with async_session_factory() as db:
-            job = (
-                await db.execute(select(Job).where(Job.id == job_id))
-            ).scalar_one_or_none()
+            job = (await db.execute(select(Job).where(Job.id == job_id))).scalar_one_or_none()
             if job is None:
                 raise ValueError(f"Job {job_id_str} not found")
             if job.status == JobStatus.CANCELLED:
@@ -407,12 +369,10 @@ def apply_preprocessing_bulk(
                 job.celery_task_id = self.request.id
             await db.commit()
             rows = (
-                await db.execute(
-                    select(Page)
-                    .where(Page.book_id == book_id)
-                    .order_by(Page.page_number)
-                )
-            ).scalars().all()
+                (await db.execute(select(Page).where(Page.book_id == book_id).order_by(Page.page_number)))
+                .scalars()
+                .all()
+            )
             return [(str(p.id), p.page_number, p.image_path) for p in rows]
 
     try:

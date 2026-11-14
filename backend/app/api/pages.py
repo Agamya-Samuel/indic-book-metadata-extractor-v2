@@ -56,9 +56,7 @@ async def update_preprocessing(
 
     output_path = storage.processed_image_path(str(page.book_id), page.page_number)
     try:
-        await run_in_threadpool(
-            prep_svc.run_pipeline, source_image, config.model_dump(), output_path
-        )
+        await run_in_threadpool(prep_svc.run_pipeline, source_image, config.model_dump(), output_path)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preprocessing failed: {e}")
 
@@ -103,9 +101,7 @@ async def preview_preprocessing(
     preview_path = storage.preview_image_path(str(page.book_id), str(page.id))
     preview_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        await run_in_threadpool(
-            prep_svc.run_pipeline, source_image, config.model_dump(), preview_path
-        )
+        await run_in_threadpool(prep_svc.run_pipeline, source_image, config.model_dump(), preview_path)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preprocessing failed: {e}")
 
@@ -187,11 +183,7 @@ async def update_ocr_correction(
 
     # Row lock to prevent concurrent OCR re-runs from silently overwriting
     # a user correction. The lock is released at the end of the transaction.
-    result = await db.execute(
-        select(OcrResult)
-        .where(OcrResult.page_id == page_id)
-        .with_for_update()
-    )
+    result = await db.execute(select(OcrResult).where(OcrResult.page_id == page_id).with_for_update())
     ocr = result.scalar_one_or_none()
     if ocr is None:
         raise HTTPException(status_code=404, detail="OCR result not found")

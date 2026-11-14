@@ -66,9 +66,7 @@ api_router.include_router(
     tags=["dashboard"],
     dependencies=[Depends(require_approved_user)],
 )
-api_router.include_router(
-    sse_router, tags=["SSE"], dependencies=[Depends(require_approved_user)]
-)
+api_router.include_router(sse_router, tags=["SSE"], dependencies=[Depends(require_approved_user)])
 api_router.include_router(
     notifications_router,
     prefix="/notifications",
