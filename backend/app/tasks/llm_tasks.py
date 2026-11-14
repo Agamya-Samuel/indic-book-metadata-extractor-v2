@@ -154,51 +154,64 @@ async def _persist_extraction_results(
 
         fields_data = metadata.model_dump()
 
+        # A re-run replaces the standard fields: a field the new run could not
+        # find becomes null instead of keeping a stale value from an earlier
+        # run. User-added custom fields are the one thing carried over.
+        preserved_custom = None
+        if existing_metadata and isinstance(existing_metadata.fields, dict):
+            preserved_custom = existing_metadata.fields.get("custom_fields")
+
+        new_fields = dict(fields_data)
+        if preserved_custom:
+            new_fields["custom_fields"] = preserved_custom
+
         if existing_metadata:
-            existing_fields = existing_metadata.fields or {}
-            existing_fields.update(
-                {k: v for k, v in fields_data.items() if v is not None}
-            )
-            existing_metadata.fields = existing_fields
+            existing_metadata.fields = new_fields
         else:
-            new_metadata = BookMetadata(book_id=book_id, fields=fields_data)
-            db.add(new_metadata)
+            db.add(BookMetadata(book_id=book_id, fields=new_fields))
 
         await db.flush()
 
-        # Per-field evidence: one row per populated field.
-        if evidence:
-            existing_evidence_result = await db.execute(
-                select(MetadataFieldEvidence).where(
-                    MetadataFieldEvidence.book_id == book_id
-                )
+        # Per-field evidence: one row per populated field. Evidence for fields
+        # the new run did not populate is removed so the UI cannot show a stale
+        # confidence for a value that no longer exists.
+        populated = {
+            k for k, v in new_fields.items() if v is not None and k != "custom_fields"
+        }
+        existing_evidence_result = await db.execute(
+            select(MetadataFieldEvidence).where(
+                MetadataFieldEvidence.book_id == book_id
             )
-            existing_evidence = {
-                e.field_name: e
-                for e in existing_evidence_result.scalars().all()
-            }
-            for field_name, ef in evidence.items():
-                if ef.value is None:
-                    continue
-                ef_row = existing_evidence.get(field_name)
-                if ef_row is None:
-                    db.add(
-                        MetadataFieldEvidence(
-                            book_id=book_id,
-                            field_name=field_name,
-                            value=ef.value,
-                            confidence=ef.confidence,
-                            extraction_method=ef.method,
-                            source_page_number=ef.source_page_number,
-                            source_text_snippet=ef.source_text_snippet,
-                        )
+        )
+        existing_evidence = {
+            e.field_name: e for e in existing_evidence_result.scalars().all()
+        }
+        for field_name, row in existing_evidence.items():
+            if field_name not in populated:
+                await db.delete(row)
+
+        for field_name, ef in evidence.items():
+            if ef.value is None:
+                continue
+            ef_row = existing_evidence.get(field_name)
+            if ef_row is None:
+                db.add(
+                    MetadataFieldEvidence(
+                        book_id=book_id,
+                        field_name=field_name,
+                        value=ef.value,
+                        confidence=ef.confidence,
+                        extraction_method=ef.method,
+                        source_page_number=ef.source_page_number,
+                        source_text_snippet=ef.source_text_snippet,
                     )
-                else:
-                    ef_row.value = ef.value
-                    ef_row.confidence = ef.confidence
-                    ef_row.extraction_method = ef.method
-                    ef_row.source_page_number = ef.source_page_number
-                    ef_row.source_text_snippet = ef.source_text_snippet
+                )
+            else:
+                ef_row.value = ef.value
+                ef_row.confidence = ef.confidence
+                ef_row.extraction_method = ef.method
+                ef_row.source_page_number = ef.source_page_number
+                ef_row.source_text_snippet = ef.source_text_snippet
 
         for br in batch_results:
             # Record the actual prompt the LLM saw rather than rebuilding

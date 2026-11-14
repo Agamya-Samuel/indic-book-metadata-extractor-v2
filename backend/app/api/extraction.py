@@ -43,10 +43,17 @@ async def run_extraction(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ExtractionResponse:
-    if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
+    if book.status not in (
+        BookStatus.OCR_COMPLETE,
+        BookStatus.AWAITING_REVIEW,
+        BookStatus.COMPLETE,
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'",
+            detail=(
+                "Book status must be 'ocr_complete', 'awaiting_review' or "
+                f"'complete', got '{book.status}'"
+            ),
         )
 
     pages_result = await db.execute(
@@ -83,6 +90,14 @@ async def run_extraction(
             detail="An LLM extraction job is already running or queued for this book",
         )
 
+    if book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):
+        # Re-running extraction supersedes the human review, so release the
+        # downstream stages and let the new run own the state again.
+        await StageManager.reset_from_stage(
+            db, book_id, "llm_extraction", "Superseded by a new extraction run"
+        )
+        book.status = BookStatus.OCR_COMPLETE
+        await db.flush()
 
     job = Job(
         book_id=book.id,
@@ -131,10 +146,17 @@ async def retry_extraction(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ExtractionResponse:
-    if book.status not in (BookStatus.OCR_COMPLETE, BookStatus.COMPLETE):
+    if book.status not in (
+        BookStatus.OCR_COMPLETE,
+        BookStatus.AWAITING_REVIEW,
+        BookStatus.COMPLETE,
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"Book status must be 'ocr_complete' or 'complete', got '{book.status}'",
+            detail=(
+                "Book status must be 'ocr_complete', 'awaiting_review' or "
+                f"'complete', got '{book.status}'"
+            ),
         )
 
     existing = await StageManager.get_stage(db, book_id, "llm_extraction")
