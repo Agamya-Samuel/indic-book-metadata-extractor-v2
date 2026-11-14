@@ -290,20 +290,23 @@ export default function OcrReviewPage() {
             <div className="flex flex-col gap-2">
               {pages.map((page, idx) => {
                 const hasOcr = !!getCachedOcrForPage(page.id);
+                const failed = !!page.ocr_error;
                 return (
                   <button
                     key={page.id}
                     type="button"
                     data-page-index={idx}
                     onClick={() => handlePageSelect(idx)}
-                    aria-label={`Go to page ${page.page_number}${hasOcr ? ", OCR loaded" : ""}`}
+                    aria-label={`Go to page ${page.page_number}${failed ? ", OCR failed" : hasOcr ? ", OCR loaded" : ""}`}
                     aria-current={idx === currentPageIndex ? "true" : undefined}
                     className={cn(
                       "relative aspect-[3/4] overflow-hidden rounded-[var(--radius)] border-2 transition-colors",
                       focusRing,
-                      idx === currentPageIndex
-                        ? "border-[var(--accent-ring)]"
-                        : "border-[var(--border)] hover:border-[var(--border-strong)]",
+                      failed
+                        ? "border-[var(--danger-500)]"
+                        : idx === currentPageIndex
+                          ? "border-[var(--accent-ring)]"
+                          : "border-[var(--border)] hover:border-[var(--border-strong)]",
                     )}
                   >
                     <Image
@@ -317,10 +320,13 @@ export default function OcrReviewPage() {
                     <span className="absolute inset-x-0 bottom-0 bg-[var(--neutral-1000)]/70 py-0.5 text-center text-[10px] font-medium text-[var(--text-inverse)]">
                       {page.page_number}
                     </span>
-                    {hasOcr && (
+                    {(hasOcr || failed) && (
                       <span
                         aria-hidden="true"
-                        className="absolute right-1 top-1 size-2 rounded-full bg-[var(--success-600)]"
+                        className={cn(
+                          "absolute right-1 top-1 size-2 rounded-full",
+                          failed ? "bg-[var(--danger-600)]" : "bg-[var(--success-600)]",
+                        )}
                       />
                     )}
                   </button>
