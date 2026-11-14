@@ -101,6 +101,7 @@ export default function AppNavbar() {
                   active
                     ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
                     : "text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-sunken)]",
+                  focusRing,
                 )}
               >
                 <span className="sm:hidden">{link.shortLabel}</span>
@@ -194,7 +195,10 @@ export default function AppNavbar() {
                 {isApproved && (
                   <Link
                     href="/dashboard"
-                    className="block px-4 py-2.5 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]"
+                    className={cn(
+                      "block px-4 py-2.5 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]",
+                      focusRing,
+                    )}
                   >
                     Dashboard
                   </Link>
@@ -202,7 +206,10 @@ export default function AppNavbar() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="block w-full px-4 py-2.5 text-left text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]"
+                  className={cn(
+                    "block w-full px-4 py-2.5 text-left text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]",
+                    focusRing,
+                  )}
                 >
                   Log out
                 </button>
