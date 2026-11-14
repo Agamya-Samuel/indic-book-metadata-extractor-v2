@@ -29,7 +29,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Ruff check
         run: uv run ruff check .
@@ -89,7 +89,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Run tests
         run: uv run pytest
@@ -132,7 +132,6 @@ jobs:
       run:
         working-directory: frontend
     env:
-      NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_API_URL: http://localhost:8000/api
       NEXT_PUBLIC_OPENREFINE_URL: http://localhost:3333
@@ -151,6 +150,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          NODE_ENV: production
         run: npm run build
 
   # ─────────────────────────────────────────────────────────────────────────────
@@ -191,7 +192,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Run migrations
         run: uv run alembic upgrade head
