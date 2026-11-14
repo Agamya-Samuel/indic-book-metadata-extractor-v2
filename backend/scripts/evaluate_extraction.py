@@ -274,6 +274,7 @@ def main() -> int:
     )
     parser.add_argument("--model", default="qwen2.5", help="Ollama model for extraction (default qwen2.5)")
     parser.add_argument("--limit", type=int, default=0, help="Max books to score (0 = all)")
+    parser.add_argument("--lang", default=None, choices=["tel", "hin"], help="Only score books of this language")
     parser.add_argument("--pages", type=int, default=12, help="Max pages to render/OCR per book (default 12)")
     parser.add_argument("--max-tokens", type=int, default=1024, help="Max output tokens per batch (default 1024)")
     parser.add_argument(
@@ -300,6 +301,8 @@ def main() -> int:
         )
     else:
         samples = discover_samples(quality=args.quality)
+    if args.lang:
+        samples = [s for s in samples if s["sample_id"].startswith(f"{args.lang}/")]
     if args.limit:
         samples = samples[: args.limit]
     if not samples:
