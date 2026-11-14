@@ -94,3 +94,16 @@ Reports: `backend/reports/gt-bench-*.json`, `backend/reports/gt-verified-*.json`
 - [learnings/005 — LLM Model Evaluation](../learnings/005-llm-model-evaluation.md) · [plans/004](../plans/004-llm-model-evaluation.md)
 - [learnings/010 — Shortlist Benchmark](../learnings/010-llm-shortlist-benchmark.md) · [learnings/013 — Verified Shortlist & OCR](../learnings/013-verified-shortlist-and-ocr.md)
 - [learnings/004 — OCR CER](../learnings/004-ocr-stage-cer.md) · [infra/gcp-test-nodes.md](../infra/gcp-test-nodes.md)
+
+## 9. Enriched-corpus re-evaluation (2026-11-14)
+
+Re-ran the end-to-end harness against the **enriched 71-book corpus** (`evaluate_extraction --ground-truth`, field-aware — model-prefilled fields excluded from scoring). Node: `test-node-1`.
+
+| Model | Books | Micro P | Micro R | Micro F1 |
+|---|---|---|---|---|
+| `phi4-mini` (OpenAI path) | 4 Hindi | 0.448 | 0.361 | **0.400** |
+| `gemma4:e4b` (`--native`) | 4 Hindi | _pending_ | | |
+
+`phi4-mini` per-field F1 on the 4 Hindi books: `title` 1.00, `author` 0.86, `publication_date` 0.86, `publisher` 0.67, `pages` 0.40.
+
+**Harness caveat:** `evaluate_extraction` calls `LLMService`, i.e. Ollama's **OpenAI-compatible** endpoint, where `think:false` is dropped — a thinking model (`gemma4`) then returns empty content and scores 0. Added an opt-in **`--native`** flag ([`scripts/native_extract.py`](../backend/scripts/native_extract.py)) that calls `/api/chat` with `think:false`; the production extraction path is unchanged. (See [learnings/022](../learnings/022-gt-source-expansion.md) finding 6.)
