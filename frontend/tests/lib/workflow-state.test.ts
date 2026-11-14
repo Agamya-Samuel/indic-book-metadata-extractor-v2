@@ -38,6 +38,7 @@ function makeStage(
   stage_name: string,
   status: string,
   attempt = 1,
+  createdAt = "2024-01-01T00:00:00",
 ): BookStageResponse {
   return {
     id: `${stage_name}-${attempt}`,
@@ -48,8 +49,8 @@ function makeStage(
     started_at: null,
     completed_at: null,
     error_log: null,
-    created_at: "2024-01-01T00:00:00",
-    updated_at: "2024-01-01T00:00:00",
+    created_at: createdAt,
+    updated_at: createdAt,
   };
 }
 
@@ -219,6 +220,22 @@ describe("deriveWorkflowState", () => {
     expect(stepState(state, "ocr")).toBe("current");
     expect(stepState(state, "llm")).toBe("stale");
     expect(state.currentStep).toBe("ocr");
+  });
+
+  it("does not mark a later LLM run stale after an OCR re-run", () => {
+    // Re-running OCR opens attempt 2; the extraction that follows is attempt 1
+    // but was created later, so attempt numbers alone would call it stale.
+    const state = deriveWorkflowState({
+      book: makeBook({ status: "llm_running" }),
+      stages: [
+        makeStage("ocr", "completed", 2, "2024-01-01T00:10:00"),
+        makeStage("llm_extraction", "processing", 1, "2024-01-01T00:20:00"),
+      ],
+    });
+    expect(stepState(state, "ocr")).toBe("complete");
+    expect(stepState(state, "ocr_review")).toBe("complete");
+    expect(stepState(state, "llm")).toBe("current");
+    expect(state.currentStep).toBe("llm");
   });
 
   it("reports a running page-extraction job on the pages step", () => {

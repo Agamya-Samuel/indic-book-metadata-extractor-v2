@@ -169,13 +169,31 @@ export function deriveWorkflowState({
   // A downstream stage from an earlier attempt is stale when the upstream
   // stage has since been restarted (higher attempt number). This is exactly
   // what a re-run OCR over existing metadata looks like.
+  //
+  // Attempt numbers are per stage, so a re-run OCR (attempt 2) followed by a
+  // fresh LLM attempt (attempt 1) is NOT stale. Prefer the stage row's
+  // creation time when it is available; fall back to attempts only when the
+  // timestamps are missing or identical (e.g. fixtures).
   const isDownstreamStale = (
     upstream: BookStageResponse | undefined,
     downstream: BookStageResponse | undefined,
-  ): boolean =>
-    !!upstream &&
-    !!downstream &&
-    (upstream.attempt ?? 1) > (downstream.attempt ?? 1);
+  ): boolean => {
+    if (!upstream || !downstream) return false;
+    const upstreamCreated = upstream.created_at
+      ? Date.parse(upstream.created_at)
+      : Number.NaN;
+    const downstreamCreated = downstream.created_at
+      ? Date.parse(downstream.created_at)
+      : Number.NaN;
+    if (
+      !Number.isNaN(upstreamCreated) &&
+      !Number.isNaN(downstreamCreated) &&
+      upstreamCreated !== downstreamCreated
+    ) {
+      return upstreamCreated > downstreamCreated;
+    }
+    return (upstream.attempt ?? 1) > (downstream.attempt ?? 1);
+  };
 
   const llmStale = isDownstreamStale(ocrStageRow, llmStageRow);
   const reviewStale =
