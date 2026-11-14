@@ -78,6 +78,27 @@ async def test_login_logout_and_me(anon_client, create_user):
     assert after.status_code == 401
 
 
+async def test_logout_works_without_a_valid_access_token(anon_client, create_user):
+    await create_user(email="expired@example.com", password=PASSWORD)
+    login = await anon_client.post(
+        "/api/auth/login",
+        json={"email": "expired@example.com", "password": PASSWORD},
+    )
+    assert login.status_code == 200
+    anon_client.headers["X-CSRF-Token"] = anon_client.cookies.get("csrf_token")
+    refresh_token = anon_client.cookies.get("refresh_token")
+    # Simulate the state after the 15-minute access token expired.
+    anon_client.cookies.set("access_token", "expired")
+
+    logout = await anon_client.post("/api/auth/logout")
+    assert logout.status_code == 204
+
+    # The refresh token was revoked, not merely cleared from the browser.
+    anon_client.cookies.set("refresh_token", refresh_token)
+    refreshed = await anon_client.post("/api/auth/refresh")
+    assert refreshed.status_code == 401
+
+
 async def test_login_rejects_bad_password(anon_client, create_user):
     await create_user(email="badpass@example.com", password=PASSWORD)
     response = await anon_client.post(
