@@ -13,7 +13,12 @@ from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.services import notification_service, ocr_service, ocr_postprocess, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
-from app.services.stage_manager import StageManager
+from app.services.stage_manager import StageManager, StageTransitionError
+from app.tasks.cancellation import (
+    is_cancelled_async,
+    is_superseded_async,
+    should_stop,
+)
 from app.tasks.async_utils import run_async, run_async_threadsafe
 from app.tasks.celery_app import celery_app
 
@@ -252,12 +257,16 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
                 select(Job).where(Job.id == job_uuid).with_for_update()
             )
             job = job_result.scalar_one_or_none()
-            if job:
-                job.status = JobStatus.RUNNING
-                job.started_at = datetime.now(timezone.utc)
-                if self.request.id and not job.celery_task_id:
-                    job.celery_task_id = self.request.id
-                await db.commit()
+            if job is None or job.status == JobStatus.CANCELLED:
+                return None
+            if await is_superseded_async(db, job):
+                logger.info("Preprocessing job %s was superseded", job_id_str)
+                return None
+            job.status = JobStatus.RUNNING
+            job.started_at = datetime.now(timezone.utc)
+            if self.request.id and not job.celery_task_id:
+                job.celery_task_id = self.request.id
+            await db.commit()
 
             pages_result = await db.execute(
                 select(Page).where(Page.book_id == book_uuid).order_by(Page.page_number)
@@ -266,6 +275,9 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
 
             preprocessed = 0
             for page in pages:
+                if await is_cancelled_async(db, job_uuid):
+                    logger.info("Preprocessing job %s cancelled", job_id_str)
+                    return None
                 config = page.preprocessing_config
                 if config and not page.processed_image_path:
                     image_rel = page.image_path
@@ -285,6 +297,12 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
 
     try:
         count = run_async(_run())
+        if count is None:
+            logger.info(
+                "Preprocessing for book %s stopped (cancelled, superseded, or job gone)",
+                book_id_str,
+            )
+            return
         logger.info("Preprocessed %d pages for book %s, chaining to OCR", count, book_id_str)
     except (ConnectionError, TimeoutError, OSError, sa_exc.OperationalError) as exc:
         # Transient: let Celery retry.
@@ -297,6 +315,10 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
             book_uuid,
             f"Preprocessing failed: {e}",
         )
+        return
+
+    if should_stop(uuid.UUID(job_id_str)):
+        logger.info("OCR for book %s not dispatched: job cancelled or superseded", book_id_str)
         return
 
     run_ocr_for_book.delay(job_id_str, book_id_str, language)
@@ -320,6 +342,8 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
     newrelic.agent.add_custom_attribute("job_id", job_id_str)
     newrelic.agent.add_custom_attribute("language", language)
 
+    job_uuid = uuid.UUID(job_id_str)
+
     async def _setup():
         async with async_session_factory() as db:
             job_id = uuid.UUID(job_id_str)
@@ -328,7 +352,14 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
             job_result = await db.execute(select(Job).where(Job.id == job_id))
             job = job_result.scalar_one_or_none()
             if job is None:
-                raise ValueError(f"Job {job_id_str} not found")
+                logger.info("OCR job %s no longer exists", job_id_str)
+                return None
+            if job.status == JobStatus.CANCELLED:
+                logger.info("OCR job %s was cancelled before it started", job_id_str)
+                return None
+            if await is_superseded_async(db, job):
+                logger.info("OCR job %s was superseded before it started", job_id_str)
+                return None
 
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
@@ -362,6 +393,9 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
         started = datetime.now(timezone.utc)
 
         for page_id in page_ids:
+            if should_stop(job_uuid):
+                logger.info("OCR job %s cancelled or superseded; stopping", job_id_str)
+                return
             try:
                 _process_page_threadsafe(page_id, book_id_str, language)
                 ocr_row_result = run_async_threadsafe(
@@ -376,6 +410,10 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 
             completed += 1
             _update_job_progress(job_id_str, completed, total_pages, book_id_str)
+
+        if should_stop(job_uuid):
+            logger.info("OCR job %s cancelled or superseded before finalising", job_id_str)
+            return
 
         avg_confidence = (
             round(avg_conf_sum / avg_conf_count, 2) if avg_conf_count else None
@@ -430,7 +468,13 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             job_result = await db.execute(select(Job).where(Job.id == job_id))
             job = job_result.scalar_one_or_none()
             if job is None:
-                return
+                return None
+            if job.status == JobStatus.CANCELLED:
+                logger.info("OCR job %s was cancelled; not finalising", job_id_str)
+                return None
+            if await is_superseded_async(db, job):
+                logger.info("OCR job %s was superseded; not finalising", job_id_str)
+                return None
 
             book_result = await db.execute(select(Book).where(Book.id == book_id))
             book = book_result.scalar_one_or_none()
@@ -438,20 +482,29 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             # Stage transitions run on THIS session, never a second one: the
             # other session's SELECT ... FOR UPDATE on the book row would block
             # against any flushed write of ours that references it.
-            if errors and len(errors) == total_pages:
-                job.status = JobStatus.FAILED
-                job.error_log = "All pages failed:\n" + "\n".join(errors)
-                if book:
-                    await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
-            elif errors:
-                job.status = JobStatus.COMPLETED
-                job.error_log = "Some pages failed:\n" + "\n".join(errors)
-                if book:
-                    await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
-            else:
-                job.status = JobStatus.COMPLETED
-                if book:
-                    await StageManager.complete_stage(db, book_id, "ocr")
+            try:
+                if errors and len(errors) == total_pages:
+                    job.status = JobStatus.FAILED
+                    job.error_log = "All pages failed:\n" + "\n".join(errors)
+                    if book:
+                        await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
+                elif errors:
+                    job.status = JobStatus.COMPLETED
+                    job.error_log = "Some pages failed:\n" + "\n".join(errors)
+                    if book:
+                        await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
+                else:
+                    job.status = JobStatus.COMPLETED
+                    if book:
+                        await StageManager.complete_stage(db, book_id, "ocr")
+            except StageTransitionError:
+                logger.warning(
+                    "OCR stage for book %s changed while job %s was finalising; "
+                    "keeping the job result without touching the stage",
+                    book_id_str,
+                    job_id_str,
+                    exc_info=True,
+                )
 
             job.progress = 100.0
             job.completed_at = datetime.now(timezone.utc)
@@ -485,6 +538,20 @@ def _mark_job_failed(job_id_str: str, book_id: uuid.UUID, error: str):
             )
             job = job_result.scalar_one_or_none()
             if not job:
+                return False
+            if job.status in (
+                JobStatus.COMPLETED,
+                JobStatus.FAILED,
+                JobStatus.CANCELLED,
+            ):
+                logger.info(
+                    "Job %s is already %s; refusing to overwrite it with a failure",
+                    job_id_str,
+                    job.status,
+                )
+                return False
+            if await is_superseded_async(db, job):
+                logger.info("Job %s was superseded; not marking it failed", job_id_str)
                 return False
             job.status = JobStatus.FAILED
             job.error_log = error

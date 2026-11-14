@@ -50,7 +50,15 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
                     select(Job).where(Job.celery_task_id == task_id)
                 )
                 job = job_result.scalar_one_or_none()
-                if not job or job.status in (JobStatus.COMPLETED, JobStatus.FAILED):
+                if not job or job.status in (
+                    JobStatus.COMPLETED,
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                ):
+                    return
+                from app.tasks.cancellation import is_superseded_async
+
+                if await is_superseded_async(db, job):
                     return
                 error = (
                     f"{type(exception).__name__}: {exception}"

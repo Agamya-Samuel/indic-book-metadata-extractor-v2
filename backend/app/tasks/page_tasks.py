@@ -23,6 +23,7 @@ from app.models.page import Page
 from app.services import notification_service, pdf_service, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
 from app.services.stage_manager import StageManager
+from app.tasks.cancellation import is_superseded_async
 from app.tasks.async_utils import run_async, run_async_threadsafe
 from app.tasks.celery_app import celery_app
 
@@ -178,6 +179,12 @@ def _finalize(
                 await db.execute(select(Job).where(Job.id == job_id))
             ).scalar_one_or_none()
             if job is None:
+                return None
+            if job.status == JobStatus.CANCELLED:
+                logger.info("Page extraction job %s was cancelled; not finalising", job_id)
+                return None
+            if await is_superseded_async(db, job):
+                logger.info("Page extraction job %s was superseded; not finalising", job_id)
                 return None
             book = (
                 await db.execute(select(Book).where(Book.id == book_id))
@@ -337,6 +344,9 @@ def _finalize_bulk(job_id: uuid.UUID, errors: list[str]) -> None:
             ).scalar_one_or_none()
             if job is None or job.status == JobStatus.CANCELLED:
                 return None
+            if await is_superseded_async(db, job):
+                logger.info("Bulk preprocessing job %s was superseded", job_id)
+                return None
             job.status = JobStatus.FAILED if errors else JobStatus.COMPLETED
             if errors:
                 job.error_log = ("Some pages failed:\n" + "\n".join(errors))[:2000]
@@ -405,6 +415,7 @@ def apply_preprocessing_bulk(
         return
 
     if not pages:
+        _fail(job_id, book_id, "No pages selected for this book")
         return
 
     total = len(pages)
