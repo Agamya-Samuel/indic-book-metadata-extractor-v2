@@ -27,6 +27,9 @@ class BookDetail(BookUploadResponse):
     needs_review: bool = False
     low_confidence_count: int = 0
     owner_email: str | None = None
+    # Signed with the book's thumbnail scope so <img> tags keep working after
+    # the short-lived access cookie expires.
+    thumbnail_token: str | None = None
 
 
 class PageSelectionRequest(BaseModel):
@@ -48,6 +51,7 @@ class PageResponse(BaseModel):
     has_processed_image: bool = False
     ocr_error: str | None = None
     image_url: str | None = None
+    preview_url: str | None = None
     ocr_text: str | None = None
     ocr_confidence: float | None = None
 

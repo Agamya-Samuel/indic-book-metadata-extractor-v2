@@ -265,10 +265,11 @@ export default function PreprocessingPage() {
     runOcrMutation.mutate();
   };
 
-  const previewSrc =
+  const previewBase =
     compareMode === "preview" && previewVersion > 0
-      ? `${getPreprocessingPreviewUrl(currentPage.id)}?v=${previewVersion}`
-      : `${getPageImageUrl(currentPage.id)}?v=${previewVersion}`;
+      ? (currentPage.preview_url ?? getPreprocessingPreviewUrl(currentPage.id))
+      : (currentPage.image_url ?? getPageImageUrl(currentPage.id));
+  const previewSrc = `${previewBase}${previewBase.includes("?") ? "&" : "?"}v=${previewVersion}`;
 
   return (
     <WorkflowShell bookId={bookId}>
@@ -330,7 +331,7 @@ export default function PreprocessingPage() {
                       )}
                     >
                       <Image
-                        src={getThumbnailUrl(bookId, page.page_number)}
+                        src={getThumbnailUrl(bookId, page.page_number, book.thumbnail_token)}
                         alt={`Page ${page.page_number}`}
                         fill
                         sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 50vw"

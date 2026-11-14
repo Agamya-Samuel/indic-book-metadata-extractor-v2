@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_job_for_user_or_404
 from app.core.database import get_db
+from app.core.media_tokens import thumbnail_url
 from app.models.job import Job
 from app.models.user import User, UserRole
 from app.schemas.book import BookListResponse, BookSearchResult
@@ -52,7 +53,7 @@ async def dashboard_books(
             total_pages=item["total_pages"],
             created_at=item["created_at"],
             metadata_fields=item["metadata_fields"],
-            thumbnail_url=f"/api/books/{item['id']}/pages/1/thumbnail",
+            thumbnail_url=thumbnail_url(item["id"], 1),
             owner_id=item.get("owner_id"),
             owner_display_name=item.get("owner_display_name"),
         )

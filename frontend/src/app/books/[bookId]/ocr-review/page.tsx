@@ -307,7 +307,7 @@ export default function OcrReviewPage() {
                     )}
                   >
                     <Image
-                      src={getThumbnailUrl(bookId, page.page_number)}
+                      src={getThumbnailUrl(bookId, page.page_number, book.thumbnail_token)}
                       alt=""
                       fill
                       sizes="7rem"
@@ -364,7 +364,7 @@ export default function OcrReviewPage() {
             <div className="w-full lg:w-[60%] p-4 overflow-hidden min-h-0">
               <Card>
                 <BoundingBoxCanvas
-                  imageUrl={getPageImageUrl(currentPage!.id)}
+                  imageUrl={currentPage!.image_url ?? getPageImageUrl(currentPage!.id)}
                   boxes={ocrResult.bounding_boxes ?? []}
                   selectedIndex={selectedWordIndex}
                   onBoxClick={handleBoxClick}

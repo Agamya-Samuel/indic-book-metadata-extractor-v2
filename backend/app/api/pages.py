@@ -3,7 +3,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -109,40 +108,6 @@ async def preview_preprocessing(
         page_id=page.id,
         preview_url=f"/api/pages/{page_id}/preprocessing/preview",
     )
-
-
-@router.get("/{page_id}/preprocessing/preview")
-async def get_preprocessing_preview(
-    page_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> FileResponse:
-    page = await _get_page(page_id, db, user)
-    preview_path = storage.preview_image_path(str(page.book_id), str(page.id))
-    if not preview_path.exists():
-        raise HTTPException(status_code=404, detail="No preview available")
-    return FileResponse(preview_path, media_type="image/png")
-
-
-@router.get("/{page_id}/image")
-async def get_page_image(
-    page_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> FileResponse:
-    page = await _get_page(page_id, db, user)
-
-    if page.processed_image_path:
-        processed = Path(settings.storage_path) / page.processed_image_path
-        if processed.exists():
-            return FileResponse(processed, media_type="image/png")
-
-    if page.image_path:
-        original = Path(settings.storage_path) / page.image_path
-        if original.exists():
-            return FileResponse(original, media_type="image/png")
-
-    raise HTTPException(status_code=404, detail="Page image not found")
 
 
 @router.get("/{page_id}/ocr", response_model=OcrResultResponse)

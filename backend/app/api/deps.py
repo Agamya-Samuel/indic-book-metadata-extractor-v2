@@ -104,6 +104,21 @@ async def get_current_user(
     return user
 
 
+async def get_optional_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """The session user when present and valid, otherwise None.
+
+    Media endpoints use this so a signed URL can stand in for an expired
+    access cookie without weakening the ownership check.
+    """
+    token, _ = _extract_token(request)
+    if not token:
+        return None
+    return await _user_from_token(db, token)
+
+
 async def require_approved_user(
     user: User = Depends(get_current_user),
 ) -> User:

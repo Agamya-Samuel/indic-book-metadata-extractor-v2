@@ -8,6 +8,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.deps import require_approved_user
 from app.api.extraction import router as extraction_router
 from app.api.health import router as health_router
+from app.api.media import router as media_router
 from app.api.jobs import router as jobs_router
 from app.api.metadata import router as metadata_router
 from app.api.notifications import router as notifications_router
@@ -18,6 +19,10 @@ from app.api.stages import router as stages_router
 api_router = APIRouter()
 # Liveness must stay unauthenticated so an external monitor can poll it.
 api_router.include_router(health_router, tags=["health"])
+# Media GETs accept a session or a signed token, so they cannot sit behind the
+# approved-session dependency. They still enforce ownership or a resource-scoped
+# token inside each handler.
+api_router.include_router(media_router, tags=["media"])
 # /auth/* stays outside the approval gate so pending/rejected users can hold a
 # session, refresh it, and log out while they sit on the holding screen.
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])

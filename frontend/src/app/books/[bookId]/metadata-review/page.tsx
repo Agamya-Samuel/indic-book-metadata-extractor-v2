@@ -397,7 +397,7 @@ export default function MetadataReviewPage() {
 
                 {evidencePage && (
                   <Image
-                    src={getPageImageUrl(evidencePage.id)}
+                    src={evidencePage.image_url ?? getPageImageUrl(evidencePage.id)}
                     alt={`Source page ${evidence.source_page_number}`}
                     width={900}
                     height={1200}

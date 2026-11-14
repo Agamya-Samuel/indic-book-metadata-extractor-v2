@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_admin
 from app.core.database import get_db
+from app.core.media_tokens import thumbnail_url
 from app.models.user import AccountStatus, User
 from app.schemas.auth import (
     AdminPasswordResetRequest,
@@ -258,7 +259,7 @@ async def admin_list_books(
 
     items = []
     for item in items_raw:
-        thumb = f"/api/books/{item['id']}/pages/1/thumbnail"
+        thumb = thumbnail_url(item["id"], 1)
         items.append(
             BookSearchResult(
                 id=item["id"],

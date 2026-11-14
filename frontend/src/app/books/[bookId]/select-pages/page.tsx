@@ -226,7 +226,7 @@ export default function SelectPagesPage() {
                 >
                   <div className="aspect-[3/4] relative bg-[var(--surface-sunken)]">
                     <Image
-                      src={getThumbnailUrl(bookId, pageNumber)}
+                      src={getThumbnailUrl(bookId, pageNumber, book.thumbnail_token)}
                       alt={`Page ${pageNumber}`}
                       fill
                       sizes="(min-width: 1280px) 12vw, (min-width: 768px) 20vw, 45vw"
