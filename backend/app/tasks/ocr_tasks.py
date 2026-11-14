@@ -25,6 +25,36 @@ from app.tasks.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+def ocr_outcome(total_pages: int, errors: list[str]) -> tuple[str, str | None]:
+    """Terminal job status and error log for an OCR run with page failures.
+
+    A partial failure still counts as completed: the pages that succeeded are
+    usable, and blocking the book at ``pages_selected`` stranded the text the
+    user could already review. Only a run where every page failed is a failure.
+    """
+    if not errors:
+        return JobStatus.COMPLETED, None
+    joined = "\n".join(errors)
+    if total_pages and len(errors) >= total_pages:
+        return JobStatus.FAILED, ("All pages failed:\n" + joined)[:2000]
+    return JobStatus.COMPLETED, ("Some pages failed:\n" + joined)[:2000]
+
+
+def _record_page_error(page_id_str: str, message: str) -> None:
+    async def _do():
+        async with async_session_factory() as db:
+            page = await db.get(Page, uuid.UUID(page_id_str))
+            if page is None:
+                return
+            page.ocr_error = message[:2000]
+            await db.commit()
+
+    try:
+        run_async_threadsafe(_do())
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not record OCR error for page %s", page_id_str, exc_info=True)
+
+
 # ---------------------------------------------------------------------------
 # Core page processing (async)
 # ---------------------------------------------------------------------------
@@ -90,6 +120,7 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
             )
             db.add(new_result)
 
+        page.ocr_error = None
         await db.commit()
         return {
             "page_id": page_id_str,
@@ -407,6 +438,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
             except Exception as e:
                 logger.error("OCR failed for page %s: %s", page_id, e)
                 errors.append(f"Page {page_id}: {e}")
+                _record_page_error(page_id, f"{type(e).__name__}: {e}")
 
             completed += 1
             _update_job_progress(job_id_str, completed, total_pages, book_id_str)
@@ -483,19 +515,18 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             # other session's SELECT ... FOR UPDATE on the book row would block
             # against any flushed write of ours that references it.
             try:
-                if errors and len(errors) == total_pages:
-                    job.status = JobStatus.FAILED
-                    job.error_log = "All pages failed:\n" + "\n".join(errors)
-                    if book:
-                        await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
-                elif errors:
-                    job.status = JobStatus.COMPLETED
-                    job.error_log = "Some pages failed:\n" + "\n".join(errors)
-                    if book:
-                        await StageManager.fail_stage(db, book_id, "ocr", job.error_log)
-                else:
-                    job.status = JobStatus.COMPLETED
-                    if book:
+                status, outcome_log = ocr_outcome(total_pages, errors)
+                job.status = status
+                job.error_log = outcome_log
+                if book:
+                    if status == JobStatus.FAILED:
+                        await StageManager.fail_stage(
+                            db, book_id, "ocr", outcome_log or ""
+                        )
+                    else:
+                        # Partial runs advance: the failed pages stay flagged via
+                        # pages.ocr_error, but the book reaches ocr_complete so
+                        # the text that did succeed can be reviewed.
                         await StageManager.complete_stage(db, book_id, "ocr")
             except StageTransitionError:
                 logger.warning(
