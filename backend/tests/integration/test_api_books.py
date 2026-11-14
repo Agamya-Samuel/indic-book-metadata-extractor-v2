@@ -112,8 +112,10 @@ class TestListPages:
         book = await make_book_with_pages(selected_pages=[1, 3])
         response = await client.get(f"/api/books/{book['id']}/pages")
         assert response.status_code == 200
-        pages = response.json()
+        data = response.json()
+        pages = data["items"]
         assert len(pages) == 2
+        assert data["total"] == 2
         assert pages[0]["page_number"] == 1
         assert pages[1]["page_number"] == 3
 
@@ -164,14 +166,18 @@ class TestListJobs:
         book = await make_book()
         response = await client.get(f"/api/books/{book['id']}/jobs")
         assert response.status_code == 200
-        assert response.json() == []
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
 
     async def test_list_jobs_after_ocr(self, client, make_book_with_pages, mock_celery):
         book = await make_book_with_pages()
         await client.post(f"/api/books/{book['id']}/run-ocr")
         response = await client.get(f"/api/books/{book['id']}/jobs")
         assert response.status_code == 200
-        jobs = response.json()
+        data = response.json()
+        jobs = data["items"]
+        assert data["total"] == 1
         assert len(jobs) == 1
         assert jobs[0]["job_type"] == "ocr"
 
