@@ -59,12 +59,11 @@ async def dashboard_books(
         for item in items_raw
     ]
 
-    return BookListResponse(
+    return BookListResponse.create(
         items=items,
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=dashboard_service.page_count(total, page_size),
     )
 
 
@@ -85,12 +84,11 @@ async def dashboard_jobs(
         page=page,
         page_size=page_size,
     )
-    return DashboardJobsResponse(
+    return DashboardJobsResponse.create(
         items=items,
         total=total,
         page=page,
         page_size=page_size,
-        total_pages=dashboard_service.page_count(total, page_size),
     )
 
 

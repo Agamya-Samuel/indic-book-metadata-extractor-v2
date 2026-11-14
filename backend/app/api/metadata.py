@@ -1,11 +1,11 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.api.deps import get_owned_book_or_404
+from app.api.deps import PaginationParams, get_owned_book_or_404, get_pagination
 from app.core.database import get_db
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
@@ -13,26 +13,16 @@ from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
 from app.models.stage import StageStatus
+from app.schemas.common import Page
 from app.schemas.metadata import (
     ALL_METADATA_FIELDS,
+    FieldEvidenceResponse,
     LlmRunResponse,
     MetadataFieldDefinition,
     MetadataResponse,
     MetadataUpdateRequest,
 )
 from app.services.stage_manager import StageManager
-from pydantic import BaseModel
-
-
-class FieldEvidenceResponse(BaseModel):
-    field_name: str
-    value: str | None
-    confidence: float | None
-    extraction_method: str
-    source_page_number: int | None
-    source_text_snippet: str | None
-
-    model_config = {"from_attributes": True}
 
 router = APIRouter()
 
@@ -173,51 +163,95 @@ async def complete_review(
 
 @router.get(
     "/{book_id}/metadata/fields",
-    response_model=list[MetadataFieldDefinition],
+    response_model=Page[MetadataFieldDefinition],
 )
 async def get_field_definitions(
+    pagination: PaginationParams = Depends(get_pagination),
     book: Book = Depends(get_owned_book_or_404),
-) -> list[MetadataFieldDefinition]:
-    return ALL_METADATA_FIELDS
+) -> Page[MetadataFieldDefinition]:
+    items = ALL_METADATA_FIELDS[
+        pagination.offset : pagination.offset + pagination.page_size
+    ]
+    return Page[MetadataFieldDefinition].create(
+        items=items,
+        total=len(ALL_METADATA_FIELDS),
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 @router.get(
     "/{book_id}/metadata/evidence",
-    response_model=list[FieldEvidenceResponse],
+    response_model=Page[FieldEvidenceResponse],
 )
 async def get_metadata_evidence(
+    pagination: PaginationParams = Depends(get_pagination),
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-) -> list[FieldEvidenceResponse]:
+) -> Page[FieldEvidenceResponse]:
     """Return per-field provenance (confidence, source page, method)."""
+    total = int(
+        await db.scalar(
+            select(func.count(MetadataFieldEvidence.id)).where(
+                MetadataFieldEvidence.book_id == book.id
+            )
+        )
+        or 0
+    )
     result = await db.execute(
         select(MetadataFieldEvidence)
         .where(MetadataFieldEvidence.book_id == book.id)
         .order_by(MetadataFieldEvidence.field_name)
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
     )
     rows = result.scalars().all()
-    return [FieldEvidenceResponse.model_validate(r) for r in rows]
+    return Page[FieldEvidenceResponse].create(
+        items=[FieldEvidenceResponse.model_validate(r) for r in rows],
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
-@router.get("/{book_id}/llm-runs", response_model=list[LlmRunResponse])
+@router.get("/{book_id}/llm-runs", response_model=Page[LlmRunResponse])
 async def get_llm_runs(
+    pagination: PaginationParams = Depends(get_pagination),
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-) -> list[LlmRunResponse]:
+) -> Page[LlmRunResponse]:
     book_id = book.id
 
-    jobs_result = await db.execute(
+    job_ids_result = await db.execute(
         select(Job.id).where(Job.book_id == book_id, Job.job_type == JobType.LLM)
     )
-    job_ids = [row[0] for row in jobs_result.all()]
+    job_ids = [row[0] for row in job_ids_result.all()]
 
     if not job_ids:
-        return []
+        return Page[LlmRunResponse].create(
+            items=[],
+            total=0,
+            page=pagination.page,
+            page_size=pagination.page_size,
+        )
 
+    total = int(
+        await db.scalar(
+            select(func.count(LlmRun.id)).where(LlmRun.job_id.in_(job_ids))
+        )
+        or 0
+    )
     runs_result = await db.execute(
         select(LlmRun)
         .where(LlmRun.job_id.in_(job_ids))
         .order_by(LlmRun.created_at.desc())
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
     )
     runs = runs_result.scalars().all()
-    return [LlmRunResponse.model_validate(r) for r in runs]
+    return Page[LlmRunResponse].create(
+        items=[LlmRunResponse.model_validate(r) for r in runs],
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
