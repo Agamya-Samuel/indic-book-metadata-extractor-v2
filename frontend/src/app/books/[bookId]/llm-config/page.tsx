@@ -218,7 +218,7 @@ export default function LlmConfigPage() {
         )}
 
         {currentRunComplete && (
-          <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--success-500)]/30 bg-[var(--success-50)] px-4 py-3 text-[var(--text-sm)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]">
+          <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--success-500)]/30 bg-[var(--success-50)] px-4 py-3 text-[length:var(--text-sm)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span>Extraction complete.</span>
               <LinkButton
@@ -301,14 +301,14 @@ export default function LlmConfigPage() {
 
               <Card title="Batching" description="One call per field group.">
                 <Stack gap={3}>
-                  <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                  <p className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                     {totalBatches} LLM call{totalBatches !== 1 ? "s" : ""} will be
                     made across {totalFields} fields (one per batch group).
                   </p>
 
                   <div className="pt-3 border-t border-[var(--border)] space-y-2">
                     {hasPriorRun && (
-                      <p className="text-[var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                      <p className="text-[length:var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
                         A previous run exists. Running again replaces the
                         extracted metadata.
                       </p>
@@ -351,7 +351,7 @@ export default function LlmConfigPage() {
                   ) : undefined
                 }
               >
-                <p className="mb-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+                <p className="mb-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
                   Instructs the model on its role and output format. Variables:{" "}
                   {"{{language}}"}
                 </p>
@@ -383,7 +383,7 @@ export default function LlmConfigPage() {
                   ) : undefined
                 }
               >
-                <p className="mb-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+                <p className="mb-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
                   The user-turn prompt that requests field extraction. Variables:{" "}
                   {"{{language}}"}, {"{{field_descriptions}}"}, {"{{ocr_text}}"},{" "}
                   {"{{page_count}}"}
@@ -425,11 +425,11 @@ export default function LlmConfigPage() {
                           key={field.field_name}
                           className="flex items-center justify-between px-2 py-1.5 rounded-[var(--radius)] hover:bg-[var(--surface-sunken)]"
                         >
-                          <span className="text-[var(--text-sm)] text-[var(--text)]">
+                          <span className="text-[length:var(--text-sm)] text-[var(--text)]">
                             {field.display_name}
                           </span>
                           {field.wikidata_property && (
-                            <span className="text-[var(--text-xs)] px-1.5 py-0.5 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] rounded-[var(--radius-xs)]">
+                            <span className="text-[length:var(--text-xs)] px-1.5 py-0.5 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] rounded-[var(--radius-xs)]">
                               {field.wikidata_property}
                             </span>
                           )}

@@ -98,7 +98,7 @@ export default function AdminJobsPage() {
       key: "type",
       header: "Type",
       cell: (job) => (
-        <span className="uppercase tracking-wide text-[var(--text-xs)] font-semibold text-[var(--text-muted)]">
+        <span className="uppercase tracking-wide text-[length:var(--text-xs)] font-semibold text-[var(--text-muted)]">
           {job.job_type}
         </span>
       ),
@@ -128,12 +128,12 @@ export default function AdminJobsPage() {
         job.book_id ? (
           <Link
             href={`/books/${job.book_id}`}
-            className="text-[var(--text-sm)] text-[var(--text)] hover:underline"
+            className="text-[length:var(--text-sm)] text-[var(--text)] hover:underline"
           >
             {job.book_title || job.book_filename}
           </Link>
         ) : (
-          <span className="text-[var(--text-muted)] text-[var(--text-sm)]">
+          <span className="text-[var(--text-muted)] text-[length:var(--text-sm)]">
             {job.book_filename}
           </span>
         ),
@@ -145,7 +145,7 @@ export default function AdminJobsPage() {
       cell: (job) => (
         <div className="flex flex-col">
           <span
-            className="text-[var(--text-sm)] text-[var(--text)] truncate max-w-[10rem]"
+            className="text-[length:var(--text-sm)] text-[var(--text)] truncate max-w-[10rem]"
             title={job.owner_display_name ?? undefined}
           >
             {job.owner_display_name ?? "—"}
@@ -174,14 +174,14 @@ export default function AdminJobsPage() {
             showValue
           />
         ) : (
-          <span className="text-[var(--text-muted)] text-[var(--text-xs)]">—</span>
+          <span className="text-[var(--text-muted)] text-[length:var(--text-xs)]">—</span>
         ),
     },
     {
       key: "started",
       header: "Started",
       hideBelow: "lg",
-      className: "text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums",
+      className: "text-[length:var(--text-xs)] text-[var(--text-muted)] tabular-nums",
       cell: (job) =>
         job.started_at ? new Date(job.started_at).toLocaleString() : "—",
     },
@@ -189,7 +189,7 @@ export default function AdminJobsPage() {
       key: "completed",
       header: "Completed",
       hideBelow: "lg",
-      className: "text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums",
+      className: "text-[length:var(--text-xs)] text-[var(--text-muted)] tabular-nums",
       cell: (job) =>
         job.completed_at ? new Date(job.completed_at).toLocaleString() : "—",
     },

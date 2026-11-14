@@ -149,7 +149,7 @@ export default function SelectPagesPage() {
 
         <Toolbar sticky className="mb-4">
           <ToolbarGroup>
-            <span className="mr-1 text-[var(--text-sm)] font-medium tabular-nums text-[var(--text-muted)]">
+            <span className="mr-1 text-[length:var(--text-sm)] font-medium tabular-nums text-[var(--text-muted)]">
               {selectedCount} of {totalPages} selected
             </span>
             <Button variant="outline" size="sm" onClick={handleSelectAll}>
@@ -244,7 +244,7 @@ export default function SelectPagesPage() {
                   </div>
 
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--neutral-1000)]/80 to-transparent p-2">
-                    <p className="text-[var(--text-inverse)] text-[var(--text-xs)] font-medium text-center">
+                    <p className="text-[var(--text-inverse)] text-[length:var(--text-xs)] font-medium text-center">
                       Page {pageNumber}
                     </p>
                   </div>

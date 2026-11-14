@@ -252,7 +252,7 @@ function BoundingBoxCanvas({
         </Stage>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
         <span className="font-mono tabular-nums">
           {boxes.length} words · zoom {Math.round(zoom * 100)}%
         </span>

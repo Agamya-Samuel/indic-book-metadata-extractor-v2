@@ -39,12 +39,12 @@ export default function SliderControl({
       <div className="flex items-baseline justify-between gap-3">
         <label
           htmlFor={fieldId}
-          className="text-[var(--text-sm)] font-medium text-[var(--text)]"
+          className="text-[length:var(--text-sm)] font-medium text-[var(--text)]"
         >
           {label}
         </label>
         <span
-          className="text-[var(--text-xs)] font-mono tabular-nums px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--surface-sunken)] text-[var(--text-muted)]"
+          className="text-[length:var(--text-xs)] font-mono tabular-nums px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--surface-sunken)] text-[var(--text-muted)]"
           aria-live="polite"
         >
           {displayValue}
@@ -91,7 +91,7 @@ export default function SliderControl({
         />
       </div>
       {hint && (
-        <p className="text-[var(--text-xs)] text-[var(--text-muted)]">{hint}</p>
+        <p className="text-[length:var(--text-xs)] text-[var(--text-muted)]">{hint}</p>
       )}
     </div>
   );

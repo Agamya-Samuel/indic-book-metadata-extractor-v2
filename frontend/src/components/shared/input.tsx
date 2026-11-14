@@ -9,7 +9,7 @@ const fieldBase =
   "text-[var(--text)] placeholder:text-[var(--text-subtle)] " +
   // Mobile-first: 1rem (16px) on narrow screens to prevent iOS Safari
   // auto-zoom on focus. Drop to 14px on sm+ where the viewport can absorb it.
-  "px-3 text-base sm:text-[var(--text-sm)] " +
+  "px-3 text-base sm:text-[length:var(--text-sm)] " +
   "transition-[border-color,box-shadow,background-color] " +
   "duration-[var(--duration-fast)] " +
   "hover:border-[var(--border-strong)] " +
@@ -168,7 +168,7 @@ export function Field({
       <div className="flex items-baseline justify-between gap-3">
         <label
           htmlFor={htmlFor}
-          className="text-[var(--text-sm)] font-medium text-[var(--text)] inline-flex items-center gap-1"
+          className="text-[length:var(--text-sm)] font-medium text-[var(--text)] inline-flex items-center gap-1"
         >
           {label}
           {required && (
@@ -178,7 +178,7 @@ export function Field({
           )}
         </label>
         {trailing && (
-          <div className="text-[var(--text-xs)] text-[var(--text-muted)]">
+          <div className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
             {trailing}
           </div>
         )}
@@ -188,13 +188,13 @@ export function Field({
         <p
           id={errorId}
           role="alert"
-          className="text-[var(--text-xs)] text-[var(--danger-600)] dark:text-[var(--danger-500)]"
+          className="text-[length:var(--text-xs)] text-[var(--danger-600)] dark:text-[var(--danger-500)]"
         >
           {error}
         </p>
       ) : (
         hint && (
-          <p id={hintId} className="text-[var(--text-xs)] text-[var(--text-muted)]">
+          <p id={hintId} className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
             {hint}
           </p>
         )

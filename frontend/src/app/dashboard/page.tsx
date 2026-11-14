@@ -557,7 +557,7 @@ function BookTable({
               {bookTitle(book)}
             </Link>
             <p
-              className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+              className="truncate text-[length:var(--text-xs)] text-[var(--text-muted)]"
               title={book.filename}
             >
               {book.filename}
@@ -576,7 +576,7 @@ function BookTable({
       header: "Pages",
       hideBelow: "sm",
       cell: (book) => (
-        <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+        <span className="text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
           {book.total_pages ?? "-"}
         </span>
       ),
@@ -656,7 +656,7 @@ function JobTable({
       key: "type",
       header: "Type",
       cell: (job) => (
-        <span className="text-[var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        <span className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
           {job.job_type}
         </span>
       ),
@@ -686,12 +686,12 @@ function JobTable({
         job.book_id ? (
           <Link
             href={`/books/${job.book_id}`}
-            className="text-[var(--text-sm)] text-[var(--text)] hover:underline"
+            className="text-[length:var(--text-sm)] text-[var(--text)] hover:underline"
           >
             {job.book_title || job.book_filename}
           </Link>
         ) : (
-          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+          <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
             {job.book_filename}
           </span>
         ),
@@ -703,14 +703,14 @@ function JobTable({
         const active = job.status === "queued" || job.status === "running";
         if (!active) {
           return (
-            <span aria-hidden="true" className="text-[var(--text-xs)] text-[var(--text-muted)]">
+            <span aria-hidden="true" className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
               -
             </span>
           );
         }
         return (
           <span
-            className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-muted)]"
+            className="whitespace-nowrap text-[length:var(--text-xs)] text-[var(--text-muted)]"
             title={
               job.queue_ahead === 0
                 ? "This job runs next"
@@ -736,7 +736,7 @@ function JobTable({
             />
           </div>
         ) : (
-          <span aria-hidden="true" className="text-[var(--text-xs)] text-[var(--text-muted)]">
+          <span aria-hidden="true" className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
             -
           </span>
         ),
@@ -746,7 +746,7 @@ function JobTable({
       header: "Created",
       hideBelow: "lg",
       cell: (job) => (
-        <span className="whitespace-nowrap text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+        <span className="whitespace-nowrap text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
           {job.created_at ? new Date(job.created_at).toLocaleString() : "-"}
         </span>
       ),
@@ -763,7 +763,7 @@ function JobTable({
             {job.book_id && (
               <Link
                 href={`/books/${job.book_id}`}
-                className="text-[var(--text-sm)] text-[var(--accent-text)] hover:underline"
+                className="text-[length:var(--text-sm)] text-[var(--accent-text)] hover:underline"
               >
                 Open
               </Link>
@@ -773,7 +773,7 @@ function JobTable({
                 type="button"
                 onClick={() => onCancel(job)}
                 disabled={cancelPending}
-                className="text-[var(--text-sm)] text-[var(--danger-700)] hover:underline disabled:opacity-50 dark:text-[var(--danger-100)]"
+                className="text-[length:var(--text-sm)] text-[var(--danger-700)] hover:underline disabled:opacity-50 dark:text-[var(--danger-100)]"
               >
                 Cancel
               </button>

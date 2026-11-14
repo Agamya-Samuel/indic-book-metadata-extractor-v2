@@ -46,14 +46,14 @@ export function StatCard({
         aria-hidden="true"
         className={cn("absolute inset-x-0 top-0 h-0.5", toneAccent[tone])}
       />
-      <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+      <p className="text-[length:var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)]">
         {label}
       </p>
-      <p className="mt-2 text-[var(--text-2xl)] font-semibold tabular-nums text-[var(--text)] leading-tight">
+      <p className="mt-2 text-[length:var(--text-2xl)] font-semibold tabular-nums text-[var(--text)] leading-tight">
         {value}
       </p>
       {sublabel && (
-        <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
+        <p className="mt-1 text-[length:var(--text-xs)] text-[var(--text-muted)]">
           {sublabel}
         </p>
       )}

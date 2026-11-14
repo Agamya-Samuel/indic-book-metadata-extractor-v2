@@ -286,7 +286,7 @@ export default function PreprocessingPage() {
 
         <Toolbar className="mb-4">
           <ToolbarGroup>
-            <span className="mr-1 text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="mr-1 text-[length:var(--text-xs)] font-medium uppercase tracking-wider text-[var(--text-muted)]">
               Presets
             </span>
             {PRESETS.map((preset) => (
@@ -302,7 +302,7 @@ export default function PreprocessingPage() {
             ))}
           </ToolbarGroup>
           <ToolbarGroup align="end">
-            <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+            <span className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
               Presets set sliders — nothing is applied until you click Apply.
             </span>
           </ToolbarGroup>
@@ -352,7 +352,7 @@ export default function PreprocessingPage() {
           <div className="lg:col-span-6">
             <Card>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+                <h3 className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
                   Page {currentPage.page_number} &mdash;{" "}
                   {compareMode === "preview" ? "Preview" : "Current"}
                 </h3>
@@ -383,7 +383,7 @@ export default function PreprocessingPage() {
                   >
                     Previous
                   </Button>
-                  <span className="text-[var(--text-sm)] text-[var(--text-muted)] tabular-nums">
+                  <span className="text-[length:var(--text-sm)] text-[var(--text-muted)] tabular-nums">
                     {selectedPageIndex + 1} / {pages.length}
                   </span>
                   <Button
@@ -413,13 +413,13 @@ export default function PreprocessingPage() {
               </div>
 
               {previewVersion > 0 && compareMode === "preview" && (
-                <p className="mt-2 text-[var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                <p className="mt-2 text-[length:var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)]">
                   This preview is not saved. Click Apply to commit it to the
                   page.
                 </p>
               )}
               {currentPage.has_processed_image && compareMode === "current" && (
-                <p className="mt-2 text-[var(--text-xs)] text-[var(--success-700)] dark:text-[var(--success-100)]">
+                <p className="mt-2 text-[length:var(--text-xs)] text-[var(--success-700)] dark:text-[var(--success-100)]">
                   This page has saved preprocessing applied.
                 </p>
               )}
@@ -442,7 +442,7 @@ export default function PreprocessingPage() {
                 <CollapsibleSection title="Rotate" defaultOpen>
                 <div className="space-y-4">
                 <div>
-                  <p className="mb-1 text-[var(--text-sm)] font-medium text-[var(--text)]">
+                  <p className="mb-1 text-[length:var(--text-sm)] font-medium text-[var(--text)]">
                     Rotation
                   </p>
                   <div className="flex items-center gap-2">
@@ -470,7 +470,7 @@ export default function PreprocessingPage() {
                     >
                       ↻ 90°
                     </Button>
-                    <span className="text-[var(--text-sm)] text-[var(--text-muted)] tabular-nums">
+                    <span className="text-[length:var(--text-sm)] text-[var(--text-muted)] tabular-nums">
                       {(config.rotation ?? 0)}°
                     </span>
                     {!!config.rotation && (
@@ -787,10 +787,10 @@ function SliderControl({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+        <label className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
           {label}
         </label>
-        <span className="text-[var(--text-sm)] text-[var(--text-muted)] tabular-nums">
+        <span className="text-[length:var(--text-sm)] text-[var(--text-muted)] tabular-nums">
           {formatValue ? formatValue(value) : value}
         </span>
       </div>
@@ -819,7 +819,7 @@ function ToggleControl({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+      <label className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
         {label}
       </label>
       <button

@@ -245,7 +245,7 @@ export default function MetadataForm({
                         />
                         <label
                           htmlFor={`field-${field.field_name}`}
-                          className="text-[var(--text-xs)] font-medium text-[var(--text)]"
+                          className="text-[length:var(--text-xs)] font-medium text-[var(--text)]"
                           title={tooltip}
                         >
                           {field.display_name}
@@ -326,7 +326,7 @@ export default function MetadataForm({
                 const displayName = key.replace("custom_", "");
                 return (
                   <div key={key} className="flex items-center gap-2">
-                    <span className="w-32 shrink-0 truncate text-[var(--text-xs)] font-medium text-[var(--text-muted)]">
+                    <span className="w-32 shrink-0 truncate text-[length:var(--text-xs)] font-medium text-[var(--text-muted)]">
                       {displayName}
                     </span>
                     <Input

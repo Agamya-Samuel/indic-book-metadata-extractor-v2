@@ -175,7 +175,7 @@ export default function AdminDashboardPage() {
           headerAction={
             <Link
               href="/admin/jobs"
-              className="text-[var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline"
+              className="text-[length:var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline"
             >
               View all →
             </Link>
@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
           {!recentJobs ? (
             <SkeletonTable rows={4} />
           ) : recentJobs.items.length === 0 ? (
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)] py-4">
+            <p className="text-[length:var(--text-sm)] text-[var(--text-muted)] py-4">
               No jobs yet.
             </p>
           ) : (
@@ -196,13 +196,13 @@ export default function AdminDashboardPage() {
                 >
                   <StatusBadge status={job.status} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[var(--text-sm)] font-medium text-[var(--text)]">
-                      <span className="uppercase tracking-wide text-[var(--text-xs)] text-[var(--text-muted)] mr-2">
+                    <p className="truncate text-[length:var(--text-sm)] font-medium text-[var(--text)]">
+                      <span className="uppercase tracking-wide text-[length:var(--text-xs)] text-[var(--text-muted)] mr-2">
                         {job.job_type}
                       </span>
                       {job.book_title || job.book_filename}
                     </p>
-                    <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                    <p className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                       {job.error_log
                         ? job.error_log.slice(0, 100)
                         : job.completed_at
@@ -239,22 +239,22 @@ export default function AdminDashboardPage() {
           {!recentJobs ? (
             <SkeletonTable rows={3} />
           ) : failedJobs.length === 0 ? (
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)] py-4">
+            <p className="text-[length:var(--text-sm)] text-[var(--text-muted)] py-4">
               All clear. Failed jobs will surface here with their error.
             </p>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
               {failedJobs.slice(0, 4).map((job) => (
                 <li key={job.id} className="py-3 first:pt-0 last:pb-0">
-                  <p className="truncate text-[var(--text-sm)] font-medium text-[var(--text)]">
-                    <span className="uppercase tracking-wide text-[var(--text-xs)] text-[var(--text-muted)] mr-2">
+                  <p className="truncate text-[length:var(--text-sm)] font-medium text-[var(--text)]">
+                    <span className="uppercase tracking-wide text-[length:var(--text-xs)] text-[var(--text-muted)] mr-2">
                       {job.job_type}
                     </span>
                     {job.book_title || job.book_filename}
                   </p>
                   {job.error_log && (
                     <p
-                      className="mt-1 line-clamp-2 text-[var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-300)]"
+                      className="mt-1 line-clamp-2 text-[length:var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-300)]"
                       title={job.error_log}
                     >
                       {job.error_log}
@@ -264,7 +264,7 @@ export default function AdminDashboardPage() {
                     <Link
                       href={`/books/${job.book_id}`}
                       className={cn(
-                        "mt-1.5 inline-block text-[var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline rounded-[var(--radius-xs)]",
+                        "mt-1.5 inline-block text-[length:var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline rounded-[var(--radius-xs)]",
                         focusRingInset,
                       )}
                     >

@@ -97,7 +97,7 @@ function VerifyEmailContent() {
           }
         >
           <div className="space-y-4">
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+            <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
               Your account is not active yet. Once an administrator approves it,
               you can upload and process books.
             </p>
@@ -122,7 +122,7 @@ function VerifyEmailContent() {
         }
       >
         <div className="space-y-4">
-          <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+          <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
             Upload a book to start the OCR and metadata extraction pipeline, or
             open your dashboard to follow your jobs.
           </p>

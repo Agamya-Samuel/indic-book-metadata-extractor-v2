@@ -163,7 +163,7 @@ export function MenuLink({
       href={href}
       role="menuitem"
       onClick={close}
-      className="block px-3 py-2 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none"
+      className="block px-3 py-2 text-[length:var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none"
     >
       {children}
     </Link>
@@ -192,7 +192,7 @@ export function MenuButton({
         onClick();
       }}
       className={cn(
-        "block w-full text-left px-3 py-2 text-[var(--text-sm)] hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none disabled:opacity-50 disabled:pointer-events-none",
+        "block w-full text-left px-3 py-2 text-[length:var(--text-sm)] hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none disabled:opacity-50 disabled:pointer-events-none",
         danger
           ? "text-[var(--danger-700)] dark:text-[var(--danger-300)]"
           : "text-[var(--text)]",

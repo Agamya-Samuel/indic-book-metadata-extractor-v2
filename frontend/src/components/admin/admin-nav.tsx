@@ -31,7 +31,7 @@ export function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex min-h-10 items-center rounded-[var(--radius)] px-3 py-2",
-                "text-[var(--text-sm)] font-medium transition-colors",
+                "text-[length:var(--text-sm)] font-medium transition-colors",
                 focusRing,
                 active
                   ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
@@ -69,7 +69,7 @@ export default function AdminNav() {
     <div className="lg:hidden">
       <div className="sticky top-[var(--nav-height)] z-30 border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="flex items-center justify-between px-4 py-2">
-          <span className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
+          <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text)]">
             Admin
           </span>
           <button
@@ -107,7 +107,7 @@ export default function AdminNav() {
             className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)]"
           >
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
+              <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text)]">
                 Admin
               </span>
               <button

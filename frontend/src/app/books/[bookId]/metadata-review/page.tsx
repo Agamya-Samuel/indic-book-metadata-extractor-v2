@@ -187,10 +187,10 @@ export default function MetadataReviewPage() {
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="text-center max-w-md mx-auto px-4">
           <Spinner className="h-12 w-12 border-[3px] text-[var(--accent-text)] mx-auto mb-4" />
-          <h2 className="text-[var(--text-lg)] font-semibold text-[var(--text)] mb-2">
+          <h2 className="text-[length:var(--text-lg)] font-semibold text-[var(--text)] mb-2">
             LLM Extraction in Progress
           </h2>
-          <p className="text-[var(--text-muted)] text-[var(--text-sm)] mb-4">
+          <p className="text-[var(--text-muted)] text-[length:var(--text-sm)] mb-4">
             {Math.round(progress)}% complete
           </p>
           <div className="mb-4">
@@ -266,15 +266,15 @@ export default function MetadataReviewPage() {
           <Card>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-[var(--text-base)] font-semibold text-[var(--text)]">
+                <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text)]">
                   Auto-processing in progress
                 </h2>
-                <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                   {Math.round(bookStatus.progress)}%
                 </span>
               </div>
               <Progress value={bookStatus.progress} />
-              <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+              <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                 Status: <span className="font-mono">{bookStatus.status}</span>
                 {bookStatus.connectionMode === "polling" && (
                   <span className="ml-2 text-[var(--warning-700)]">
@@ -299,7 +299,7 @@ export default function MetadataReviewPage() {
                     {llmRuns.map((run) => (
                       <div
                         key={run.id}
-                        className="border border-[var(--border)] rounded-[var(--radius)] p-3 text-[var(--text-sm)]"
+                        className="border border-[var(--border)] rounded-[var(--radius)] p-3 text-[length:var(--text-sm)]"
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
@@ -307,7 +307,7 @@ export default function MetadataReviewPage() {
                               {run.model}
                             </span>
                             {run.created_at && (
-                              <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+                              <span className="text-[length:var(--text-xs)] text-[var(--text-subtle)]">
                                 {new Date(run.created_at).toLocaleString()}
                               </span>
                             )}
@@ -315,24 +315,24 @@ export default function MetadataReviewPage() {
                         </div>
                         {run.prompt_template && (
                           <details className="mt-1">
-                            <summary className="text-[var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
+                            <summary className="text-[length:var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
                               View prompt
                             </summary>
-                            <pre className="mt-1 text-[var(--text-xs)] bg-[var(--surface-sunken)] p-2 rounded-[var(--radius)] overflow-x-auto whitespace-pre-wrap text-[var(--text)]">
+                            <pre className="mt-1 text-[length:var(--text-xs)] bg-[var(--surface-sunken)] p-2 rounded-[var(--radius)] overflow-x-auto whitespace-pre-wrap text-[var(--text)]">
                               {run.prompt_template}
                             </pre>
                           </details>
                         )}
                         {run.parsed_fields && (
                           <details className="mt-1">
-                            <summary className="text-[var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
+                            <summary className="text-[length:var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
                               View extracted fields (
                               {Object.keys(run.parsed_fields).length})
                             </summary>
                             <div className="mt-1 grid grid-cols-2 gap-1">
                               {Object.entries(run.parsed_fields).map(
                                 ([k, v]) => (
-                                  <div key={k} className="text-[var(--text-xs)]">
+                                  <div key={k} className="text-[length:var(--text-xs)]">
                                     <span className="text-[var(--text-muted)]">{k}:</span>{" "}
                                     <span className="text-[var(--text)]">{v ?? "null"}</span>
                                   </div>
@@ -385,7 +385,7 @@ export default function MetadataReviewPage() {
                   {evidence.source_page_number != null && (
                     <Chip>page {evidence.source_page_number}</Chip>
                   )}
-                  <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                  <span className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                     {focusedFieldLabel}
                   </span>
                 </div>
@@ -403,11 +403,11 @@ export default function MetadataReviewPage() {
                 )}
 
                 {evidence.source_text_snippet ? (
-                  <p className="rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[var(--text-sm)] leading-relaxed text-[var(--text)]">
+                  <p className="rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[length:var(--text-sm)] leading-relaxed text-[var(--text)]">
                     …{evidence.source_text_snippet}…
                   </p>
                 ) : (
-                  <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                  <p className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                     No source snippet was recorded for this field.
                   </p>
                 )}
@@ -421,7 +421,7 @@ export default function MetadataReviewPage() {
                 </LinkButton>
               </div>
             ) : (
-              <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+              <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                 Focus a field to see its source page, snippet, confidence and
                 extraction method.
               </p>

@@ -211,7 +211,7 @@ export default function BookDetailPage() {
       header: "Job",
       cell: (job) => (
         <div className="min-w-0">
-          <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+          <span className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
             {job.job_type === "ocr"
               ? "OCR"
               : job.job_type === "llm"
@@ -219,7 +219,7 @@ export default function BookDetailPage() {
                 : job.job_type}
           </span>
           {job.error_log && (
-            <p className="mt-1 text-[var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-100)]">
+            <p className="mt-1 text-[length:var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-100)]">
               {job.error_log}
             </p>
           )}
@@ -241,7 +241,7 @@ export default function BookDetailPage() {
             <Progress value={job.progress} showValue />
           </div>
         ) : (
-          <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+          <span className="text-[length:var(--text-xs)] text-[var(--text-subtle)]">
             &#8212;
           </span>
         ),
@@ -251,7 +251,7 @@ export default function BookDetailPage() {
       header: "Created",
       hideBelow: "md",
       cell: (job) => (
-        <span className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-subtle)]">
+        <span className="whitespace-nowrap text-[length:var(--text-xs)] text-[var(--text-subtle)]">
           {job.created_at ? new Date(job.created_at).toLocaleString() : "—"}
         </span>
       ),
@@ -263,7 +263,7 @@ export default function BookDetailPage() {
       key: "page",
       header: "Page",
       cell: (page) => (
-        <span className="whitespace-nowrap text-[var(--text-sm)] font-medium text-[var(--text)]">
+        <span className="whitespace-nowrap text-[length:var(--text-sm)] font-medium text-[var(--text)]">
           Page {page.page_number}
         </span>
       ),
@@ -286,7 +286,7 @@ export default function BookDetailPage() {
             {Math.round(page.ocr_confidence)}%
           </Chip>
         ) : (
-          <span className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+          <span className="text-[length:var(--text-xs)] text-[var(--text-subtle)]">
             —
           </span>
         ),
@@ -296,7 +296,7 @@ export default function BookDetailPage() {
       header: "OCR text",
       hideBelow: "md",
       cell: (page) => (
-        <span className="block max-w-[420px] truncate text-[var(--text-xs)] text-[var(--text-subtle)]">
+        <span className="block max-w-[420px] truncate text-[length:var(--text-xs)] text-[var(--text-subtle)]">
           {page.ocr_text ? `${page.ocr_text.substring(0, 80)}…` : "—"}
         </span>
       ),
@@ -325,7 +325,7 @@ export default function BookDetailPage() {
       key: "model",
       header: "Model",
       cell: (run) => (
-        <span className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+        <span className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
           {run.model}
         </span>
       ),
@@ -335,7 +335,7 @@ export default function BookDetailPage() {
       header: "Created",
       hideBelow: "sm",
       cell: (run) => (
-        <span className="whitespace-nowrap text-[var(--text-xs)] text-[var(--text-subtle)]">
+        <span className="whitespace-nowrap text-[length:var(--text-xs)] text-[var(--text-subtle)]">
           {run.created_at ? new Date(run.created_at).toLocaleString() : "—"}
         </span>
       ),
@@ -347,22 +347,22 @@ export default function BookDetailPage() {
         <div className="space-y-1">
           {run.prompt_template && (
             <details>
-              <summary className="cursor-pointer text-[var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text)]">
+              <summary className="cursor-pointer text-[length:var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text)]">
                 View prompt
               </summary>
-              <pre className="mt-1 whitespace-pre-wrap rounded-[var(--radius)] bg-[var(--surface-sunken)] p-2 text-[var(--text-xs)] text-[var(--text)]">
+              <pre className="mt-1 whitespace-pre-wrap rounded-[var(--radius)] bg-[var(--surface-sunken)] p-2 text-[length:var(--text-xs)] text-[var(--text)]">
                 {run.prompt_template}
               </pre>
             </details>
           )}
           {run.parsed_fields && (
             <details>
-              <summary className="cursor-pointer text-[var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text)]">
+              <summary className="cursor-pointer text-[length:var(--text-xs)] text-[var(--text-muted)] hover:text-[var(--text)]">
                 View extracted fields ({Object.keys(run.parsed_fields).length})
               </summary>
               <div className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
                 {Object.entries(run.parsed_fields).map(([k, v]) => (
-                  <div key={k} className="text-[var(--text-xs)]">
+                  <div key={k} className="text-[length:var(--text-xs)]">
                     <span className="text-[var(--text-muted)]">{k}:</span>{" "}
                     <span className="text-[var(--text)]">{v ?? "null"}</span>
                   </div>
@@ -399,7 +399,7 @@ export default function BookDetailPage() {
           eyebrow={language ? `Books · ${language}` : "Books"}
           title={book.title || metadataFields.label || book.filename}
           description={
-            <span className="flex flex-wrap items-center gap-2 text-[var(--text-sm)] text-[var(--text-muted)]">
+            <span className="flex flex-wrap items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-muted)]">
               <StatusBadge status={book.status} stageStatus={stages?.[0]?.status as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
               {book.total_pages && (
                 <>
@@ -465,10 +465,10 @@ export default function BookDetailPage() {
                 </svg>
               </div>
               <div className="flex-1 space-y-2">
-                <h2 className="text-[var(--text-base)] font-semibold text-[var(--text)]">
+                <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text)]">
                   Review needed
                 </h2>
-                <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+                <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                   {book.low_confidence_count && book.low_confidence_count > 0
                     ? `${book.low_confidence_count} metadata field${book.low_confidence_count === 1 ? "" : "s"} below the confidence threshold. Open the metadata review to inspect and correct them.`
                     : "The auto-chain has finished. Open the metadata review to confirm the extracted values before exporting."}
@@ -521,7 +521,7 @@ export default function BookDetailPage() {
                     >
                       <div className="space-y-2">
                         {groupFields.map((fn) => (
-                          <div key={fn} className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[var(--text-sm)]">
+                          <div key={fn} className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[length:var(--text-sm)]">
                             <span className="text-[var(--text-muted)] sm:min-w-[200px]">
                               {FIELD_DISPLAY_NAMES[fn] || fn}
                             </span>
@@ -545,7 +545,7 @@ export default function BookDetailPage() {
                       <div className="space-y-2">
                         {Object.entries(metadataFields.custom_fields).map(
                           ([k, v]) => (
-                            <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[var(--text-sm)]">
+                            <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[length:var(--text-sm)]">
                               <span className="text-[var(--text-muted)] sm:min-w-[200px]">
                                 {k}
                               </span>
@@ -625,10 +625,10 @@ export default function BookDetailPage() {
                       />
                     </div>
                     <div className="md:w-1/2">
-                      <h4 className="mb-2 text-[var(--text-xs)] font-medium text-[var(--text-muted)]">
+                      <h4 className="mb-2 text-[length:var(--text-xs)] font-medium text-[var(--text-muted)]">
                         OCR Text
                       </h4>
-                      <pre className="max-h-[500px] overflow-auto whitespace-pre-wrap rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[var(--text-xs)] text-[var(--text)]">
+                      <pre className="max-h-[500px] overflow-auto whitespace-pre-wrap rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[length:var(--text-xs)] text-[var(--text)]">
                         {page.ocr_text || "(No OCR text available)"}
                       </pre>
                     </div>

@@ -109,10 +109,10 @@ export default function NotificationsPage() {
       <Card className="mb-4" title="Email alerts">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-xl">
-            <p className="text-[var(--text-sm)] text-[var(--text)]">
+            <p className="text-[length:var(--text-sm)] text-[var(--text)]">
               Send these notifications to your email address as well.
             </p>
-            <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
+            <p className="mt-1 text-[length:var(--text-xs)] text-[var(--text-muted)]">
               In-app notifications are always on and cannot be disabled.
             </p>
           </div>
@@ -164,7 +164,7 @@ export default function NotificationsPage() {
                         <Chip tone={meta.tone}>{meta.label}</Chip>
                         <span
                           className={cn(
-                            "text-[var(--text-sm)]",
+                            "text-[length:var(--text-sm)]",
                             notification.read_at
                               ? "text-[var(--text-muted)]"
                               : "font-medium text-[var(--text)]",
@@ -173,10 +173,10 @@ export default function NotificationsPage() {
                           {notification.title}
                         </span>
                       </span>
-                      <span className="mt-1 block text-[var(--text-sm)] text-[var(--text-muted)]">
+                      <span className="mt-1 block text-[length:var(--text-sm)] text-[var(--text-muted)]">
                         {notification.body}
                       </span>
-                      <span className="mt-1 block text-[var(--text-xs)] text-[var(--text-muted)]">
+                      <span className="mt-1 block text-[length:var(--text-xs)] text-[var(--text-muted)]">
                         {formatRelativeTime(notification.created_at)}
                       </span>
                     </span>

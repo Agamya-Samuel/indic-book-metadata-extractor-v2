@@ -66,7 +66,7 @@ function ResetPasswordForm() {
       >
         <Link
           href="/login"
-          className="text-[var(--text-sm)] text-[var(--text-muted)] hover:text-[var(--text)]"
+          className="text-[length:var(--text-sm)] text-[var(--text-muted)] hover:text-[var(--text)]"
         >
           Back to log in
         </Link>

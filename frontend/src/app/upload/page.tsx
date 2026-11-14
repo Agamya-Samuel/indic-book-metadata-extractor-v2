@@ -130,17 +130,17 @@ export default function UploadPage() {
                       />
                     </svg>
                   </div>
-                  <p className="text-[var(--text-sm)] text-[var(--text)]">
+                  <p className="text-[length:var(--text-sm)] text-[var(--text)]">
                     <span className="font-semibold text-[var(--accent-text)]">
                       Click to upload
                     </span>{" "}
                     or drag and drop
                   </p>
-                  <p className="mt-1 text-[var(--text-xs)] text-[var(--text-muted)]">
+                  <p className="mt-1 text-[length:var(--text-xs)] text-[var(--text-muted)]">
                     PDF up to 200 MB
                   </p>
                   {file && (
-                    <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2.5 py-0.5 text-[var(--text-xs)] font-medium text-[var(--accent-soft-text)]">
+                    <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-2.5 py-0.5 text-[length:var(--text-xs)] font-medium text-[var(--accent-soft-text)]">
                       <svg
                         viewBox="0 0 20 20"
                         fill="currentColor"

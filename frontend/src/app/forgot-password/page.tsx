@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
           </Link>
         }
       >
-        <div className="space-y-3 text-[var(--text-sm)] text-[var(--text-muted)]">
+        <div className="space-y-3 text-[length:var(--text-sm)] text-[var(--text-muted)]">
           <p>
             The link expires in one hour and can be used once. If it does not
             arrive, check your spam folder before requesting another.

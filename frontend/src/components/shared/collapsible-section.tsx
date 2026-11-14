@@ -59,17 +59,17 @@ export default function CollapsibleSection({
           >
             <path d="M7.05 4.05a.75.75 0 011.06 0l5 5a.75.75 0 010 1.06l-5 5a.75.75 0 11-1.06-1.06L11.44 10 7.05 5.61a.75.75 0 010-1.06z" />
           </svg>
-          <span className="text-[var(--text-sm)] font-semibold text-[var(--text)] truncate">
+          <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text)] truncate">
             {title}
           </span>
           {count !== undefined && (
-            <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+            <span className="text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
               {count} {count === 1 ? "field" : "fields"}
             </span>
           )}
         </span>
         {meta && (
-          <span className="shrink-0 text-[var(--text-xs)] text-[var(--text-muted)]">
+          <span className="shrink-0 text-[length:var(--text-xs)] text-[var(--text-muted)]">
             {meta}
           </span>
         )}

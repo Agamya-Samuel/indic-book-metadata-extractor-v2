@@ -119,10 +119,10 @@ export default function OcrTextEditor({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
         <div className="flex items-center gap-2.5">
-          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
+          <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text)]">
             OCR text
           </h3>
-          <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+          <span className="text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
             {words.length} words
           </span>
           {hasCorrections && (
@@ -173,7 +173,7 @@ export default function OcrTextEditor({
       </div>
 
       <div className="border-b border-[var(--border)] bg-[var(--surface-sunken)]/50 px-4 py-1.5">
-        <p className="text-[var(--text-xs)] text-[var(--text-muted)]">
+        <p className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
           Word boxes below are the original OCR layout — they are not updated by
           text edits.
         </p>
@@ -181,7 +181,7 @@ export default function OcrTextEditor({
 
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-4 py-3 text-[var(--text-sm)] leading-relaxed text-[var(--text)]"
+        className="flex-1 overflow-y-auto px-4 py-3 text-[length:var(--text-sm)] leading-relaxed text-[var(--text)]"
         role="region"
         aria-label="OCR text editor"
       >
@@ -189,7 +189,7 @@ export default function OcrTextEditor({
           <Textarea
             value={effectiveText}
             onChange={(e) => setDraft(e.target.value)}
-            className="min-h-0 h-full font-mono text-[var(--text-sm)] resize-none"
+            className="min-h-0 h-full font-mono text-[length:var(--text-sm)] resize-none"
             dir="auto"
             aria-label="Edit OCR text"
             placeholder="No OCR text for this page. You can type the text here."

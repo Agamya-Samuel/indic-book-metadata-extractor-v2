@@ -154,10 +154,10 @@ export default function BulkOperationsPage() {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[var(--text-sm)] font-semibold text-[var(--text)] group-hover:text-[var(--success-700)] dark:group-hover:text-[var(--success-100)]">
+                  <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text)] group-hover:text-[var(--success-700)] dark:group-hover:text-[var(--success-100)]">
                     Open OpenRefine ↗
                   </div>
-                  <div className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                  <div className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                     Clean and standardize metadata in the browser
                   </div>
                 </div>
@@ -176,10 +176,10 @@ export default function BulkOperationsPage() {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[var(--text-sm)] font-semibold text-[var(--text)] group-hover:text-[var(--accent-soft-text)]">
+                  <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text)] group-hover:text-[var(--accent-soft-text)]">
                     Open Wikibase ↗
                   </div>
-                  <div className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                  <div className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                     View and edit structured bibliographic data
                   </div>
                 </div>
@@ -196,10 +196,10 @@ export default function BulkOperationsPage() {
               are the in-app steps; the flow header names the full pipeline. */}
           <div>
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-[var(--text-sm)] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <h2 className="text-[length:var(--text-sm)] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 Bulk cleaning pipeline
               </h2>
-              <p className="text-[var(--text-xs)] text-[var(--text-subtle)]">
+              <p className="text-[length:var(--text-xs)] text-[var(--text-subtle)]">
                 Export · Clean in OpenRefine · Re-import
               </p>
             </div>
@@ -300,7 +300,7 @@ export default function BulkOperationsPage() {
                 </Button>
 
                 {importResult && (
-                  <div className="text-[var(--text-xs)] text-[var(--text-muted)] space-y-1 bg-[var(--surface-sunken)] rounded-[var(--radius)] p-2">
+                  <div className="text-[length:var(--text-xs)] text-[var(--text-muted)] space-y-1 bg-[var(--surface-sunken)] rounded-[var(--radius)] p-2">
                     <p>Rows: {importResult.total_rows}</p>
                     <p>Books updated: {importResult.books_updated}</p>
                     <p>Fields changed: {importResult.fields_changed}</p>
@@ -362,7 +362,7 @@ export default function BulkOperationsPage() {
 
           {/* Workflow guide */}
           <Card title="Workflow Guide" description="The recommended bulk-cleaning flow.">
-            <ol className="text-[var(--text-sm)] text-[var(--text-muted)] space-y-2 list-decimal list-inside">
+            <ol className="text-[length:var(--text-sm)] text-[var(--text-muted)] space-y-2 list-decimal list-inside">
               <li>
                 <strong className="text-[var(--text)]">Export</strong> — Download metadata as CSV with filters applied.
               </li>
@@ -425,9 +425,9 @@ function StatsCard({
 
   return (
     <Card title="Catalog Summary" description="Snapshot of book counts and language distribution.">
-      <div className="flex flex-wrap gap-6 text-[var(--text-sm)]">
+      <div className="flex flex-wrap gap-6 text-[length:var(--text-sm)]">
         <div>
-          <span className="text-[var(--text-2xl)] font-bold text-[var(--text)]">
+          <span className="text-[length:var(--text-2xl)] font-bold text-[var(--text)]">
             {stats.total_books}
           </span>
           <span className="ml-1 text-[var(--text-muted)]">
@@ -435,7 +435,7 @@ function StatsCard({
           </span>
         </div>
         <div>
-          <span className="text-[var(--text-2xl)] font-bold text-[var(--text)]">
+          <span className="text-[length:var(--text-2xl)] font-bold text-[var(--text)]">
             {stats.books_with_metadata}
           </span>
           <span className="ml-1 text-[var(--text-muted)]">
@@ -444,7 +444,7 @@ function StatsCard({
         </div>
         {Object.entries(stats.languages).map(([lang, count]) => (
           <div key={lang}>
-            <span className="text-[var(--text-lg)] font-semibold text-[var(--text)]">
+            <span className="text-[length:var(--text-lg)] font-semibold text-[var(--text)]">
               {count}
             </span>
             <span className="ml-1 text-[var(--text-muted)]">

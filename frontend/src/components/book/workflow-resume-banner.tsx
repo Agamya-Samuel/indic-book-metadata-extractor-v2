@@ -130,7 +130,7 @@ export default function WorkflowResumeBanner({ detail }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <h2
               className={cn(
-                "text-[var(--text-md)] font-semibold",
+                "text-[length:var(--text-md)] font-semibold",
                 variantHeadline[target.variant],
               )}
             >
@@ -148,7 +148,7 @@ export default function WorkflowResumeBanner({ detail }: Props) {
               }
             />
           </div>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text)]">
+          <p className="mt-1 text-[length:var(--text-sm)] text-[var(--text)]">
             {target.description}
           </p>
 

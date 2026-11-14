@@ -34,19 +34,19 @@ export default function WorkflowError({
             />
           </svg>
         </div>
-        <h1 className="text-[var(--text-2xl)] font-semibold tracking-tight text-[var(--text)]">
+        <h1 className="text-[length:var(--text-2xl)] font-semibold tracking-tight text-[var(--text)]">
           Workflow error
         </h1>
-        <p className="mt-2 text-[var(--text-sm)] text-[var(--text-muted)]">
+        <p className="mt-2 text-[length:var(--text-sm)] text-[var(--text-muted)]">
           Something went wrong on this page. You can retry or return to your
           dashboard.
         </p>
         {error.message && (
           <details className="mt-5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-left">
-            <summary className="cursor-pointer text-[var(--text-xs)] font-medium text-[var(--text-muted)] hover:text-[var(--text)]">
+            <summary className="cursor-pointer text-[length:var(--text-xs)] font-medium text-[var(--text-muted)] hover:text-[var(--text)]">
               Show error details
             </summary>
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-[var(--text-xs)] font-mono text-[var(--danger-700)] dark:text-[var(--danger-300)]">
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-[length:var(--text-xs)] font-mono text-[var(--danger-700)] dark:text-[var(--danger-300)]">
               {error.message}
             </pre>
           </details>
