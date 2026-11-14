@@ -88,14 +88,20 @@ tests. See `plans/010-notifications.md` and `todos/013-notifications.md`.
       in the app without a `focus-visible` ring — the primary-nav links and the
       account-menu items — and fixed them. The rail, filmstrip, toolbar and
       `SaveBar` all use the shared ring.
-- [ ] **Dialog focus trap + Escape** (confirm dialogs, notification dropdown) not
-      yet verified.
-- [ ] Re-verify the two fixes above on a deployed build (they are committed
-      locally, not pushed).
-- [ ] Minor: selection indicators (`border-[var(--accent)]` on chosen pages and
-      thumbnails) sit at ~2.65:1 in dark; they are never the only cue (ring +
-      shadow + background), so this is cosmetic — left as-is pending a visual
-      review by the user.
+- [x] **Dialog focus trap + accessible name.** `ConfirmDialog` is a native
+      `<dialog>` opened with `showModal()`, so the trap, initial focus and Escape
+      are the browser's; Escape is intercepted only to block closing while an
+      action is in flight. It had **no accessible name** — now `aria-labelledby`
+      points at its title (`8f8aeae`), with a test asserting the announced name.
+- [x] **Bell focus management.** The panel takes focus on open and Escape returns
+      focus to the bell button; token-focus and Escape tests added beside the
+      existing read/navigate ones.
+- [x] Minor: selection indicators now use `--accent-ring` (3.89–4.83:1 in both
+      themes, was 2.65 in dark) on the page thumbnails, bounding-box buttons,
+      preprocessing preview and the upload dropzone; three rows in the contrast
+      check cover it.
+- [ ] Re-verify the fixes above on a deployed build (they are committed locally,
+      not pushed).
 
 ## Notes / open sub-items
 
