@@ -36,6 +36,17 @@ New values are `prefilled_needs_verification` with `field_source` provenance; th
 
 `evaluate_extraction` runs the model through `LLMService` (the **OpenAI-compatible** client), the same path where `think:false` is dropped. With `gemma4:e4b` every batch returned **empty `content`** (all budget on the `reasoning` channel, `finish_reason=length`) → the eval scored empty predictions. **Consequences:** evaluate **non-thinking models** with the harness as written (`phi4-mini`, `qwen2.5`), or route thinking models via the native `/api/chat` endpoint. This is the practical corollary of the finding in [019](019-gt-corpus-enrichment.md).
 
+### 7. Enriched-corpus accuracy: `gemma4` (native) beats `phi4-mini` on Hindi
+
+Re-ran the harness against the enriched corpus (field-aware: model-prefilled fields excluded), 4 Hindi books, `test-node-1`:
+
+| Model | Micro P | Micro R | Micro F1 |
+|---|---|---|---|
+| `phi4-mini` (OpenAI path) | 0.448 | 0.361 | 0.400 |
+| `gemma4:e4b` (`--native`, `think:false`) | 0.615 | 0.667 | **0.640** |
+
+`gemma4` per-field: `subject` 1.00, `language` 1.00, `description_work`/`original_language`/`title` 0.86, `pages` 0.80, `author`/`publication_date` 0.67. **This is the first valid gemma4 Hindi number** — every earlier gemma4 run scored 0 via the think trap, so the prior "phi4-mini wins Hindi" conclusion was a bug artifact. Reports: `backend/reports/gt-eval-{phi4,gemma4-native}-enriched.json`.
+
 ## Recommendation / next steps
 
 1. **Depth for Commons-only books** must come from OCR/LLM (the scans), not catalogues — or curate books from DLI/IA hosts so catalogues apply.
