@@ -1,6 +1,6 @@
 # 013 — Production Hardening: End-to-End Reliability
 
-Status: in progress (started 2026-11-14)
+Status: complete (2026-11-14) — outcome in `learnings/023-production-hardening-outcome.md`
 
 ## Objective
 
@@ -59,17 +59,17 @@ P1:
 
 ## Work increments
 
-- [ ] P0: revoke helper + cancellation-aware tasks + supersession guards
-- [ ] P0: re-run extraction statuses + replace semantics
-- [ ] P0: idempotent submissions (409 + existing job id)
-- [ ] P1: partial OCR advance + per-page failure flag (migration)
-- [ ] P1: owner notifications
-- [ ] P1: single-book lock, concurrency 1, reaper heartbeat
-- [ ] P1: frontend reliability fixes
-- [ ] P1: Resend SMTP path + real send verification
-- [ ] P1: security defaults (CORS, JWT length, upload cap, metadata validation)
-- [ ] Production browser + API E2E matrix
-- [ ] `learnings/023-*` report with remaining issues and owners
+- [x] P0: revoke helper + cancellation-aware tasks + supersession guards
+- [x] P0: re-run extraction statuses + replace semantics
+- [x] P0: idempotent submissions (409 + existing job id)
+- [x] P1: partial OCR advance + per-page failure flag (migration)
+- [x] P1: owner notifications
+- [x] P1: single-book lock, concurrency 1, reaper heartbeat
+- [x] P1: frontend reliability fixes
+- [x] P1: Resend SMTP path + real send verification
+- [x] P1: security defaults (CORS, JWT length, upload cap, metadata validation)
+- [x] Production browser + API E2E matrix
+- [x] `learnings/023-*` report with remaining issues and owners
 
 ## Test matrix
 
