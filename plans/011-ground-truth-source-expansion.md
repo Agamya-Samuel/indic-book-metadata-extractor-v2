@@ -9,9 +9,15 @@ Fetched **+16 Hindi + 6 Telugu** CC/PD books from Commons (`--cc-pd-only`, 40 MB
 
 **Limitation found:** the IA-based adapters (`ia_dc`, `pustaka_nidhi`) matched **0 of the 22 new books** — they are Commons-only uploads with no Internet Archive identifier, so catalogue-based depth cannot reach them. Depth for those must come from OCR/LLM. The DLI/IA-hosted books (the original 35) are where the catalogue adapters apply.
 
-## Phase 2 — DLI Catalogue: **blocked** (2026-11-13)
+## Phase 2 — DLI Catalogue: Cloudflare solved, but **no join** (2026-11-14)
 
-The DLI Catalogue (`sanskritdocuments.org/.../DLI_Catalog/*.html`) is the one source with real `publisher` / `year` / `pages`, but it is behind **Cloudflare bot protection** — direct fetches return **403 "Just a moment…"** even with a browser User-Agent. Programmatic access would need a real browser session (or is disallowed by ToS); **parked**. Its data overlaps the DLI `dc.*` fields already read from IA, so the loss is small.
+The catalogue is behind Cloudflare; fetched all 5 parts (Telugu 2, Hindi 3) with a **real browser session** (in-app browser `fetch` → saved locally), parsed **27,501** barcode entries. Adapter: [`scripts/enrich_dli_catalogue.py`](../backend/scripts/enrich_dli_catalogue.py).
+
+**But it cannot be joined to our corpus:**
+- **Barcodes differ:** our DLI items carry `2020010…` barcodes; the 2010 catalogue uses `2020120…` / `2990…` families — **0 overlap** (verified: our barcodes appear nowhere in the parts).
+- **Titles differ:** the catalogue uses a different transliteration (`aan'dhrakavula charitramu`); our normalized titles (`andhramahaniyulu`, `andhrakavithya`, `athmacharithramu`) appear **0 times**.
+
+**Verdict:** even with the Cloudflare workaround, the catalogue adds **nothing for these 71 books** (likely different editions digitized after 2010). The adapter is kept for future books that *are* in it. `publisher`/`year`/`pages` continue to come from IA `dc.*` and the OCR/LLM fill.
 
 ## Phase 1 result (2026-11-13)
 

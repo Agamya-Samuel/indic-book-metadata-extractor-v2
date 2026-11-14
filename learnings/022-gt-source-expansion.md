@@ -50,7 +50,7 @@ Re-ran the harness against the enriched corpus (field-aware: model-prefilled fie
 ## Recommendation / next steps
 
 1. **Depth for Commons-only books** must come from OCR/LLM (the scans), not catalogues — or curate books from DLI/IA hosts so catalogues apply.
-2. **Phase 2 (DLI Catalogue)** — the only catalogue with real `publisher`/`year`/`pages`; worth a PoC on DLI-hosted books.
+2. **Phase 2 (DLI Catalogue)** — Cloudflare solved via a real browser session (5 parts, **27,501** entries parsed), but it **cannot be joined** to these books: our DLI barcodes (`2020010…`) don't appear in the 2010 catalogue (`2020120…`/`2990…`; 0 overlap) and our titles are absent under any normalisation. No gain; the adapter ([`enrich_dli_catalogue.py`](../backend/scripts/enrich_dli_catalogue.py)) is kept for future books that *are* in it.
 3. **Re-run the page POC** with the fuzzy labeller to get valid `llm_text` recall before any MVP; do not adopt the heuristic.
 4. **Human-verify** the review queue (`reports/gt-review-queue.csv`) to promote books from prefill to gold.
 5. Accuracy eval numbers to be appended when `test-node-1` finishes.
