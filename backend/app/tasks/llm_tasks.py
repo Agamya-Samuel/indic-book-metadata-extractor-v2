@@ -24,6 +24,8 @@ from app.services.sse_service import event_id, publish_sync
 from app.services.stage_manager import StageManager, StageTransitionError
 from app.tasks.async_utils import run_async
 from app.tasks.cancellation import is_superseded_async
+from app.tasks.pipeline_lock import refresh as refresh_pipeline_lock
+from app.tasks.pipeline_lock import single_book_task
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -55,6 +57,7 @@ async def _validate_book_context(
 
         job.status = JobStatus.RUNNING
         job.started_at = datetime.now(timezone.utc)
+        job.last_progress_at = job.started_at
         if celery_task_id and not job.celery_task_id:
             job.celery_task_id = celery_task_id
         await db.commit()
@@ -357,6 +360,7 @@ async def _persist_extraction_results(
     acks_late=True,
 )
 @newrelic.agent.background_task(name="LLM: Metadata Extraction", group="CeleryTask")
+@single_book_task
 def run_llm_extraction(
     self,
     job_id_str: str,
@@ -401,7 +405,9 @@ def run_llm_extraction(
                 ):
                     return
                 progress_job.progress = round((current / total) * 100, 1)
+                progress_job.last_progress_at = datetime.now(timezone.utc)
                 await progress_db.commit()
+                refresh_pipeline_lock(str(job_id))
                 progress_pct = progress_job.progress
             publish_sync(
                 book_id,

@@ -23,8 +23,10 @@ from app.models.page import Page
 from app.services import notification_service, pdf_service, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
 from app.services.stage_manager import StageManager
-from app.tasks.cancellation import is_superseded_async
 from app.tasks.async_utils import run_async, run_async_threadsafe
+from app.tasks.cancellation import is_superseded_async
+from app.tasks.pipeline_lock import refresh as refresh_pipeline_lock
+from app.tasks.pipeline_lock import single_book_task
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -91,9 +93,10 @@ def _update_progress(
             ).scalar_one_or_none()
             if job is None or job.status == JobStatus.CANCELLED:
                 return None
+            job.last_progress_at = datetime.now(timezone.utc)
             if pct > (job.progress or 0.0):
                 job.progress = pct
-                await db.commit()
+            await db.commit()
             return job.progress or 0.0
 
     try:
@@ -102,6 +105,7 @@ def _update_progress(
         logger.debug("Progress update failed for page job %s", job_id, exc_info=True)
         return
     if value is not None:
+        refresh_pipeline_lock(str(job_id))
         _publish_progress(book_id, job_id, value)
 
 
@@ -260,6 +264,7 @@ def _finalize(
     default_retry_delay=15,
 )
 @newrelic.agent.background_task(name="Pages: Render", group="CeleryTask")
+@single_book_task
 def render_pages_for_book(
     self, job_id_str: str, book_id_str: str, page_numbers: list[int]
 ) -> None:
@@ -281,6 +286,7 @@ def render_pages_for_book(
                 return False
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
+            job.last_progress_at = job.started_at
             if self.request.id:
                 job.celery_task_id = self.request.id
             await db.commit()
@@ -375,6 +381,7 @@ def _finalize_bulk(job_id: uuid.UUID, errors: list[str]) -> None:
     default_retry_delay=15,
 )
 @newrelic.agent.background_task(name="Preprocessing: Bulk Apply", group="CeleryTask")
+@single_book_task
 def apply_preprocessing_bulk(
     self, job_id_str: str, book_id_str: str, config: dict
 ) -> None:
@@ -395,6 +402,7 @@ def apply_preprocessing_bulk(
                 return None
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
+            job.last_progress_at = job.started_at
             if self.request.id:
                 job.celery_task_id = self.request.id
             await db.commit()

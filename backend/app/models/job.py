@@ -40,6 +40,9 @@ class Job(UUIDMixin, Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Updated whenever the worker reports progress; the reaper uses it so a
+    # long but healthy run is not mistaken for a lost one.
+    last_progress_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_log: Mapped[str | None] = mapped_column(Text)
     celery_task_id: Mapped[str | None] = mapped_column(String(64), index=True)
 

@@ -20,6 +20,8 @@ from app.tasks.cancellation import (
     should_stop,
 )
 from app.tasks.async_utils import run_async, run_async_threadsafe
+from app.tasks.pipeline_lock import refresh as refresh_pipeline_lock
+from app.tasks.pipeline_lock import single_book_task
 from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -166,16 +168,18 @@ def _update_job_progress(
             job = job_result.scalar_one_or_none()
             if not job:
                 return
+            job.last_progress_at = datetime.now(timezone.utc)
             if new_progress > (job.progress or 0.0):
                 job.progress = new_progress
-                await db.commit()
                 progress_pct = new_progress
             else:
                 progress_pct = job.progress or 0.0
+            await db.commit()
             if book_id is None and job.book_id is not None:
                 book_id = job.book_id
             jtype = job.job_type
 
+        refresh_pipeline_lock(job_id_str)
         if book_id is not None:
             publish_sync(
                 book_id,
@@ -264,6 +268,7 @@ def _has_active_job_for_book(
     acks_late=True,
 )
 @newrelic.agent.background_task(name="OCR: Preprocessing Phase", group="CeleryTask")
+@single_book_task
 def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language: str):
     """Preprocess all pages that need it, then chain into OCR.
 
@@ -295,6 +300,7 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
                 return None
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
+            job.last_progress_at = job.started_at
             if self.request.id and not job.celery_task_id:
                 job.celery_task_id = self.request.id
             await db.commit()
@@ -367,6 +373,7 @@ def preprocess_pages_for_book(self, job_id_str: str, book_id_str: str, language:
     acks_late=True,
 )
 @newrelic.agent.background_task(name="OCR: Book Orchestration", group="CeleryTask")
+@single_book_task
 def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
     """Run OCR sequentially for every page of a book, updating progress after each page."""
     newrelic.agent.add_custom_attribute("book_id", book_id_str)
@@ -394,6 +401,7 @@ def run_ocr_for_book(self, job_id_str: str, book_id_str: str, language: str):
 
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now(timezone.utc)
+            job.last_progress_at = job.started_at
             job.celery_task_id = self.request.id
             await db.commit()
 

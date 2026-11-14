@@ -102,7 +102,7 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "--hostname=ocr@%h", "-Q", "ocr,default"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=1", "--hostname=ocr@%h", "-Q", "ocr,default"]
     env_file:
       - .env
     environment:
@@ -141,7 +141,7 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2", "--hostname=llm@%h", "-Q", "llm"]
+    command: ["uv", "run", "newrelic-admin", "run-program", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=1", "--hostname=llm@%h", "-Q", "llm"]
     env_file:
       - .env
     environment:
