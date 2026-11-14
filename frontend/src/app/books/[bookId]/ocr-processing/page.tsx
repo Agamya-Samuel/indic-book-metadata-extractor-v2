@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBook, getBookPages } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
-import { useJobPolling } from "@/hooks/use-job-polling";
+import { useJobProgress } from "@/hooks/use-job-progress";
 import { useSSE } from "@/hooks/use-sse";
 import { toast } from "sonner";
 import WorkflowShell from "@/components/shared/workflow-shell";
@@ -39,9 +39,18 @@ export default function OcrProcessingPage() {
 
   const pageCount = pages?.length ?? 0;
 
-  const { isComplete, isFailed, progress, isPolling, errorLog } = useJobPolling({
+  const {
+    job,
+    isComplete,
+    isFailed,
+    isCancelled,
+    progress,
+    isPolling,
+    errorLog,
+    cancel,
+    cancelling,
+  } = useJobProgress({
     bookId,
-    jobId: undefined,
     jobType: "ocr",
     enabled: true,
   });
@@ -112,6 +121,18 @@ export default function OcrProcessingPage() {
               <p className="text-[length:var(--text-xs)] text-[var(--text-muted)] tabular-nums">
                 {Math.round(progress)}% complete
               </p>
+              {job && (
+                <div className="mt-6 flex justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => void cancel()}
+                    loading={cancelling}
+                    disabled={cancelling}
+                  >
+                    Cancel OCR
+                  </Button>
+                </div>
+              )}
             </>
           )}
 
@@ -139,6 +160,16 @@ export default function OcrProcessingPage() {
                 All {pageCount} page{pageCount !== 1 ? "s" : ""} processed successfully.
                 You can now review and correct the OCR text.
               </p>
+              {errorLog && (
+                <div className="mb-6 text-left bg-[var(--warning-50)] dark:bg-[var(--warning-900)]/20 border border-[var(--warning-500)]/30 rounded-[var(--radius-lg)] p-4">
+                  <p className="text-[length:var(--text-sm)] font-medium text-[var(--warning-700)] dark:text-[var(--warning-100)]">
+                    Some pages could not be read
+                  </p>
+                  <pre className="mt-2 text-[length:var(--text-xs)] text-[var(--warning-700)] dark:text-[var(--warning-100)] whitespace-pre-wrap font-mono">
+                    {errorLog}
+                  </pre>
+                </div>
+              )}
               <Button onClick={() => router.push(`/books/${bookId}/ocr-review`)}>
                 Review OCR Text
               </Button>
@@ -184,6 +215,43 @@ export default function OcrProcessingPage() {
               </div>
             </>
           )}
+
+          {isCancelled && (
+            <>
+              <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--text)] mb-2">
+                OCR Cancelled
+              </h2>
+              <p className="text-[var(--text-muted)] text-[length:var(--text-sm)] mb-6">
+                This OCR run was cancelled. Pages that finished before the
+                cancel keep their text.
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <LinkButton
+                  href={`/books/${bookId}/preprocessing`}
+                  variant="outline"
+                >
+                  Back to Preprocessing
+                </LinkButton>
+                <LinkButton href={`/books/${bookId}/ocr-review`} variant="outline">
+                  Review available text
+                </LinkButton>
+              </div>
+            </>
+          )}
+
+          {!job && !isPolling && !isComplete && !isFailed && !isCancelled && (
+            <>
+              <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--text)] mb-2">
+                No OCR run found
+              </h2>
+              <p className="text-[var(--text-muted)] text-[length:var(--text-sm)] mb-6">
+                Start OCR from the preprocessing step to read this book.
+              </p>
+              <LinkButton href={`/books/${bookId}/preprocessing`}>
+                Back to Preprocessing
+              </LinkButton>
+            </>
+          )}
         </div>
       </div>
 
@@ -201,7 +269,13 @@ export default function OcrProcessingPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] rounded-[var(--radius)] text-[length:var(--text-xs)] font-medium">
-                OCR Processing
+                {isComplete
+                  ? "OCR complete"
+                  : isFailed
+                    ? "OCR failed"
+                    : isCancelled
+                      ? "OCR cancelled"
+                      : "OCR processing"}
               </span>
             </div>
           </div>

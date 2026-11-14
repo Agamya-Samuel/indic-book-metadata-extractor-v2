@@ -117,9 +117,7 @@ export default function MetadataReviewPage() {
       // brief ``llm_running`` → ``awaiting_review`` transition isn't missed.
       bookId,
       enabled:
-        book?.status === "llm_running" ||
-        book?.status === "ocr_running" ||
-        book?.status === "preprocessing",
+        book?.status === "llm_running" || book?.status === "ocr_running",
     });
 
   const bookStatus = useBookStatus({ bookId });
@@ -138,10 +136,8 @@ export default function MetadataReviewPage() {
     onSuccess: (result: MetadataResponse) => {
       queryClient.setQueryData(["metadata", bookId], result);
       toast.success("Metadata saved successfully");
-      // Don't advance the workflow to step 7 from here. The backend
-      // transitions the book to ``complete`` after the PUT succeeds;
-      // the SSE ``book.status_changed`` event drives the stepper, so
-      // a refresh doesn't bounce the user back to step 6.
+      // Saving does not finish the workflow; the explicit "Mark review
+      // complete" action (or a re-run that supersedes this state) does.
     },
     onError: (err) => {
       toast.error(`Failed to save metadata: ${getErrorMessage(err)}`);
@@ -149,8 +145,8 @@ export default function MetadataReviewPage() {
   });
 
   const handleSave = useCallback(
-    (fields: Record<string, string | Record<string, string>>) => {
-      saveMutation.mutate(fields);
+    async (fields: Record<string, string | Record<string, string>>) => {
+      await saveMutation.mutateAsync(fields);
     },
     [saveMutation]
   );

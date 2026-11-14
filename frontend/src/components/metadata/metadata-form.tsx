@@ -17,8 +17,10 @@ interface FieldConfidence {
 
 interface MetadataFormProps {
   fieldDefinitions: MetadataFieldDefinition[];
-  values: Record<string, string>;
-  onSave: (fields: Record<string, string | Record<string, string>>) => void;
+  values: Record<string, string | Record<string, string>>;
+  onSave: (
+    fields: Record<string, string | Record<string, string>>,
+  ) => void | Promise<void>;
   /** Retained for callers; the page's save bar owns the saving state now. */
   isSaving?: boolean;
   confidenceByField?: Record<string, FieldConfidence>;
@@ -111,33 +113,72 @@ export default function MetadataForm({
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [customFieldName, setCustomFieldName] = useState("");
   const [customFields, setCustomFields] = useState<Record<string, string>>({});
+  const [removedCustomKeys, setRemovedCustomKeys] = useState<Set<string>>(
+    new Set(),
+  );
+
+  // ``custom_fields`` is the one nested value; normalise it once.
+  const persistedCustomFields = useMemo<Record<string, string>>(() => {
+    const raw = values.custom_fields;
+    if (!raw || typeof raw !== "object") return {};
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      out[k] = typeof v === "string" ? v : "";
+    }
+    return out;
+  }, [values.custom_fields]);
 
   const currentValues = useMemo(() => {
     const merged: Record<string, string> = {};
     for (const key of Object.keys(values)) {
       if (key === "custom_fields") continue;
-      merged[key] = values[key];
+      const value = values[key];
+      merged[key] = typeof value === "string" ? value : "";
     }
-    if (values.custom_fields && typeof values.custom_fields === "object") {
-      for (const [k, v] of Object.entries(values.custom_fields as Record<string, string>)) {
-        merged[`custom_${k}`] = v;
-      }
+    for (const [k, v] of Object.entries(persistedCustomFields)) {
+      merged[`custom_${k}`] = v;
     }
+    for (const key of removedCustomKeys) delete merged[key];
     Object.assign(merged, editedValues);
     Object.assign(merged, customFields);
     return merged;
-  }, [values, editedValues, customFields]);
+  }, [values, persistedCustomFields, editedValues, customFields, removedCustomKeys]);
+
+  // Custom fields come from two places: the ones already saved on the book and
+  // the ones added in this session. Removed ones are hidden but still tracked
+  // as dirty so the removal is saved.
+  const displayedCustomKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const k of Object.keys(persistedCustomFields)) {
+      keys.add(`custom_${k}`);
+    }
+    for (const k of Object.keys(customFields)) keys.add(k);
+    for (const k of removedCustomKeys) keys.delete(k);
+    return Array.from(keys);
+  }, [persistedCustomFields, customFields, removedCustomKeys]);
 
   const dirtyKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const k of Object.keys(editedValues)) {
+      if (k.startsWith("custom_")) continue;
       if (editedValues[k] !== (values[k] ?? "")) keys.add(k);
     }
-    for (const k of Object.keys(customFields)) {
-      keys.add(k);
+    for (const k of displayedCustomKeys) {
+      const realName = k.replace("custom_", "");
+      if ((currentValues[k] ?? "") !== (persistedCustomFields[realName] ?? "")) {
+        keys.add(k);
+      }
     }
+    for (const k of removedCustomKeys) keys.add(k);
     return keys;
-  }, [editedValues, values, customFields]);
+  }, [
+    editedValues,
+    values,
+    displayedCustomKeys,
+    removedCustomKeys,
+    currentValues,
+    persistedCustomFields,
+  ]);
 
   const handleChange = useCallback((fieldName: string, value: string) => {
     setEditedValues((prev) => ({ ...prev, [fieldName]: value }));
@@ -146,7 +187,14 @@ export default function MetadataForm({
   const handleAddCustomField = useCallback(() => {
     const name = customFieldName.trim();
     if (!name) return;
-    setCustomFields((prev) => ({ ...prev, [`custom_${name}`]: "" }));
+    const key = `custom_${name}`;
+    setCustomFields((prev) => ({ ...prev, [key]: "" }));
+    setRemovedCustomKeys((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
     setCustomFieldName("");
   }, [customFieldName]);
 
@@ -161,9 +209,10 @@ export default function MetadataForm({
       delete next[key];
       return next;
     });
+    setRemovedCustomKeys((prev) => new Set(prev).add(key));
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const toSave: Record<string, string | Record<string, string>> = {};
     for (const k of dirtyKeys) {
       if (k.startsWith("custom_")) continue;
@@ -171,20 +220,40 @@ export default function MetadataForm({
     }
     const customObj: Record<string, string> = {};
     for (const k of Object.keys(currentValues)) {
-      if (k.startsWith("custom_") && k !== "custom_fields") {
-        const realName = k.replace("custom_", "");
-        customObj[realName] = currentValues[k] ?? "";
+      if (k.startsWith("custom_")) {
+        customObj[k.replace("custom_", "")] = currentValues[k] ?? "";
       }
     }
-    if (Object.keys(customObj).length > 0) {
+    const persistedCustom = persistedCustomFields;
+    // Always send custom_fields once the book has any, so removing the last one
+    // is persisted instead of leaving the old value in place.
+    if (
+      Object.keys(persistedCustom).length > 0 ||
+      Object.keys(customObj).length > 0 ||
+      removedCustomKeys.size > 0
+    ) {
       toSave.custom_fields = customObj;
     }
-    onSave(toSave);
-  }, [dirtyKeys, currentValues, onSave]);
+    try {
+      await onSave(toSave);
+    } catch {
+      return; // the page reports the failure; keep the reviewer's draft
+    }
+    setEditedValues({});
+    setCustomFields({});
+    setRemovedCustomKeys(new Set());
+  }, [
+    dirtyKeys,
+    currentValues,
+    onSave,
+    removedCustomKeys,
+    persistedCustomFields,
+  ]);
 
   const handleDiscard = useCallback(() => {
     setEditedValues({});
     setCustomFields({});
+    setRemovedCustomKeys(new Set());
   }, []);
 
   useEffect(() => {
@@ -320,9 +389,9 @@ export default function MetadataForm({
             </Button>
           </div>
 
-          {Object.keys(customFields).length > 0 && (
+          {displayedCustomKeys.length > 0 && (
             <Stack gap={2}>
-              {Object.entries(customFields).map(([key, val]) => {
+              {displayedCustomKeys.map((key) => {
                 const displayName = key.replace("custom_", "");
                 return (
                   <div key={key} className="flex items-center gap-2">
@@ -332,7 +401,7 @@ export default function MetadataForm({
                     <Input
                       className="flex-1"
                       type="text"
-                      value={editedValues[key] ?? val}
+                      value={currentValues[key] ?? ""}
                       onChange={(e) => handleChange(key, e.target.value)}
                       dir="auto"
                     />
