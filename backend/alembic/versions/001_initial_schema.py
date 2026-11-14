@@ -21,6 +21,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # The embeddings table uses the vector type. The production image ships the
+    # extension, but a fresh database (e.g. the CI service) has not installed
+    # it yet; create it before the first table that needs it.
+    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
     # Books
     op.create_table(
         "books",
