@@ -41,7 +41,7 @@ def _extract_token(request: Request) -> tuple[str | None, bool]:
     return None, False
 
 
-def _check_csrf(request: Request) -> None:
+def check_csrf(request: Request) -> None:
     cookie_token = request.cookies.get(CSRF_COOKIE)
     header_token = request.headers.get(CSRF_HEADER)
     if not cookie_token or not header_token or not hmac.compare_digest(
@@ -82,7 +82,7 @@ async def get_current_user(
         raise _unauthorized("Invalid or expired session")
 
     if from_cookie and request.method in _MUTATION_METHODS:
-        _check_csrf(request)
+        check_csrf(request)
 
     return user
 

@@ -13,7 +13,7 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import check_csrf, get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
@@ -21,7 +21,6 @@ from app.core.security import (
     CSRF_COOKIE,
     REFRESH_TOKEN_COOKIE,
     generate_opaque_token,
-    hash_opaque_token,
 )
 from app.models.user import User
 from app.schemas.auth import (
@@ -179,8 +178,14 @@ async def logout(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
 ) -> None:
+    # Logout must work with an expired access token: browser sessions outlive
+    # the 15-minute JWT, and requiring it left the refresh cookie alive, so the
+    # next page load silently signed the user back in. CSRF still applies to
+    # cookie-authenticated calls.
+    if not request.headers.get("Authorization"):
+        check_csrf(request)
+
     raw = request.cookies.get(REFRESH_TOKEN_COOKIE)
     if raw:
         await auth_service.revoke_refresh_token(db, raw)
