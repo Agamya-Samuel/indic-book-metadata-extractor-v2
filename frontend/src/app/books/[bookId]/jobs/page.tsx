@@ -17,6 +17,7 @@ import { Button, LinkButton } from "@/components/shared/button";
 import { ErrorState, EmptyState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import Pagination from "@/components/shared/pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 export default function JobsPage() {
@@ -25,7 +26,7 @@ export default function JobsPage() {
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],

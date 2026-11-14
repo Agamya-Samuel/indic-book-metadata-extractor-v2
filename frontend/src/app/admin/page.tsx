@@ -10,6 +10,7 @@ import AdminStatsCard from "@/components/shared/stat-card";
 import { PageContainer, Card, PageHeader } from "@/components/shared/card";
 import { SkeletonTable } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 import { focusRingInset } from "@/lib/focus-ring";
 
@@ -29,8 +30,8 @@ export default function AdminDashboardPage() {
   });
 
   const { data: recentJobs } = useQuery({
-    queryKey: ["admin-jobs", { page_size: 10 }],
-    queryFn: () => getAdminJobs({ page_size: 10 }),
+    queryKey: ["admin-jobs", { page_size: DEFAULT_PAGE_SIZE }],
+    queryFn: () => getAdminJobs({ page_size: DEFAULT_PAGE_SIZE }),
     staleTime: 10 * 1000,
     refetchInterval: 10 * 1000,
   });

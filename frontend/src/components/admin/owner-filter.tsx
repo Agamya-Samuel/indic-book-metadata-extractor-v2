@@ -6,6 +6,7 @@ import { getAdminUsers, type AdminUser } from "@/lib/api";
 import { Field, Input } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { Spinner } from "@/components/shared/spinner";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 export interface OwnerSelection {
   id: string;
@@ -51,7 +52,7 @@ export default function OwnerFilter({
   const { data, isFetching } = useQuery({
     queryKey: ["owner-filter-users", debouncedQuery],
     queryFn: () =>
-      getAdminUsers({ query: debouncedQuery, page_size: 10 }),
+      getAdminUsers({ query: debouncedQuery, page_size: DEFAULT_PAGE_SIZE }),
     enabled: debouncedQuery.length > 0 && !value,
     staleTime: 30 * 1000,
   });

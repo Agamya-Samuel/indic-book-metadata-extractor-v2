@@ -28,6 +28,7 @@ import { Chip } from "@/components/shared/chip";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { Spinner } from "@/components/shared/spinner";
 import { getErrorMessage } from "@/lib/error-handler";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 const MIN_PASSWORD_LENGTH = 10;
@@ -100,7 +101,7 @@ function AdminUsersContent() {
       : "";
   });
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
 
