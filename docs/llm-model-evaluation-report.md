@@ -1,8 +1,10 @@
 # LLM Model Evaluation — Consolidated Report
 
-**Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../learnings/005-llm-model-evaluation.md), [010](../learnings/010-llm-shortlist-benchmark.md), [013](../learnings/013-verified-shortlist-and-ocr.md).** Last updated 2026-11-12.
+**Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../learnings/005-llm-model-evaluation.md), [010](../learnings/010-llm-shortlist-benchmark.md), [013](../learnings/013-verified-shortlist-and-ocr.md).** Last updated **2026-11-14**.
 
-> **Status: head-to-head complete — `phi4-mini` locked as the production default** (robust; leads Hindi, F1 0.333 vs gemma4 0.106) with `gemma4:e4b` as the Telugu-optimised option (0.523 vs phi4-mini 0.182). Results are **language-dependent** — see §6. Default batch budget raised to 1024 tokens; `think:false` is sent for thinking families.
+> **Status (2026-11-14): `gemma4:e4b` (`think:false`) now leads *both* languages** — Telugu 0.523, and **Hindi 0.640 vs phi4-mini 0.400** on the enriched corpus (§9).
+>
+> **Hard constraint:** gemma4 works **only** on Ollama's native `/api/chat`. The OpenAI-compatible endpoint that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty** there. **Production default therefore remains `phi4-mini`** — path-safe and **not discarded** — until §7 option A (native-endpoint switch) is implemented and verified. See §6 (superseded), §7, §9.
 
 ## 1. Resource / speed / JSON validity — 7-model sweep (test-node-2)
 
@@ -72,12 +74,24 @@ gemma4:e4b needed a larger output budget to run end-to-end (truncated at 1024; *
 
 **Conclusion (head-to-head complete):** results are **language-dependent** — **gemma4:e4b** is the stronger **Telugu** extractor (0.523 vs 0.182); **phi4-mini** is the stronger and more robust **Hindi** extractor (0.333 vs 0.106). Neither dominates both. With one default model serving both languages, **`phi4-mini` is the lock** (robust, best balance); keep `gemma4:e4b` as the Telugu-optimised option once tuned. `think:false` is wired into the service and the harness gained `--max-tokens`.
 
+> **SUPERSEDED (2026-11-14) — see §9.** The Hindi gemma4 figure above (0.106) was an artifact: gemma4 returned empty/truncated content through the OpenAI-compatible path (the think trap). Re-run correctly on the enriched corpus, **gemma4:e4b scores 0.640 vs phi4-mini 0.400 on the same Hindi books** — gemma4 now leads **both** languages.
+
 ## 7. Decision & recommendation
 
-- **Implemented default: `phi4-mini`** (PR `964d5af`) — the Hindi leader, MIT, ~2.5 GB, fits the cap. Deploy via Dokploy (`docker/Modelfile.phi4-mini`, `OLLAMA_PRELOAD_MODEL=phi4-mini`).
-- **Caveat / likely better overall pick for Telugu: `gemma4:e4b` (`think:false`)** — best measured Telugu F1 (0.523) and lightest/fastest. **Recommend a cross-language head-to-head (gemma4:e4b vs phi4-mini, ≥2 verified books per language) before finalising.**
-- **Do not use:** `qwen2.5:7b` (near-empty output) or any thinking model without `think:false`.
-- Re-run the [evaluate_extraction.py](../backend/scripts/evaluate_extraction.py) harness `--ground-truth` after fixing OCR and the extraction bugs, so model deltas aren't swamped by recall loss.
+**Evidence (updated 2026-11-14):** `gemma4:e4b` (`think:false`) is now the best measured extractor in **both** languages — Telugu 0.523, and **Hindi 0.640 vs phi4-mini 0.400** on the enriched corpus (§9).
+
+**Hard constraint:** gemma4 only works on Ollama's **native `/api/chat`** endpoint. The OpenAI-compatible path that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty content** there (§5/§9, [learnings/022](../learnings/022-gt-source-expansion.md) finding 6). Switching production to gemma4 therefore requires a **production code change** (§7 options below), not just a Modelfile/model-name swap.
+
+- **A — switch to `gemma4:e4b` (recommended target):** move `LLMService` to the native endpoint (or otherwise ensure `think:false` is honoured), then set `docker/Modelfile` + `OLLAMA_PRELOAD_MODEL=gemma4:e4b`. Needs a PoC against the service path + a Dokploy deploy. **Not done.**
+- **B — current production default stays `phi4-mini`** (PR `964d5af`): it works on the existing path and is **not discarded**. It remains the safe fallback until A lands.
+
+**Not discarded:** `phi4-mini` is retained — it is the only model that works unmodified through the production call path today.
+
+**Do not use:** `qwen2.5:7b` (near-empty output) or any thinking model **without** `think:false` / the native endpoint.
+
+**Caveat:** the Hindi head-to-head is **4 books**; expand to ≥8–10 verified books (and Telugu) before flipping production to gemma4.
+
+Re-run the [evaluate_extraction.py](../backend/scripts/evaluate_extraction.py) harness `--ground-truth` (add `--native` for gemma4) after fixing OCR and the extraction bugs, so model deltas aren't swamped by recall loss.
 
 ## 8. Reproduce
 
