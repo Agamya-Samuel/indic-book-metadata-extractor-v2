@@ -89,9 +89,7 @@ def main() -> int:
             )
             p, r, f1 = prf(ev.tp(), ev.fp(), ev.fn())
             absent = sum(1 for x in ev.field_results if not x.expected_present)
-            halluc = sum(
-                1 for x in ev.field_results if x.predicted_present and not x.expected_present
-            )
+            halluc = sum(1 for x in ev.field_results if x.predicted_present and not x.expected_present)
             print(
                 f"{tag:14s} {book[:16]:16s} {jok:3d}/{len(recs):<2d} {wall:7.1f} "
                 f"{str(avg('gen_tok_s')):>5s} {str(avg('prefill_tok_s')):>6s} {minav:8.0f} "
@@ -110,9 +108,7 @@ def main() -> int:
         c = merged_by.get(("gem_seed7", book))
         if a is None or c is None:
             continue
-        diffs = sorted(set(a) ^ set(c)) + sorted(
-            k for k in set(a) & set(c) if a[k] != c[k]
-        )
+        diffs = sorted(set(a) ^ set(c)) + sorted(k for k in set(a) & set(c) if a[k] != c[k])
         print(f"  {book[:24]:24s} identical={not diffs} differing_fields={diffs or '-'}")
     return 0
 

@@ -42,6 +42,7 @@ def _cleanup() -> None:
     if _loop is not None and not _loop.is_closed():
         try:
             import app.core.database as _db
+
             if _db._engine is not None:
                 _loop.run_until_complete(_db._engine.dispose())
         except Exception:
@@ -102,6 +103,7 @@ def run_async_threadsafe(coro):
     try:
         # Lazy-init the DB engine inside this thread's loop
         import app.core.database as _db
+
         _db._ensure_engine()
         return loop.run_until_complete(coro)
     finally:

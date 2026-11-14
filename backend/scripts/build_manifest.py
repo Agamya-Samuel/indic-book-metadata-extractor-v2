@@ -177,8 +177,7 @@ def build(gt_root: Path, with_hash: bool) -> tuple[list[dict], dict]:
 
 def render(rows: list[dict]) -> str:
     return "".join(
-        json.dumps({k: v for k, v in r.items() if not k.startswith("_")}, ensure_ascii=False) + "\n"
-        for r in rows
+        json.dumps({k: v for k, v in r.items() if not k.startswith("_")}, ensure_ascii=False) + "\n" for r in rows
     )
 
 

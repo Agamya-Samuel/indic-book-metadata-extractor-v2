@@ -40,23 +40,23 @@ def _release_book(book: Book, job_type: str) -> None:
         book.status = BookStatus.PAGES_SELECTED
 
 
-async def reap_stale_jobs(
-    db: AsyncSession, *, now: datetime | None = None
-) -> int:
+async def reap_stale_jobs(db: AsyncSession, *, now: datetime | None = None) -> int:
     """Fail running jobs older than the threshold; returns how many were reaped."""
-    cutoff = (now or datetime.now(timezone.utc)) - timedelta(
-        minutes=settings.stale_job_minutes
-    )
+    cutoff = (now or datetime.now(timezone.utc)) - timedelta(minutes=settings.stale_job_minutes)
     last_seen = func.coalesce(Job.last_progress_at, Job.started_at)
     jobs = (
-        await db.execute(
-            select(Job).where(
-                Job.status == JobStatus.RUNNING,
-                Job.started_at.is_not(None),
-                last_seen < cutoff,
+        (
+            await db.execute(
+                select(Job).where(
+                    Job.status == JobStatus.RUNNING,
+                    Job.started_at.is_not(None),
+                    last_seen < cutoff,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     reaped = 0
     notification_ids: list = []
@@ -87,9 +87,7 @@ async def reap_stale_jobs(
                 logger.debug("Could not fail stage %s for job %s", stage, job.id, exc_info=True)
 
         notification_ids.append(
-            await notification_service.notify_job_terminal(
-                db, job=job, book=book, status=JobStatus.FAILED
-            )
+            await notification_service.notify_job_terminal(db, job=job, book=book, status=JobStatus.FAILED)
         )
         reaped += 1
         logger.warning("Reaped stale %s job %s (age %d min)", job.job_type, job.id, age_minutes)

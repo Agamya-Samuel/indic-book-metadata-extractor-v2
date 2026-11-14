@@ -167,9 +167,7 @@ class UploadSizeLimitMiddleware:
 def _validate_security_settings() -> None:
     """Refuse an insecure production start rather than discovering it later."""
     if not settings.debug and len(settings.jwt_secret_key) < 32:
-        raise RuntimeError(
-            "JWT_SECRET_KEY must be at least 32 characters outside DEBUG mode."
-        )
+        raise RuntimeError("JWT_SECRET_KEY must be at least 32 characters outside DEBUG mode.")
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
     if "*" in origins:
         logger.warning(
@@ -268,8 +266,7 @@ if settings.new_relic_enabled:
         logger.warning("newrelic package not installed; skipping APM.")
     except Exception as exc:
         logger.critical(
-            "New Relic is ENABLED but initialisation failed — "
-            "APM data will NOT be reported. Error: %s",
+            "New Relic is ENABLED but initialisation failed — APM data will NOT be reported. Error: %s",
             exc,
         )
 
@@ -363,10 +360,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     # ``ctx`` can hold the original Exception from a custom validator, which is
     # not JSON serializable; dropping it and encoding the rest keeps a bad
     # payload a 422 instead of a 500.
-    errors = [
-        {key: value for key, value in error.items() if key != "ctx"}
-        for error in exc.errors()
-    ]
+    errors = [{key: value for key, value in error.items() if key != "ctx"} for error in exc.errors()]
     return JSONResponse(
         status_code=422,
         content={"detail": jsonable_encoder(errors), "type": "validation_error"},

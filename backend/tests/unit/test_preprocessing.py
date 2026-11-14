@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -52,9 +51,11 @@ class TestAdjustBrightnessContrast:
         assert result.mean() >= img.mean()
 
     def test_positive_contrast(self):
-        img = np.full((100, 100), 128, dtype=np.uint8)
+        img = np.zeros((100, 100), dtype=np.uint8)
+        img[:, :50] = 100
+        img[:, 50:] = 150
         result = adjust_brightness_contrast(img, contrast=50)
-        assert result.mean() != 128 or contrast == 0
+        assert result.std() > img.std()
 
     def test_noop(self):
         img = _white_gray()

@@ -51,9 +51,7 @@ async def _make_job(
         return job
 
 
-async def test_dashboard_summary_counts_owned_books_and_jobs(
-    client, regular_user, admin_user
-):
+async def test_dashboard_summary_counts_owned_books_and_jobs(client, regular_user, admin_user):
     own_one = await _make_owned_book(regular_user.id, BookStatus.UPLOADED)
     own_two = await _make_owned_book(regular_user.id, BookStatus.AWAITING_REVIEW)
     other = await _make_owned_book(admin_user.id, BookStatus.UPLOADED)
@@ -149,9 +147,7 @@ async def test_owner_can_cancel_own_queued_job(client, regular_user):
         assert "owner" in (refreshed.error_log or "").lower()
 
 
-async def test_other_user_cannot_cancel_job(
-    client, regular_user, auth_client, create_user
-):
+async def test_other_user_cannot_cancel_job(client, regular_user, auth_client, create_user):
     book = await _make_owned_book(regular_user.id)
     job = await _make_job(book.id, owner_id=regular_user.id)
 
@@ -172,8 +168,6 @@ async def test_admin_can_cancel_any_job(client, admin_client, regular_user):
 
 async def test_cannot_cancel_finished_job(client, regular_user):
     book = await _make_owned_book(regular_user.id)
-    job = await _make_job(
-        book.id, owner_id=regular_user.id, status=JobStatus.COMPLETED
-    )
+    job = await _make_job(book.id, owner_id=regular_user.id, status=JobStatus.COMPLETED)
     response = await client.post(f"/api/dashboard/jobs/{job.id}/cancel")
     assert response.status_code == 400

@@ -73,9 +73,7 @@ async def create_notification(
     pre-check only avoids a needless savepoint on the common path.
     """
     existing = await db.scalar(
-        select(Notification.id).where(
-            Notification.user_id == user_id, Notification.event_key == event_key
-        )
+        select(Notification.id).where(Notification.user_id == user_id, Notification.event_key == event_key)
     )
     if existing is not None:
         return None
@@ -159,24 +157,23 @@ async def notify_job_terminal(
     )
 
 
-async def notify_admins_registration(
-    db: AsyncSession, user: User
-) -> list[uuid.UUID]:
+async def notify_admins_registration(db: AsyncSession, user: User) -> list[uuid.UUID]:
     """One row per active admin for a newly registered account."""
     admin_ids = (
-        await db.execute(
-            select(User.id).where(
-                User.role == UserRole.ADMIN,
-                User.is_active.is_(True),
+        (
+            await db.execute(
+                select(User.id).where(
+                    User.role == UserRole.ADMIN,
+                    User.is_active.is_(True),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     title = f"New registration: {user.display_name}"
-    body = (
-        f"{user.display_name} ({user.email}) registered and is awaiting "
-        "administrative approval."
-    )
+    body = f"{user.display_name} ({user.email}) registered and is awaiting administrative approval."
 
     ids: list[uuid.UUID] = []
     for admin_id in admin_ids:
@@ -200,18 +197,13 @@ async def notify_account_approved(db: AsyncSession, user: User) -> uuid.UUID | N
         user_id=user.id,
         type=NotificationType.ACCOUNT_APPROVED,
         title="Your account is approved",
-        body=(
-            "An administrator approved your account. You can now upload and "
-            "process books."
-        ),
+        body=("An administrator approved your account. You can now upload and process books."),
         event_key=f"account-approved:{user.id}",
         link_url="/dashboard",
     )
 
 
-async def mark_read(
-    db: AsyncSession, user_id: uuid.UUID, notification_id: uuid.UUID
-) -> Notification | None:
+async def mark_read(db: AsyncSession, user_id: uuid.UUID, notification_id: uuid.UUID) -> Notification | None:
     notification = (
         await db.execute(
             select(Notification).where(
@@ -241,17 +233,13 @@ async def mark_all_read(db: AsyncSession, user_id: uuid.UUID) -> int:
 async def unread_count(db: AsyncSession, user_id: uuid.UUID) -> int:
     return int(
         await db.scalar(
-            select(func.count(Notification.id)).where(
-                Notification.user_id == user_id, Notification.read_at.is_(None)
-            )
+            select(func.count(Notification.id)).where(Notification.user_id == user_id, Notification.read_at.is_(None))
         )
         or 0
     )
 
 
-async def set_email_preference(
-    db: AsyncSession, user: User, enabled: bool
-) -> User:
+async def set_email_preference(db: AsyncSession, user: User, enabled: bool) -> User:
     user.email_notifications_enabled = enabled
     await db.commit()
     await db.refresh(user)
@@ -285,9 +273,7 @@ async def deliver_notification_emails(notification_ids: list[uuid.UUID]) -> None
         logger.exception("Notification email delivery failed")
 
 
-async def deliver_emails_in_session(
-    db: AsyncSession, notification_ids: list[uuid.UUID]
-) -> int:
+async def deliver_emails_in_session(db: AsyncSession, notification_ids: list[uuid.UUID]) -> int:
     """Send emails on the caller's session; returns how many were sent.
 
     Celery tasks use this so creation and delivery share one session — a second

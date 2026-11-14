@@ -116,9 +116,7 @@ class SSEService:
         while True:
             try:
                 while True:
-                    message = await self._pubsub.get_message(
-                        ignore_subscribe_messages=True, timeout=1.0
-                    )
+                    message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
                     if message is None:
                         await asyncio.sleep(0)
                         continue

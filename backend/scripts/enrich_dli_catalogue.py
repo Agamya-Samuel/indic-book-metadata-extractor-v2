@@ -53,7 +53,9 @@ def load_catalogue(cache_dir: Path) -> dict[str, dict]:
             meta = body.rsplit(";", 1)[-1]
             ym = re.search(r",\s*(\d{4})\s*,\s*(.*),\s*(\d+)\s*pages", meta)
             if ym:
-                entries.setdefault(barcode, {"year": ym.group(1), "publisher": ym.group(2).strip(), "pages": ym.group(3)})
+                entries.setdefault(
+                    barcode, {"year": ym.group(1), "publisher": ym.group(2).strip(), "pages": ym.group(3)}
+                )
     return entries
 
 
@@ -103,7 +105,11 @@ def main() -> int:
             src = env.setdefault("field_source", {})
             status = env.setdefault("field_status", {})
             added = 0
-            for field, value in (("publisher", rec.get("publisher")), ("publication_date", rec.get("year")), ("pages", rec.get("pages"))):
+            for field, value in (
+                ("publisher", rec.get("publisher")),
+                ("publication_date", rec.get("year")),
+                ("pages", rec.get("pages")),
+            ):
                 if value and em.get(field) in (None, "", [], {}):
                     em[field] = value
                     src[field] = "dli_catalogue"

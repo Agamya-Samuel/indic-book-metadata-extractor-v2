@@ -97,9 +97,7 @@ async def create_user(
     return user
 
 
-async def create_email_token(
-    db: AsyncSession, user: User, purpose: EmailTokenPurpose
-) -> str:
+async def create_email_token(db: AsyncSession, user: User, purpose: EmailTokenPurpose) -> str:
     """Invalidate older links of the same purpose and return a fresh token."""
     await db.execute(
         update(EmailToken)
@@ -129,9 +127,7 @@ async def create_email_token(
     return raw
 
 
-async def register_user(
-    db: AsyncSession, *, email: str, display_name: str, password: str
-) -> tuple[User, list[UUID]]:
+async def register_user(db: AsyncSession, *, email: str, display_name: str, password: str) -> tuple[User, list[UUID]]:
     """Create a pending account and alert the admins who must approve it.
 
     Returns the user and the notification ids created for admins, so the route
@@ -144,11 +140,7 @@ async def register_user(
         password=password,
         role=UserRole.USER,
         verified=False,
-        account_status=(
-            AccountStatus.PENDING
-            if settings.registration_requires_approval
-            else AccountStatus.APPROVED
-        ),
+        account_status=(AccountStatus.PENDING if settings.registration_requires_approval else AccountStatus.APPROVED),
     )
     token = await create_email_token(db, user, EmailTokenPurpose.VERIFY_EMAIL)
     notification_ids: list[UUID] = []
@@ -180,9 +172,7 @@ async def verify_email(db: AsyncSession, raw_token: str) -> User:
     return user
 
 
-async def _consume_email_token(
-    db: AsyncSession, raw_token: str, purpose: EmailTokenPurpose
-) -> EmailToken:
+async def _consume_email_token(db: AsyncSession, raw_token: str, purpose: EmailTokenPurpose) -> EmailToken:
     result = await db.execute(
         select(EmailToken).where(
             EmailToken.token_hash == hash_opaque_token(raw_token),
@@ -258,11 +248,7 @@ async def rotate_refresh_token(
     user_agent: str | None = None,
     ip_address: str | None = None,
 ) -> tuple[User, str]:
-    result = await db.execute(
-        select(RefreshToken).where(
-            RefreshToken.token_hash == hash_opaque_token(raw_token)
-        )
-    )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == hash_opaque_token(raw_token)))
     token = result.scalar_one_or_none()
     if token is None:
         raise AuthError("Invalid session", 401, "invalid_refresh")
@@ -286,9 +272,7 @@ async def rotate_refresh_token(
 
     token.revoked_at = utcnow()
     await db.flush()
-    new_raw = await create_refresh_token(
-        db, user, user_agent=user_agent, ip_address=ip_address
-    )
+    new_raw = await create_refresh_token(db, user, user_agent=user_agent, ip_address=ip_address)
     return user, new_raw
 
 
@@ -351,9 +335,7 @@ async def reset_password(db: AsyncSession, raw_token: str, new_password: str) ->
     return user
 
 
-async def change_password(
-    db: AsyncSession, user: User, current_password: str, new_password: str
-) -> None:
+async def change_password(db: AsyncSession, user: User, current_password: str, new_password: str) -> None:
     if not verify_password(current_password, user.password_hash):
         raise AuthError("Current password is incorrect", 400, "invalid_password")
     user.password_hash = hash_password(new_password)
@@ -369,12 +351,7 @@ async def change_password(
 
 async def _count_active_admins(db: AsyncSession) -> int:
     return int(
-        await db.scalar(
-            select(func.count(User.id)).where(
-                User.role == UserRole.ADMIN, User.is_active.is_(True)
-            )
-        )
-        or 0
+        await db.scalar(select(func.count(User.id)).where(User.role == UserRole.ADMIN, User.is_active.is_(True))) or 0
     )
 
 
@@ -391,10 +368,7 @@ async def list_users(
     base = select(User)
     if query and query.strip():
         like = f"%{query.strip().lower()}%"
-        base = base.where(
-            func.lower(User.email).like(like)
-            | func.lower(User.display_name).like(like)
-        )
+        base = base.where(func.lower(User.email).like(like) | func.lower(User.display_name).like(like))
     if role:
         base = base.where(User.role == role)
     if is_active is not None:
@@ -402,33 +376,17 @@ async def list_users(
     if account_status:
         base = base.where(User.account_status == account_status)
 
-    total = int(
-        await db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    )
-    result = await db.execute(
-        base.order_by(User.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    total = int(await db.scalar(select(func.count()).select_from(base.subquery())) or 0)
+    result = await db.execute(base.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size))
     return list(result.scalars().all()), total
 
 
 async def count_users_by_status(db: AsyncSession, account_status: str) -> int:
-    return int(
-        await db.scalar(
-            select(func.count(User.id)).where(
-                User.account_status == account_status
-            )
-        )
-        or 0
-    )
+    return int(await db.scalar(select(func.count(User.id)).where(User.account_status == account_status)) or 0)
 
 
 async def get_user_counts(db: AsyncSession, user_id: UUID) -> tuple[int, int]:
-    book_count = int(
-        await db.scalar(select(func.count(Book.id)).where(Book.owner_id == user_id))
-        or 0
-    )
+    book_count = int(await db.scalar(select(func.count(Book.id)).where(Book.owner_id == user_id)) or 0)
     active_jobs = int(
         await db.scalar(
             select(func.count(Job.id)).where(
@@ -454,10 +412,7 @@ def _ensure_admin_target_preserved(
         deleting
         or new_role == UserRole.USER
         or new_active is False
-        or (
-            new_account_status is not None
-            and new_account_status != AccountStatus.APPROVED
-        )
+        or (new_account_status is not None and new_account_status != AccountStatus.APPROVED)
     ):
         raise AuthError(
             "You cannot demote, reject, or deactivate your own admin account",
@@ -479,9 +434,7 @@ def _apply_account_status(
     target.rejection_reason = reason if status == AccountStatus.REJECTED else None
 
 
-async def approve_user(
-    db: AsyncSession, admin: User, target: User
-) -> tuple[User, UUID | None]:
+async def approve_user(db: AsyncSession, admin: User, target: User) -> tuple[User, UUID | None]:
     """Approve a pending account and tell its owner.
 
     Returns the user and the notification id (None if one already existed), so
@@ -498,9 +451,7 @@ async def approve_user(
     return target, notification_id
 
 
-async def reject_user(
-    db: AsyncSession, admin: User, target: User, reason: str | None = None
-) -> User:
+async def reject_user(db: AsyncSession, admin: User, target: User, reason: str | None = None) -> User:
     _ensure_admin_target_preserved(
         admin, target, new_role=None, new_active=None, new_account_status=AccountStatus.REJECTED
     )
@@ -557,17 +508,13 @@ async def update_user_admin(
     return target
 
 
-async def reset_user_password_admin(
-    db: AsyncSession, target: User, new_password: str
-) -> None:
+async def reset_user_password_admin(db: AsyncSession, target: User, new_password: str) -> None:
     target.password_hash = hash_password(new_password)
     await db.commit()
     await revoke_all_sessions(db, target.id)
 
 
-async def delete_user_admin(
-    db: AsyncSession, acting_admin: User, target: User
-) -> None:
+async def delete_user_admin(db: AsyncSession, acting_admin: User, target: User) -> None:
     _ensure_admin_target_preserved(acting_admin, target, new_role=None, new_active=None, deleting=True)
 
     if target.role == UserRole.ADMIN and target.is_active:
@@ -578,10 +525,7 @@ async def delete_user_admin(
                 "last_admin_protection",
             )
 
-    book_count = int(
-        await db.scalar(select(func.count(Book.id)).where(Book.owner_id == target.id))
-        or 0
-    )
+    book_count = int(await db.scalar(select(func.count(Book.id)).where(Book.owner_id == target.id)) or 0)
     if book_count:
         raise AuthError(
             f"This user owns {book_count} book(s). Delete or transfer those books first.",

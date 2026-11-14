@@ -15,6 +15,7 @@ Must be applied with care: existing data may already violate the new
 constraint if there are dangling LlmRuns. Run with a fresh DB or
 accept some noise on production upgrades.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

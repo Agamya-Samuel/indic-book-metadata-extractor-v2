@@ -23,9 +23,7 @@ class OpenRefineService:
     def __init__(self, base_url: str = OPENREFINE_URL):
         self.base_url = base_url.rstrip("/")
 
-    async def create_project(
-        self, csv_data: bytes, project_name: str
-    ) -> dict:
+    async def create_project(self, csv_data: bytes, project_name: str) -> dict:
         """Create an OpenRefine project from CSV data.
 
         Args:
@@ -59,15 +57,11 @@ class OpenRefineService:
             project_id = result.get("project_id")
 
             if not project_id:
-                raise ValueError(
-                    f"OpenRefine did not return a project_id: {result}"
-                )
+                raise ValueError(f"OpenRefine did not return a project_id: {result}")
 
             project_url = f"{self.base_url}/project?project={project_id}"
 
-            logger.info(
-                "Created OpenRefine project %s: %s", project_id, project_name
-            )
+            logger.info("Created OpenRefine project %s: %s", project_id, project_name)
 
             return {
                 "project_id": project_id,
@@ -75,9 +69,7 @@ class OpenRefineService:
                 "project_name": project_name,
             }
 
-    async def get_project_rows(
-        self, project_id: str
-    ) -> dict:
+    async def get_project_rows(self, project_id: str) -> dict:
         """Export rows from an OpenRefine project as JSON.
 
         Args:

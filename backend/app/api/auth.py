@@ -44,9 +44,7 @@ def _http_error(exc: AuthError) -> HTTPException:
     return HTTPException(status_code=exc.status_code, detail=exc.detail)
 
 
-def _set_auth_cookies(
-    response: Response, *, access_token: str, refresh_token: str
-) -> None:
+def _set_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
     common = {
         "path": "/",
         "secure": settings.cookie_secure,
@@ -251,9 +249,7 @@ async def change_password(
     user: User = Depends(get_current_user),
 ) -> None:
     try:
-        await auth_service.change_password(
-            db, user, body.current_password, body.new_password
-        )
+        await auth_service.change_password(db, user, body.current_password, body.new_password)
     except AuthError as exc:
         raise _http_error(exc)
     _clear_auth_cookies(response)

@@ -62,9 +62,7 @@ def normalize_text(text: str, language: str = "") -> tuple[str, list[dict]]:
     # Rule 1: NFC normalization
     nfc = unicodedata.normalize("NFC", text)
     if nfc != text:
-        corrections.append(
-            Correction(original=text, replacement=nfc, position=0, rule="nfc_normalize")
-        )
+        corrections.append(Correction(original=text, replacement=nfc, position=0, rule="nfc_normalize"))
     text = nfc
 
     # Rule 2: danda / purna-virama cleanup (apply to all scripts)

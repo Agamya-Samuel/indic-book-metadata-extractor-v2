@@ -29,9 +29,7 @@ class _SMTPSink:
         self.port: int = 0
 
     async def start(self) -> None:
-        self._server = await asyncio.start_server(
-            self._handle, "127.0.0.1", 0
-        )
+        self._server = await asyncio.start_server(self._handle, "127.0.0.1", 0)
         self.port = self._server.sockets[0].getsockname()[1]
 
     async def stop(self) -> None:
@@ -40,9 +38,7 @@ class _SMTPSink:
             await self._server.wait_closed()
             self._server = None
 
-    async def _handle(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
+    async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         writer.write(b"220 test-smtp ready\r\n")
         await writer.drain()
         data_mode = False
@@ -116,9 +112,7 @@ async def test_send_email_reaches_the_server(smtp_sink) -> None:
     assert "<p>Html body</p>" in message
 
 
-async def test_notification_email_carries_title_body_and_link(
-    db_session, smtp_sink
-) -> None:
+async def test_notification_email_carries_title_body_and_link(db_session, smtp_sink) -> None:
     user = User(
         email="notify@example.com",
         display_name="Notify Me",
@@ -139,9 +133,7 @@ async def test_notification_email_carries_title_body_and_link(
     db_session.add(notification)
     await db_session.commit()
 
-    sent = await notification_service.deliver_emails_in_session(
-        db_session, [notification.id]
-    )
+    sent = await notification_service.deliver_emails_in_session(db_session, [notification.id])
     await db_session.commit()
 
     assert sent == 1
@@ -174,9 +166,7 @@ async def test_preference_off_sends_nothing(db_session, smtp_sink) -> None:
     db_session.add(notification)
     await db_session.commit()
 
-    sent = await notification_service.deliver_emails_in_session(
-        db_session, [notification.id]
-    )
+    sent = await notification_service.deliver_emails_in_session(db_session, [notification.id])
     await db_session.commit()
 
     assert sent == 0

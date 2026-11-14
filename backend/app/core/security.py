@@ -54,9 +54,7 @@ def create_access_token(
 ) -> str:
     now = utcnow()
     expires = now + (
-        expires_delta
-        if expires_delta is not None
-        else timedelta(minutes=settings.access_token_expire_minutes)
+        expires_delta if expires_delta is not None else timedelta(minutes=settings.access_token_expire_minutes)
     )
     payload: dict[str, Any] = {
         "sub": user_id,

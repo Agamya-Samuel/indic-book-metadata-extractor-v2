@@ -2,14 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from app.schemas.metadata import (
-    METADATA_BATCHES,
-    BATCH_FIELD_ORDER,
-    FIELD_DISPLAY_NAMES,
-    FIELD_TO_BATCH,
-    FIELD_WIKIDATA,
-    FullMetadata,
-)
 from app.services.prompts import (
     get_batch_field_names,
     get_language_name,

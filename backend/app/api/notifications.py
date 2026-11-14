@@ -38,14 +38,18 @@ async def list_notifications(
 
     total = int(await db.scalar(select(func.count(Notification.id)).where(*filters)) or 0)
     rows = (
-        await db.execute(
-            select(Notification)
-            .where(*filters)
-            .order_by(Notification.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+        (
+            await db.execute(
+                select(Notification)
+                .where(*filters)
+                .order_by(Notification.created_at.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     return NotificationListResponse.create(
         items=[NotificationRow.model_validate(row, from_attributes=True) for row in rows],
@@ -98,7 +102,5 @@ async def update_preferences(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> NotificationPreferences:
-    updated = await notification_service.set_email_preference(
-        db, user, payload.email_enabled
-    )
+    updated = await notification_service.set_email_preference(db, user, payload.email_enabled)
     return NotificationPreferences(email_enabled=updated.email_notifications_enabled)

@@ -14,9 +14,7 @@ from app.schemas.common import Page
 
 def _validate_password(value: str) -> str:
     if len(value) < settings.password_min_length:
-        raise ValueError(
-            f"Password must be at least {settings.password_min_length} characters"
-        )
+        raise ValueError(f"Password must be at least {settings.password_min_length} characters")
     if len(value) > 128:
         raise ValueError("Password must be at most 128 characters")
     return value

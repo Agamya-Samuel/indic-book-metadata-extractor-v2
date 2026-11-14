@@ -26,18 +26,12 @@ class JobStatus(StrEnum):
 class Job(UUIDMixin, Base):
     __tablename__ = "jobs"
 
-    book_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("books.id", ondelete="SET NULL")
-    )
-    requested_by_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), index=True
-    )
+    book_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("books.id", ondelete="SET NULL"))
+    requested_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     job_type: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default=JobStatus.QUEUED)
     progress: Mapped[float] = mapped_column(Float, default=0.0)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Updated whenever the worker reports progress; the reaper uses it so a

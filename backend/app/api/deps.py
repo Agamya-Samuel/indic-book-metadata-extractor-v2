@@ -63,9 +63,7 @@ def _extract_token(request: Request) -> tuple[str | None, bool]:
 def check_csrf(request: Request) -> None:
     cookie_token = request.cookies.get(CSRF_COOKIE)
     header_token = request.headers.get(CSRF_HEADER)
-    if not cookie_token or not header_token or not hmac.compare_digest(
-        cookie_token, header_token
-    ):
+    if not cookie_token or not header_token or not hmac.compare_digest(cookie_token, header_token):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
 
 
@@ -117,11 +115,7 @@ async def require_approved_user(
     reachable.
     """
     if user.account_status != AccountStatus.APPROVED:
-        code = (
-            "account_rejected"
-            if user.account_status == AccountStatus.REJECTED
-            else "account_pending"
-        )
+        code = "account_rejected" if user.account_status == AccountStatus.REJECTED else "account_pending"
         raise HTTPException(status_code=403, detail=code)
     return user
 

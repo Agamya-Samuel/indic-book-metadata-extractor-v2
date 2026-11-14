@@ -45,12 +45,16 @@ def transliterate(client: httpx.AsyncClient, key: str, script: str, values: dict
         "If a value is an original English title (not a transliteration), return it unchanged. "
         f"Reply with ONLY a JSON object with the same keys.\n{json.dumps(values, ensure_ascii=False)}"
     )
-    r = client.post(API, headers={"Authorization": f"Bearer {key}"}, json={
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 400,
-        "temperature": 0,
-    })
+    r = client.post(
+        API,
+        headers={"Authorization": f"Bearer {key}"},
+        json={
+            "model": MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 400,
+            "temperature": 0,
+        },
+    )
     r.raise_for_status()
     return parse_json((r.json().get("choices", [{}])[0].get("message", {}) or {}).get("content") or "")
 

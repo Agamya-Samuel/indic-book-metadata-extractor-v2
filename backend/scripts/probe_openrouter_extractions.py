@@ -45,10 +45,7 @@ PAGE3 = (
     "ఆత్మచరిత్రము.\n\nగ్రంథకర్త:\nరాయసము వెంకటశివుఁడు, యం. యె., యల్. టి.,\nగుంటూరు.\n\n"
     "ఆంధ్ర పత్రికా ముద్రాలయము : మద్రాసు.\n1933\n"
 )
-HINDI = (
-    "उम्मेदसिंह चरित्र।\n\nलेखक:\nलज्जाराम शर्मा।\n\n"
-    "प्रकाशक:\nश्रीवेंकटेश्वर स्टीम् प्रेस, बम्बई।\n\nसन् १९१३।\n"
-)
+HINDI = "उम्मेदसिंह चरित्र।\n\nलेखक:\nलज्जाराम शर्मा।\n\nप्रकाशक:\nश्रीवेंकटेश्वर स्टीम् प्रेस, बम्बई।\n\nसन् १९१३।\n"
 TELUGU_POOL = "అఆఇఈఉఊకఖగఘచఛజఝటఠడఢణతథదధనపఫబభమయరలవశషసహాిీుూెేొో్క్ం"
 GROUND_TRUTH = {
     "title": "ఆత్మచరిత్రము",
@@ -103,8 +100,7 @@ def build(model: str, mode: str, image: Path | None) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", default="scaledown/extract",
-                    choices=["scaledown/extract", "cloudflare/clairic"])
+    ap.add_argument("--model", default="scaledown/extract", choices=["scaledown/extract", "cloudflare/clairic"])
     ap.add_argument("--mode", default="text", choices=["text", "corrupt", "hindi", "image"])
     ap.add_argument("--image", type=Path, help="page image for --mode image")
     ap.add_argument("--yes-spend", action="store_true", help="acknowledge that this call costs money")
@@ -116,11 +112,15 @@ def main() -> int:
         rate = {"cloudflare/clairic": 0.10, "scaledown/extract": 0.04}[args.model]
         if args.mode == "image":
             print(f"DRY RUN: {args.model} mode=image, request body {len(payload):,} bytes.")
-            print("Image tokens are counted by the provider, not from base64 length: the "
-                  "measured 5-field call on a 150-dpi Telugu page was 3,945 tokens = $0.00039.")
+            print(
+                "Image tokens are counted by the provider, not from base64 length: the "
+                "measured 5-field call on a 150-dpi Telugu page was 3,945 tokens = $0.00039."
+            )
         else:
-            print(f"DRY RUN: {args.model} mode={args.mode}, request body {len(payload):,} bytes "
-                  f"-> roughly ${len(payload) / 4 / 1e6 * rate:.6f} at ${rate}/M input tokens.")
+            print(
+                f"DRY RUN: {args.model} mode={args.mode}, request body {len(payload):,} bytes "
+                f"-> roughly ${len(payload) / 4 / 1e6 * rate:.6f} at ${rate}/M input tokens."
+            )
         print("Re-run with --yes-spend to actually call. See the spend note in the module docstring.")
         return 0
 
@@ -142,8 +142,10 @@ def main() -> int:
         a = answers.get(name) or {}
         value = a.get("value")
         mark = "OK " if isinstance(value, str) and any(c > "\u0900" for c in value) else "?? "
-        print(f"  {name:22s} {mark}value={value!r}  p_null={a.get('p_null')} "
-              f"conf={a.get('confidence')} span={a.get('span')}")
+        print(
+            f"  {name:22s} {mark}value={value!r}  p_null={a.get('p_null')} "
+            f"conf={a.get('confidence')} span={a.get('span')}"
+        )
     print("usage:", json.dumps(out.get("usage", {}), ensure_ascii=False))
     print("truncated:", out.get("truncated"))
     return 0

@@ -29,9 +29,7 @@ def _metadata_field_ilike(field: str, value: str):
     ``ix_metadata_<field>_trgm`` (so pg_trgm can serve the leading-wildcard
     ILIKE) and yields unquoted values, unlike a ``CAST(fields -> 'x' AS text)``.
     """
-    return BookMetadata.fields[field].astext.ilike(
-        f"%{_escape_like(value)}%", escape="\\"
-    )
+    return BookMetadata.fields[field].astext.ilike(f"%{_escape_like(value)}%", escape="\\")
 
 
 class SearchService:
@@ -99,17 +97,25 @@ class SearchService:
             query = query.where(cond)
             count_query = count_query.where(cond)
         if genre:
-            cond = select(BookMetadata.id).where(
-                BookMetadata.book_id == Book.id,
-                _metadata_field_ilike("genre", genre),
-            ).exists()
+            cond = (
+                select(BookMetadata.id)
+                .where(
+                    BookMetadata.book_id == Book.id,
+                    _metadata_field_ilike("genre", genre),
+                )
+                .exists()
+            )
             query = query.where(cond)
             count_query = count_query.where(cond)
         if publisher:
-            cond = select(BookMetadata.id).where(
-                BookMetadata.book_id == Book.id,
-                _metadata_field_ilike("publisher", publisher),
-            ).exists()
+            cond = (
+                select(BookMetadata.id)
+                .where(
+                    BookMetadata.book_id == Book.id,
+                    _metadata_field_ilike("publisher", publisher),
+                )
+                .exists()
+            )
             query = query.where(cond)
             count_query = count_query.where(cond)
 
@@ -129,19 +135,21 @@ class SearchService:
                     if k in metadata_fields and metadata_fields[k] is not None:
                         card_metadata[k] = metadata_fields[k]
 
-            items.append({
-                "id": book.id,
-                "title": book.title,
-                "filename": book.filename,
-                "language": book.language,
-                "status": book.status,
-                "total_pages": book.total_pages,
-                "created_at": book.created_at,
-                "metadata_fields": card_metadata if card_metadata else None,
-                "owner_id": book.owner_id,
-                "owner_display_name": owner_display_name,
-                "owner_email": owner_email,
-            })
+            items.append(
+                {
+                    "id": book.id,
+                    "title": book.title,
+                    "filename": book.filename,
+                    "language": book.language,
+                    "status": book.status,
+                    "total_pages": book.total_pages,
+                    "created_at": book.created_at,
+                    "metadata_fields": card_metadata if card_metadata else None,
+                    "owner_id": book.owner_id,
+                    "owner_display_name": owner_display_name,
+                    "owner_email": owner_email,
+                }
+            )
 
         return items, total
 
@@ -187,21 +195,12 @@ class SearchService:
             func.similarity(cast(Book.filename, String), q) > 0.1,
         ]
         for field_name in SearchService.SEARCHABLE_JSONB_FIELDS:
-            conditions.append(
-                func.similarity(
-                    cast(BookMetadata.fields[field_name], String), q
-                ) > 0.1
-            )
+            conditions.append(func.similarity(cast(BookMetadata.fields[field_name], String), q) > 0.1)
 
         similarity_score = func.greatest(
             func.similarity(cast(Book.title, String), q),
             func.similarity(cast(Book.filename, String), q),
-            *[
-                func.similarity(
-                    cast(BookMetadata.fields[f], String), q
-                )
-                for f in SearchService.SEARCHABLE_JSONB_FIELDS
-            ],
+            *[func.similarity(cast(BookMetadata.fields[f], String), q) for f in SearchService.SEARCHABLE_JSONB_FIELDS],
         ).label("similarity_score")
 
         filtered = base.where(or_(*conditions))
@@ -223,19 +222,21 @@ class SearchService:
                     if k in metadata_fields and metadata_fields[k] is not None:
                         card_metadata[k] = metadata_fields[k]
 
-            items.append({
-                "id": book.id,
-                "title": book.title,
-                "filename": book.filename,
-                "language": book.language,
-                "status": book.status,
-                "total_pages": book.total_pages,
-                "created_at": book.created_at,
-                "metadata_fields": card_metadata if card_metadata else None,
-                "owner_id": book.owner_id,
-                "owner_display_name": owner_display_name,
-                "owner_email": owner_email,
-            })
+            items.append(
+                {
+                    "id": book.id,
+                    "title": book.title,
+                    "filename": book.filename,
+                    "language": book.language,
+                    "status": book.status,
+                    "total_pages": book.total_pages,
+                    "created_at": book.created_at,
+                    "metadata_fields": card_metadata if card_metadata else None,
+                    "owner_id": book.owner_id,
+                    "owner_display_name": owner_display_name,
+                    "owner_email": owner_email,
+                }
+            )
 
         return items, total
 
@@ -257,9 +258,7 @@ class SearchService:
 
         owner = await db.get(User, book.owner_id)
 
-        meta_result = await db.execute(
-            select(BookMetadata).where(BookMetadata.book_id == book_id)
-        )
+        meta_result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id))
         metadata = meta_result.scalar_one_or_none()
 
         return {
@@ -293,10 +292,7 @@ class SearchService:
 
         genre_col = BookMetadata.fields["genre"].astext.label("genre_val")
         genres_query = (
-            select(genre_col)
-            .join(Book, Book.id == BookMetadata.book_id)
-            .distinct()
-            .where(genre_col.isnot(None))
+            select(genre_col).join(Book, Book.id == BookMetadata.book_id).distinct().where(genre_col.isnot(None))
         )
         if book_filter:
             genres_query = genres_query.where(*book_filter)

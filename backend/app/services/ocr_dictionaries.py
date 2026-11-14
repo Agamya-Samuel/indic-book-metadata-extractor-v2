@@ -19,6 +19,7 @@ _DICT_DIR = Path(__file__).resolve().parent / "dictionaries"
 # Languages that share Devanagari script → use the Hindi dictionary.
 _DEVANAGARI_LANGS = {"hin"}
 
+
 def _resolve_lang(language: str) -> str | None:
     """Map a language code to the dictionary file prefix, or ``None`` if no
     dictionary is available for that script family.
@@ -34,6 +35,7 @@ def _resolve_lang(language: str) -> str | None:
     if language == "eng":
         return "eng"
     return None
+
 
 def get_dictionary_paths(language: str) -> tuple[Path | None, Path | None]:
     """Return ``(words_path, patterns_path)`` for *language*.

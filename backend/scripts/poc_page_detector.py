@@ -163,13 +163,20 @@ async def main() -> int:
             em = env.get("expected_metadata", {})
             pdf = gt.parent / "original.pdf"
             total = get_page_count(pdf)
-            order = sorted(set(list(range(1, min(total, args.front_max) + 1)) + list(range(max(1, total - args.back_max + 1), total + 1))))
+            order = sorted(
+                set(
+                    list(range(1, min(total, args.front_max) + 1))
+                    + list(range(max(1, total - args.back_max + 1), total + 1))
+                )
+            )
             page_text: dict[int, str] = {}
             with tempfile.TemporaryDirectory(prefix="poc_") as tmp:
                 for p in order:
                     img = Path(tmp) / f"p{p:04d}.png"
                     render_full_page(pdf, p, img)
-                    page_text[p] = run_ocr(img, "tel" if gt.parent.parent.name == "tel" else "hin", page_position=p - 1).get("full_text", "")
+                    page_text[p] = run_ocr(
+                        img, "tel" if gt.parent.parent.name == "tel" else "hin", page_position=p - 1
+                    ).get("full_text", "")
             silver = silver_pages(page_text, em)
             det = {
                 "fixed": detect_fixed(total, order),
@@ -177,14 +184,26 @@ async def main() -> int:
             }
             if not args.no_llm:
                 det["llm_text"] = await llm_judge(client, args.ollama_url, args.model, page_text)
-            row = {"book": gt.parent.name, "lang": gt.parent.parent.name, "total": total, "silver": sorted(silver), "detectors": {k: score(v, silver) for k, v in det.items()}}
+            row = {
+                "book": gt.parent.name,
+                "lang": gt.parent.parent.name,
+                "total": total,
+                "silver": sorted(silver),
+                "detectors": {k: score(v, silver) for k, v in det.items()},
+            }
             rows.append(row)
-            print(f"{gt.parent.name[:40]:40s} silver={len(silver)} " + " ".join(f"{k}:r{v['recall']}/p{v['precision']}/n{v['n']}" for k, v in row['detectors'].items()), flush=True)
+            print(
+                f"{gt.parent.name[:40]:40s} silver={len(silver)} "
+                + " ".join(f"{k}:r{v['recall']}/p{v['precision']}/n{v['n']}" for k, v in row["detectors"].items()),
+                flush=True,
+            )
 
     args.out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
     for k in rows[0]["detectors"]:
         ms = [r["detectors"][k] for r in rows]
-        print(f"MEAN {k:10s} recall={sum(m['recall'] for m in ms)/len(ms):.3f} precision={sum(m['precision'] for m in ms)/len(ms):.3f} pages={sum(m['n'] for m in ms)/len(ms):.1f}")
+        print(
+            f"MEAN {k:10s} recall={sum(m['recall'] for m in ms) / len(ms):.3f} precision={sum(m['precision'] for m in ms) / len(ms):.3f} pages={sum(m['n'] for m in ms) / len(ms):.1f}"
+        )
     return 0
 
 

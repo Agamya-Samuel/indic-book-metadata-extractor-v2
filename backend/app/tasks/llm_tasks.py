@@ -78,11 +78,7 @@ async def _validate_book_context(
             await db.commit()
             raise ValueError(f"Invalid book status: {book.status}")
 
-        pages_result = await db.execute(
-            select(Page)
-            .where(Page.book_id == book_id)
-            .order_by(Page.page_number)
-        )
+        pages_result = await db.execute(select(Page).where(Page.book_id == book_id).order_by(Page.page_number))
         pages = pages_result.scalars().all()
 
         if not pages:
@@ -93,9 +89,7 @@ async def _validate_book_context(
             raise ValueError(f"No pages for book {book_id}")
 
         page_ids = [p.id for p in pages]
-        ocr_result_rows = await db.execute(
-            select(OcrResult).where(OcrResult.page_id.in_(page_ids))
-        )
+        ocr_result_rows = await db.execute(select(OcrResult).where(OcrResult.page_id.in_(page_ids)))
         ocr_by_page = {r.page_id: r for r in ocr_result_rows.scalars().all()}
 
         text_parts = []
@@ -126,7 +120,13 @@ async def _validate_book_context(
 
 
 async def _persist_extraction_results(
-    metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
+    metadata,
+    batch_results,
+    book_id,
+    job_id,
+    ocr_text,
+    language,
+    page_count,
     evidence=None,
 ):
     """Persist extracted metadata, LLM run records, and per-field evidence.
@@ -149,9 +149,7 @@ async def _persist_extraction_results(
             return
 
         metadata_result = await db.execute(
-            select(BookMetadata)
-            .where(BookMetadata.book_id == book_id)
-            .with_for_update()
+            select(BookMetadata).where(BookMetadata.book_id == book_id).with_for_update()
         )
         existing_metadata = metadata_result.scalar_one_or_none()
 
@@ -178,17 +176,11 @@ async def _persist_extraction_results(
         # Per-field evidence: one row per populated field. Evidence for fields
         # the new run did not populate is removed so the UI cannot show a stale
         # confidence for a value that no longer exists.
-        populated = {
-            k for k, v in new_fields.items() if v is not None and k != "custom_fields"
-        }
+        populated = {k for k, v in new_fields.items() if v is not None and k != "custom_fields"}
         existing_evidence_result = await db.execute(
-            select(MetadataFieldEvidence).where(
-                MetadataFieldEvidence.book_id == book_id
-            )
+            select(MetadataFieldEvidence).where(MetadataFieldEvidence.book_id == book_id)
         )
-        existing_evidence = {
-            e.field_name: e for e in existing_evidence_result.scalars().all()
-        }
+        existing_evidence = {e.field_name: e for e in existing_evidence_result.scalars().all()}
         for field_name, row in existing_evidence.items():
             if field_name not in populated:
                 await db.delete(row)
@@ -250,9 +242,7 @@ async def _persist_extraction_results(
             if br.get("usage", {}).get("status") not in ("success", "fallback", "empty_response")
         ]
         empty_batches = [
-            br["batch_name"]
-            for br in batch_results
-            if br.get("usage", {}).get("status") == "empty_response"
+            br["batch_name"] for br in batch_results if br.get("usage", {}).get("status") == "empty_response"
         ]
 
         # Stage transitions run on THIS session, never a second one. The
@@ -310,9 +300,7 @@ async def _persist_extraction_results(
         new_book_status = book.status if book else None
         job_uuid = job.id
         book_uuid = book.id
-        notification_id = await notification_service.notify_job_terminal(
-            db, job=job, book=book, status=terminal_status
-        )
+        notification_id = await notification_service.notify_job_terminal(db, job=job, book=book, status=terminal_status)
         await notification_service.notify_and_deliver(db, [notification_id])
 
         publish_sync(
@@ -394,9 +382,7 @@ def run_llm_extraction(
 
         async def on_progress(current: int, total: int, batch_name: str):
             async with async_session_factory() as progress_db:
-                result = await progress_db.execute(
-                    select(Job).where(Job.id == job_id)
-                )
+                result = await progress_db.execute(select(Job).where(Job.id == job_id))
                 progress_job = result.scalar_one_or_none()
                 if (
                     progress_job is None
@@ -437,7 +423,13 @@ def run_llm_extraction(
         )
 
         await _persist_extraction_results(
-            metadata, batch_results, book_id, job_id, ocr_text, language, page_count,
+            metadata,
+            batch_results,
+            book_id,
+            job_id,
+            ocr_text,
+            language,
+            page_count,
             evidence=evidence,
         )
 
@@ -461,31 +453,21 @@ def run_llm_extraction(
 
         async def _mark_failed():
             async with async_session_factory() as db:
-                job_result = await db.execute(
-                    select(Job).where(Job.id == uuid.UUID(job_id_str))
-                )
+                job_result = await db.execute(select(Job).where(Job.id == uuid.UUID(job_id_str)))
                 job = job_result.scalar_one_or_none()
                 if job is None:
                     return
                 if job.status == JobStatus.CANCELLED:
-                    logger.info(
-                        "LLM job %s was cancelled; not marking it failed", job_id_str
-                    )
+                    logger.info("LLM job %s was cancelled; not marking it failed", job_id_str)
                     return
                 if await is_superseded_async(db, job):
-                    logger.info(
-                        "LLM job %s was superseded; not marking it failed", job_id_str
-                    )
+                    logger.info("LLM job %s was superseded; not marking it failed", job_id_str)
                     return
                 job.status = JobStatus.FAILED
                 job.error_log = error_message
                 job.completed_at = datetime.now(timezone.utc)
 
-                book_result = await db.execute(
-                    select(Book).where(
-                        Book.jobs.any(Job.id == uuid.UUID(job_id_str))
-                    )
-                )
+                book_result = await db.execute(select(Book).where(Book.jobs.any(Job.id == uuid.UUID(job_id_str))))
                 book = book_result.scalar_one_or_none()
                 book_status_after: str | None = None
                 if book and book.status == BookStatus.LLM_RUNNING:

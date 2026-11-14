@@ -19,6 +19,4 @@ class Page(UUIDMixin, Base):
     ocr_error: Mapped[str | None] = mapped_column(Text)
 
     book = relationship("Book", back_populates="pages")
-    ocr_result = relationship(
-        "OcrResult", back_populates="page", uselist=False, cascade="all, delete-orphan"
-    )
+    ocr_result = relationship("OcrResult", back_populates="page", uselist=False, cascade="all, delete-orphan")

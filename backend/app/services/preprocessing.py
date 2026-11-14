@@ -31,9 +31,7 @@ def to_grayscale(image: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
-def adjust_brightness_contrast(
-    image: np.ndarray, brightness: int = 0, contrast: int = 0
-) -> np.ndarray:
+def adjust_brightness_contrast(image: np.ndarray, brightness: int = 0, contrast: int = 0) -> np.ndarray:
     if brightness == 0 and contrast == 0:
         return image
     alpha = 1.0 + contrast / 100.0
@@ -48,16 +46,12 @@ def binarize_otsu(image: np.ndarray) -> np.ndarray:
     return result
 
 
-def binarize_adaptive(
-    image: np.ndarray, block_size: int = 11, c: int = 2
-) -> np.ndarray:
+def binarize_adaptive(image: np.ndarray, block_size: int = 11, c: int = 2) -> np.ndarray:
     if len(image.shape) == 3:
         image = to_grayscale(image)
     block_size = block_size if block_size % 2 == 1 else block_size + 1
     block_size = max(3, block_size)
-    return cv2.adaptiveThreshold(
-        image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, c
-    )
+    return cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, c)
 
 
 def binarize_sauvola(image: np.ndarray, window_size: int = 25, k: float = 0.2, r: float = 128.0) -> np.ndarray:
@@ -141,15 +135,15 @@ def remove_borders(image: np.ndarray, min_content_ratio: float = 0.85) -> np.nda
         return mean_val > max(255.0 * min_content_ratio, 128.0)
 
     top, bottom = 0, h
-    while top < bottom - 4 and _is_uniform(gray[top:top + strip_h, :]):
+    while top < bottom - 4 and _is_uniform(gray[top : top + strip_h, :]):
         top += strip_h
-    while bottom > top + 4 and _is_uniform(gray[bottom - strip_h:bottom, :]):
+    while bottom > top + 4 and _is_uniform(gray[bottom - strip_h : bottom, :]):
         bottom -= strip_h
 
     left, right = 0, w
-    while left < right - 4 and _is_uniform(gray[:, left:left + strip_w]):
+    while left < right - 4 and _is_uniform(gray[:, left : left + strip_w]):
         left += strip_w
-    while right > left + 4 and _is_uniform(gray[:, right - strip_w:right]):
+    while right > left + 4 and _is_uniform(gray[:, right - strip_w : right]):
         right -= strip_w
 
     if top == 0 and bottom == h and left == 0 and right == w:

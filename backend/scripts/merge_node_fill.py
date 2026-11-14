@@ -61,7 +61,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fill", type=Path, required=True, help="node-fill.jsonl")
     ap.add_argument("--root", type=Path, default=GT_ROOT)
-    ap.add_argument("--overwrite", action="store_true", help="Also replace non-empty values (default: fill empties only)")
+    ap.add_argument(
+        "--overwrite", action="store_true", help="Also replace non-empty values (default: fill empties only)"
+    )
     args = ap.parse_args()
 
     index = {p.parent.name: p for p in args.root.glob("*/*/expected_metadata.json")}

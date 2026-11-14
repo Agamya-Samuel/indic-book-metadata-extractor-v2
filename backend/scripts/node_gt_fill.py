@@ -96,7 +96,9 @@ def parse_json(content: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
-async def direct_extract(client: httpx.AsyncClient, url: str, model: str, user: str, max_tokens: int, temperature: float) -> dict:
+async def direct_extract(
+    client: httpx.AsyncClient, url: str, model: str, user: str, max_tokens: int, temperature: float
+) -> dict:
     """Call Ollama's native /api/chat with think:false.
 
     The OpenAI-compatible endpoint ignores ``think`` for thinking models here
@@ -209,7 +211,10 @@ async def main() -> int:
         books = books[: args.limit]
 
     llm = LLMService(ollama_url=args.ollama_url)
-    print(f"{len(books)} book(s) to fill (mode={args.mode}, model={args.model}, front={args.front}, back={args.back})", flush=True)
+    print(
+        f"{len(books)} book(s) to fill (mode={args.mode}, model={args.model}, front={args.front}, back={args.back})",
+        flush=True,
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     async with httpx.AsyncClient(timeout=1200.0) as client:
         with args.out.open("a", encoding="utf-8") as fh:
@@ -222,7 +227,10 @@ async def main() -> int:
                 fh.write(json.dumps(row, ensure_ascii=False) + "\n")
                 fh.flush()
                 filled = len([v for v in row.get("fields", {}).values() if v]) if "fields" in row else 0
-                print(f"[{i}/{len(books)}] {gt.parent.name[:44]:44s} pages={row.get('ocr_pages', '-')} filled={filled} {time.time() - t0:.0f}s", flush=True)
+                print(
+                    f"[{i}/{len(books)}] {gt.parent.name[:44]:44s} pages={row.get('ocr_pages', '-')} filled={filled} {time.time() - t0:.0f}s",
+                    flush=True,
+                )
     return 0
 
 

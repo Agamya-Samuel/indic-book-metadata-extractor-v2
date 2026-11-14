@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
 
-from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
 
@@ -46,6 +44,7 @@ class TestUpdatePreprocessing:
         )
 
         from sqlalchemy import select
+
         result = await db_session.execute(select(Page).where(Page.id == uuid.UUID(page_id)))
         page = result.scalar_one()
         assert page.preprocessing_config is not None
@@ -97,7 +96,18 @@ class TestGetOcrResult:
         ocr = OcrResult(
             page_id=uuid.UUID(page_id),
             raw_text="sample OCR text",
-            bounding_boxes={"words": [{"text": "sample", "confidence": 90, "bbox": {"x": 1, "y": 2, "w": 3, "h": 4}, "block_num": 1, "line_num": 1, "word_num": 1}]},
+            bounding_boxes={
+                "words": [
+                    {
+                        "text": "sample",
+                        "confidence": 90,
+                        "bbox": {"x": 1, "y": 2, "w": 3, "h": 4},
+                        "block_num": 1,
+                        "line_num": 1,
+                        "word_num": 1,
+                    }
+                ]
+            },
             confidence=90.0,
             language_detected="tel",
         )

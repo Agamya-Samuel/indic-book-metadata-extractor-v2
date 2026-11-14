@@ -55,7 +55,9 @@ class TestAdminListBooks:
 
 
 class TestAdminFilterOptions:
-    @pytest.mark.skip(reason="Requires PostgreSQL JSONB .astext support (SQLite incompatible). Run against Docker stack for full validation.")
+    @pytest.mark.skip(
+        reason="Requires PostgreSQL JSONB .astext support (SQLite incompatible). Run against Docker stack for full validation."
+    )
     async def test_get_filter_options(self, admin_client, make_book):
         await make_book(language="tel")
         await make_book(language="hin")
@@ -76,9 +78,8 @@ class TestBookDetail:
         book_id = uuid.UUID(book["id"])
 
         from sqlalchemy import select
-        pages_result = await db_session.execute(
-            select(Page).where(Page.book_id == book_id)
-        )
+
+        pages_result = await db_session.execute(select(Page).where(Page.book_id == book_id))
         pages = pages_result.scalars().all()
 
         for page in pages:
@@ -99,9 +100,7 @@ class TestBookDetail:
         assert "jobs" not in data
         assert "llm_runs" not in data
 
-        pages_response = await client.get(
-            f"/api/books/{book['id']}/pages?include_ocr=true"
-        )
+        pages_response = await client.get(f"/api/books/{book['id']}/pages?include_ocr=true")
         pages = pages_response.json()["items"]
         assert len(pages) == 2
         assert pages[0]["ocr_text"] == "OCR text here"
@@ -127,21 +126,15 @@ class TestBookDetail:
         data = response.json()
         assert data["metadata"]["title"] == "Detail Title"
 
-    async def test_book_detail_enforces_ownership(
-        self, admin_client, auth_client, create_user, make_book
-    ):
+    async def test_book_detail_enforces_ownership(self, admin_client, auth_client, create_user, make_book):
         book = await make_book()
 
         # Admin may read any book's detail.
-        assert (
-            await admin_client.get(f"/api/books/{book['id']}/detail")
-        ).status_code == 200
+        assert (await admin_client.get(f"/api/books/{book['id']}/detail")).status_code == 200
 
         other = await create_user(email="detail-other@example.com")
         other_client = await auth_client(other)
-        assert (
-            await other_client.get(f"/api/books/{book['id']}/detail")
-        ).status_code == 404
+        assert (await other_client.get(f"/api/books/{book['id']}/detail")).status_code == 404
 
 
 class TestRetiredLibraryRoutes:

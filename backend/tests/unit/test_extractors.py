@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from app.services.extractors import ExtractedField
 from app.services.extractors.dictionary_extractors import (
@@ -31,9 +30,7 @@ SAMPLE_PAGES = [
     ),
     (
         2,
-        "Copyright © 2019 Rajkamal Prakashan\n"
-        "First published 2019\n"
-        "All rights reserved.",
+        "Copyright © 2019 Rajkamal Prakashan\nFirst published 2019\nAll rights reserved.",
     ),
     (3, "Dedicated to the people of India."),
     (4, "Chapter 1\n\nItihas ke adhyayan ka mahatva..."),
@@ -139,9 +136,7 @@ class TestHybridOrchestrator:
 
         text = _pages_text(SAMPLE_PAGES)
         target_fields = ["title", "author", "isbn", "pages", "publisher", "language", "publication_date"]
-        results = await run_hybrid_extraction(
-            text, SAMPLE_PAGES, fake_llm, target_fields=target_fields
-        )
+        results = await run_hybrid_extraction(text, SAMPLE_PAGES, fake_llm, target_fields=target_fields)
 
         # ISBN, year, pages, publisher, language come from cheap extractors.
         assert "isbn" in results
@@ -172,9 +167,7 @@ class TestHybridOrchestrator:
         # target_fields = only fields the cheap layer handles. No LLM call.
         text = _pages_text(SAMPLE_PAGES)
         target_fields = ["isbn", "publisher", "language", "publication_date", "pages"]
-        results = await run_hybrid_extraction(
-            text, SAMPLE_PAGES, fake_llm, target_fields=target_fields
-        )
+        results = await run_hybrid_extraction(text, SAMPLE_PAGES, fake_llm, target_fields=target_fields)
 
         # Cheap layer populated everything; LLM was not called.
         assert "isbn" in results

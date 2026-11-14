@@ -45,9 +45,7 @@ class StageTransitionError(Exception):
 class StageManager:
     @staticmethod
     async def _lock_book(db, book_id: UUID) -> Book | None:
-        result = await db.execute(
-            select(Book).where(Book.id == book_id).with_for_update()
-        )
+        result = await db.execute(select(Book).where(Book.id == book_id).with_for_update())
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -73,7 +71,10 @@ class StageManager:
         )
         result = await db.execute(
             select(BookStageStatus)
-            .join(latest, (BookStageStatus.stage_name == latest.c.stage_name) & (BookStageStatus.attempt == latest.c.max_attempt))
+            .join(
+                latest,
+                (BookStageStatus.stage_name == latest.c.stage_name) & (BookStageStatus.attempt == latest.c.max_attempt),
+            )
             .where(BookStageStatus.book_id == book_id)
             .order_by(BookStageStatus.stage_name)
         )
@@ -199,7 +200,9 @@ class StageManager:
         return row
 
     @staticmethod
-    async def fail_stage(db, book_id: UUID, stage_name: str, error_log: str = "", attempt: int | None = None) -> BookStageStatus:
+    async def fail_stage(
+        db, book_id: UUID, stage_name: str, error_log: str = "", attempt: int | None = None
+    ) -> BookStageStatus:
         row = await StageManager.get_stage(db, book_id, stage_name, attempt)
         if row is None:
             raise StageTransitionError(f"Stage '{stage_name}' not found for book {book_id}")
@@ -214,7 +217,9 @@ class StageManager:
         return row
 
     @staticmethod
-    async def cancel_stage(db, book_id: UUID, stage_name: str, error_log: str = "", attempt: int | None = None) -> BookStageStatus:
+    async def cancel_stage(
+        db, book_id: UUID, stage_name: str, error_log: str = "", attempt: int | None = None
+    ) -> BookStageStatus:
         row = await StageManager.get_stage(db, book_id, stage_name, attempt)
         if row is None:
             raise StageTransitionError(f"Stage '{stage_name}' not found for book {book_id}")
@@ -229,9 +234,7 @@ class StageManager:
         return row
 
     @staticmethod
-    async def reset_from_stage(
-        db, book_id: UUID, stage_name: str, reason: str = "Superseded by re-run"
-    ) -> None:
+    async def reset_from_stage(db, book_id: UUID, stage_name: str, reason: str = "Superseded by re-run") -> None:
         """Cancel the given stage and every stage after it.
 
         Used when an upstream stage is re-run: downstream stages keep their
@@ -256,9 +259,7 @@ class StageManager:
     @staticmethod
     async def reset_book(db, book_id: UUID) -> None:
         await StageManager._lock_book(db, book_id)
-        existing = await db.execute(
-            select(BookStageStatus).where(BookStageStatus.book_id == book_id)
-        )
+        existing = await db.execute(select(BookStageStatus).where(BookStageStatus.book_id == book_id))
         for row in existing.scalars().all():
             await db.delete(row)
         await db.flush()

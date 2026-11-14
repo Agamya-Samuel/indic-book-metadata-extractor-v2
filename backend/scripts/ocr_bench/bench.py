@@ -1,12 +1,19 @@
-import argparse, json, resource, subprocess, time
+import argparse
+import json
+import resource
+import subprocess
+import time
 from pathlib import Path
 import Levenshtein
+
 
 def norm(s):
     return " ".join(s.split())
 
+
 def cer(p, r):
     return Levenshtein.distance(p, r) / len(r) if r else 0.0
+
 
 def wer(p, r):
     ps, rs = p.split(), r.split()
@@ -20,19 +27,28 @@ def wer(p, r):
         prev = cur
     return prev[-1] / len(rs)
 
+
 _ocr = None
+
+
 def paddle_text(img, lang):
     global _ocr
     if _ocr is None:
         from paddleocr import PaddleOCR
+
         try:
-            _ocr = PaddleOCR(lang=lang, use_doc_orientation_classify=False,
-                             use_doc_unwarping=False, use_textline_orientation=False,
-                             enable_mkldnn=False)
+            _ocr = PaddleOCR(
+                lang=lang,
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+                enable_mkldnn=False,
+            )
         except TypeError:
             _ocr = PaddleOCR(lang=lang)
     res = _ocr.predict(str(img)) if hasattr(_ocr, "predict") else _ocr.ocr(str(img), cls=False)
     out = []
+
     def collect(x):
         if isinstance(x, dict):
             t = x.get("rec_texts")
@@ -53,12 +69,16 @@ def paddle_text(img, lang):
                     out.extend(t)
             except Exception:
                 pass
+
     collect(res)
     return " ".join(out)
 
+
 def tess_text(img, lang):
-    return subprocess.run(["tesseract", str(img), "stdout", "-l", lang, "--psm", "6"],
-                          capture_output=True, text=True).stdout
+    return subprocess.run(
+        ["tesseract", str(img), "stdout", "-l", lang, "--psm", "6"], capture_output=True, text=True
+    ).stdout
+
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--engine", required=True, choices=["tesseract", "paddle"])
@@ -68,7 +88,7 @@ ap.add_argument("--out")
 a = ap.parse_args()
 B = Path(a.bundle)
 
-rows = [json.loads(l) for l in (B / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+rows = [json.loads(line) for line in (B / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
 res = []
 t0 = time.time()
 for m in rows:
@@ -82,14 +102,26 @@ for m in rows:
 
 cs = sorted(x["cer"] for x in res)
 ws = sorted(x["wer"] for x in res)
-med = lambda xs: xs[len(xs) // 2]
-rss = max(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-          resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
+
+
+def median(values):
+    return values[len(values) // 2]
+
+
+rss = max(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss, resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss)
 total = time.time() - t0
-sup = {"engine": a.engine, "lang": a.lang, "bundle": str(B), "pages": len(res),
-       "mean_cer": round(sum(cs) / len(cs), 4), "median_cer": round(med(cs), 4),
-       "median_wer": round(med(ws), 4), "total_sec": round(total, 2),
-       "sec_per_page": round(total / len(res), 3), "peak_rss_mb": round(rss / 1024, 1)}
+sup = {
+    "engine": a.engine,
+    "lang": a.lang,
+    "bundle": str(B),
+    "pages": len(res),
+    "mean_cer": round(sum(cs) / len(cs), 4),
+    "median_cer": round(median(cs), 4),
+    "median_wer": round(median(ws), 4),
+    "total_sec": round(total, 2),
+    "sec_per_page": round(total / len(res), 3),
+    "peak_rss_mb": round(rss / 1024, 1),
+}
 print("SUMMARY", json.dumps(sup))
 if a.out:
     Path(a.out).write_text(json.dumps({**sup, "rows": res}, ensure_ascii=False, indent=2), encoding="utf-8")

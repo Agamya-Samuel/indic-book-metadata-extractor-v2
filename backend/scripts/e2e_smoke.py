@@ -65,7 +65,9 @@ def step_get_book(client: httpx.Client, book_id: str):
     r = client.get(f"{BASE_URL}/books/{book_id}")
     assert r.status_code == 200, f"Get book failed: {r.text}"
     data = r.json()
-    print(f"  [OK] Book: {data.get('title') or data.get('filename')}, pages={data.get('total_pages')}, status={data['status']}")
+    print(
+        f"  [OK] Book: {data.get('title') or data.get('filename')}, pages={data.get('total_pages')}, status={data['status']}"
+    )
     return data
 
 
@@ -144,7 +146,7 @@ def step_poll_job(client: httpx.Client, book_id: str, job_id: str, timeout: int 
         print(f"  ... status={status}, progress={progress:.0f}%")
 
         if status == "completed":
-            print(f"  [OK] OCR job completed!")
+            print("  [OK] OCR job completed!")
             return job
         elif status == "failed":
             print(f"  [FAIL] OCR job failed: {job.get('error_log')}")
@@ -161,8 +163,10 @@ def step_ocr_status(client: httpx.Client, book_id: str):
     r = client.get(f"{BASE_URL}/books/{book_id}/ocr-status")
     assert r.status_code == 200, f"OCR status failed: {r.text}"
     data = r.json()
-    print(f"  [OK] total={data['total_pages']}, complete={data['ocr_complete_count']}, "
-          f"pending={data['ocr_pending_count']}, avg_conf={data.get('avg_confidence')}")
+    print(
+        f"  [OK] total={data['total_pages']}, complete={data['ocr_complete_count']}, "
+        f"pending={data['ocr_pending_count']}, avg_conf={data.get('avg_confidence')}"
+    )
     assert data["ocr_complete_count"] == data["total_pages"]
     return data
 
@@ -174,10 +178,12 @@ def step_get_ocr_result(client: httpx.Client, pages: list):
     assert r.status_code == 200, f"Get OCR result failed: {r.text}"
     data = r.json()
     boxes_count = len(data.get("bounding_boxes") or [])
-    print(f"  [OK] raw_text length={len(data.get('raw_text') or '')}, "
-          f"bounding_boxes={boxes_count}, "
-          f"confidence={data.get('confidence')}, "
-          f"language={data.get('language_detected')}")
+    print(
+        f"  [OK] raw_text length={len(data.get('raw_text') or '')}, "
+        f"bounding_boxes={boxes_count}, "
+        f"confidence={data.get('confidence')}, "
+        f"language={data.get('language_detected')}"
+    )
     assert data["raw_text"] is not None
     return data
 

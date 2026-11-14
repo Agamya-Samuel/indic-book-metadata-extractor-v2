@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
-import instructor
 from instructor.core import InstructorRetryException
 import pytest
 
 from app.schemas.metadata import (
-    METADATA_BATCHES,
     BATCH_FIELD_ORDER,
     FIELD_TO_BATCH,
     CoreIdentityBatch,
@@ -108,13 +105,12 @@ class TestLLMServiceExtractBatch:
         assert usage["status"] == "error"
 
     async def test_extract_batch_instructor_retry(self, service):
-        mock_result = CoreIdentityBatch(title="Fallback")
         last_completion = MagicMock()
         last_completion.choices = [MagicMock(message=MagicMock(content='{"title": "Fallback"}'))]
 
         mock_client = AsyncMock()
         mock_client.chat.completions.create.side_effect = InstructorRetryException(
-          "retry exhausted", last_completion=last_completion, messages=[], n_attempts=3, total_usage=[]
+            "retry exhausted", last_completion=last_completion, messages=[], n_attempts=3, total_usage=[]
         )
         _setup_service_with_mock_client(service, mock_client)
 
@@ -180,9 +176,7 @@ class TestHybridExtractionFailures:
         async def failing_batch(**kwargs):
             raise ConnectionError("connection refused")
 
-        with patch.object(
-            service, "_run_one_batch_for_hybrid", side_effect=failing_batch
-        ):
+        with patch.object(service, "_run_one_batch_for_hybrid", side_effect=failing_batch):
             metadata, batch_results, evidence = await service.run_hybrid_full_extraction(
                 ocr_text="భరత స్వాతంత్ర్య సంగ్రామం",
                 progress_callback=on_progress,
@@ -220,7 +214,7 @@ class TestLLMServiceFullExtraction:
         calls = []
 
         async def mock_extract(ocr_text, batch_name, batch_schema, **kwargs):
-            return batch_schema(), '{}', {"status": "success"}, "fake prompt"
+            return batch_schema(), "{}", {"status": "success"}, "fake prompt"
 
         async def on_progress(current, total, batch_name):
             calls.append((current, total, batch_name))

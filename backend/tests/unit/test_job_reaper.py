@@ -42,9 +42,7 @@ async def _book(db_session, owner: User, status: str) -> Book:
     return book
 
 
-async def _job(
-    db_session, book: Book, owner: User, *, status: str = JobStatus.RUNNING, **kwargs
-) -> Job:
+async def _job(db_session, book: Book, owner: User, *, status: str = JobStatus.RUNNING, **kwargs) -> Job:
     job = Job(
         id=uuid.uuid4(),
         book_id=book.id,
@@ -62,9 +60,7 @@ async def _job(
 async def test_reaps_a_job_past_the_threshold(db_session) -> None:
     owner = await _owner(db_session)
     book = await _book(db_session, owner, BookStatus.LLM_RUNNING)
-    stale = await _job(
-        db_session, book, owner, started_at=NOW - timedelta(minutes=settings.stale_job_minutes + 5)
-    )
+    stale = await _job(db_session, book, owner, started_at=NOW - timedelta(minutes=settings.stale_job_minutes + 5))
 
     reaped = await reap_stale_jobs(db_session, now=NOW)
 
@@ -78,9 +74,7 @@ async def test_reaps_a_job_past_the_threshold(db_session) -> None:
     assert book.status == BookStatus.OCR_COMPLETE
 
     notification = (
-        await db_session.execute(
-            Notification.__table__.select().where(Notification.user_id == owner.id)
-        )
+        await db_session.execute(Notification.__table__.select().where(Notification.user_id == owner.id))
     ).first()
     assert notification is not None
     assert notification.type == "job_failed"
@@ -119,9 +113,7 @@ async def test_does_not_reap_a_job_that_keeps_reporting_progress(db_session) -> 
 async def test_second_sweep_is_a_no_op(db_session) -> None:
     owner = await _owner(db_session)
     book = await _book(db_session, owner, BookStatus.LLM_RUNNING)
-    await _job(
-        db_session, book, owner, started_at=NOW - timedelta(minutes=settings.stale_job_minutes + 30)
-    )
+    await _job(db_session, book, owner, started_at=NOW - timedelta(minutes=settings.stale_job_minutes + 30))
 
     assert await reap_stale_jobs(db_session, now=NOW) == 1
     assert await reap_stale_jobs(db_session, now=NOW) == 0

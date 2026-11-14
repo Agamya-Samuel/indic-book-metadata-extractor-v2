@@ -4,6 +4,7 @@ Revision ID: 006
 Revises: 005
 Create Date: 2026-06-24
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -22,12 +23,10 @@ def upgrade() -> None:
     # AUTOCOMMIT isolation, then starts a fresh tx.
     with op.get_context().autocommit_block():
         op.execute(
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_books_title_trgm "
-            "ON books USING gin (title gin_trgm_ops)"
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_books_title_trgm ON books USING gin (title gin_trgm_ops)"
         )
         op.execute(
-            "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_books_filename_trgm "
-            "ON books USING gin (filename gin_trgm_ops)"
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_books_filename_trgm ON books USING gin (filename gin_trgm_ops)"
         )
         op.execute(
             "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_metadata_fields_gin "

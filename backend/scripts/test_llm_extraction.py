@@ -27,7 +27,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.schemas.metadata import (
     BATCH_FIELD_ORDER,
     METADATA_BATCHES,
-    FullMetadata,
 )
 from app.services.llm_service import LLMService
 from app.services.prompts import (
@@ -66,9 +65,9 @@ ISBN: 978-81-9876-543-2
 
 
 async def run_dry_run(language: str):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"DRY RUN — Rendering prompts for language: {language}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     system_prompt = render_system_prompt(language)
     print(f"--- SYSTEM PROMPT ---\n{system_prompt}\n")
@@ -96,10 +95,10 @@ async def run_single_batch(
     max_tokens: int,
     ocr_text: str,
 ):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"SINGLE BATCH TEST: {batch_name}")
     print(f"Model: {model} | Language: {language} | Temperature: {temperature}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     batch_schema = METADATA_BATCHES.get(batch_name)
     if batch_schema is None:
@@ -129,7 +128,7 @@ async def run_single_batch(
 
     print(f"Status: {usage.get('status', 'unknown')}")
     print(f"Time: {elapsed:.1f}s")
-    print(f"\nExtracted fields:")
+    print("\nExtracted fields:")
     for fn in field_names:
         value = getattr(result, fn, None)
         status_icon = "OK" if value else "--"
@@ -150,12 +149,12 @@ async def run_full_extraction(
     max_tokens: int,
     ocr_text: str,
 ):
-    print(f"\n{'='*60}")
-    print(f"FULL EXTRACTION TEST")
+    print(f"\n{'=' * 60}")
+    print("FULL EXTRACTION TEST")
     print(f"Model: {model} | Language: {language} | Temperature: {temperature}")
     print(f"Batches: {len(BATCH_FIELD_ORDER)}")
     print(f"OCR text length: {len(ocr_text)} chars")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     llm = LLMService()
     start = time.time()
@@ -177,9 +176,9 @@ async def run_full_extraction(
     elapsed = time.time() - start
     await llm.close()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"EXTRACTION COMPLETE in {elapsed:.1f}s")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     print("Batch summary:")
     for br in batch_results:
@@ -187,16 +186,12 @@ async def run_full_extraction(
         parsed = br.get("parsed_fields", {})
         non_null = sum(1 for v in parsed.values() if v is not None)
         total_fields = len(parsed)
-        print(
-            f"  {br['batch_name']:25s} | {status:10s} | {non_null}/{total_fields} fields extracted"
-        )
+        print(f"  {br['batch_name']:25s} | {status:10s} | {non_null}/{total_fields} fields extracted")
 
-    print(f"\nFull metadata JSON:")
+    print("\nFull metadata JSON:")
     print(json.dumps(metadata.model_dump(), indent=2, ensure_ascii=False))
 
-    success_count = sum(
-        1 for br in batch_results if br["usage"].get("status") == "success"
-    )
+    success_count = sum(1 for br in batch_results if br["usage"].get("status") == "success")
     failed_count = len(batch_results) - success_count
 
     print(f"\nResult: {success_count}/{len(batch_results)} batches succeeded")
@@ -207,9 +202,7 @@ async def run_full_extraction(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Test LLM extraction pipeline for Indic Book Metadata Extractor"
-    )
+    parser = argparse.ArgumentParser(description="Test LLM extraction pipeline for Indic Book Metadata Extractor")
     parser.add_argument(
         "--ocr-text",
         type=str,

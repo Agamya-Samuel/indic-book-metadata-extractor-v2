@@ -21,6 +21,7 @@ This migration addresses three pipeline bugs:
    handler in ``app/tasks/celery_app.py`` needs to map a Celery task id
    back to a job row to mark it FAILED when the task crashes.
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa

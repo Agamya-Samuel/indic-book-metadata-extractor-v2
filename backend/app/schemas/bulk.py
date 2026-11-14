@@ -4,12 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class BulkExportRequest(BaseModel):
-    language: str | None = Field(
-        default=None, description="Filter by language (e.g. 'tel', 'hin')"
-    )
-    status: str | None = Field(
-        default=None, description="Filter by book status (e.g. 'complete')"
-    )
+    language: str | None = Field(default=None, description="Filter by language (e.g. 'tel', 'hin')")
+    status: str | None = Field(default=None, description="Filter by book status (e.g. 'complete')")
     format: str = Field(
         default="csv",
         description="Export format: 'csv' for download, 'openrefine' to create an OpenRefine project",
@@ -39,6 +35,4 @@ class BulkStatsResponse(BaseModel):
 
 
 class WikibaseExportRequest(BaseModel):
-    language: str | None = Field(
-        default=None, description="Filter by language"
-    )
+    language: str | None = Field(default=None, description="Filter by language")

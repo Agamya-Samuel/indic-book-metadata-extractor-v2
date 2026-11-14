@@ -37,12 +37,23 @@ for i, r in enumerate(sel):
     p = OUT / f"hin_{i:03d}.png"
     if not p.exists():
         try:
-            data = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ocr-eval"}), timeout=90).read()
+            data = urllib.request.urlopen(
+                urllib.request.Request(url, headers={"User-Agent": "ocr-eval"}), timeout=90
+            ).read()
             p.write_bytes(data)
         except Exception as e:  # noqa: BLE001
             print("fail", i, e)
             continue
-    manifest.append({"id": f"hin_{i:03d}", "image": p.name, "ref": " ".join(str(r.get("text", "")).split()),
-                     "lang": r.get("language"), "url": r.get("page_url")})
-(OUT / "manifest.jsonl").write_text("".join(json.dumps(m, ensure_ascii=False) + "\n" for m in manifest), encoding="utf-8")
+    manifest.append(
+        {
+            "id": f"hin_{i:03d}",
+            "image": p.name,
+            "ref": " ".join(str(r.get("text", "")).split()),
+            "lang": r.get("language"),
+            "url": r.get("page_url"),
+        }
+    )
+(OUT / "manifest.jsonl").write_text(
+    "".join(json.dumps(m, ensure_ascii=False) + "\n" for m in manifest), encoding="utf-8"
+)
 print("wrote", len(manifest))

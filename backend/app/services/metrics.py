@@ -30,11 +30,14 @@ def record_book_upload(
     total_pages: int,
     language: str,
 ) -> None:
-    _record("BookUpload", {
-        "book_id": book_id,
-        "language": language,
-        "total_pages": total_pages,
-    })
+    _record(
+        "BookUpload",
+        {
+            "book_id": book_id,
+            "language": language,
+            "total_pages": total_pages,
+        },
+    )
 
 
 def record_ocr_completion(
@@ -43,12 +46,15 @@ def record_ocr_completion(
     pages_processed: int,
     duration_sec: float,
 ) -> None:
-    _record("OCRComplete", {
-        "book_id": book_id,
-        "avg_confidence": avg_confidence,
-        "pages_processed": pages_processed,
-        "duration_sec": round(duration_sec, 2),
-    })
+    _record(
+        "OCRComplete",
+        {
+            "book_id": book_id,
+            "avg_confidence": avg_confidence,
+            "pages_processed": pages_processed,
+            "duration_sec": round(duration_sec, 2),
+        },
+    )
 
 
 def record_llm_extraction(
@@ -58,10 +64,13 @@ def record_llm_extraction(
     errors: int,
     duration_sec: float,
 ) -> None:
-    _record("LLMExtraction", {
-        "book_id": book_id,
-        "model": model,
-        "batches": batches,
-        "errors": errors,
-        "duration_sec": round(duration_sec, 2),
-    })
+    _record(
+        "LLMExtraction",
+        {
+            "book_id": book_id,
+            "model": model,
+            "batches": batches,
+            "errors": errors,
+            "duration_sec": round(duration_sec, 2),
+        },
+    )

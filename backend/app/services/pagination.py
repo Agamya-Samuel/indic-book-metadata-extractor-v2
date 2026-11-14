@@ -22,9 +22,5 @@ async def paginate(
 ):
     """Return ``(rows, total)`` for one page of ``query``."""
     total = int(await db.scalar(count_query) or 0)
-    rows = (
-        await db.execute(
-            query.offset((page - 1) * page_size).limit(page_size)
-        )
-    ).all()
+    rows = (await db.execute(query.offset((page - 1) * page_size).limit(page_size))).all()
     return rows, total
