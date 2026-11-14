@@ -55,6 +55,8 @@ Measured on our verified scans ([learnings/020](../learnings/020-ocr-engine-benc
 
 **Mitigation (until integrated):** the OCR review step; optionally switch Telugu to `tessdata_best`. Preprocessing (binarization/denoise) did **not** help Telugu and is disabled by default.
 
+**Integration plan and blocker:** [plans/017](../plans/017-telugu-ocr-engine-integration.md). The model needs `torch`/`transformers` and weights fetched from Hugging Face; the production host's egress (~40–60 KB/s) makes an image build or first-boot download impractical. Build and measure on a GCP node, then bake the artifact into the image or a volume.
+
 ### IndicOCR (Hindi step-change) is gated and not CPU-viable
 
 `bodhan-ai/indic-ocr` (0.8 B VLM, currently the best published Hindi accuracy) needs Python ≥3.11, `device="cpu"`, and a Hugging Face licence + token; on the 4-vCPU CPU box it did **not** complete a page in >12 min → **excluded**. Hindi therefore stays on Tesseract (median CER 0.07). Full engine requirements and environment gotchas: [learnings/021](../learnings/021-ocr-engine-operational-requirements.md).
@@ -86,6 +88,9 @@ and the backend has SMTP configured (`SMTP_*`). When SMTP is unset or failing,
 the send is logged and skipped; the request or job that produced the event still
 succeeds, and the notification stays visible in the app.
 
+Production is configured for Resend's raw SMTP endpoint and a live signup +
+password-reset round trip succeeded on 2026-11-14.
+
 ### Server-Sent Events fall back to polling
 
 Job status updates stream over SSE (`/api/sse/books/{id}/events`). If the
@@ -93,41 +98,22 @@ stream drops or goes silent for ~25 seconds, the UI falls back to HTTP polling
 and shows a "using polling fallback" notice. This is intentional, but progress
 can lag by the polling interval until the stream reconnects.
 
-### Page extraction is still synchronous
+### Page extraction runs as a background job
 
-Page image rendering for the selected pages currently happens inside the
-`POST /books/{id}/pages` request. A Celery-backed page-extraction job with
-per-page progress and cancel is planned (see
-`plans/006-ui-ux-workflow-admin.md`, Phase 3.7) but not implemented yet.
+Selected pages are rendered by a `PAGE_EXTRACTION` Celery job with per-page
+progress, cancellation and a dedicated `/extracting-pages` screen. It shares
+the single-book lock with OCR and extraction.
 
 ---
 
 ## Deployment and operations
 
-### Production SMTP still points at the retired host
+### Mail and media delivery are configured
 
-The deployed environment still sets `SMTP_HOST=mx.msgwing.com`, which has no
-DNS record. Verification, password-reset and notification emails are therefore
-logged and skipped; in-app notifications are unaffected and registration still
-returns 201 with the "check your email" screen.
-
-**Fix (operator, Dokploy environment):** point the existing SMTP variables at
-Resend's raw SMTP endpoint — `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`,
-`SMTP_USERNAME=resend`, `SMTP_PASSWORD=<RESEND_API_KEY>`,
-`SMTP_FROM=<RESEND_FROM_EMAIL>` — then redeploy. The transport was verified with
-a live send; see `learnings/023-production-hardening-outcome.md`.
-
-### CI lint/format gate is red
-
-`uv run ruff check .` reports 60 issues and `ruff format --check .` would
-reformat 131 files, so the CI lint job cannot gate merges. Touched files are
-clean; the backlog predates the hardening pass.
-
-### Compose files have drifted
-
-`make check-compose-drift` fails: staging lacks `FRONTEND_URL`, the SMTP
-variables and the Ollama memory/thread tuning that production carries.
-Production is unaffected, but the staging template no longer matches it.
+Production uses Resend's raw SMTP endpoint (`smtp.resend.com`, user `resend`,
+the API key from the gitignored `.env`), verified with a real signup and
+password reset. Page images and thumbnails carry six-hour signed URLs scoped to
+one page or one book, so they keep loading after the access cookie expires.
 
 ### The origin is reachable without Cloudflare
 
