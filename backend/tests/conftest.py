@@ -244,17 +244,37 @@ def _make_celery_mocks():
     ]
 
 
+def _start_celery_mocks():
+    """Enter the task patches and return (handles, patchers).
+
+    The patcher objects must be kept so teardown calls ``__exit__`` on the
+    object that was actually started; creating a fresh ``patch`` in teardown
+    raises ``AttributeError: '_patch' object has no attribute 'is_local'`` on
+    Python 3.11.
+    """
+    handles = {}
+    patchers = []
+    for name, target in _make_celery_mocks():
+        patcher = patch(target)
+        handle = patcher.__enter__()
+        handle.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
+        handles[name] = handle
+        patchers.append(patcher)
+    return handles, patchers
+
+
+def _stop_celery_mocks(patchers) -> None:
+    for patcher in patchers:
+        patcher.__exit__(None, None, None)
+
+
 @pytest.fixture
 def mock_celery():
-    mocks = _make_celery_mocks()
-    handles = {name: patch(target).__enter__() for name, target in mocks}
-    for h in handles.values():
-        h.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
+    handles, patchers = _start_celery_mocks()
     try:
         yield handles
     finally:
-        for _, target in mocks:
-            patch(target).__exit__(None, None, None)
+        _stop_celery_mocks(patchers)
 
 
 @pytest.fixture(autouse=True)
@@ -267,15 +287,11 @@ def _auto_mock_celery(request):
         yield
         return
 
-    mocks = _make_celery_mocks()
-    handles = [(name, patch(target).__enter__()) for name, target in mocks]
-    for _, h in handles:
-        h.delay = MagicMock(return_value=MagicMock(id="test-task-id"))
+    _, patchers = _start_celery_mocks()
     try:
         yield
     finally:
-        for _, target in mocks:
-            patch(target).__exit__(None, None, None)
+        _stop_celery_mocks(patchers)
 
 
 @pytest.fixture
