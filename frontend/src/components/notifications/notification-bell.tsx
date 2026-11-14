@@ -52,7 +52,7 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
-    panelRef.current?.focus();
+    panelRef.current?.focus({ preventScroll: true });
     const onPointer = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     };
