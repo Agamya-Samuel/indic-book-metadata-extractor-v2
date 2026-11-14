@@ -62,7 +62,7 @@ services:
       start_period: 10s
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # LLM Inference (Qwen2.5 7B) — staging: slightly smaller cap to share host with prod
+  # LLM Inference (phi4-mini) — same cap and tuning as production
   # ─────────────────────────────────────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
@@ -70,11 +70,17 @@ services:
     volumes:
       - ollama_data:/root/.ollama
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
-      - ./docker/Modelfile.qwen2.5:/models/Modelfile.qwen2.5
+      - ./docker/Modelfile.phi4-mini:/models/Modelfile.phi4-mini
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    mem_limit: "7g"
+    memswap_limit: "7g"
     environment:
-      OLLAMA_PRELOAD_MODEL: qwen2.5
+      OLLAMA_PRELOAD_MODEL: phi4-mini
       OLLAMA_KEEP_ALIVE: "30m"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_NUM_THREADS: "3"
+      OLLAMA_CONTEXT_LENGTH: "4096"
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -166,6 +172,17 @@ services:
       OCR_BATCH_SIZE: ${OCR_BATCH_SIZE:-10}
       OCR_THREAD_WORKERS: ${OCR_THREAD_WORKERS:-4}
       OCR_RENDER_DPI: ${OCR_RENDER_DPI:-300}
+      # Workers create job notifications and send their alert emails, so
+      # they need the same SMTP settings and public URL as the backend.
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      SMTP_ENABLED: ${SMTP_ENABLED:-true}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
       NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker (staging)}
