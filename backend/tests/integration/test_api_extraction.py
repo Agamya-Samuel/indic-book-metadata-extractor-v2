@@ -126,6 +126,24 @@ class TestRunExtraction:
         )
         assert response.status_code == 409
 
+    async def test_duplicate_run_after_start_is_409(
+        self, client, make_book, db_session, mock_celery
+    ):
+        book = await _create_book_with_ocr(client, make_book, db_session)
+
+        first = await client.post(
+            f"/api/books/{book['id']}/run-extraction",
+            json={"model": "qwen2.5"},
+        )
+        assert first.status_code == 201
+
+        second = await client.post(
+            f"/api/books/{book['id']}/run-extraction",
+            json={"model": "qwen2.5"},
+        )
+        assert second.status_code == 409
+        assert second.headers.get("X-Existing-Job-Id") == first.json()["job_id"]
+
 
 class TestRetryExtraction:
     async def test_retry_extraction(self, client, make_book, db_session, mock_celery):
