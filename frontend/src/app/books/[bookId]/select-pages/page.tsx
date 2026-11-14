@@ -200,7 +200,7 @@ export default function SelectPagesPage() {
                     "relative bg-[var(--surface)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all hover:shadow-[var(--shadow-md)]",
                     focusRing,
                     isSelected
-                      ? "border-2 border-[var(--accent)] shadow-[var(--shadow-md)]"
+                      ? "border-2 border-[var(--accent-ring)] shadow-[var(--shadow-md)]"
                       : "border-2 border-[var(--border)]"
                   )}
                 >
