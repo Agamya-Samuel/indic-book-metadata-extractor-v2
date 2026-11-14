@@ -763,7 +763,7 @@ function JobTable({
             {job.book_id && (
               <Link
                 href={`/books/${job.book_id}`}
-                className="text-[var(--text-sm)] text-[var(--accent)] hover:underline"
+                className="text-[var(--text-sm)] text-[var(--accent-text)] hover:underline"
               >
                 Open
               </Link>

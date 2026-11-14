@@ -131,7 +131,7 @@ export default function UploadPage() {
                     </svg>
                   </div>
                   <p className="text-[var(--text-sm)] text-[var(--text)]">
-                    <span className="font-semibold text-[var(--accent)]">
+                    <span className="font-semibold text-[var(--accent-text)]">
                       Click to upload
                     </span>{" "}
                     or drag and drop

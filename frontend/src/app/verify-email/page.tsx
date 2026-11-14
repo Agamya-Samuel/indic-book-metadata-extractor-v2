@@ -75,7 +75,7 @@ function VerifyEmailContent() {
     return (
       <AuthCard title="Verifying your email" description="One moment…">
         <div className="flex items-center justify-center py-6">
-          <Spinner className="size-6 text-[var(--accent)]" />
+          <Spinner className="size-6 text-[var(--accent-text)]" />
         </div>
       </AuthCard>
     );
@@ -90,7 +90,7 @@ function VerifyEmailContent() {
           footer={
             <Link
               href="/login"
-              className="text-[var(--accent)] hover:underline"
+              className="text-[var(--accent-text)] hover:underline"
             >
               Back to log in
             </Link>
@@ -115,7 +115,7 @@ function VerifyEmailContent() {
         footer={
           <Link
             href="/dashboard"
-            className="text-[var(--accent)] hover:underline"
+            className="text-[var(--accent-text)] hover:underline"
           >
             Go to your dashboard
           </Link>
@@ -146,7 +146,7 @@ function VerifyEmailContent() {
           : "Enter your email address and we will send you a new verification link."
       }
       footer={
-        <Link href="/login" className="text-[var(--accent)] hover:underline">
+        <Link href="/login" className="text-[var(--accent-text)] hover:underline">
           Back to log in
         </Link>
       }
@@ -182,7 +182,7 @@ export default function VerifyEmailPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">
-          <Spinner className="size-5 text-[var(--accent)]" />
+          <Spinner className="size-5 text-[var(--accent-text)]" />
         </div>
       }
     >

@@ -52,7 +52,7 @@ export default function RegisterPage() {
         title="Check your email"
         description={`We sent a verification link to ${registeredEmail}.`}
         footer={
-          <Link href="/login" className="text-[var(--accent)] hover:underline">
+          <Link href="/login" className="text-[var(--accent-text)] hover:underline">
             Back to log in
           </Link>
         }
@@ -72,7 +72,7 @@ export default function RegisterPage() {
           </p>
           <Link
             href={`/verify-email?email=${encodeURIComponent(registeredEmail)}`}
-            className="inline-block text-[var(--accent)] hover:underline"
+            className="inline-block text-[var(--accent-text)] hover:underline"
           >
             Resend verification email
           </Link>
@@ -88,7 +88,7 @@ export default function RegisterPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="text-[var(--accent)] hover:underline">
+          <Link href="/login" className="text-[var(--accent-text)] hover:underline">
             Log in
           </Link>
         </>

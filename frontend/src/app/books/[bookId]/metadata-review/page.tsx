@@ -186,7 +186,7 @@ export default function MetadataReviewPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="text-center max-w-md mx-auto px-4">
-          <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)] mx-auto mb-4" />
+          <Spinner className="h-12 w-12 border-[3px] text-[var(--accent-text)] mx-auto mb-4" />
           <h2 className="text-[var(--text-lg)] font-semibold text-[var(--text)] mb-2">
             LLM Extraction in Progress
           </h2>

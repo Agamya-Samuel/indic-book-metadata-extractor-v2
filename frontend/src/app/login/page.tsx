@@ -74,7 +74,7 @@ function LoginForm() {
       <div className="flex items-center justify-between text-[var(--text-xs)]">
         <Link
           href="/forgot-password"
-          className="text-[var(--accent)] hover:underline"
+          className="text-[var(--accent-text)] hover:underline"
         >
           Forgot password?
         </Link>
@@ -92,7 +92,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <AuthCard title="Log in" description="Access your books and dashboard.">
-      <Suspense fallback={<Spinner className="size-5 text-[var(--accent)]" />}>
+      <Suspense fallback={<Spinner className="size-5 text-[var(--accent-text)]" />}>
         <LoginForm />
       </Suspense>
     </AuthCard>

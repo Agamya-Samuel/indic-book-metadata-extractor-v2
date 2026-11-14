@@ -437,7 +437,7 @@ export default function DesignKitPage() {
               </span>
             </div>
             <div className="flex items-center gap-4">
-              <Spinner className="size-5 text-[var(--accent)]" />
+              <Spinner className="size-5 text-[var(--accent-text)]" />
               <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
                 Spinner, size-5
               </span>

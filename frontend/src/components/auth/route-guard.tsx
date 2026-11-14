@@ -33,7 +33,7 @@ function isAdminPath(pathname: string): boolean {
 function FullPageSpinner() {
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
-      <Spinner className="size-8 text-[var(--accent)]" />
+      <Spinner className="size-8 text-[var(--accent-text)]" />
       <span className="sr-only">Loading session</span>
     </div>
   );

@@ -59,7 +59,7 @@ function ResetPasswordForm() {
         title="Reset link required"
         description="Open the link from your password reset email to choose a new password."
         footer={
-          <Link href="/forgot-password" className="text-[var(--accent)] hover:underline">
+          <Link href="/forgot-password" className="text-[var(--accent-text)] hover:underline">
             Request a new link
           </Link>
         }
@@ -79,7 +79,7 @@ function ResetPasswordForm() {
       title="Choose a new password"
       description="Your other sessions will be signed out once the password changes."
       footer={
-        <Link href="/login" className="text-[var(--accent)] hover:underline">
+        <Link href="/login" className="text-[var(--accent-text)] hover:underline">
           Back to log in
         </Link>
       }
@@ -123,7 +123,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4 py-10">
-          <Spinner className="size-5 text-[var(--accent)]" />
+          <Spinner className="size-5 text-[var(--accent-text)]" />
         </div>
       }
     >
