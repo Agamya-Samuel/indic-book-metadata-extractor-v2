@@ -84,10 +84,12 @@ async def run_extraction(
             Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
         )
     )
-    if running_jobs.scalars().first():
+    running_job = running_jobs.scalars().first()
+    if running_job:
         raise HTTPException(
             status_code=409,
             detail="An LLM extraction job is already running or queued for this book",
+            headers={"X-Existing-Job-Id": str(running_job.id)},
         )
 
     if book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):

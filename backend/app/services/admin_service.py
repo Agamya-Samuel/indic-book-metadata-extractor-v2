@@ -216,6 +216,27 @@ async def list_admin_jobs(
     return items, total
 
 
+async def find_active_job(
+    db: AsyncSession, book_id: UUID, job_type: str
+) -> Job | None:
+    """The newest queued/running job of this type for the book, if any.
+
+    Used to reject duplicate submissions instead of silently spawning a second
+    job that would race the first.
+    """
+    result = await db.execute(
+        select(Job)
+        .where(
+            Job.book_id == book_id,
+            Job.job_type == job_type,
+            Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
+        )
+        .order_by(Job.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def cancel_job(
     db: AsyncSession, job_id: UUID, *, reason: str = "Cancelled by admin"
 ) -> tuple[Job, UUID | None]:

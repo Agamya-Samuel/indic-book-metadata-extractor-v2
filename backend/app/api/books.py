@@ -57,6 +57,15 @@ def _pre_render_thumbnails(book_id: str, pdf_path: Path, total_pages: int) -> No
 router = APIRouter()
 
 
+def _duplicate_job_conflict(job: Job) -> HTTPException:
+    """409 for a repeated submission; the id lets the UI resume polling it."""
+    return HTTPException(
+        status_code=409,
+        detail="An identical job is already queued or running for this book",
+        headers={"X-Existing-Job-Id": str(job.id)},
+    )
+
+
 @router.post("/upload", response_model=BookUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_book(
     file: UploadFile,
@@ -248,6 +257,12 @@ async def select_pages(
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="Original PDF not found")
 
+    duplicate = await admin_service.find_active_job(
+        db, book_id, JobType.PAGE_EXTRACTION
+    )
+    if duplicate is not None:
+        raise _duplicate_job_conflict(duplicate)
+
     # Supersede any in-flight job for this book before mutating its pages.
     active_jobs = await db.execute(
         select(Job).where(
@@ -329,6 +344,12 @@ async def apply_preprocessing_all(
     if has_page is None:
         raise HTTPException(status_code=400, detail="No pages selected for this book")
 
+    duplicate = await admin_service.find_active_job(
+        db, book.id, JobType.PREPROCESSING
+    )
+    if duplicate is not None:
+        raise _duplicate_job_conflict(duplicate)
+
     job = Job(
         book_id=book.id,
         requested_by_id=user.id,
@@ -366,6 +387,10 @@ async def run_ocr(
     user: User = Depends(get_current_user),
 ) -> JobResponse:
     book_id = book.id
+
+    duplicate = await admin_service.find_active_job(db, book_id, JobType.OCR)
+    if duplicate is not None:
+        raise _duplicate_job_conflict(duplicate)
 
     if book.status not in (BookStatus.PAGES_SELECTED,):
         raise HTTPException(
