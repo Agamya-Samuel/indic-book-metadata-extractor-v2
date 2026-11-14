@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { useMutation } from "@tanstack/react-query";
 import { uploadBook } from "@/lib/api";
+import { getErrorMessage } from "@/lib/error-handler";
 import { useBookStore } from "@/stores/book-store";
 import { toast } from "sonner";
 import { Button } from "@/components/shared/button";
@@ -64,7 +65,7 @@ export default function UploadPage() {
       router.push(`/books/${data.id}/select-pages`);
     },
     onError: (error: Error) => {
-      const msg = error.message || "Failed to upload file";
+      const msg = getErrorMessage(error);
       setError(msg);
       toast.error(msg);
     },

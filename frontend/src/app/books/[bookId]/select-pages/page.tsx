@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { toast } from "sonner";
 import { getBook, selectPages, getThumbnailUrl } from "@/lib/api";
+import { getErrorMessage } from "@/lib/error-handler";
 import { getLanguageName } from "@/lib/utils";
 import { useBookStore } from "@/stores/book-store";
 import WorkflowShell from "@/components/shared/workflow-shell";
@@ -52,6 +55,21 @@ export default function SelectPagesPage() {
       router.push(
         `/books/${bookId}/extracting-pages?job=${data.job_id ?? ""}`,
       );
+    },
+    onError: (error) => {
+      // A 409 carries the id of the job that is already running; resume it
+      // instead of leaving the user on a page with a silent no-op button.
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        const existingJob = error.response.headers?.["x-existing-job-id"];
+        if (existingJob) {
+          toast.info("Page extraction is already running");
+          router.push(
+            `/books/${bookId}/extracting-pages?job=${existingJob}`,
+          );
+          return;
+        }
+      }
+      toast.error(getErrorMessage(error));
     },
   });
 

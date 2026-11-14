@@ -59,7 +59,7 @@ export function useJobProgress({
   intervalMs = 2000,
 }: UseJobProgressOptions): UseJobProgressReturn {
   const queryClient = useQueryClient();
-  const polling = useJobPolling({ bookId, jobType, intervalMs, enabled });
+  const polling = useJobPolling({ bookId, jobId, jobType, intervalMs, enabled });
   const [now, setNow] = useState(() => Date.now());
   const [cancelling, setCancelling] = useState(false);
 
