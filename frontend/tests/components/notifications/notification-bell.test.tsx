@@ -115,4 +115,30 @@ describe("NotificationBell", () => {
 
     await waitFor(() => expect(mockReadAll).toHaveBeenCalled());
   });
+
+  it("moves focus into the panel on open", async () => {
+    const user = userEvent.setup();
+    render(<NotificationBell />, { wrapper: createWrapper() });
+    await user.click(
+      await screen.findByRole("button", { name: "Notifications, 3 unread" }),
+    );
+
+    const panel = await screen.findByRole("region", { name: "Notifications" });
+    await waitFor(() => expect(document.activeElement).toBe(panel));
+  });
+
+  it("returns focus to the bell on Escape", async () => {
+    const user = userEvent.setup();
+    render(<NotificationBell />, { wrapper: createWrapper() });
+    const bell = await screen.findByRole("button", {
+      name: "Notifications, 3 unread",
+    });
+    await user.click(bell);
+    await screen.findByRole("region", { name: "Notifications" });
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(document.activeElement).toBe(bell));
+    expect(screen.queryByRole("region", { name: "Notifications" })).toBeNull();
+  });
 });

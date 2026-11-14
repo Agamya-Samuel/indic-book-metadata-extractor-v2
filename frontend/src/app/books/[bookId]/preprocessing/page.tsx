@@ -325,7 +325,7 @@ export default function PreprocessingPage() {
                         "relative aspect-[3/4] rounded-[var(--radius)] overflow-hidden border-2 transition-all",
                         focusRing,
                         idx === selectedPageIndex
-                          ? "border-[var(--accent)] ring-2 ring-[var(--accent-ring)]/30"
+                          ? "border-[var(--accent-ring)] ring-2 ring-[var(--accent-ring)]/30"
                           : "border-[var(--border)] hover:border-[var(--border-strong)]",
                       )}
                     >

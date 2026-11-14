@@ -21,6 +21,8 @@ export function NotificationBell() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const { data: unread = 0 } = useQuery({
     queryKey: ["notifications", "unread"],
@@ -50,11 +52,16 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
+    panelRef.current?.focus();
     const onPointer = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        // Return the user to where they opened it.
+        triggerRef.current?.focus();
+      }
     };
     document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
@@ -75,6 +82,7 @@ export function NotificationBell() {
     <div ref={containerRef} className="relative ml-1">
       <button
         type="button"
+        ref={triggerRef}
         onClick={() => setOpen((value) => !value)}
         aria-label={
           unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
@@ -103,9 +111,11 @@ export function NotificationBell() {
 
       {open && (
         <div
+          ref={panelRef}
+          tabIndex={-1}
           role="region"
           aria-label="Notifications"
-          className="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]"
+          className="absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] focus:outline-none"
         >
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
             <p className="text-[var(--text-sm)] font-semibold text-[var(--text)]">

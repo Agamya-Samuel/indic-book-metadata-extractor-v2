@@ -302,7 +302,7 @@ export default function OcrReviewPage() {
                       "relative aspect-[3/4] overflow-hidden rounded-[var(--radius)] border-2 transition-colors",
                       focusRing,
                       idx === currentPageIndex
-                        ? "border-[var(--accent)]"
+                        ? "border-[var(--accent-ring)]"
                         : "border-[var(--border)] hover:border-[var(--border-strong)]",
                     )}
                   >

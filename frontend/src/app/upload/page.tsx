@@ -101,7 +101,7 @@ export default function UploadPage() {
                     "transition-colors duration-[var(--duration-fast)]",
                     focusRing,
                     isDragActive
-                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                      ? "border-[var(--accent-ring)] bg-[var(--accent-soft)]"
                       : "border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-sunken)]",
                   )}
                 >

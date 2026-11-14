@@ -42,6 +42,7 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   const ref = React.useRef<HTMLDialogElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const titleId = React.useId();
 
   React.useEffect(() => {
     const el = ref.current;
@@ -75,6 +76,7 @@ export default function ConfirmDialog({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         if (!loading) onClose();
@@ -85,7 +87,7 @@ export default function ConfirmDialog({
       className="m-auto w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-0 shadow-[var(--shadow-lg)] backdrop:bg-black/40 dark:bg-[var(--neutral-900)] dark:text-[var(--neutral-50)] dark:border-[var(--neutral-800)]"
     >
       <div className="px-6 pt-5 pb-2 text-left">
-        <h2 className="text-md font-semibold text-[var(--text)]">
+        <h2 id={titleId} className="text-md font-semibold text-[var(--text)]">
           {title}
         </h2>
         {description && (
