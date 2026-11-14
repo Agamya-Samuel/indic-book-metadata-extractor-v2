@@ -83,8 +83,12 @@ export default function AppNavbar() {
     router.replace("/login");
   };
 
+  // Stacking order (keep page chrome below the app bar, or the dropdowns
+  // inside it get painted over): 10 sticky table headers, 20 in-page sticky
+  // toolbars, 30 page sub-headers (admin sub-nav, mobile stage bar),
+  // 40 this navbar, 50 popovers and overlays.
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/70 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
+    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--background)]/70 [padding-left:max(1rem,env(safe-area-inset-left))] [padding-right:max(1rem,env(safe-area-inset-right))]">
       <div className="mx-auto flex h-14 w-full max-w-[var(--content-max)] items-center justify-between gap-3 sm:gap-4">
         <Link
           href="/"
