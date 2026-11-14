@@ -275,7 +275,7 @@ export default function AdminBooksPage() {
           <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded-[var(--radius-xs)] border border-[var(--border)] bg-[var(--surface-sunken)]">
             {book.total_pages ? (
               <Image
-                src={getThumbnailUrl(book.id, 1)}
+                src={book.thumbnail_url || getThumbnailUrl(book.id, 1)}
                 alt=""
                 fill
                 sizes="32px"

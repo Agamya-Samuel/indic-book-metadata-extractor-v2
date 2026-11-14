@@ -685,7 +685,7 @@ export default function BookDetailPage() {
                   <div className="flex flex-col gap-4 md:flex-row">
                     <div className="md:w-1/2">
                       <Image
-                        src={getPageImageUrl(page.id)}
+                        src={page.image_url ?? getPageImageUrl(page.id)}
                         alt={`Page ${page.page_number}`}
                         width={800}
                         height={1100}

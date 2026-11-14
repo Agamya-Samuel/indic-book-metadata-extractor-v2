@@ -1,16 +1,20 @@
-import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.media_tokens import (
+    issue_media_token,
+    page_image_url,
+    page_preview_url,
+    thumbnail_scope,
+)
 from app.models.base import uuid
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobType, JobStatus
@@ -160,6 +164,7 @@ async def _build_book_detail(
         **BookDetail.model_validate(book).model_dump(),
         "needs_review": book.status == BookStatus.AWAITING_REVIEW and low_conf_count > 0,
         "low_confidence_count": low_conf_count,
+        "thumbnail_token": issue_media_token(*thumbnail_scope(book.id)),
     }
     if owner_display_name is not None:
         data["owner_display_name"] = owner_display_name
@@ -200,28 +205,6 @@ async def get_book_detail(
         metadata_updated_at=metadata.updated_at if metadata else None,
         owner_display_name=detail.get("owner_display_name"),
     )
-
-
-@router.get("/{book_id}/pages/{page_number}/thumbnail")
-async def get_thumbnail(
-    page_number: int,
-    book: Book = Depends(get_owned_book_or_404),
-) -> FileResponse:
-    if page_number < 1 or (book.total_pages and page_number > book.total_pages):
-        raise HTTPException(status_code=404, detail="Page number out of range")
-
-    thumb_path = storage.thumbnail_path(str(book.id), page_number)
-    if not thumb_path.exists():
-        pdf_path = storage.original_pdf_path(str(book.id))
-        if not pdf_path.exists():
-            raise HTTPException(status_code=404, detail="Original PDF not found")
-        try:
-            # Run blocking I/O in a thread to avoid blocking the async event loop
-            await asyncio.to_thread(pdf_service.render_thumbnail, pdf_path, page_number, thumb_path)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Failed to render thumbnail")
-
-    return FileResponse(thumb_path, media_type="image/jpeg")
 
 
 @router.post("/{book_id}/pages", response_model=PageSelectionResponse)
@@ -380,9 +363,10 @@ async def list_pages(
     items: list[PageResponse] = []
     for page in pages:
         item = PageResponse.model_validate(page)
+        item.image_url = page_image_url(page.id)
+        item.preview_url = page_preview_url(page.id)
         if include_ocr:
             ocr = ocr_by_page.get(page.id)
-            item.image_url = f"/api/pages/{page.id}/image"
             item.ocr_text = ocr.corrected_text if ocr and ocr.corrected_text else (ocr.raw_text if ocr else None)
             item.ocr_confidence = ocr.confidence if ocr else None
         items.append(item)

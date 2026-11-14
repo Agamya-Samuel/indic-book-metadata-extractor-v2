@@ -540,7 +540,7 @@ function BookTable({
           >
             {book.total_pages ? (
               <Image
-                src={getThumbnailUrl(book.id, 1)}
+                src={book.thumbnail_url || getThumbnailUrl(book.id, 1)}
                 alt=""
                 fill
                 sizes="44px"

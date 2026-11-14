@@ -233,6 +233,8 @@ export interface BookDetail extends BookUploadResponse {
   low_confidence_count?: number;
   stages?: BookStageResponse[];
   owner_email?: string | null;
+  /** Signed token for <img> thumbnail URLs (survives access-token expiry). */
+  thumbnail_token?: string | null;
 }
 
 export interface PageSelectionRequest {
@@ -253,6 +255,8 @@ export interface PageResponse {
   preprocessing_config: PreprocessingConfig | null;
   has_processed_image?: boolean;
   image_url?: string | null;
+  preview_url?: string | null;
+  ocr_error?: string | null;
   ocr_text?: string | null;
   ocr_confidence?: number | null;
 }
@@ -415,8 +419,13 @@ export const getAllBookCurrentStages = async (
     getBookCurrentStages(bookId, { page, page_size }),
   );
 
-export const getThumbnailUrl = (bookId: string, pageNumber: number): string => {
-  return `${api.defaults.baseURL}/books/${bookId}/pages/${pageNumber}/thumbnail`;
+export const getThumbnailUrl = (
+  bookId: string,
+  pageNumber: number,
+  token?: string | null,
+): string => {
+  const base = `${api.defaults.baseURL}/books/${bookId}/pages/${pageNumber}/thumbnail`;
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 };
 
 export const selectPages = async (
