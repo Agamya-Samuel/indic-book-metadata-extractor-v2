@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
-  getBookJobs,
+  getAllBookJobs,
   type BookDetail,
   type JobResponse,
 } from "@/lib/api";
@@ -74,8 +74,8 @@ export function useBookStatus({
   }, [bookQuery.data]);
 
   const jobsQuery = useQuery({
-    queryKey: ["book", bookId, "jobs"],
-    queryFn: () => getBookJobs(bookId),
+    queryKey: ["book", bookId, "jobs", "all"],
+    queryFn: () => getAllBookJobs(bookId),
     enabled: !!bookId,
     refetchInterval: () => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") {

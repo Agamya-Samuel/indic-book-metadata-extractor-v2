@@ -4,7 +4,7 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  getBookCurrentStages,
+  getAllBookCurrentStages,
   runOcr,
   runExtraction,
   DEFAULT_EXTRACTION_CONFIG,
@@ -48,8 +48,8 @@ export default function WorkflowResumeBanner({ detail }: Props) {
   // covers any reasonable book). We only need the most recent job of each
   // type, but fetching the first page keeps the call simple.
   const { data: stagesData } = useQuery({
-    queryKey: ["book", bookId, "stages", "current"],
-    queryFn: () => getBookCurrentStages(bookId),
+    queryKey: ["book", bookId, "stages", "current", "all"],
+    queryFn: () => getAllBookCurrentStages(bookId),
     enabled: detail.status !== "complete",
     staleTime: 5 * 1000,
     refetchInterval: (q) => {

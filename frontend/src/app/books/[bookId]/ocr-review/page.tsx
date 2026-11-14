@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import {
   getBook,
-  getBookPages,
+  getAllBookPages,
   getOcrResult,
   updateOcrCorrection,
   getPageImageUrl,
@@ -67,8 +67,8 @@ export default function OcrReviewPage() {
   });
 
   const { data: pages, isLoading: isLoadingPages } = useQuery({
-    queryKey: ["book", bookId, "pages"],
-    queryFn: () => getBookPages(bookId),
+    queryKey: ["book", bookId, "pages", "all"],
+    queryFn: () => getAllBookPages(bookId),
     enabled: !!bookId,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,

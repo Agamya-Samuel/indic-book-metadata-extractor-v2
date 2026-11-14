@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getBookJobs, type JobResponse } from "@/lib/api";
+import { getAllBookJobs, type JobResponse } from "@/lib/api";
 
 type JobTerminalStatus = "completed" | "failed" | "cancelled";
 
@@ -40,8 +40,8 @@ export function useJobPolling({
   enabled = true,
 }: UseJobPollingOptions): UseJobPollingReturn {
   const query = useQuery({
-    queryKey: ["book", bookId, "jobs"],
-    queryFn: () => getBookJobs(bookId),
+    queryKey: ["book", bookId, "jobs", "all"],
+    queryFn: () => getAllBookJobs(bookId),
     refetchInterval: (query) => {
       if (!enabled) return false;
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return false;

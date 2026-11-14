@@ -3,7 +3,19 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getBookDetail, getPageImageUrl, getBookCurrentStages } from "@/lib/api";
+import {
+  getBookDetail,
+  getPageImageUrl,
+  getBookCurrentStages,
+  getBookPages,
+  getBookJobs,
+  getAllBookJobs,
+  getLlmRuns,
+  getOcrStatus,
+  type PageResponse,
+  type JobResponse,
+  type LlmRunResponse,
+} from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import { Chip } from "@/components/shared/chip";
 import CollapsibleSection from "@/components/shared/collapsible-section";
@@ -16,6 +28,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import WorkflowResumeBanner from "@/components/book/workflow-resume-banner";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import Pagination from "@/components/shared/pagination";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   tel: "Telugu",
@@ -139,6 +152,10 @@ export default function BookDetailPage() {
   const params = useParams();
   const bookId = params.bookId as string;
   const [expandedPageId, setExpandedPageId] = useState<string | null>(null);
+  const [pagesPage, setPagesPage] = useState(1);
+  const [pagesPageSize, setPagesPageSize] = useState(20);
+  const [jobsPage, setJobsPage] = useState(1);
+  const [runsPage, setRunsPage] = useState(1);
 
   const { data: detail, isLoading } = useQuery({
     queryKey: ["book-detail", bookId],
@@ -152,6 +169,46 @@ export default function BookDetailPage() {
     queryFn: () => getBookCurrentStages(bookId),
     enabled: !!bookId,
     staleTime: 5 * 1000,
+  });
+
+  const { data: pagesData, isLoading: pagesLoading } = useQuery({
+    queryKey: ["book", bookId, "pages", pagesPage, pagesPageSize],
+    queryFn: () =>
+      getBookPages(bookId, {
+        page: pagesPage,
+        page_size: pagesPageSize,
+        include_ocr: true,
+      }),
+    enabled: !!bookId,
+    staleTime: 30 * 1000,
+  });
+
+  const { data: jobsData, isLoading: jobsLoading } = useQuery({
+    queryKey: ["book", bookId, "jobs", jobsPage],
+    queryFn: () => getBookJobs(bookId, { page: jobsPage, page_size: 20 }),
+    enabled: !!bookId,
+    staleTime: 10 * 1000,
+  });
+
+  const { data: allJobs } = useQuery({
+    queryKey: ["book", bookId, "jobs", "all"],
+    queryFn: () => getAllBookJobs(bookId),
+    enabled: !!bookId,
+    staleTime: 10 * 1000,
+  });
+
+  const { data: ocrStatus } = useQuery({
+    queryKey: ["book", bookId, "ocr-status"],
+    queryFn: () => getOcrStatus(bookId),
+    enabled: !!bookId,
+    staleTime: 15 * 1000,
+  });
+
+  const { data: llmRunsData, isLoading: runsLoading } = useQuery({
+    queryKey: ["book", bookId, "llm-runs", runsPage],
+    queryFn: () => getLlmRuns(bookId, { page: runsPage, page_size: 20 }),
+    enabled: !!bookId,
+    staleTime: 30 * 1000,
   });
 
   const bookTitle = detail?.book.title;
@@ -169,7 +226,13 @@ export default function BookDetailPage() {
     );
   }
 
-  const { book, metadata, pages, llm_runs, jobs } = detail;
+  const { book, metadata } = detail;
+  const pages = pagesData?.items ?? [];
+  const jobs = jobsData?.items ?? [];
+  const llm_runs = llmRunsData?.items ?? [];
+  const statsJobs = allJobs ?? jobs;
+  const totalPageCount =
+    ocrStatus?.total_pages ?? pagesData?.total ?? book.total_pages ?? 0;
   // Only the owner or an admin ever receives this payload; non-owners get 404.
   const language = LANGUAGE_LABELS[book.language] || book.language;
   const metadataFields = metadata ?? {};
@@ -179,14 +242,17 @@ export default function BookDetailPage() {
 
   // Derived per-section state — surfaces the relative health of each area
   // at a glance in the card title, so the four cards stop looking identical.
-  const ocrDoneCount = pages.filter((p) => p.ocr_text != null).length;
-  const lowConfidenceCount = pages.filter(
-    (p) => p.ocr_confidence != null && p.ocr_confidence < 60,
-  ).length;
-  const runningJobs = jobs.filter((j) => j.status === "running").length;
-  const failedJobs = jobs.filter((j) => j.status === "failed").length;
-  const completedJobs = jobs.filter((j) => j.status === "completed").length;
-  const ocrJobsTotal = jobs.filter((j) => j.job_type === "ocr").length;
+  // Counts come from the OCR status aggregate and the full job list; the
+  // tables themselves render only the current page.
+  const ocrDoneCount = ocrStatus?.ocr_complete_count ?? 0;
+  const lowConfidenceCount =
+    ocrStatus?.pages.filter(
+      (p) => p.confidence != null && p.confidence < 60,
+    ).length ?? 0;
+  const runningJobs = statsJobs.filter((j) => j.status === "running").length;
+  const failedJobs = statsJobs.filter((j) => j.status === "failed").length;
+  const completedJobs = statsJobs.filter((j) => j.status === "completed").length;
+  const ocrJobsTotal = statsJobs.filter((j) => j.job_type === "ocr").length;
   // OCR state machine: not-started → in-progress → partial | complete | all-failed
   // The distinction between "not started" and "all failed" matters because
   // a researcher who's never run OCR needs a different call-to-action than
@@ -200,12 +266,12 @@ export default function BookDetailPage() {
         ? "in-progress"
         : ocrDoneCount === 0
           ? "all-failed"
-          : ocrDoneCount === pages.length
+          : ocrDoneCount === totalPageCount
             ? "complete"
             : "partial";
   const latestLlmRun = llm_runs[0]; // runs are returned newest-first by the API
 
-  const jobColumns: DataTableColumn<(typeof jobs)[number]>[] = [
+  const jobColumns: DataTableColumn<JobResponse>[] = [
     {
       key: "job",
       header: "Job",
@@ -258,7 +324,7 @@ export default function BookDetailPage() {
     },
   ];
 
-  const pageColumns: DataTableColumn<(typeof pages)[number]>[] = [
+  const pageColumns: DataTableColumn<PageResponse>[] = [
     {
       key: "page",
       header: "Page",
@@ -320,7 +386,7 @@ export default function BookDetailPage() {
     },
   ];
 
-  const runColumns: DataTableColumn<(typeof llm_runs)[number]>[] = [
+  const runColumns: DataTableColumn<LlmRunResponse>[] = [
     {
       key: "model",
       header: "Model",
@@ -400,7 +466,7 @@ export default function BookDetailPage() {
           title={book.title || metadataFields.label || book.filename}
           description={
             <span className="flex flex-wrap items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-muted)]">
-              <StatusBadge status={book.status} stageStatus={stages?.[0]?.status as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
+              <StatusBadge status={book.status} stageStatus={stages?.items[0]?.status as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
               {book.total_pages && (
                 <>
                   <span aria-hidden="true">&bull;</span>
@@ -560,7 +626,7 @@ export default function BookDetailPage() {
             </Card>
           )}
 
-          {pages.length > 0 && (
+          {totalPageCount > 0 && (
             <Card
               title={
                 <span className="flex items-center gap-2">
@@ -581,7 +647,7 @@ export default function BookDetailPage() {
                         ? "No OCR has been run on this book yet"
                         : ocrState === "all-failed"
                           ? `OCR was attempted but no pages succeeded (${failedJobs} failed job${failedJobs === 1 ? "" : "s"})`
-                          : `${ocrDoneCount} of ${pages.length} pages have OCR text`
+                          : `${ocrDoneCount} of ${totalPageCount} pages have OCR text`
                     }
                   >
                     {ocrState === "not-started" ? (
@@ -590,7 +656,7 @@ export default function BookDetailPage() {
                       <span>All failed</span>
                     ) : (
                       <>
-                        {ocrDoneCount} of {pages.length} OCR&apos;d
+                        {ocrDoneCount} of {totalPageCount} OCR&apos;d
                         {lowConfidenceCount > 0 && (
                           <span className="ml-0.5 font-medium">
                             · {lowConfidenceCount} low conf
@@ -609,6 +675,7 @@ export default function BookDetailPage() {
                 caption="Pages"
                 columns={pageColumns}
                 rows={pages}
+                loading={pagesLoading}
                 rowKey={(page) => page.id}
                 expandedRowKey={expandedPageId}
                 renderExpandedRow={(page) => (
@@ -635,10 +702,21 @@ export default function BookDetailPage() {
                   </div>
                 )}
               />
+              <Pagination
+                page={pagesPage}
+                totalPages={pagesData?.total_pages ?? 0}
+                onPageChange={setPagesPage}
+                pageSize={pagesPageSize}
+                onPageSizeChange={(size) => {
+                  setPagesPageSize(size);
+                  setPagesPage(1);
+                }}
+                disabled={pagesLoading}
+              />
             </Card>
           )}
 
-          {jobs.length > 0 && (
+          {(jobsData?.total ?? 0) > 0 && (
             <Card
               title={
                 <span className="flex items-center gap-2">
@@ -650,15 +728,15 @@ export default function BookDetailPage() {
                         ? "info"
                         : failedJobs > 0
                           ? "danger"
-                          : completedJobs === jobs.length
+                          : completedJobs === statsJobs.length
                             ? "success"
                             : "neutral"
                     }
-                    title={`${completedJobs} of ${jobs.length} jobs completed`}
+                    title={`${completedJobs} of ${statsJobs.length} jobs completed`}
                   >
                     {runningJobs > 0
                       ? `${runningJobs} running`
-                      : `${completedJobs} of ${jobs.length} done`}
+                      : `${completedJobs} of ${statsJobs.length} done`}
                     {failedJobs > 0 && (
                       <span className="ml-0.5 font-medium">
                         · {failedJobs} failed
@@ -675,12 +753,19 @@ export default function BookDetailPage() {
                 caption="Processing history"
                 columns={jobColumns}
                 rows={jobs}
+                loading={jobsLoading}
                 rowKey={(job) => job.id}
+              />
+              <Pagination
+                page={jobsPage}
+                totalPages={jobsData?.total_pages ?? 0}
+                onPageChange={setJobsPage}
+                disabled={jobsLoading}
               />
             </Card>
           )}
 
-          {llm_runs.length > 0 && (
+          {(llmRunsData?.total ?? 0) > 0 && (
             <Card
               title={
                 <span className="flex items-center gap-2">
@@ -688,9 +773,10 @@ export default function BookDetailPage() {
                   <Chip
                     dot
                     tone="accent"
-                    title={`${llm_runs.length} extraction runs on file`}
+                    title={`${llmRunsData?.total ?? 0} extraction runs on file`}
                   >
-                    {llm_runs.length} {llm_runs.length === 1 ? "run" : "runs"}
+                    {llmRunsData?.total ?? 0}{" "}
+                    {(llmRunsData?.total ?? 0) === 1 ? "run" : "runs"}
                     {latestLlmRun?.model && (
                       <span className="ml-0.5 opacity-80">
                         · {latestLlmRun.model}
@@ -707,7 +793,14 @@ export default function BookDetailPage() {
                 caption="LLM run history"
                 columns={runColumns}
                 rows={llm_runs}
+                loading={runsLoading}
                 rowKey={(run) => run.id}
+              />
+              <Pagination
+                page={runsPage}
+                totalPages={llmRunsData?.total_pages ?? 0}
+                onPageChange={setRunsPage}
+                disabled={runsLoading}
               />
             </Card>
           )}

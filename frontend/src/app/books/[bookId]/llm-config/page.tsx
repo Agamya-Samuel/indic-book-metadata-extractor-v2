@@ -5,8 +5,8 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
-  getAvailableModels,
-  getMetadataFieldDefinitions,
+  getAllAvailableModels,
+  getAllMetadataFieldDefinitions,
   runExtraction,
   retryExtraction,
   DEFAULT_EXTRACTION_CONFIG,
@@ -90,16 +90,16 @@ export default function LlmConfigPage() {
     isLoading: isLoadingModels,
     isError: modelsError,
   } = useQuery({
-    queryKey: ["models"],
-    queryFn: getAvailableModels,
+    queryKey: ["models", "all"],
+    queryFn: getAllAvailableModels,
     staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
   });
 
   const { data: fieldDefs, isLoading: isLoadingFields } = useQuery({
-    queryKey: ["metadata-fields", bookId],
-    queryFn: () => getMetadataFieldDefinitions(bookId),
+    queryKey: ["metadata-fields", bookId, "all"],
+    queryFn: () => getAllMetadataFieldDefinitions(bookId),
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });

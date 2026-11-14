@@ -6,12 +6,12 @@ import { useJobProgress } from "@/hooks/use-job-progress";
 import type { JobResponse } from "@/lib/api";
 
 vi.mock("@/lib/api", () => ({
-  getBookJobs: vi.fn(),
+  getAllBookJobs: vi.fn(),
   cancelJob: vi.fn(),
 }));
 
-import { getBookJobs, cancelJob } from "@/lib/api";
-const mockGetBookJobs = vi.mocked(getBookJobs);
+import { getAllBookJobs, cancelJob } from "@/lib/api";
+const mockGetBookJobs = vi.mocked(getAllBookJobs);
 const mockCancelJob = vi.mocked(cancelJob);
 
 function createWrapper() {

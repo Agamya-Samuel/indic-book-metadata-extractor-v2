@@ -37,7 +37,7 @@ test.describe("Full Workflow - Mocked API", () => {
       });
     });
 
-    await page.route(`**/api/books/${BOOK_ID}/pages`, async (route) => {
+    await page.route(`**/api/books/${BOOK_ID}/pages*`, async (route) => {
       if (route.request().method() === "POST") {
         await route.fulfill({
           status: 200,
@@ -52,20 +52,26 @@ test.describe("Full Workflow - Mocked API", () => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify([
-            {
-              id: "page-1",
-              page_number: 1,
-              image_path: "/storage/pages/1/p0001.png",
-              preprocessing_config: null,
-            },
-            {
-              id: "page-2",
-              page_number: 2,
-              image_path: "/storage/pages/1/p0002.png",
-              preprocessing_config: null,
-            },
-          ]),
+          body: JSON.stringify({
+            items: [
+              {
+                id: "page-1",
+                page_number: 1,
+                image_path: "/storage/pages/1/p0001.png",
+                preprocessing_config: null,
+              },
+              {
+                id: "page-2",
+                page_number: 2,
+                image_path: "/storage/pages/1/p0002.png",
+                preprocessing_config: null,
+              },
+            ],
+            total: 2,
+            page: 1,
+            page_size: 20,
+            total_pages: 1,
+          }),
         });
       }
     });
@@ -102,23 +108,29 @@ test.describe("Full Workflow - Mocked API", () => {
       });
     });
 
-    await page.route(`**/api/books/${BOOK_ID}/jobs`, async (route) => {
+    await page.route(`**/api/books/${BOOK_ID}/jobs*`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([
-          {
-            id: "job-ocr-001",
-            book_id: BOOK_ID,
-            job_type: "ocr",
-            status: "completed",
-            progress: 1,
-            created_at: "2024-01-01T00:00:00",
-            started_at: "2024-01-01T00:00:01",
-            completed_at: "2024-01-01T00:00:30",
-            error_log: null,
-          },
-        ]),
+        body: JSON.stringify({
+          items: [
+            {
+              id: "job-ocr-001",
+              book_id: BOOK_ID,
+              job_type: "ocr",
+              status: "completed",
+              progress: 1,
+              created_at: "2024-01-01T00:00:00",
+              started_at: "2024-01-01T00:00:01",
+              completed_at: "2024-01-01T00:00:30",
+              error_log: null,
+            },
+          ],
+          total: 1,
+          page: 1,
+          page_size: 20,
+          total_pages: 1,
+        }),
       });
     });
 
@@ -207,13 +219,17 @@ test.describe("Full Workflow - Mocked API", () => {
       }
     );
 
-    await page.route(`**/api/books/models`, async (route) => {
+    await page.route(`**/api/books/models*`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([
-          { name: "qwen2.5", size_gb: 4.7, parameter_count: "7B" },
-        ]),
+        body: JSON.stringify({
+          items: [{ name: "qwen2.5", size_gb: 4.7, parameter_count: "7B" }],
+          total: 1,
+          page: 1,
+          page_size: 20,
+          total_pages: 1,
+        }),
       });
     });
 
@@ -266,40 +282,52 @@ test.describe("Full Workflow - Mocked API", () => {
     });
 
     await page.route(
-      `**/api/books/${BOOK_ID}/metadata/fields`,
+      `**/api/books/${BOOK_ID}/metadata/fields*`,
       async (route) => {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify([
-            {
-              field_name: "title",
-              display_name: "Title",
-              wikidata_property: "P1476",
-              batch_group: "core_identity",
-            },
-            {
-              field_name: "author",
-              display_name: "Author",
-              wikidata_property: "P50",
-              batch_group: "core_identity",
-            },
-            {
-              field_name: "publisher",
-              display_name: "Publisher",
-              wikidata_property: "P123",
-              batch_group: "publication",
-            },
-          ]),
+          body: JSON.stringify({
+            items: [
+              {
+                field_name: "title",
+                display_name: "Title",
+                wikidata_property: "P1476",
+                batch_group: "core_identity",
+              },
+              {
+                field_name: "author",
+                display_name: "Author",
+                wikidata_property: "P50",
+                batch_group: "core_identity",
+              },
+              {
+                field_name: "publisher",
+                display_name: "Publisher",
+                wikidata_property: "P123",
+                batch_group: "publication",
+              },
+            ],
+            total: 3,
+            page: 1,
+            page_size: 20,
+            total_pages: 1,
+          }),
         });
       }
     );
 
-    await page.route(`**/api/books/${BOOK_ID}/llm-runs`, async (route) => {
+    await page.route(`**/api/books/${BOOK_ID}/llm-runs*`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([]),
+        body: JSON.stringify({
+          items: [],
+          total: 0,
+          page: 1,
+          page_size: 20,
+          total_pages: 0,
+        }),
       });
     });
 
@@ -367,9 +395,6 @@ test.describe("Full Workflow - Mocked API", () => {
               author: "రచయిత",
             },
             metadata_updated_at: "2024-01-01T00:02:00",
-            pages: [],
-            llm_runs: [],
-            jobs: [],
           }),
         });
       }

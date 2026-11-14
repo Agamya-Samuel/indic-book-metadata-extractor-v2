@@ -6,12 +6,12 @@ import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
-  getBookPages,
+  getAllBookPages,
   getPageImageUrl,
   getMetadata,
   updateMetadata,
-  getMetadataFieldDefinitions,
-  getMetadataEvidence,
+  getAllMetadataFieldDefinitions,
+  getAllMetadataEvidence,
   getLlmRuns,
   completeReview,
   type MetadataResponse,
@@ -34,6 +34,7 @@ import ConfirmDialog from "@/components/admin/confirm-dialog";
 import SaveBar from "@/components/shared/save-bar";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import Pagination from "@/components/shared/pagination";
 
 export default function MetadataReviewPage() {
   useDocumentTitle("Metadata review");
@@ -46,6 +47,7 @@ export default function MetadataReviewPage() {
   );
   const [showLlmHistory, setShowLlmHistory] = useState(false);
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
+  const [runsPage, setRunsPage] = useState(1);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -55,8 +57,8 @@ export default function MetadataReviewPage() {
   });
 
   const { data: pages, isLoading: isLoadingPages } = useQuery({
-    queryKey: ["book", bookId, "pages"],
-    queryFn: () => getBookPages(bookId),
+    queryKey: ["book", bookId, "pages", "all"],
+    queryFn: () => getAllBookPages(bookId),
     enabled: !!bookId,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -71,22 +73,22 @@ export default function MetadataReviewPage() {
   });
 
   const { data: fieldDefs, isLoading: isLoadingFields } = useQuery({
-    queryKey: ["metadata-fields", bookId],
-    queryFn: () => getMetadataFieldDefinitions(bookId),
+    queryKey: ["metadata-fields", bookId, "all"],
+    queryFn: () => getAllMetadataFieldDefinitions(bookId),
     enabled: !!bookId,
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
 
   const { data: llmRuns } = useQuery({
-    queryKey: ["llm-runs", bookId],
-    queryFn: () => getLlmRuns(bookId),
+    queryKey: ["llm-runs", bookId, runsPage],
+    queryFn: () => getLlmRuns(bookId, { page: runsPage, page_size: 20 }),
     enabled: !!bookId && showLlmHistory,
   });
 
   const { data: fieldEvidence } = useQuery({
-    queryKey: ["metadata-evidence", bookId],
-    queryFn: () => getMetadataEvidence(bookId),
+    queryKey: ["metadata-evidence", bookId, "all"],
+    queryFn: () => getAllMetadataEvidence(bookId),
     enabled: !!bookId,
     staleTime: 30 * 1000,
   });
@@ -285,14 +287,14 @@ export default function MetadataReviewPage() {
         <Stack gap={6}>
           {showLlmHistory && (
             <Card title="LLM Run History" description="Past LLM extraction runs and their outputs.">
-              {llmRuns && llmRuns.length > 0 ? (
+              {llmRuns && llmRuns.total > 0 ? (
                 <CollapsibleSection
                   title="All Runs"
-                  count={llmRuns.length}
+                  count={llmRuns.total}
                   defaultOpen={true}
                 >
                   <Stack gap={3}>
-                    {llmRuns.map((run) => (
+                    {llmRuns.items.map((run) => (
                       <div
                         key={run.id}
                         className="border border-[var(--border)] rounded-[var(--radius)] p-3 text-[length:var(--text-sm)]"
@@ -340,6 +342,11 @@ export default function MetadataReviewPage() {
                       </div>
                     ))}
                   </Stack>
+                  <Pagination
+                    page={runsPage}
+                    totalPages={llmRuns.total_pages}
+                    onPageChange={setRunsPage}
+                  />
                 </CollapsibleSection>
               ) : (
                 <EmptyState
