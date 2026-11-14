@@ -97,7 +97,10 @@ export default function AppNavbar() {
           <span aria-hidden="true" className="brand-mark">
             ಇ
           </span>
-          <span className="flex flex-col leading-tight min-w-0">
+          {/* Below sm the mark alone identifies the product (the link's
+              aria-label keeps the full name); the wordmark would otherwise
+              squeeze the nav on a phone. */}
+          <span className="hidden flex-col leading-tight min-w-0 sm:flex">
             <span className="text-[length:var(--text-sm)] font-semibold tracking-tight text-[var(--text)] truncate">
               Indic Books
             </span>
@@ -110,10 +113,11 @@ export default function AppNavbar() {
           </span>
         </Link>
 
-        {/* The link group may scroll on very narrow phones; the utilities to the
-            right (bell, account, theme) stay pinned. */}
+        {/* No overflow on this nav: the notification and account panels live
+            inside it, and any overflow value makes it a scroll container that
+            clips them / lets focus scroll them out of view. */}
         <nav
-          className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1"
+          className="flex min-w-0 items-center gap-0.5 sm:gap-1"
           aria-label="Primary"
         >
           {visibleLinks.map((link) => {
