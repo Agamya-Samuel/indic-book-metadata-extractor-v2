@@ -255,11 +255,12 @@ async def select_pages(
             Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
         )
     )
+    revoked: list[tuple[str | None, bool]] = []
     for job in active_jobs.scalars().all():
+        revoked.append((job.celery_task_id, job.status == JobStatus.RUNNING))
         job.status = JobStatus.CANCELLED
         job.completed_at = datetime.now(timezone.utc)
         job.error_log = "Superseded by a new page selection"
-        admin_service._revoke_celery_task(job)
     await db.flush()
 
     results = await db.execute(select(Page).where(Page.book_id == book_id))
@@ -286,6 +287,7 @@ async def select_pages(
     db.add(job)
     book.status = BookStatus.PAGES_SELECTED
     await db.commit()
+    admin_service._revoke_task_ids(revoked)
     await db.refresh(job)
 
     await StageManager.initiate_stage(db, book_id, "page_selection")
@@ -378,7 +380,9 @@ async def run_ocr(
             Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
         )
     )
+    revoked: list[tuple[str | None, bool]] = []
     for j in active_jobs.scalars().all():
+        revoked.append((j.celery_task_id, j.status == JobStatus.RUNNING))
         j.status = JobStatus.CANCELLED
         j.completed_at = datetime.now(timezone.utc)
         j.error_log = "Cancelled: new OCR job submitted"
@@ -402,6 +406,7 @@ async def run_ocr(
 
     book.status = BookStatus.OCR_RUNNING
     await db.commit()
+    admin_service._revoke_task_ids(revoked)
     await db.refresh(job)
 
     await StageManager.initiate_stage(db, book_id, "ocr")

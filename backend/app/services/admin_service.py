@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
@@ -35,6 +36,50 @@ _JOB_STAGE_NAME = {
     JobType.LLM: "llm_extraction",
     JobType.PAGE_EXTRACTION: "page_selection",
 }
+
+
+def _revoke_task_ids(entries: Iterable[tuple[str | None, bool]]) -> None:
+    """Revoke a batch of Celery tasks after their cancellation was committed.
+
+    The task ids are captured before the commit because a deleted job row can
+    no longer be read afterwards.
+    """
+    if not entries:
+        return
+    try:
+        from app.tasks.celery_app import celery_app
+    except Exception:  # noqa: BLE001
+        logger.warning("Celery is unavailable; tasks were cancelled in the DB only", exc_info=True)
+        return
+
+    for task_id, terminate in entries:
+        if not task_id:
+            continue
+        try:
+            celery_app.control.revoke(task_id, terminate=terminate, reply=False)
+        except Exception:  # noqa: BLE001
+            logger.warning("Could not revoke Celery task %s", task_id, exc_info=True)
+
+
+def _revoke_celery_task(job: Job, *, terminate: bool | None = None) -> None:
+    """Stop a dispatched task from starting, or from continuing if running.
+
+    ``terminate`` kills a prefork child that is already executing; callers that
+    have just flipped the row to ``cancelled`` must pass ``terminate=True``
+    explicitly, because the row no longer tells us what it was. Revocation is
+    best-effort: the DB status is still the source of truth and every pipeline
+    task re-checks it.
+    """
+    if not job.celery_task_id:
+        return
+    _revoke_task_ids(
+        [
+            (
+                job.celery_task_id,
+                job.status == JobStatus.RUNNING if terminate is None else terminate,
+            )
+        ]
+    )
 
 
 async def get_admin_stats(db: AsyncSession) -> dict:
@@ -185,6 +230,7 @@ async def cancel_job(
         raise LookupError("Job not found")
     if job.status not in (JobStatus.QUEUED, JobStatus.RUNNING):
         raise ValueError(f"Cannot cancel job in status '{job.status}'")
+    terminate = job.status == JobStatus.RUNNING
     job.status = JobStatus.CANCELLED
     job.completed_at = datetime.now(timezone.utc)
     job.error_log = reason
@@ -222,6 +268,7 @@ async def cancel_job(
         db, job=job, book=book, status=JobStatus.CANCELLED
     )
     await db.commit()
+    _revoke_task_ids([(job.celery_task_id, terminate)])
     await db.refresh(job)
     return job, notification_id
 
@@ -241,7 +288,9 @@ async def delete_book(db: AsyncSession, book_id: UUID) -> None:
             Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
         )
     )
+    revoked: list[tuple[str | None, bool]] = []
     for j in active_jobs.scalars().all():
+        revoked.append((j.celery_task_id, j.status == JobStatus.RUNNING))
         j.status = JobStatus.CANCELLED
         j.completed_at = datetime.now(timezone.utc)
         j.error_log = "Book deleted by admin"
@@ -250,6 +299,7 @@ async def delete_book(db: AsyncSession, book_id: UUID) -> None:
     await db.delete(book)
     await db.commit()
 
+    _revoke_task_ids(revoked)
     _purge_book_storage(book_id)
 
 
@@ -265,7 +315,9 @@ async def reset_book(db: AsyncSession, book_id: UUID) -> Book:
             Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
         )
     )
+    revoked: list[tuple[str | None, bool]] = []
     for j in active_jobs.scalars().all():
+        revoked.append((j.celery_task_id, j.status == JobStatus.RUNNING))
         j.status = JobStatus.CANCELLED
         j.completed_at = datetime.now(timezone.utc)
         j.error_log = "Book reset by admin"
@@ -283,6 +335,7 @@ async def reset_book(db: AsyncSession, book_id: UUID) -> Book:
 
     book.status = BookStatus.UPLOADED
     await db.commit()
+    _revoke_task_ids(revoked)
     await db.refresh(book)
 
     await StageManager.reset_book(db, book_id)
@@ -318,7 +371,9 @@ async def rerun_ocr(
             Job.status.in_([JobStatus.QUEUED, JobStatus.RUNNING]),
         )
     )
+    revoked: list[tuple[str | None, bool]] = []
     for j in active_jobs.scalars().all():
+        revoked.append((j.celery_task_id, j.status == JobStatus.RUNNING))
         j.status = JobStatus.CANCELLED
         j.completed_at = datetime.now(timezone.utc)
         j.error_log = "Re-run OCR requested by admin"
@@ -352,6 +407,7 @@ async def rerun_ocr(
     db.add(job)
     book.status = BookStatus.OCR_RUNNING
     await db.commit()
+    _revoke_task_ids(revoked)
     await db.refresh(job)
 
     # Reset the whole chain from OCR onward, not just the OCR row. A downstream
