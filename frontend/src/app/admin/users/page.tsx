@@ -100,6 +100,7 @@ function AdminUsersContent() {
       : "";
   });
   const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
   const [pendingAction, setPendingAction] = React.useState<PendingAction>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
 
@@ -117,7 +118,7 @@ function AdminUsersContent() {
         : activeFilter === "true",
     account_status: (statusFilter || undefined) as AccountStatus | undefined,
     page,
-    page_size: 50,
+    page_size: pageSize,
   };
 
   const { data, isLoading } = useQuery({
@@ -498,7 +499,16 @@ function AdminUsersContent() {
             rowClassName={(user) => (!user.is_active ? "opacity-60" : undefined)}
           />
 
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={(v) => {
+              setPageSize(v);
+              setPage(1);
+            }}
+          />
         </>
       )}
 

@@ -34,6 +34,7 @@ export default function AdminJobsPage() {
   const [typeFilter, setTypeFilter] = React.useState("");
   const [owner, setOwner] = React.useState<OwnerSelection | null>(null);
   const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
 
   const handleStatusChange = (v: string) => {
     setStatusFilter(v);
@@ -41,6 +42,10 @@ export default function AdminJobsPage() {
   };
   const handleTypeChange = (v: string) => {
     setTypeFilter(v);
+    setPage(1);
+  };
+  const handlePageSizeChange = (v: number) => {
+    setPageSize(v);
     setPage(1);
   };
 
@@ -54,7 +59,7 @@ export default function AdminJobsPage() {
       | undefined,
     owner_id: owner?.id,
     page,
-    page_size: 50,
+    page_size: pageSize,
   };
 
   const { data, isLoading } = useQuery({
@@ -305,6 +310,9 @@ export default function AdminJobsPage() {
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={handlePageSizeChange}
+            disabled={isLoading}
           />
         </>
       )}
