@@ -91,7 +91,7 @@ export default function AppNavbar() {
             "group flex shrink-0 items-center gap-2.5 rounded-[var(--radius-sm)]",
             focusRing,
           )}
-          aria-label="Indic Book Metadata Extractor — home"
+          aria-label="Indic Book Metadata Extractor (beta) — home"
         >
           <span aria-hidden="true" className="brand-mark">
             ಇ
@@ -109,6 +109,12 @@ export default function AppNavbar() {
             <span className="hidden sm:inline text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
               Metadata Extractor
             </span>
+          </span>
+          <span
+            className="rounded-full border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]"
+            title="Beta — OCR quality varies with the scan; a book takes roughly 10–20 minutes"
+          >
+            Beta
           </span>
         </Link>
 

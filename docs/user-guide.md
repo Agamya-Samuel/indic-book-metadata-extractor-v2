@@ -2,7 +2,12 @@
 
 ## Introduction
 
-Indic Book Metadata Extractor is a web application that helps you extract structured bibliographic metadata from scanned PDFs of books in Telugu and Hindi. The application uses Tesseract OCR to read text from scanned pages, then uses a locally-hosted AI model (Qwen2.5 7B by default) to extract 52 metadata fields.
+Indic Book Metadata Extractor is a web application that helps you extract structured bibliographic metadata from scanned PDFs of books in Telugu and Hindi. The application uses Tesseract OCR to read text from scanned pages, then uses a locally-hosted AI model (`phi4-mini` by default) to extract 52 metadata fields.
+
+> **Beta.** OCR and metadata quality depend heavily on the scan, so expect to
+> correct text in the OCR review step. Processing runs on CPU: roughly 10–20
+> minutes per book. Uploads and jobs run in the background, so you can leave the
+> page and come back.
 
 **Browser requirements**: Any modern browser (Chrome, Firefox, Edge, Safari).
 
