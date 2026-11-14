@@ -101,9 +101,12 @@ Re-ran the end-to-end harness against the **enriched 71-book corpus** (`evaluate
 
 | Model | Books | Micro P | Micro R | Micro F1 |
 |---|---|---|---|---|
-| `phi4-mini` (OpenAI path) | 4 Hindi | 0.448 | 0.361 | **0.400** |
-| `gemma4:e4b` (`--native`) | 4 Hindi | _pending_ | | |
+| `phi4-mini` (OpenAI path) | 4 Hindi | 0.448 | 0.361 | 0.400 |
+| `gemma4:e4b` (`--native`) | 4 Hindi | 0.615 | 0.667 | **0.640** |
 
 `phi4-mini` per-field F1 on the 4 Hindi books: `title` 1.00, `author` 0.86, `publication_date` 0.86, `publisher` 0.67, `pages` 0.40.
+`gemma4:e4b` (`--native`): `subject` 1.00, `language` 1.00, `description_work` 0.86, `original_language` 0.86, `title` 0.86, `pages` 0.80, `author` 0.67, `publication_date` 0.67.
+
+**Head-to-head:** on the same 4 Hindi books, **`gemma4:e4b` (native `think:false`) F1 0.640 ≫ `phi4-mini` 0.400**. This is the **first valid gemma4 Hindi measurement** — every earlier gemma4 run scored 0 because the OpenAI-compatible path returned empty content (the think trap), so the previous "phi4-mini wins Hindi" conclusion was an artifact of that bug, not a real model ranking.
 
 **Harness caveat:** `evaluate_extraction` calls `LLMService`, i.e. Ollama's **OpenAI-compatible** endpoint, where `think:false` is dropped — a thinking model (`gemma4`) then returns empty content and scores 0. Added an opt-in **`--native`** flag ([`scripts/native_extract.py`](../backend/scripts/native_extract.py)) that calls `/api/chat` with `think:false`; the production extraction path is unchanged. (See [learnings/022](../learnings/022-gt-source-expansion.md) finding 6.)
