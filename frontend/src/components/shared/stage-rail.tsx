@@ -137,7 +137,7 @@ function RailItem({
 
       {monitor && (
         <div className="mb-1 ml-[22px] flex items-center gap-2 rounded-[var(--radius)] border-l-2 border-[var(--accent)] bg-[var(--surface-sunken)] px-2.5 py-1.5">
-          <Spinner className="size-3 text-[var(--accent)]" />
+          <Spinner className="size-3 text-[var(--accent-text)]" />
           <span className="truncate text-[var(--text-xs)] text-[var(--text-muted)]">
             {step.detail ?? "Running"}
           </span>

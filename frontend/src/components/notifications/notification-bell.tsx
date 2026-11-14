@@ -116,7 +116,7 @@ export function NotificationBell() {
               onClick={() => readAll.mutate()}
               disabled={unread === 0 || readAll.isPending}
               className={cn(
-                "rounded-[var(--radius-sm)] px-2 py-1 text-[var(--text-xs)] text-[var(--accent)]",
+                "rounded-[var(--radius-sm)] px-2 py-1 text-[var(--text-xs)] text-[var(--accent-text)]",
                 "hover:bg-[var(--accent-soft)] disabled:opacity-50",
                 focusRing,
               )}
@@ -127,7 +127,7 @@ export function NotificationBell() {
 
           {isLoading ? (
             <div className="flex justify-center py-6">
-              <Spinner className="size-5 text-[var(--accent)]" />
+              <Spinner className="size-5 text-[var(--accent-text)]" />
             </div>
           ) : recent && recent.items.length > 0 ? (
             <ul className="max-h-96 overflow-y-auto">
@@ -187,7 +187,7 @@ export function NotificationBell() {
             }}
             className={cn(
               "block w-full border-t border-[var(--border)] px-4 py-2.5 text-center text-[var(--text-sm)]",
-              "text-[var(--accent)] hover:bg-[var(--surface-sunken)]",
+              "text-[var(--accent-text)] hover:bg-[var(--surface-sunken)]",
               focusRing,
             )}
           >

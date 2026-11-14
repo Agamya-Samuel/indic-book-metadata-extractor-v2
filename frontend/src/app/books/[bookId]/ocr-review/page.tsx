@@ -334,7 +334,7 @@ export default function OcrReviewPage() {
         {showPollingOverlay ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center max-w-md">
-              <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)] mx-auto mb-4" />
+              <Spinner className="h-12 w-12 border-[3px] text-[var(--accent-text)] mx-auto mb-4" />
               <p className="text-[var(--text)] font-medium">Running OCR...</p>
               <p className="text-[var(--text-muted)] text-[var(--text-sm)] mt-1">
                 {Math.round(progress)}% complete
@@ -355,7 +355,7 @@ export default function OcrReviewPage() {
         ) : isLoadingOcr ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
-              <Spinner className="h-8 w-8 border-2 text-[var(--accent)] mx-auto mb-3" />
+              <Spinner className="h-8 w-8 border-2 text-[var(--accent-text)] mx-auto mb-3" />
               <p className="text-[var(--text-muted)] text-[var(--text-sm)]">Loading OCR results...</p>
             </div>
           </div>

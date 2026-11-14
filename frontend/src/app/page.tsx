@@ -17,7 +17,7 @@ export default function Home() {
         <div className="mb-8 inline-flex items-center gap-2.5 text-[var(--text-muted)] animate-hero animate-hero-1">
           <span
             aria-hidden="true"
-            className="font-display text-[1.75rem] leading-none text-[var(--accent)]"
+            className="font-display text-[1.75rem] leading-none text-[var(--accent-text)]"
           >
             ಇ
           </span>
@@ -35,7 +35,7 @@ export default function Home() {
         <h1 className="text-balance font-display text-[var(--text-3xl)] font-semibold tracking-tight text-[var(--text)] sm:text-6xl leading-[1.05] animate-hero animate-hero-2">
           A working tool for
           <br className="hidden sm:block" />{" "}
-          <em className="font-display italic font-medium text-[var(--accent)]">
+          <em className="font-display italic font-medium text-[var(--accent-text)]">
             Indic book
           </em>{" "}
           digitization.

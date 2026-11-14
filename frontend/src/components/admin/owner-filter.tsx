@@ -108,7 +108,7 @@ export default function OwnerFilter({
         <div className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
           {isFetching ? (
             <div className="flex justify-center px-3 py-3">
-              <Spinner className="size-4 text-[var(--accent)]" />
+              <Spinner className="size-4 text-[var(--accent-text)]" />
             </div>
           ) : results.length === 0 ? (
             <p className="px-3 py-3 text-[var(--text-xs)] text-[var(--text-muted)]">

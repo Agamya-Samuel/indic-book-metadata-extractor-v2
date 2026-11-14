@@ -972,7 +972,7 @@ export default function AdminUsersPage() {
     <React.Suspense
       fallback={
         <div className="flex min-h-[50vh] items-center justify-center">
-          <Spinner className="size-8 text-[var(--accent)]" />
+          <Spinner className="size-8 text-[var(--accent-text)]" />
         </div>
       }
     >

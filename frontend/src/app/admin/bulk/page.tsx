@@ -372,7 +372,7 @@ export default function BulkOperationsPage() {
                   href={process.env.NEXT_PUBLIC_OPENREFINE_URL || "http://localhost:3333"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[var(--accent)] hover:underline"
+                  className="text-[var(--accent-text)] hover:underline"
                 >
                   OpenRefine
                 </a>.
@@ -392,7 +392,7 @@ export default function BulkOperationsPage() {
                   href="https://quickstatements.toolforge.org/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[var(--accent)] hover:underline"
+                  className="text-[var(--accent-text)] hover:underline"
                 >
                   QuickStatements
                 </a>

@@ -89,6 +89,9 @@
   --btn-text:          var(--text);
   --btn-text-inverse:  #fff;
   --accent:            var(--brand-700);
+  /* Foreground complement of --accent: --accent is a fill (buttons, dots) and
+     in dark mode is too dark to read as text on a dark surface. */
+  --accent-text:       var(--brand-700);
   --accent-hover:      var(--brand-800);
   --accent-active:     var(--brand-900);
   --accent-soft:       var(--brand-50);
@@ -170,6 +173,7 @@
      legible (white on brand-400 = ~2.6:1, fails WCAG AA). The hover
      and active states still brighten toward brand-500/600 for feedback. */
   --accent:            var(--brand-600);
+  --accent-text:       var(--brand-300);
   --accent-hover:      var(--brand-500);
   --accent-active:     var(--brand-700);
   --accent-soft:       oklch(0.22 0.040 250);

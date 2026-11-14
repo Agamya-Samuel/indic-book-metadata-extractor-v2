@@ -133,7 +133,7 @@ export default function AppNavbar() {
                 href="/register"
                 className={cn(
                   "hidden sm:inline-flex min-h-11 items-center px-2.5 sm:px-3 py-1.5 text-[var(--text-sm)] font-medium rounded-[var(--radius)]",
-                  "text-[var(--accent)] hover:bg-[var(--accent-soft)]",
+                  "text-[var(--accent-text)] hover:bg-[var(--accent-soft)]",
                   focusRing,
                 )}
               >
@@ -186,7 +186,7 @@ export default function AppNavbar() {
                     {user.email}
                   </p>
                   {isAdmin && (
-                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-[var(--accent)]">
+                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-[var(--accent-text)]">
                       Administrator
                     </p>
                   )}

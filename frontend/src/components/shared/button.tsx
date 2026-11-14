@@ -39,7 +39,7 @@ const variants: Record<Variant, string> = {
     "hover:bg-[var(--danger-700)] active:bg-[var(--danger-900)] " +
     "shadow-[var(--shadow-xs)]",
   link:
-    "bg-transparent text-[var(--accent)] underline-offset-4 " +
+    "bg-transparent text-[var(--accent-text)] underline-offset-4 " +
     "hover:underline px-0 h-auto rounded-none",
 };
 

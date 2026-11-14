@@ -75,7 +75,7 @@ export default function OcrProcessingPage() {
   if (isLoadingBook) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)]" />
+        <Spinner className="h-12 w-12 border-[3px] text-[var(--accent-text)]" />
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function OcrProcessingPage() {
           {isPolling && !isComplete && !isFailed && (
             <>
               <div className="mb-6">
-                <Spinner className="h-16 w-16 border-[3px] text-[var(--accent)] mx-auto" />
+                <Spinner className="h-16 w-16 border-[3px] text-[var(--accent-text)] mx-auto" />
               </div>
               <h2 className="text-[var(--text-xl)] font-semibold text-[var(--text)] mb-2">
                 Running OCR

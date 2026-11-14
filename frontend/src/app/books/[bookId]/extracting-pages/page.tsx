@@ -58,7 +58,7 @@ export default function ExtractingPagesPage() {
   if (isLoadingBook || progress.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-        <Spinner className="h-12 w-12 border-[3px] text-[var(--accent)]" />
+        <Spinner className="h-12 w-12 border-[3px] text-[var(--accent-text)]" />
       </div>
     );
   }

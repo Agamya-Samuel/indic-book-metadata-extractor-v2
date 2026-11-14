@@ -175,7 +175,7 @@ export default function AdminDashboardPage() {
           headerAction={
             <Link
               href="/admin/jobs"
-              className="text-[var(--text-sm)] font-medium text-[var(--accent)] hover:underline"
+              className="text-[var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline"
             >
               View all →
             </Link>
@@ -264,7 +264,7 @@ export default function AdminDashboardPage() {
                     <Link
                       href={`/books/${job.book_id}`}
                       className={cn(
-                        "mt-1.5 inline-block text-[var(--text-sm)] font-medium text-[var(--accent)] hover:underline rounded-[var(--radius-xs)]",
+                        "mt-1.5 inline-block text-[var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline rounded-[var(--radius-xs)]",
                         focusRingInset,
                       )}
                     >

@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
         title="Check your email"
         description="If that address is registered, a password reset link has been sent."
         footer={
-          <Link href="/login" className="text-[var(--accent)] hover:underline">
+          <Link href="/login" className="text-[var(--accent-text)] hover:underline">
             Back to log in
           </Link>
         }
@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => setSent(false)}
-            className="text-[var(--accent)] hover:underline"
+            className="text-[var(--accent-text)] hover:underline"
           >
             Use a different email address
           </button>
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
       title="Forgot password"
       description="Enter your account email and we will send you a reset link."
       footer={
-        <Link href="/login" className="text-[var(--accent)] hover:underline">
+        <Link href="/login" className="text-[var(--accent-text)] hover:underline">
           Back to log in
         </Link>
       }
