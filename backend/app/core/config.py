@@ -25,6 +25,10 @@ class Settings(BaseSettings):
 
     # Upload limits
     max_upload_size_mb: int = 200
+    # Per-user limits so one approved account cannot flood the single-book
+    # pipeline queue or the library. Both are configurable.
+    max_active_jobs_per_user: int = 4
+    max_books_per_user: int = 200
     # A running job older than this is treated as lost (no worker will finish it).
     stale_job_minutes: int = 90
     stale_job_reaper_enabled: bool = True

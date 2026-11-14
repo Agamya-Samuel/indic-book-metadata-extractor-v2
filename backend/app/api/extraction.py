@@ -24,6 +24,7 @@ from app.schemas.metadata import (
     ModelInfo,
 )
 from app.services.llm_service import llm_service
+from app.services.quota_service import enforce_job_quota
 from app.services.stage_manager import StageManager, StageStatus
 
 router = APIRouter()
@@ -54,7 +55,7 @@ async def run_extraction(
     body: ExtractionRequest,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(enforce_job_quota),
 ) -> ExtractionResponse:
     # Check for an active run before the status gate: after the first request
     # the book is llm_running, and a duplicate must see 409 (with the job id),
@@ -81,27 +82,18 @@ async def run_extraction(
     ):
         raise HTTPException(
             status_code=400,
-            detail=(
-                "Book status must be 'ocr_complete', 'awaiting_review' or "
-                f"'complete', got '{book.status}'"
-            ),
+            detail=(f"Book status must be 'ocr_complete', 'awaiting_review' or 'complete', got '{book.status}'"),
         )
 
-    pages_result = await db.execute(
-        select(Page).where(Page.book_id == book_id)
-    )
+    pages_result = await db.execute(select(Page).where(Page.book_id == book_id))
     pages = pages_result.scalars().all()
     if not pages:
         raise HTTPException(status_code=400, detail="No pages selected for this book")
 
     page_ids = [p.id for p in pages]
-    ocr_results = await db.execute(
-        select(OcrResult).where(OcrResult.page_id.in_(page_ids))
-    )
+    ocr_results = await db.execute(select(OcrResult).where(OcrResult.page_id.in_(page_ids)))
     ocr_list = ocr_results.scalars().all()
-    has_text = any(
-        (o.corrected_text or o.raw_text or "").strip() for o in ocr_list
-    )
+    has_text = any((o.corrected_text or o.raw_text or "").strip() for o in ocr_list)
     if not has_text:
         raise HTTPException(
             status_code=400,
@@ -111,9 +103,7 @@ async def run_extraction(
     if book.status in (BookStatus.AWAITING_REVIEW, BookStatus.COMPLETE):
         # Re-running extraction supersedes the human review, so release the
         # downstream stages and let the new run own the state again.
-        await StageManager.reset_from_stage(
-            db, book_id, "llm_extraction", "Superseded by a new extraction run"
-        )
+        await StageManager.reset_from_stage(db, book_id, "llm_extraction", "Superseded by a new extraction run")
         book.status = BookStatus.OCR_COMPLETE
         await db.flush()
 
@@ -171,10 +161,7 @@ async def retry_extraction(
     ):
         raise HTTPException(
             status_code=400,
-            detail=(
-                "Book status must be 'ocr_complete', 'awaiting_review' or "
-                f"'complete', got '{book.status}'"
-            ),
+            detail=(f"Book status must be 'ocr_complete', 'awaiting_review' or 'complete', got '{book.status}'"),
         )
 
     existing = await StageManager.get_stage(db, book_id, "llm_extraction")
