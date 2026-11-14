@@ -44,6 +44,7 @@ class PageResponse(BaseModel):
     image_path: str | None
     preprocessing_config: dict | None
     has_processed_image: bool = False
+    ocr_error: str | None = None
 
     model_config = {"from_attributes": True}
 
