@@ -146,7 +146,9 @@ function RailItem({
       )}
 
       {monitor && (
-        <div className="mb-1 ml-[34px] mr-1 rounded-[var(--radius)] bg-[var(--surface-sunken)] px-2.5 py-2">
+        {/* ml-14 + px-2.5 + spinner(12) + gap(8) = the stage label's x, so the
+            sub-row's text lines up under the stage name. */}
+        <div className="mb-1 ml-[14px] mr-1 rounded-[var(--radius)] bg-[var(--surface-sunken)] px-2.5 py-2">
           <div className="flex items-center gap-2">
             <Spinner className="size-3 shrink-0 text-[var(--accent-text)]" />
             <span className="min-w-0 flex-1 truncate text-[length:var(--text-xs)] text-[var(--text-muted)]">
