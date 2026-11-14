@@ -5,6 +5,8 @@ import uuid
 
 from pydantic import BaseModel, Field
 
+from app.schemas.common import Page
+
 
 class BookUploadResponse(BaseModel):
     id: uuid.UUID
@@ -45,6 +47,9 @@ class PageResponse(BaseModel):
     preprocessing_config: dict | None
     has_processed_image: bool = False
     ocr_error: str | None = None
+    image_url: str | None = None
+    ocr_text: str | None = None
+    ocr_confidence: float | None = None
 
     model_config = {"from_attributes": True}
 
@@ -79,29 +84,14 @@ class BookSearchResult(BaseModel):
     owner_email: str | None = None
 
 
-class BookListResponse(BaseModel):
-    items: list[BookSearchResult]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-
-class BookDetailPage(BaseModel):
-    id: uuid.UUID
-    page_number: int
-    image_url: str
-    ocr_text: str | None
-    ocr_confidence: float | None
+class BookListResponse(Page[BookSearchResult]):
+    pass
 
 
 class BookDetailResponse(BaseModel):
     book: BookDetail
     metadata: dict | None = None
     metadata_updated_at: datetime.datetime | None = None
-    pages: list[BookDetailPage] = []
-    llm_runs: list[dict] = []
-    jobs: list[dict] = []
     owner_display_name: str | None = None
 
 

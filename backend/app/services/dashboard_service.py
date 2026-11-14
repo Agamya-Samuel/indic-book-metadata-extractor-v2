@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -161,7 +160,3 @@ async def list_jobs(
         )
 
     return items, total
-
-
-def page_count(total: int, page_size: int) -> int:
-    return math.ceil(total / page_size) if total > 0 else 0
