@@ -70,7 +70,7 @@ export default function OwnerFilter({
         <Field label="Owner" htmlFor={id}>
           <div className="flex items-center gap-1">
             <span className="inline-flex min-w-0 flex-1 items-center gap-1 h-10 rounded-[var(--radius)] border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-2.5">
-              <span className="truncate text-[var(--text-sm)] text-[var(--accent-soft-text)]">
+              <span className="truncate text-[length:var(--text-sm)] text-[var(--accent-soft-text)]">
                 {value.label}
               </span>
             </span>
@@ -111,7 +111,7 @@ export default function OwnerFilter({
               <Spinner className="size-4 text-[var(--accent-text)]" />
             </div>
           ) : results.length === 0 ? (
-            <p className="px-3 py-3 text-[var(--text-xs)] text-[var(--text-muted)]">
+            <p className="px-3 py-3 text-[length:var(--text-xs)] text-[var(--text-muted)]">
               No users match &ldquo;{debouncedQuery}&rdquo;
             </p>
           ) : (
@@ -123,10 +123,10 @@ export default function OwnerFilter({
                     onClick={() => pick(user)}
                     className="block w-full px-3 py-2 text-left hover:bg-[var(--surface-sunken)] focus-visible:bg-[var(--surface-sunken)] focus:outline-none"
                   >
-                    <span className="block truncate text-[var(--text-sm)] text-[var(--text)]">
+                    <span className="block truncate text-[length:var(--text-sm)] text-[var(--text)]">
                       {user.display_name}
                     </span>
-                    <span className="block truncate text-[var(--text-xs)] text-[var(--text-muted)]">
+                    <span className="block truncate text-[length:var(--text-xs)] text-[var(--text-muted)]">
                       {user.email}
                     </span>
                   </button>

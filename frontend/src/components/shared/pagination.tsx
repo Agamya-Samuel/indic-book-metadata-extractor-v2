@@ -28,7 +28,7 @@ export default function Pagination({
       >
         Previous
       </Button>
-      <span className="px-3 text-[var(--text-sm)] text-[var(--text-muted)]">
+      <span className="px-3 text-[length:var(--text-sm)] text-[var(--text-muted)]">
         Page {page} of {totalPages}
       </span>
       <Button

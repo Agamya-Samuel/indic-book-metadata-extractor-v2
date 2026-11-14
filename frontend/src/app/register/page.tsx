@@ -57,7 +57,7 @@ export default function RegisterPage() {
           </Link>
         }
       >
-        <div className="space-y-3 text-[var(--text-sm)] text-[var(--text-muted)]">
+        <div className="space-y-3 text-[length:var(--text-sm)] text-[var(--text-muted)]">
           <p>
             Open the link in your inbox to verify your email address. The link
             expires in 24 hours.

@@ -18,7 +18,7 @@ export function AuthCard({
         <div className="mb-6 text-center">
           <Link
             href="/"
-            className="text-[var(--text-xs)] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)] hover:text-[var(--text)]"
+            className="text-[length:var(--text-xs)] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)] hover:text-[var(--text)]"
           >
             Indic Books
           </Link>
@@ -27,7 +27,7 @@ export function AuthCard({
           {children}
         </Card>
         {footer && (
-          <div className="mt-4 text-center text-[var(--text-sm)] text-[var(--text-muted)]">
+          <div className="mt-4 text-center text-[length:var(--text-sm)] text-[var(--text-muted)]">
             {footer}
           </div>
         )}

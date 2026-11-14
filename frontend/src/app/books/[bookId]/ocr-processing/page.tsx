@@ -99,17 +99,17 @@ export default function OcrProcessingPage() {
               <div className="mb-6">
                 <Spinner className="h-16 w-16 border-[3px] text-[var(--accent-text)] mx-auto" />
               </div>
-              <h2 className="text-[var(--text-xl)] font-semibold text-[var(--text)] mb-2">
+              <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--text)] mb-2">
                 Running OCR
               </h2>
-              <p className="text-[var(--text-muted)] text-[var(--text-sm)] mb-6">
+              <p className="text-[var(--text-muted)] text-[length:var(--text-sm)] mb-6">
                 Processing {pageCount} page{pageCount !== 1 ? "s" : ""} from{" "}
                 <span className="font-medium">{book.title || book.filename}</span>
               </p>
               <div className="mb-4">
                 <Progress value={progress} />
               </div>
-              <p className="text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
+              <p className="text-[length:var(--text-xs)] text-[var(--text-muted)] tabular-nums">
                 {Math.round(progress)}% complete
               </p>
             </>
@@ -132,10 +132,10 @@ export default function OcrProcessingPage() {
                   </svg>
                 </div>
               </div>
-              <h2 className="text-[var(--text-xl)] font-semibold text-[var(--text)] mb-2">
+              <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--text)] mb-2">
                 OCR Complete
               </h2>
-              <p className="text-[var(--text-muted)] text-[var(--text-sm)] mb-6">
+              <p className="text-[var(--text-muted)] text-[length:var(--text-sm)] mb-6">
                 All {pageCount} page{pageCount !== 1 ? "s" : ""} processed successfully.
                 You can now review and correct the OCR text.
               </p>
@@ -164,12 +164,12 @@ export default function OcrProcessingPage() {
                   </svg>
                 </div>
               </div>
-              <h2 className="text-[var(--text-xl)] font-semibold text-[var(--text)] mb-2">
+              <h2 className="text-[length:var(--text-xl)] font-semibold text-[var(--text)] mb-2">
                 OCR Failed
               </h2>
               {errorLog && (
                 <div className="mb-6 text-left bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4">
-                  <pre className="text-[var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-100)] whitespace-pre-wrap font-mono">
+                  <pre className="text-[length:var(--text-xs)] text-[var(--danger-700)] dark:text-[var(--danger-100)] whitespace-pre-wrap font-mono">
                     {errorLog}
                   </pre>
                 </div>
@@ -189,7 +189,7 @@ export default function OcrProcessingPage() {
 
       <div className="border-t border-[var(--border)] bg-[var(--surface)]">
         <PageContainer className="!py-4">
-          <div className="flex items-center justify-between text-[var(--text-sm)] text-[var(--text-muted)]">
+          <div className="flex items-center justify-between text-[length:var(--text-sm)] text-[var(--text-muted)]">
             <div className="flex items-center gap-4">
               <span>
                 {book.title || book.filename}
@@ -200,7 +200,7 @@ export default function OcrProcessingPage() {
               <span>{pageCount} pages</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-1 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] rounded-[var(--radius)] text-[var(--text-xs)] font-medium">
+              <span className="px-2 py-1 bg-[var(--accent-soft)] text-[var(--accent-soft-text)] rounded-[var(--radius)] text-[length:var(--text-xs)] font-medium">
                 OCR Processing
               </span>
             </div>

@@ -30,11 +30,11 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <h3 className="text-[var(--text-md)] font-semibold text-[var(--text)]">
+      <h3 className="text-[length:var(--text-md)] font-semibold text-[var(--text)]">
         {title}
       </h3>
       {description && (
-        <p className="mt-1.5 max-w-md text-[var(--text-sm)] text-[var(--text-muted)]">
+        <p className="mt-1.5 max-w-md text-[length:var(--text-sm)] text-[var(--text-muted)]">
           {description}
         </p>
       )}
@@ -61,7 +61,7 @@ export function ErrorState({
       className={cn(
         "rounded-[var(--radius-lg)] border border-[var(--danger-500)]/30",
         "bg-[var(--danger-50)] dark:bg-[var(--danger-900)]/15",
-        "px-4 py-3 text-[var(--text-sm)]",
+        "px-4 py-3 text-[length:var(--text-sm)]",
         "text-[var(--danger-700)] dark:text-[var(--danger-100)]",
         "animate-fade-in",
         className,
@@ -82,7 +82,7 @@ export function ErrorState({
         <div className="flex-1 min-w-0">
           <p className="font-medium">{title}</p>
           {description && (
-            <p className="mt-1 text-[var(--text-xs)] opacity-90">
+            <p className="mt-1 text-[length:var(--text-xs)] opacity-90">
               {description}
             </p>
           )}
@@ -127,7 +127,7 @@ export function Banner({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius)] border px-4 py-3 text-[var(--text-sm)]",
+        "rounded-[var(--radius)] border px-4 py-3 text-[length:var(--text-sm)]",
         "animate-fade-in",
         toneClass[tone],
         className,

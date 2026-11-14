@@ -90,7 +90,7 @@ export function DataTable<T>({
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead
             className={cn(
-              "bg-[var(--surface-sunken)]/60 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]",
+              "bg-[var(--surface-sunken)]/60 text-[length:var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]",
               stickyHeader &&
                 "sticky top-0 z-10 bg-[var(--surface)] backdrop-blur",
             )}

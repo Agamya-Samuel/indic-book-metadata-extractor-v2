@@ -32,7 +32,7 @@ export default function Home() {
 
         {/* Display serif: the scholarly voice. Italic accent word reads as
             a typographic emphasis rather than a color-coded highlight. */}
-        <h1 className="text-balance font-display text-[var(--text-3xl)] font-semibold tracking-tight text-[var(--text)] sm:text-6xl leading-[1.05] animate-hero animate-hero-2">
+        <h1 className="text-balance font-display text-[length:var(--text-3xl)] font-semibold tracking-tight text-[var(--text)] sm:text-6xl leading-[1.05] animate-hero animate-hero-2">
           A working tool for
           <br className="hidden sm:block" />{" "}
           <em className="font-display italic font-medium text-[var(--accent-text)]">
@@ -41,7 +41,7 @@ export default function Home() {
           digitization.
         </h1>
 
-        <p className="mx-auto mt-7 max-w-xl text-pretty text-[var(--text-base)] sm:text-[var(--text-md)] text-[var(--text-muted)] animate-hero animate-hero-3">
+        <p className="mx-auto mt-7 max-w-xl text-pretty text-[length:var(--text-base)] sm:text-[length:var(--text-md)] text-[var(--text-muted)] animate-hero animate-hero-3">
           Upload scanned book pages, run OCR and a fine-tuned language model,
           review the extracted bibliographic metadata, then export to Wikibase
           or OpenRefine.
@@ -67,7 +67,7 @@ export default function Home() {
               <dt className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
                 {item.k}
               </dt>
-              <dd className="text-[var(--text-sm)] font-medium text-[var(--text)]">
+              <dd className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
                 {item.v}
               </dd>
             </div>
@@ -80,7 +80,7 @@ export default function Home() {
             144px keeps the visual weight below the H1 (the H1 is the
             dominant element, the attribution is supporting evidence). */}
         <div className="mt-12 flex flex-col items-center gap-4 animate-fade-in">
-          <p className="max-w-md text-[var(--text-sm)] leading-relaxed text-[var(--text-muted)]">
+          <p className="max-w-md text-[length:var(--text-sm)] leading-relaxed text-[var(--text-muted)]">
             Developed under the Guidance, Mentorship, and Support of{" "}
             <span className="font-medium text-[var(--text)]">
               Open Knowledge Initiatives (OKI)

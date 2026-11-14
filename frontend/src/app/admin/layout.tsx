@@ -11,7 +11,7 @@ export default function AdminLayout({
       <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden border-r border-[var(--border)] bg-[var(--surface)] lg:block">
           <div className="sticky top-[var(--nav-height)] max-h-[calc(100dvh-var(--nav-height))] overflow-y-auto p-4">
-            <p className="mb-3 px-3 text-[var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <p className="mb-3 px-3 text-[length:var(--text-xs)] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
               Admin
             </p>
             <AdminNavLinks />

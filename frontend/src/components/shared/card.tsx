@@ -52,15 +52,15 @@ export function PageHeader({
         <div className="min-w-0 flex-1">
           {back && <div className="mb-3">{back}</div>}
           {eyebrow && (
-            <p className="text-[var(--text-xs)] font-medium uppercase tracking-wider text-[var(--accent-soft-text)] mb-2">
+            <p className="text-[length:var(--text-xs)] font-medium uppercase tracking-wider text-[var(--accent-soft-text)] mb-2">
               {eyebrow}
             </p>
           )}
-          <h1 className="text-[var(--text-2xl)] sm:text-[var(--text-3xl)] font-semibold tracking-tight text-[var(--text)] leading-tight">
+          <h1 className="text-[length:var(--text-2xl)] sm:text-[length:var(--text-3xl)] font-semibold tracking-tight text-[var(--text)] leading-tight">
             {title}
           </h1>
           {description && (
-            <p className="mt-2 text-[var(--text-sm)] sm:text-[var(--text-base)] text-[var(--text-muted)] max-w-[var(--reading-max)]">
+            <p className="mt-2 text-[length:var(--text-sm)] sm:text-[length:var(--text-base)] text-[var(--text-muted)] max-w-[var(--reading-max)]">
               {description}
             </p>
           )}
@@ -108,12 +108,12 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
         <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-[var(--border)]">
           <div className="min-w-0 flex-1">
             {title && (
-              <h2 className="text-[var(--text-sm)] font-semibold text-[var(--text)] truncate">
+              <h2 className="text-[length:var(--text-sm)] font-semibold text-[var(--text)] truncate">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="mt-0.5 text-[var(--text-xs)] text-[var(--text-muted)]">
+              <p className="mt-0.5 text-[length:var(--text-xs)] text-[var(--text-muted)]">
                 {description}
               </p>
             )}

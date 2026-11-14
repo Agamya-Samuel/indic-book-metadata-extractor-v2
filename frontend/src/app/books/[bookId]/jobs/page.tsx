@@ -93,7 +93,7 @@ export default function JobsPage() {
             <div className="flex items-center gap-3">
               {anyRunning && (
                 <div
-                  className="flex items-center gap-2 text-[var(--text-sm)] text-[var(--info-700)] dark:text-[var(--info-100)]"
+                  className="flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--info-700)] dark:text-[var(--info-100)]"
                   aria-live="polite"
                 >
                   <span className="relative flex h-2 w-2">
@@ -197,13 +197,13 @@ export default function JobsPage() {
                         <div className="flex-1">
                           <Progress value={job.progress} />
                         </div>
-                        <span className="text-[var(--text-xs)] text-[var(--text-muted)] w-10 text-right tabular-nums">
+                        <span className="text-[length:var(--text-xs)] text-[var(--text-muted)] w-10 text-right tabular-nums">
                           {Math.round(job.progress)}%
                         </span>
                       </div>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-4 text-[var(--text-xs)] text-[var(--text-subtle)]">
+                    <div className="flex flex-wrap items-center gap-4 text-[length:var(--text-xs)] text-[var(--text-subtle)]">
                       {job.created_at && (
                         <span>
                           Created: {new Date(job.created_at).toLocaleString()}

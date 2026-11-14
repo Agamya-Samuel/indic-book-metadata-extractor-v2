@@ -71,7 +71,7 @@ function LoginForm() {
       <Button type="submit" className="w-full" loading={submitting}>
         Log in
       </Button>
-      <div className="flex items-center justify-between text-[var(--text-xs)]">
+      <div className="flex items-center justify-between text-[length:var(--text-xs)]">
         <Link
           href="/forgot-password"
           className="text-[var(--accent-text)] hover:underline"

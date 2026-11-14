@@ -200,8 +200,8 @@ export default function OcrReviewPage() {
         <PageContainer className="!py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-[var(--text-2xl)] font-semibold tracking-tight text-[var(--text)]">OCR Review</h1>
-              <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+              <h1 className="text-[length:var(--text-2xl)] font-semibold tracking-tight text-[var(--text)]">OCR Review</h1>
+              <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                 {book.title || book.filename} &bull;{" "}
                 {getLanguageName(book.language)}
               </p>
@@ -212,7 +212,7 @@ export default function OcrReviewPage() {
                 <div className="flex items-center gap-2">
                   <span
                     className={cn(
-                      "px-2 py-1 text-[var(--text-xs)] rounded-[var(--radius)] font-medium",
+                      "px-2 py-1 text-[length:var(--text-xs)] rounded-[var(--radius)] font-medium",
                       (ocrResult.confidence ?? 0) >= 80
                         ? "bg-[var(--success-50)] text-[var(--success-700)] dark:bg-[var(--success-900)]/20 dark:text-[var(--success-100)]"
                         : (ocrResult.confidence ?? 0) >= 60
@@ -223,7 +223,7 @@ export default function OcrReviewPage() {
                     Avg: {Math.round(ocrResult.confidence ?? 0)}%
                   </span>
                   {ocrResult.language_detected && (
-                    <span className="px-2 py-1 text-[var(--text-xs)] bg-[var(--surface-sunken)] text-[var(--text-muted)] rounded-[var(--radius)]">
+                    <span className="px-2 py-1 text-[length:var(--text-xs)] bg-[var(--surface-sunken)] text-[var(--text-muted)] rounded-[var(--radius)]">
                       {ocrResult.language_detected}
                     </span>
                   )}
@@ -254,7 +254,7 @@ export default function OcrReviewPage() {
             >
               Previous
             </Button>
-            <span className="min-w-[80px] text-center text-[var(--text-sm)] tabular-nums text-[var(--text-muted)]">
+            <span className="min-w-[80px] text-center text-[length:var(--text-sm)] tabular-nums text-[var(--text-muted)]">
               Page {currentPageIndex + 1} of {pages.length}
             </span>
             <Button
@@ -336,7 +336,7 @@ export default function OcrReviewPage() {
             <div className="text-center max-w-md">
               <Spinner className="h-12 w-12 border-[3px] text-[var(--accent-text)] mx-auto mb-4" />
               <p className="text-[var(--text)] font-medium">Running OCR...</p>
-              <p className="text-[var(--text-muted)] text-[var(--text-sm)] mt-1">
+              <p className="text-[var(--text-muted)] text-[length:var(--text-sm)] mt-1">
                 {Math.round(progress)}% complete
               </p>
               <div className="w-64 mx-auto mt-3">
@@ -356,7 +356,7 @@ export default function OcrReviewPage() {
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
               <Spinner className="h-8 w-8 border-2 text-[var(--accent-text)] mx-auto mb-3" />
-              <p className="text-[var(--text-muted)] text-[var(--text-sm)]">Loading OCR results...</p>
+              <p className="text-[var(--text-muted)] text-[length:var(--text-sm)]">Loading OCR results...</p>
             </div>
           </div>
         ) : ocrResult ? (

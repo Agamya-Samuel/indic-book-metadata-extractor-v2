@@ -91,7 +91,7 @@ function RailItem({
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate">{step.label}</span>
         {step.detail && !monitor && (
-          <span className="truncate text-[var(--text-xs)] font-normal text-[var(--text-muted)]">
+          <span className="truncate text-[length:var(--text-xs)] font-normal text-[var(--text-muted)]">
             {step.detail}
           </span>
         )}
@@ -101,7 +101,7 @@ function RailItem({
 
   const rowClass = cn(
     "flex min-h-11 w-full items-center gap-2.5 rounded-[var(--radius)] px-2.5 py-2",
-    "text-[var(--text-sm)] font-medium",
+    "text-[length:var(--text-sm)] font-medium",
     "transition-colors duration-[var(--duration-fast)]",
     isCurrent
       ? "bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
@@ -138,10 +138,10 @@ function RailItem({
       {monitor && (
         <div className="mb-1 ml-[22px] flex items-center gap-2 rounded-[var(--radius)] border-l-2 border-[var(--accent)] bg-[var(--surface-sunken)] px-2.5 py-1.5">
           <Spinner className="size-3 text-[var(--accent-text)]" />
-          <span className="truncate text-[var(--text-xs)] text-[var(--text-muted)]">
+          <span className="truncate text-[length:var(--text-xs)] text-[var(--text-muted)]">
             {step.detail ?? "Running"}
           </span>
-          <span className="ml-auto text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+          <span className="ml-auto text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
             {Math.round(monitor.progress)}%
           </span>
         </div>
@@ -197,11 +197,11 @@ export function StageRailMobile({
               busy={!!processing}
               size="sm"
             />
-            <span className="min-w-0 truncate text-[var(--text-sm)] font-medium text-[var(--text)]">
+            <span className="min-w-0 truncate text-[length:var(--text-sm)] font-medium text-[var(--text)]">
               {current.label}
             </span>
             {processing && (
-              <span className="text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+              <span className="text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
                 {Math.round(processing.progress)}%
               </span>
             )}
@@ -234,7 +234,7 @@ export function StageRailMobile({
             className="absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-md)]"
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
+              <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text)]">
                 Stages
               </span>
               <Button

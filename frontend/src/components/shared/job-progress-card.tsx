@@ -58,12 +58,12 @@ export function JobProgressCard({
     >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text)]">
+          <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text)]">
             {title}
           </h3>
           {status && <StatusBadge status={status} />}
         </div>
-        <div className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
+        <div className="flex items-center gap-2 text-[length:var(--text-xs)] text-[var(--text-muted)] tabular-nums">
           {elapsedMs > 0 && <span>{formatElapsed(elapsedMs)}</span>}
           {onCancel && running && (
             <Button
@@ -94,13 +94,13 @@ export function JobProgressCard({
         />
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+      <div className="mt-2 flex items-center justify-between gap-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
         <span className="truncate">{itemLabel}</span>
         {cancelled && <span className="text-[var(--warning-700)]">Cancelled</span>}
       </div>
 
       {failed && error && (
-        <Banner tone="danger" className="mt-3 text-[var(--text-xs)]">{error}</Banner>
+        <Banner tone="danger" className="mt-3 text-[length:var(--text-xs)]">{error}</Banner>
       )}
     </section>
   );

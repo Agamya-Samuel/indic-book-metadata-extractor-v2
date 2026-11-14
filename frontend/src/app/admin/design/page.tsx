@@ -234,14 +234,14 @@ export default function DesignKitPage() {
           {STEP_STATES.map((state, i) => (
             <span key={state} className="flex items-center gap-2">
               <StepMarker state={state} index={i} size="md" />
-              <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+              <span className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
                 {state}
               </span>
             </span>
           ))}
           <span className="flex items-center gap-2">
             <StepMarker state="current" index={3} busy size="md" />
-            <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+            <span className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
               current · busy
             </span>
           </span>
@@ -251,7 +251,7 @@ export default function DesignKitPage() {
           title="Layout modes"
           description="PageContainer: reading (content-max), workspace and gallery (full-bleed)."
         >
-          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+          <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
             Active: <span className="font-mono">{layout}</span>
           </span>
         </Section>
@@ -262,7 +262,7 @@ export default function DesignKitPage() {
               <Button variant="outline" size="sm">
                 Previous
               </Button>
-              <span className="px-2 text-[var(--text-sm)] tabular-nums text-[var(--text-muted)]">
+              <span className="px-2 text-[length:var(--text-sm)] tabular-nums text-[var(--text-muted)]">
                 Page 3 of 119
               </span>
               <Button variant="outline" size="sm">
@@ -336,7 +336,7 @@ export default function DesignKitPage() {
         <Card title="Stage rail" description="Sticky left navigation for a book (plans/008 Phase 1).">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div>
-              <p className="mb-2 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
+              <p className="mb-2 text-[length:var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
                 Mid-run, with a monitor sub-row
               </p>
               <StageRail
@@ -346,7 +346,7 @@ export default function DesignKitPage() {
               />
             </div>
             <div>
-              <p className="mb-2 text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
+              <p className="mb-2 text-[length:var(--text-xs)] uppercase tracking-wider text-[var(--text-muted)]">
                 Failed and out-of-date stages
               </p>
               <StageRail steps={PROBLEM_STEPS} currentStep="llm" />
@@ -410,7 +410,7 @@ export default function DesignKitPage() {
 
         <Card title="Collapsible section" description="Used for field groups and prompt editors.">
           <CollapsibleSection title="Core Identity" count={9} defaultOpen>
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+            <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
               Grouped content lives here.
             </p>
           </CollapsibleSection>
@@ -432,13 +432,13 @@ export default function DesignKitPage() {
                 checked={switchOn}
                 onCheckedChange={setSwitchOn}
               />
-              <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+              <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                 Preference switch
               </span>
             </div>
             <div className="flex items-center gap-4">
               <Spinner className="size-5 text-[var(--accent-text)]" />
-              <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+              <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                 Spinner, size-5
               </span>
             </div>
@@ -461,7 +461,7 @@ export default function DesignKitPage() {
 
         <Card title="Save bar" description="Sticky bottom bar with the unsaved-changes guard.">
           <Stack gap={3}>
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)]">
+            <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
               The bar is fixed to the viewport bottom, so it is only mounted on
               demand here. In a real screen it appears when there are unsaved
               changes.

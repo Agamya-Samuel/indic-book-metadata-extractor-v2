@@ -57,7 +57,7 @@ export function SaveBar({
       aria-label="Save changes"
     >
       <div className="mx-auto flex max-w-[var(--content-max)] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <div className="min-w-0 text-[var(--text-sm)] text-[var(--text-muted)]">
+        <div className="min-w-0 text-[length:var(--text-sm)] text-[var(--text-muted)]">
           {children ??
             (dirty ? (
               <span aria-live="polite">

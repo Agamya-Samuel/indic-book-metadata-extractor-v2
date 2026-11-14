@@ -286,7 +286,7 @@ export default function AdminBooksPage() {
               {bookLabel(book)}
             </p>
             <p
-              className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+              className="truncate text-[length:var(--text-xs)] text-[var(--text-muted)]"
               title={book.filename}
             >
               {book.filename}
@@ -300,7 +300,7 @@ export default function AdminBooksPage() {
       header: "Owner",
       hideBelow: "xl",
       cell: (book) => (
-        <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+        <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
           {book.owner_display_name ?? "—"}
         </span>
       ),
@@ -310,7 +310,7 @@ export default function AdminBooksPage() {
       header: "Language",
       hideBelow: "md",
       cell: (book) => (
-        <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+        <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
           {LANGUAGE_LABELS[book.language] || book.language}
         </span>
       ),
@@ -325,7 +325,7 @@ export default function AdminBooksPage() {
       header: "Pages",
       hideBelow: "sm",
       cell: (book) => (
-        <span className="tabular-nums text-[var(--text-sm)] text-[var(--text-muted)]">
+        <span className="tabular-nums text-[length:var(--text-sm)] text-[var(--text-muted)]">
           {book.total_pages ?? "—"}
         </span>
       ),
@@ -336,7 +336,7 @@ export default function AdminBooksPage() {
       hideBelow: "lg",
       cell: (book) =>
         book.metadata_fields ? (
-          <span className="inline-flex items-center gap-1 text-[var(--text-sm)] text-[var(--success-700)] dark:text-[var(--success-100)]">
+          <span className="inline-flex items-center gap-1 text-[length:var(--text-sm)] text-[var(--success-700)] dark:text-[var(--success-100)]">
             <svg
               viewBox="0 0 20 20"
               className="size-3.5 fill-current"
@@ -351,7 +351,7 @@ export default function AdminBooksPage() {
             Yes
           </span>
         ) : (
-          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">—</span>
+          <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">—</span>
         ),
     },
     {
@@ -493,7 +493,7 @@ export default function AdminBooksPage() {
                   </Select>
                 </Field>
               </div>
-              <label className="inline-flex items-center gap-2 self-end h-10 px-1 text-[var(--text-sm)] text-[var(--text)] cursor-pointer">
+              <label className="inline-flex items-center gap-2 self-end h-10 px-1 text-[length:var(--text-sm)] text-[var(--text)] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={hasMetadataOnly}
@@ -507,7 +507,7 @@ export default function AdminBooksPage() {
           </div>
 
           {selected.size > 0 && (
-            <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-3 py-2 text-[var(--text-sm)]">
+            <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-3 py-2 text-[length:var(--text-sm)]">
               <span className="font-medium text-[var(--accent-soft-text)]">
                 {selected.size} selected
               </span>

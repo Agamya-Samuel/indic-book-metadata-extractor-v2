@@ -57,7 +57,7 @@ export function Progress({
   return (
     <div className={cn("w-full", className)}>
       {(label || (showValue && !indeterminate)) && (
-        <div className="mb-1 flex items-center justify-between gap-2 text-[var(--text-xs)] text-[var(--text-muted)]">
+        <div className="mb-1 flex items-center justify-between gap-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
           <span className="truncate">{label}</span>
           {showValue && !indeterminate && (
             <span className="shrink-0 tabular-nums">{Math.round(pct)}%</span>

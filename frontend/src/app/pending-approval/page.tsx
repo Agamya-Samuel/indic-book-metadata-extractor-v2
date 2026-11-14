@@ -27,7 +27,7 @@ export default function PendingApprovalPage() {
           : "Your account is pending review."
       }
     >
-      <div className="space-y-4 text-[var(--text-sm)] text-[var(--text-muted)]">
+      <div className="space-y-4 text-[length:var(--text-sm)] text-[var(--text-muted)]">
         {rejected ? (
           <>
             <p>

@@ -252,7 +252,7 @@ function AdminUsersContent() {
             )}
           </p>
           <p
-            className="truncate text-[var(--text-xs)] text-[var(--text-muted)]"
+            className="truncate text-[length:var(--text-xs)] text-[var(--text-muted)]"
             title={user.email}
           >
             {user.email}
@@ -284,7 +284,7 @@ function AdminUsersContent() {
       header: "Verified",
       hideBelow: "md",
       cell: (user) => (
-        <span className="text-[var(--text-sm)] text-[var(--text-muted)]">
+        <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
           {user.email_verified_at ? "Yes" : "No"}
         </span>
       ),
@@ -294,7 +294,7 @@ function AdminUsersContent() {
       header: "Last login",
       hideBelow: "lg",
       cell: (user) => (
-        <span className="whitespace-nowrap text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+        <span className="whitespace-nowrap text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
           {user.last_login_at
             ? new Date(user.last_login_at).toLocaleString()
             : "—"}
@@ -306,7 +306,7 @@ function AdminUsersContent() {
       header: "Created",
       hideBelow: "lg",
       cell: (user) => (
-        <span className="whitespace-nowrap text-[var(--text-xs)] tabular-nums text-[var(--text-muted)]">
+        <span className="whitespace-nowrap text-[length:var(--text-xs)] tabular-nums text-[var(--text-muted)]">
           {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
         </span>
       ),
