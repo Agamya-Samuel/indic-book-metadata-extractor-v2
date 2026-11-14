@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -47,12 +47,13 @@ async def reap_stale_jobs(
     cutoff = (now or datetime.now(timezone.utc)) - timedelta(
         minutes=settings.stale_job_minutes
     )
+    last_seen = func.coalesce(Job.last_progress_at, Job.started_at)
     jobs = (
         await db.execute(
             select(Job).where(
                 Job.status == JobStatus.RUNNING,
                 Job.started_at.is_not(None),
-                Job.started_at < cutoff,
+                last_seen < cutoff,
             )
         )
     ).scalars().all()
@@ -61,7 +62,7 @@ async def reap_stale_jobs(
     notification_ids: list = []
     reference_now = now or datetime.now(timezone.utc)
     for job in jobs:
-        started = job.started_at
+        started = job.last_progress_at or job.started_at
         if started.tzinfo is None:
             # SQLite hands back naive datetimes in tests.
             started = started.replace(tzinfo=timezone.utc)
@@ -69,9 +70,9 @@ async def reap_stale_jobs(
         job.status = JobStatus.FAILED
         job.completed_at = datetime.now(timezone.utc)
         job.error_log = (
-            f"Worker lost: no completion {age_minutes} minutes after start "
-            f"(threshold {settings.stale_job_minutes}). Job marked failed so the "
-            "book can be run again."
+            f"Worker lost: no progress {age_minutes} minutes after the last "
+            f"update (threshold {settings.stale_job_minutes}). Job marked failed "
+            "so the book can be run again."
         )
 
         book = await db.get(Book, job.book_id) if job.book_id else None

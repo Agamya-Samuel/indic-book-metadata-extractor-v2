@@ -101,6 +101,21 @@ async def test_leaves_recent_and_queued_jobs_alone(db_session) -> None:
     assert queued.status == JobStatus.QUEUED
 
 
+async def test_does_not_reap_a_job_that_keeps_reporting_progress(db_session) -> None:
+    owner = await _owner(db_session)
+    book = await _book(db_session, owner, BookStatus.LLM_RUNNING)
+    old = NOW - timedelta(minutes=settings.stale_job_minutes + 30)
+    await _job(
+        db_session,
+        book,
+        owner,
+        started_at=old,
+        last_progress_at=NOW - timedelta(minutes=1),
+    )
+
+    assert await reap_stale_jobs(db_session, now=NOW) == 0
+
+
 async def test_second_sweep_is_a_no_op(db_session) -> None:
     owner = await _owner(db_session)
     book = await _book(db_session, owner, BookStatus.LLM_RUNNING)

@@ -160,7 +160,7 @@ services:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
     restart: unless-stopped
-    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=8", "-Q", "ocr,llm,default"]
+    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "ocr,llm,default"]
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/indic_books
       REDIS_URL: redis://redis:6379/0
