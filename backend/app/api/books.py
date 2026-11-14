@@ -41,6 +41,7 @@ from app.api.deps import (
 )
 from app.models.user import User
 from app.services import admin_service
+from app.services.quota_service import enforce_book_quota, enforce_job_quota
 
 VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ def _pre_render_thumbnails(book_id: str, pdf_path: Path, total_pages: int) -> No
         logger.info("Pre-rendered %d thumbnails for book %s", total_pages, book_id)
     except Exception:
         logger.exception("Failed to pre-render thumbnails for book %s", book_id)
+
 
 router = APIRouter()
 
@@ -74,7 +76,7 @@ async def upload_book(
     title: str | None = Form(None),
     language: str = Form("tel"),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(enforce_book_quota),
 ) -> BookUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
@@ -154,9 +156,7 @@ async def _build_book_detail(
     owner_email: str | None = None,
 ) -> BookDetail:
     """Build the shared BookDetail payload (review flags + optional owner fields)."""
-    low_conf_count = await SearchService.count_low_confidence_fields(
-        db, book.id, settings.low_confidence_threshold
-    )
+    low_conf_count = await SearchService.count_low_confidence_fields(db, book.id, settings.low_confidence_threshold)
     data = {
         **BookDetail.model_validate(book).model_dump(),
         "needs_review": book.status == BookStatus.AWAITING_REVIEW and low_conf_count > 0,
@@ -230,7 +230,7 @@ async def select_pages(
     body: PageSelectionRequest,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(enforce_job_quota),
 ) -> PageSelectionResponse:
     """Select pages and enqueue a PAGE_EXTRACTION job to render them.
 
@@ -253,9 +253,7 @@ async def select_pages(
     if not pdf_path.exists():
         raise HTTPException(status_code=404, detail="Original PDF not found")
 
-    duplicate = await admin_service.find_active_job(
-        db, book_id, JobType.PAGE_EXTRACTION
-    )
+    duplicate = await admin_service.find_active_job(db, book_id, JobType.PAGE_EXTRACTION)
     if duplicate is not None:
         raise _duplicate_job_conflict(duplicate)
 
@@ -284,9 +282,7 @@ async def select_pages(
     await db.flush()
 
     # Invalidate any downstream stage state from the previous page selection.
-    await StageManager.reset_from_stage(
-        db, book_id, "page_selection", "Superseded by a new page selection"
-    )
+    await StageManager.reset_from_stage(db, book_id, "page_selection", "Superseded by a new page selection")
 
     job = Job(
         book_id=book_id,
@@ -327,22 +323,18 @@ async def apply_preprocessing_all(
     config: PreprocessingConfig,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(enforce_job_quota),
 ) -> JobResponse:
     """Apply one preprocessing config to every page as a background job.
 
     Replaces the old UI loop that fired one blocking CPU request per page;
     that saturated the API and gave no aggregate progress.
     """
-    has_page = (
-        await db.execute(select(Page.id).where(Page.book_id == book.id).limit(1))
-    ).scalar_one_or_none()
+    has_page = (await db.execute(select(Page.id).where(Page.book_id == book.id).limit(1))).scalar_one_or_none()
     if has_page is None:
         raise HTTPException(status_code=400, detail="No pages selected for this book")
 
-    duplicate = await admin_service.find_active_job(
-        db, book.id, JobType.PREPROCESSING
-    )
+    duplicate = await admin_service.find_active_job(db, book.id, JobType.PREPROCESSING)
     if duplicate is not None:
         raise _duplicate_job_conflict(duplicate)
 
@@ -371,12 +363,7 @@ async def list_pages(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> PageEnvelope[PageResponse]:
-    total = int(
-        await db.scalar(
-            select(func.count(Page.id)).where(Page.book_id == book.id)
-        )
-        or 0
-    )
+    total = int(await db.scalar(select(func.count(Page.id)).where(Page.book_id == book.id)) or 0)
     result = await db.execute(
         select(Page)
         .where(Page.book_id == book.id)
@@ -388,9 +375,7 @@ async def list_pages(
 
     ocr_by_page: dict = {}
     if include_ocr and pages:
-        ocr_rows = await db.execute(
-            select(OcrResult).where(OcrResult.page_id.in_([p.id for p in pages]))
-        )
+        ocr_rows = await db.execute(select(OcrResult).where(OcrResult.page_id.in_([p.id for p in pages])))
         ocr_by_page = {row.page_id: row for row in ocr_rows.scalars().all()}
 
     items: list[PageResponse] = []
@@ -399,11 +384,7 @@ async def list_pages(
         if include_ocr:
             ocr = ocr_by_page.get(page.id)
             item.image_url = f"/api/pages/{page.id}/image"
-            item.ocr_text = (
-                ocr.corrected_text
-                if ocr and ocr.corrected_text
-                else (ocr.raw_text if ocr else None)
-            )
+            item.ocr_text = ocr.corrected_text if ocr and ocr.corrected_text else (ocr.raw_text if ocr else None)
             item.ocr_confidence = ocr.confidence if ocr else None
         items.append(item)
 
@@ -419,7 +400,7 @@ async def list_pages(
 async def run_ocr(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(enforce_job_quota),
 ) -> JobResponse:
     book_id = book.id
 
@@ -448,9 +429,7 @@ async def run_ocr(
         j.error_log = "Cancelled: new OCR job submitted"
     await db.flush()
 
-    pages_result = await db.execute(
-        select(Page).where(Page.book_id == book_id)
-    )
+    pages_result = await db.execute(select(Page).where(Page.book_id == book_id))
     pages = pages_result.scalars().all()
     if not pages:
         raise HTTPException(status_code=400, detail="No pages selected for this book")
@@ -487,18 +466,14 @@ async def get_ocr_status(
 ) -> OcrStatusResponse:
     book_id = book.id
 
-    pages_result = await db.execute(
-        select(Page).where(Page.book_id == book_id).order_by(Page.page_number)
-    )
+    pages_result = await db.execute(select(Page).where(Page.book_id == book_id).order_by(Page.page_number))
     pages = pages_result.scalars().all()
 
     page_statuses: list[OcrPageStatus] = []
     confidences: list[float] = []
 
     page_ids = [p.id for p in pages]
-    ocr_results_raw = await db.execute(
-        select(OcrResult).where(OcrResult.page_id.in_(page_ids))
-    )
+    ocr_results_raw = await db.execute(select(OcrResult).where(OcrResult.page_id.in_(page_ids)))
     ocr_by_page = {r.page_id: r for r in ocr_results_raw.scalars().all()}
 
     for page in pages:
@@ -534,12 +509,7 @@ async def list_jobs(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
 ) -> PageEnvelope[JobResponse]:
-    total = int(
-        await db.scalar(
-            select(func.count(Job.id)).where(Job.book_id == book.id)
-        )
-        or 0
-    )
+    total = int(await db.scalar(select(func.count(Job.id)).where(Job.book_id == book.id)) or 0)
     result = await db.execute(
         select(Job)
         .where(Job.book_id == book.id)
@@ -559,6 +529,7 @@ async def list_jobs(
 # ---------------------------------------------------------------------------
 # Owner-scoped book management
 # ---------------------------------------------------------------------------
+
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_own_book(
@@ -609,9 +580,7 @@ async def rerun_own_extraction(
     user: User = Depends(get_current_user),
 ) -> dict:
     try:
-        job = await admin_service.rerun_extraction(
-            db, book.id, requested_by_id=user.id
-        )
+        job = await admin_service.rerun_extraction(db, book.id, requested_by_id=user.id)
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
