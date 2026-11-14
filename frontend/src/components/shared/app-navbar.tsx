@@ -19,12 +19,7 @@ const navLinks = [
     scope: "auth",
   },
   { href: "/upload", label: "Upload", shortLabel: "Upload", scope: "auth" },
-  {
-    href: "/admin/bulk",
-    label: "Bulk operations",
-    shortLabel: "Bulk",
-    scope: "admin",
-  },
+  // Bulk operations are reached from the Admin sub-nav, not the app bar.
   { href: "/admin", label: "Admin", shortLabel: "Admin", scope: "admin" },
 ] as const;
 
