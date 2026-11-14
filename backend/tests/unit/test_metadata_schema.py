@@ -7,8 +7,6 @@ from app.schemas.metadata import (
     ALL_METADATA_FIELDS,
     BATCH_FIELD_ORDER,
     METADATA_BATCHES,
-    FIELD_TO_BATCH,
-    CoreIdentityBatch,
     ExtractionRequest,
     FullMetadata,
     MetadataResponse,
@@ -152,3 +150,33 @@ class TestMetadataUpdateRequest:
     def test_create(self):
         req = MetadataUpdateRequest(fields={"title": "New Title"})
         assert req.fields["title"] == "New Title"
+
+    def test_custom_fields_object_is_accepted(self):
+        req = MetadataUpdateRequest(
+            fields={"title": "T", "custom_fields": {"printer": "Press"}}
+        )
+        assert req.fields["custom_fields"] == {"printer": "Press"}
+
+    def test_unknown_field_is_rejected(self):
+        with pytest.raises(ValidationError, match="Unknown metadata field"):
+            MetadataUpdateRequest(fields={"totally_made_up": "x"})
+
+    def test_non_string_value_is_rejected(self):
+        with pytest.raises(ValidationError):
+            MetadataUpdateRequest(fields={"title": {"nested": "object"}})
+
+    def test_oversized_value_is_rejected(self):
+        with pytest.raises(ValidationError, match="20000"):
+            MetadataUpdateRequest(fields={"title": "x" * 20_001})
+
+    def test_custom_fields_must_be_an_object(self):
+        with pytest.raises(ValidationError):
+            MetadataUpdateRequest(fields={"custom_fields": ["not", "an", "object"]})
+
+    def test_custom_field_limit(self):
+        with pytest.raises(ValidationError, match="custom fields"):
+            MetadataUpdateRequest(
+                fields={
+                    "custom_fields": {f"f{i}": "v" for i in range(51)}
+                }
+            )

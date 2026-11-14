@@ -159,8 +159,17 @@ async def bulk_import(
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a CSV")
 
-    content = await file.read()
-    text = content.decode("utf-8-sig")  # handle BOM
+    max_import_bytes = 10 * 1024 * 1024
+    max_import_rows = 5000
+    content = await file.read(max_import_bytes + 1)
+    if len(content) > max_import_bytes:
+        raise HTTPException(
+            status_code=413, detail="CSV import is limited to 10 MB"
+        )
+    try:
+        text = content.decode("utf-8-sig")  # handle BOM
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="CSV must be UTF-8 encoded")
     reader = csv.DictReader(io.StringIO(text))
 
     if "book_id" not in (reader.fieldnames or []):
@@ -181,6 +190,11 @@ async def bulk_import(
     ]
 
     for row_num, row in enumerate(reader, start=2):
+        if total_rows >= max_import_rows:
+            errors.append(
+                f"Import stopped at {max_import_rows} rows; split the file"
+            )
+            break
         total_rows += 1
         book_id_str = row.get("book_id", "").strip()
 
@@ -202,6 +216,14 @@ async def bulk_import(
             books_not_found += 1
             continue
 
+        # `title` is a book-level column in the export, so a re-import must
+        # restore it on the book rather than drop it from the metadata fields.
+        changed = False
+        title_value = (row.get("title") or "").strip()
+        if title_value and book.title != title_value:
+            book.title = title_value
+            changed = True
+
         # Collect new metadata values from CSV
         new_fields = {}
         for col in meta_field_names:
@@ -209,33 +231,36 @@ async def bulk_import(
             if value:
                 new_fields[col] = value
 
-        if not new_fields:
+        if not new_fields and not changed:
             continue
 
-        # Get or create metadata record
-        meta_result = await db.execute(
-            select(BookMetadata).where(BookMetadata.book_id == book_id)
-        )
-        metadata = meta_result.scalar_one_or_none()
+        if new_fields:
+            # Get or create metadata record
+            meta_result = await db.execute(
+                select(BookMetadata).where(BookMetadata.book_id == book_id)
+            )
+            metadata = meta_result.scalar_one_or_none()
 
-        if metadata is None:
-            metadata = BookMetadata(book_id=book_id, fields=new_fields)
-            db.add(metadata)
-            fields_changed += len(new_fields)
-        elif mode == "overwrite":
-            metadata.fields = new_fields
-            flag_modified(metadata, "fields")
-            fields_changed += len(new_fields)
-        else:  # merge
-            existing = metadata.fields or {}
-            for k, v in new_fields.items():
-                if existing.get(k) != v:
-                    existing[k] = v
-                    fields_changed += 1
-            metadata.fields = existing
-            flag_modified(metadata, "fields")
+            if metadata is None:
+                metadata = BookMetadata(book_id=book_id, fields=new_fields)
+                db.add(metadata)
+                fields_changed += len(new_fields)
+            elif mode == "overwrite":
+                metadata.fields = new_fields
+                flag_modified(metadata, "fields")
+                fields_changed += len(new_fields)
+            else:  # merge
+                existing = metadata.fields or {}
+                for k, v in new_fields.items():
+                    if existing.get(k) != v:
+                        existing[k] = v
+                        fields_changed += 1
+                metadata.fields = existing
+                flag_modified(metadata, "fields")
+            changed = True
 
-        books_updated += 1
+        if changed:
+            books_updated += 1
 
     await db.commit()
 

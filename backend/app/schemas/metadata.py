@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class CoreIdentityBatch(BaseModel):
@@ -315,7 +315,46 @@ class MetadataResponse(BaseModel):
 
 
 class MetadataUpdateRequest(BaseModel):
-    fields: dict
+    fields: dict[str, str | dict[str, str]]
+
+    @field_validator("fields")
+    @classmethod
+    def _validate_fields(cls, fields: dict[str, str | dict[str, str]]) -> dict:
+        max_fields = 64
+        max_custom_fields = 50
+        max_value_chars = 20_000
+
+        if len(fields) > max_fields:
+            raise ValueError(f"At most {max_fields} fields can be saved at once")
+        unknown = sorted(set(fields) - set(FullMetadata.model_fields))
+        if unknown:
+            raise ValueError(f"Unknown metadata field(s): {', '.join(unknown[:5])}")
+
+        for name, value in fields.items():
+            if name == "custom_fields":
+                if not isinstance(value, dict):
+                    raise ValueError("custom_fields must be an object")
+                if len(value) > max_custom_fields:
+                    raise ValueError(
+                        f"At most {max_custom_fields} custom fields are allowed"
+                    )
+                for key, custom_value in value.items():
+                    if not key.strip() or len(key) > 100:
+                        raise ValueError(
+                            "Custom field names must be 1-100 characters"
+                        )
+                    if not isinstance(custom_value, str) or len(custom_value) > max_value_chars:
+                        raise ValueError(
+                            f"Custom field '{key}' must be a string of at most "
+                            f"{max_value_chars} characters"
+                        )
+            elif not isinstance(value, str):
+                raise ValueError(f"Field '{name}' must be a string")
+            elif len(value) > max_value_chars:
+                raise ValueError(
+                    f"Field '{name}' exceeds {max_value_chars} characters"
+                )
+        return fields
 
 
 class LlmRunResponse(BaseModel):
@@ -327,6 +366,17 @@ class LlmRunResponse(BaseModel):
     raw_response: str | None
     parsed_fields: dict | None
     created_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class FieldEvidenceResponse(BaseModel):
+    field_name: str
+    value: str | None
+    confidence: float | None
+    extraction_method: str
+    source_page_number: int | None
+    source_text_snippet: str | None
 
     model_config = {"from_attributes": True}
 
