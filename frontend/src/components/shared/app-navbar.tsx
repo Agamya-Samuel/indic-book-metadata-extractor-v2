@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,37 @@ export default function AppNavbar() {
     return true;
   });
 
+  // The account menu is a native <details>, which stays open until its summary
+  // is clicked again — close it the way the notifications panel closes.
+  const accountRef = useRef<HTMLDetailsElement>(null);
+  const accountSummaryRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const closeOnOutside = (event: MouseEvent) => {
+      const el = accountRef.current;
+      if (el?.open && !el.contains(event.target as Node)) el.open = false;
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      const el = accountRef.current;
+      if (event.key === "Escape" && el?.open) {
+        el.open = false;
+        accountSummaryRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
+
+  const closeAccountMenu = () => {
+    if (accountRef.current) accountRef.current.open = false;
+  };
+
   const handleLogout = async () => {
+    closeAccountMenu();
     await logout();
     router.replace("/login");
   };
@@ -79,7 +110,12 @@ export default function AppNavbar() {
           </span>
         </Link>
 
-        <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1" aria-label="Primary">
+        {/* The link group may scroll on very narrow phones; the utilities to the
+            right (bell, account, theme) stay pinned. */}
+        <nav
+          className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1"
+          aria-label="Primary"
+        >
           {visibleLinks.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -146,8 +182,9 @@ export default function AppNavbar() {
           {isAuthenticated && isApproved && <NotificationBell />}
 
           {isAuthenticated && user && (
-            <details className="relative ml-1">
+            <details ref={accountRef} className="relative ml-1">
               <summary
+                ref={accountSummaryRef}
                 className={cn(
                   "flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[var(--radius)] px-2.5 py-1.5",
                   "text-[var(--text-sm)] font-medium text-[var(--text-muted)]",
@@ -178,7 +215,15 @@ export default function AppNavbar() {
                   />
                 </svg>
               </summary>
-              <div className="absolute right-0 mt-2 w-60 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+              {/* Anchored to the trigger from sm+; on phones it spans the
+                  viewport width so it cannot hang off the screen edge. */}
+              <div
+                className={cn(
+                  "fixed inset-x-3 top-[calc(var(--nav-height)+0.5rem)] z-50 max-h-[70vh] overflow-y-auto",
+                  "rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]",
+                  "sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:max-h-none sm:w-60 sm:overflow-hidden",
+                )}
+              >
                 <div className="border-b border-[var(--border)] px-4 py-3">
                   <p className="truncate text-[var(--text-sm)] font-semibold text-[var(--text)]">
                     {user.display_name}
@@ -195,6 +240,7 @@ export default function AppNavbar() {
                 {isApproved && (
                   <Link
                     href="/dashboard"
+                    onClick={closeAccountMenu}
                     className={cn(
                       "block px-4 py-2.5 text-[var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]",
                       focusRing,
