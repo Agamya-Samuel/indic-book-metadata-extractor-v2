@@ -163,6 +163,45 @@ export const changePassword = async (
   });
 };
 
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PageParams {
+  page?: number;
+  page_size?: number;
+}
+
+const pageQuery = (params?: PageParams): string => {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+  const qs = searchParams.toString();
+  return qs ? `?${qs}` : "";
+};
+
+/**
+ * Walk a paginated endpoint until every item has been collected.
+ * Only for consumers that genuinely need the complete set (counts, filmstrips);
+ * user-facing tables should render `Page.items` with `<Pagination>`.
+ */
+export const fetchAll = async <T>(
+  fetchPage: (page: number, size: number) => Promise<Page<T>>,
+  size = 100,
+): Promise<T[]> => {
+  const first = await fetchPage(1, size);
+  const items = [...first.items];
+  for (let page = 2; page <= first.total_pages; page += 1) {
+    const next = await fetchPage(page, size);
+    items.push(...next.items);
+  }
+  return items;
+};
+
 export interface BookUploadResponse {
   id: string;
   filename: string;
@@ -213,6 +252,9 @@ export interface PageResponse {
   image_path: string | null;
   preprocessing_config: PreprocessingConfig | null;
   has_processed_image?: boolean;
+  image_url?: string | null;
+  ocr_text?: string | null;
+  ocr_confidence?: number | null;
 }
 
 export interface PreprocessingConfig {
@@ -346,15 +388,32 @@ export const getBook = async (bookId: string): Promise<BookDetail> => {
   return response.data;
 };
 
-export const getBookStages = async (bookId: string): Promise<BookStageResponse[]> => {
-  const response = await api.get<BookStageResponse[]>(`/books/${bookId}/stages`);
+export const getBookStages = async (
+  bookId: string,
+  params?: PageParams,
+): Promise<Page<BookStageResponse>> => {
+  const response = await api.get<Page<BookStageResponse>>(
+    `/books/${bookId}/stages${pageQuery(params)}`,
+  );
   return response.data;
 };
 
-export const getBookCurrentStages = async (bookId: string): Promise<BookStageResponse[]> => {
-  const response = await api.get<BookStageResponse[]>(`/books/${bookId}/stages/current`);
+export const getBookCurrentStages = async (
+  bookId: string,
+  params?: PageParams,
+): Promise<Page<BookStageResponse>> => {
+  const response = await api.get<Page<BookStageResponse>>(
+    `/books/${bookId}/stages/current${pageQuery(params)}`,
+  );
   return response.data;
 };
+
+export const getAllBookCurrentStages = async (
+  bookId: string,
+): Promise<BookStageResponse[]> =>
+  fetchAll((page, page_size) =>
+    getBookCurrentStages(bookId, { page, page_size }),
+  );
 
 export const getThumbnailUrl = (bookId: string, pageNumber: number): string => {
   return `${api.defaults.baseURL}/books/${bookId}/pages/${pageNumber}/thumbnail`;
@@ -373,10 +432,28 @@ export const selectPages = async (
   return response.data;
 };
 
-export const getBookPages = async (bookId: string): Promise<PageResponse[]> => {
-  const response = await api.get<PageResponse[]>(`/books/${bookId}/pages`);
+export const getBookPages = async (
+  bookId: string,
+  params?: PageParams & { include_ocr?: boolean },
+): Promise<Page<PageResponse>> => {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+  if (params?.include_ocr) searchParams.set("include_ocr", "true");
+  const qs = searchParams.toString();
+  const response = await api.get<Page<PageResponse>>(
+    `/books/${bookId}/pages${qs ? `?${qs}` : ""}`,
+  );
   return response.data;
 };
+
+export const getAllBookPages = async (
+  bookId: string,
+  opts?: { include_ocr?: boolean },
+): Promise<PageResponse[]> =>
+  fetchAll((page, page_size) =>
+    getBookPages(bookId, { page, page_size, ...opts }),
+  );
 
 export const updatePreprocessing = async (
   pageId: string,
@@ -439,19 +516,22 @@ export const runOcr = async (bookId: string): Promise<JobResponse> => {
   return response.data;
 };
 
-export const getBookJobs = async (bookId: string): Promise<JobResponse[]> => {
-  const response = await api.get<JobResponse[]>(`/books/${bookId}/jobs`);
+export const getBookJobs = async (
+  bookId: string,
+  params?: PageParams,
+): Promise<Page<JobResponse>> => {
+  const response = await api.get<Page<JobResponse>>(
+    `/books/${bookId}/jobs${pageQuery(params)}`,
+  );
   return response.data;
 };
+
+export const getAllBookJobs = async (bookId: string): Promise<JobResponse[]> =>
+  fetchAll((page, page_size) => getBookJobs(bookId, { page, page_size }));
 
 export const getOcrStatus = async (bookId: string): Promise<OcrStatusResponse> => {
   const response = await api.get<OcrStatusResponse>(`/books/${bookId}/ocr-status`);
   return response.data;
-};
-
-export const getJob = async (bookId: string, jobId: string): Promise<JobResponse | undefined> => {
-  const jobs = await getBookJobs(bookId);
-  return jobs.find((j) => j.id === jobId);
 };
 
 export interface ModelInfo {
@@ -511,10 +591,17 @@ export const DEFAULT_EXTRACTION_CONFIG: ExtractionRequest = {
   fields_per_batch: 10,
 };
 
-export const getAvailableModels = async (): Promise<ModelInfo[]> => {
-  const response = await api.get<ModelInfo[]>("/books/models");
+export const getAvailableModels = async (
+  params?: PageParams,
+): Promise<Page<ModelInfo>> => {
+  const response = await api.get<Page<ModelInfo>>(
+    `/books/models${pageQuery(params)}`,
+  );
   return response.data;
 };
+
+export const getAllAvailableModels = async (): Promise<ModelInfo[]> =>
+  fetchAll((page, page_size) => getAvailableModels({ page, page_size }));
 
 export const runExtraction = async (
   bookId: string,
@@ -554,13 +641,21 @@ export const updateMetadata = async (
 };
 
 export const getMetadataFieldDefinitions = async (
-  bookId: string
-): Promise<MetadataFieldDefinition[]> => {
-  const response = await api.get<MetadataFieldDefinition[]>(
-    `/books/${bookId}/metadata/fields`
+  bookId: string,
+  params?: PageParams,
+): Promise<Page<MetadataFieldDefinition>> => {
+  const response = await api.get<Page<MetadataFieldDefinition>>(
+    `/books/${bookId}/metadata/fields${pageQuery(params)}`,
   );
   return response.data;
 };
+
+export const getAllMetadataFieldDefinitions = async (
+  bookId: string,
+): Promise<MetadataFieldDefinition[]> =>
+  fetchAll((page, page_size) =>
+    getMetadataFieldDefinitions(bookId, { page, page_size }),
+  );
 
 export const completeReview = async (
   bookId: string
@@ -581,16 +676,29 @@ export interface FieldEvidence {
 }
 
 export const getMetadataEvidence = async (
-  bookId: string
-): Promise<FieldEvidence[]> => {
-  const response = await api.get<FieldEvidence[]>(
-    `/books/${bookId}/metadata/evidence`
+  bookId: string,
+  params?: PageParams,
+): Promise<Page<FieldEvidence>> => {
+  const response = await api.get<Page<FieldEvidence>>(
+    `/books/${bookId}/metadata/evidence${pageQuery(params)}`,
   );
   return response.data;
 };
 
-export const getLlmRuns = async (bookId: string): Promise<LlmRunResponse[]> => {
-  const response = await api.get<LlmRunResponse[]>(`/books/${bookId}/llm-runs`);
+export const getAllMetadataEvidence = async (
+  bookId: string,
+): Promise<FieldEvidence[]> =>
+  fetchAll((page, page_size) =>
+    getMetadataEvidence(bookId, { page, page_size }),
+  );
+
+export const getLlmRuns = async (
+  bookId: string,
+  params?: PageParams,
+): Promise<Page<LlmRunResponse>> => {
+  const response = await api.get<Page<LlmRunResponse>>(
+    `/books/${bookId}/llm-runs${pageQuery(params)}`,
+  );
   return response.data;
 };
 
@@ -609,30 +717,12 @@ export interface BookSearchResult {
   owner_email?: string | null;
 }
 
-export interface BookListResponse {
-  items: BookSearchResult[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
-
-export interface BookDetailPage {
-  id: string;
-  page_number: number;
-  image_url: string;
-  ocr_text: string | null;
-  ocr_confidence: number | null;
-}
+export type BookListResponse = Page<BookSearchResult>;
 
 export interface BookDetailResponse {
   book: BookDetail;
   metadata: Record<string, string> | null;
   metadata_updated_at: string | null;
-  pages: BookDetailPage[];
-  llm_runs: LlmRunResponse[];
-  jobs: JobResponse[];
-
   owner_display_name?: string | null;
 }
 
@@ -790,13 +880,7 @@ export interface AdminJobRow {
   error_log: string | null;
 }
 
-export interface AdminJobsResponse {
-  items: AdminJobRow[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+export type AdminJobsResponse = Page<AdminJobRow>;
 
 export interface AdminJobsParams {
   status?: string;
@@ -938,13 +1022,7 @@ export interface DashboardJobRow {
   error_log: string | null;
 }
 
-export interface DashboardJobsResponse {
-  items: DashboardJobRow[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+export type DashboardJobsResponse = Page<DashboardJobRow>;
 
 export interface DashboardJobsParams {
   status?: string;
@@ -1046,13 +1124,7 @@ export interface AdminUserDetail extends AdminUser {
   active_job_count: number;
 }
 
-export interface AdminUsersResponse {
-  items: AdminUser[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+export type AdminUsersResponse = Page<AdminUser>;
 
 export interface AdminUsersParams {
   query?: string;
@@ -1161,14 +1233,9 @@ export interface NotificationRow {
   created_at: string | null;
 }
 
-export interface NotificationListResponse {
-  items: NotificationRow[];
-  total: number;
+export type NotificationListResponse = Page<NotificationRow> & {
   unread_count: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+};
 
 export const getNotifications = async (params?: {
   page?: number;
