@@ -41,7 +41,6 @@ from app.api.deps import (
 )
 from app.models.user import User
 from app.services import admin_service
-from app.services.quota_service import enforce_book_quota, enforce_job_quota
 
 VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
 logger = logging.getLogger(__name__)
@@ -76,7 +75,7 @@ async def upload_book(
     title: str | None = Form(None),
     language: str = Form("tel"),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(enforce_book_quota),
+    user: User = Depends(get_current_user),
 ) -> BookUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
@@ -230,7 +229,7 @@ async def select_pages(
     body: PageSelectionRequest,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(enforce_job_quota),
+    user: User = Depends(get_current_user),
 ) -> PageSelectionResponse:
     """Select pages and enqueue a PAGE_EXTRACTION job to render them.
 
@@ -323,7 +322,7 @@ async def apply_preprocessing_all(
     config: PreprocessingConfig,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(enforce_job_quota),
+    user: User = Depends(get_current_user),
 ) -> JobResponse:
     """Apply one preprocessing config to every page as a background job.
 
@@ -400,7 +399,7 @@ async def list_pages(
 async def run_ocr(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(enforce_job_quota),
+    user: User = Depends(get_current_user),
 ) -> JobResponse:
     book_id = book.id
 

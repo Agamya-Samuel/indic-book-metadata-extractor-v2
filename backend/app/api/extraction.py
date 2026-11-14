@@ -24,7 +24,6 @@ from app.schemas.metadata import (
     ModelInfo,
 )
 from app.services.llm_service import llm_service
-from app.services.quota_service import enforce_job_quota
 from app.services.stage_manager import StageManager, StageStatus
 
 router = APIRouter()
@@ -55,7 +54,7 @@ async def run_extraction(
     body: ExtractionRequest,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(enforce_job_quota),
+    user: User = Depends(get_current_user),
 ) -> ExtractionResponse:
     # Check for an active run before the status gate: after the first request
     # the book is llm_running, and a duplicate must see 409 (with the job id),
