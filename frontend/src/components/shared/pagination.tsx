@@ -51,6 +51,10 @@ export default function Pagination({
   if (totalPages <= 1 && !showSizeSelector) return null;
 
   const safeTotal = Math.max(1, totalPages);
+  // When only one page fits and no size selector is shown, there is nothing
+  // to page through, so the entire control is omitted. When a size selector
+  // is shown we still render it so the user can choose a different page size.
+  const showPagerButtons = totalPages > 1;
 
   return (
     <nav
@@ -79,55 +83,59 @@ export default function Pagination({
         </label>
       )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(Math.max(1, page - 1))}
-        disabled={disabled || page === 1}
-      >
-        Previous
-      </Button>
-
-      {pageItems(page, safeTotal).map((item, index) =>
-        typeof item === "number" ? (
+      {showPagerButtons && (
+        <>
           <Button
-            key={item}
-            variant={item === page ? "primary" : "outline"}
+            variant="outline"
             size="sm"
-            className="min-w-8 px-2"
-            aria-current={item === page ? "page" : undefined}
-            aria-label={`Page ${item}`}
-            disabled={disabled}
-            onClick={() => onPageChange(item)}
+            onClick={() => onPageChange(Math.max(1, page - 1))}
+            disabled={disabled || page === 1}
           >
-            {item}
+            Previous
           </Button>
-        ) : (
-          <span
-            key={`${item}-${index}`}
-            aria-hidden="true"
-            className="px-1 text-[length:var(--text-sm)] text-[var(--text-subtle)]"
+
+          {pageItems(page, safeTotal).map((item, index) =>
+            typeof item === "number" ? (
+              <Button
+                key={item}
+                variant={item === page ? "primary" : "outline"}
+                size="sm"
+                className="min-w-8 px-2"
+                aria-current={item === page ? "page" : undefined}
+                aria-label={`Page ${item}`}
+                disabled={disabled}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </Button>
+            ) : (
+              <span
+                key={`${item}-${index}`}
+                aria-hidden="true"
+                className="px-1 text-[length:var(--text-sm)] text-[var(--text-subtle)]"
+              >
+                …
+              </span>
+            ),
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(Math.min(safeTotal, page + 1))}
+            disabled={disabled || page === safeTotal}
           >
-            …
+            Next
+          </Button>
+
+          <span
+            className="px-2 text-[length:var(--text-sm)] text-[var(--text-muted)]"
+            aria-live="polite"
+          >
+            Page {page} of {safeTotal}
           </span>
-        ),
+        </>
       )}
-
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(Math.min(safeTotal, page + 1))}
-        disabled={disabled || page === safeTotal}
-      >
-        Next
-      </Button>
-
-      <span
-        className="px-2 text-[length:var(--text-sm)] text-[var(--text-muted)]"
-        aria-live="polite"
-      >
-        Page {page} of {safeTotal}
-      </span>
     </nav>
   );
 }

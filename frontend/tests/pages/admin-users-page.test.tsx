@@ -202,4 +202,32 @@ describe("AdminUsersPage", () => {
       expect(lastCall?.account_status).toBe("pending");
     });
   });
+
+  it("shows the rows-per-page selector even at a single page", async () => {
+    render(<AdminUsersPage />, { wrapper: createWrapper() });
+    await waitFor(() => {
+      expect(screen.getByText("Ada Lovelace")).toBeDefined();
+    });
+    // The size selector renders whether or not there are multiple pages.
+    expect(screen.getByLabelText("Rows per page")).toBeDefined();
+  });
+
+  it("renders pagination controls when there are multiple pages", async () => {
+    mockGetAdminUsers.mockResolvedValue({
+      items: [
+        userRow({ id: "a1" }),
+        userRow({ id: "a2", email: "b@example.com", display_name: "Second User" }),
+      ],
+      total: 40,
+      page: 1,
+      page_size: 20,
+      total_pages: 2,
+    });
+    render(<AdminUsersPage />, { wrapper: createWrapper() });
+    await waitFor(() => {
+      expect(screen.getByText("Second User")).toBeDefined();
+    });
+    expect(screen.getByLabelText("Page 2")).toBeDefined();
+    expect(screen.getByText(/Page 1 of 2/)).toBeDefined();
+  });
 });

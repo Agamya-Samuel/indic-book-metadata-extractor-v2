@@ -105,6 +105,8 @@ export default function AdminBooksPage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  const [pageSize, setPageSize] = React.useState(20);
+
   const resetPagination = React.useCallback(() => {
     setPage(1);
     setSelected(new Set());
@@ -134,7 +136,7 @@ export default function AdminBooksPage() {
     has_metadata: hasMetadataOnly || undefined,
     owner_id: owner?.id,
     page,
-    page_size: 50,
+    page_size: pageSize,
   };
 
   const { data, isLoading } = useQuery({
@@ -573,6 +575,12 @@ export default function AdminBooksPage() {
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={(v) => {
+              setPageSize(v);
+              setPage(1);
+            }}
+            disabled={isLoading}
           />
         </>
       )}
