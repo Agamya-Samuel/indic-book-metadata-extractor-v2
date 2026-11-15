@@ -473,3 +473,39 @@ describe("MetadataForm", () => {
     expect(onFieldFocus).toHaveBeenCalledWith("publisher");
   });
 });
+
+describe("MetadataForm next-missing navigation", () => {
+  const defs: MetadataFieldDefinition[] = [
+    {
+      field_name: "title",
+      display_name: "Title",
+      wikidata_property: null,
+      batch_group: "core_identity",
+    },
+    {
+      field_name: "translator",
+      display_name: "Translator",
+      wikidata_property: null,
+      batch_group: "contributors",
+    },
+  ];
+
+  it("opens the collapsed section that Next missing jumps into", () => {
+    render(
+      <MetadataForm
+        fieldDefinitions={defs}
+        values={{ title: "Already extracted", translator: "" }}
+        onSave={vi.fn()}
+        isSaving={false}
+      />
+    );
+
+    const section = () =>
+      screen.getByRole("button", { name: /contributors/i });
+    expect(section().getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(screen.getByRole("button", { name: /next missing/i }));
+
+    expect(section().getAttribute("aria-expanded")).toBe("true");
+  });
+});

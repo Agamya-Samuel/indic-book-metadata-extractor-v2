@@ -171,6 +171,9 @@ export default function MetadataForm({
   );
   const [filter, setFilter] = useState<FieldFilter>("all");
   const [activeField, setActiveField] = useState<string | undefined>(undefined);
+  // Section that must be open for a programmatic focus (Next missing / append)
+  // to land on a visible row. Cleared when the reviewer changes the filter.
+  const [revealField, setRevealField] = useState<string | null>(null);
   const fieldRefs = useRef<
     Record<string, HTMLInputElement | HTMLTextAreaElement | null>
   >({});
@@ -259,6 +262,9 @@ export default function MetadataForm({
   const focusField = useCallback(
     (fieldName: string) => {
       setActiveField(fieldName);
+      // Next missing and append focus fields programmatically; the row may be
+      // inside a collapsed section, so open that section first.
+      setRevealField(fieldName);
       onFieldFocus?.(fieldName);
       afterRender(() => {
         const element = fieldRefs.current[fieldName];
@@ -414,6 +420,14 @@ export default function MetadataForm({
     return grouped;
   }, [fieldDefinitions]);
 
+  const batchByField = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const field of fieldDefinitions) {
+      map.set(field.field_name, field.batch_group);
+    }
+    return map;
+  }, [fieldDefinitions]);
+
   return (
     <div>
       <div
@@ -425,19 +439,28 @@ export default function MetadataForm({
           filter="all"
           active={filter === "all"}
           count={fieldDefinitions.length}
-          onClick={() => setFilter("all")}
+          onClick={() => {
+            setRevealField(null);
+            setFilter("all");
+          }}
         />
         <FilterChip
           filter="missing"
           active={filter === "missing"}
           count={fieldCounts.missing}
-          onClick={() => setFilter("missing")}
+          onClick={() => {
+            setRevealField(null);
+            setFilter("missing");
+          }}
         />
         <FilterChip
           filter="uncertain"
           active={filter === "uncertain"}
           count={fieldCounts.uncertain}
-          onClick={() => setFilter("uncertain")}
+          onClick={() => {
+            setRevealField(null);
+            setFilter("uncertain");
+          }}
         />
         <Button
           variant="ghost"
@@ -463,7 +486,10 @@ export default function MetadataForm({
               title={BATCH_DISPLAY_NAMES[batch] ?? batch}
               count={visibleFields.length}
               defaultOpen={batch === "core_identity" || batch === "publication"}
-              forceOpen={filter !== "all"}
+              forceOpen={
+                filter !== "all" ||
+                (revealField !== null && batchByField.get(revealField) === batch)
+              }
             >
               <Stack gap={2}>
                 {visibleFields.map((field) => {
