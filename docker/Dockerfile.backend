@@ -1,9 +1,4 @@
-# Pinned by digest. `python:3.11-slim` is a mutable tag that Debian re-publishes;
-# when its digest moves every later layer is invalidated, so a frontend-only
-# deploy silently rebuilds this image from scratch (and can silently move the
-# runtime onto a new Debian release). Bump deliberately with:
-#   docker buildx imagetools inspect python:3.11-slim
-FROM python:3.11-slim@sha256:07d4824036af339fa1b6ef769cc99d9c10a141769538b52b3b597c84f7a7b535
+FROM python:3.11-slim
 
 # System dependencies for Tesseract, OpenCV, and PDF processing.
 RUN apt-get update && apt-get install -y --no-install-recommends \
