@@ -6,26 +6,7 @@
 FROM python:3.11-slim@sha256:07d4824036af339fa1b6ef769cc99d9c10a141769538b52b3b597c84f7a7b535
 
 # System dependencies for Tesseract, OpenCV, and PDF processing.
-# The deploy host cannot pull from deb.debian.org: measured ~62 KB/s with stalls
-# and apt retries, turning this step into 30+ minutes. Point the sources at a
-# mirror that is both reachable and fresh — speed alone is not enough, because a
-# fast-but-stale mirror costs security updates and apt refuses an expired InRelease.
-# Chosen on both criteria: mirrors.aliyun.com serves trixie-updates and
-# trixie-security with a Valid-Until of 2026-11-20 and moved large packages at
-# ~5 MB/s from this host. Rejected: mirror.cse.iitk.ac.in (fast, but 149 days past
-# Valid-Until and no trixie-security), cloudflaremirrors.com (security redirects),
-# mirrors.edge.kernel.org (no security suite). Only the host is rewritten, so the
-# /debian-security path keeps its own repository mapping.
-RUN set -eux; \
-    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources; do \
-      if [ -f "$f" ]; then \
-        sed -i \
-          -e 's|http://deb.debian.org|https://mirrors.aliyun.com|g' \
-          -e 's|https://deb.debian.org|https://mirrors.aliyun.com|g' \
-          "$f"; \
-      fi; \
-    done; \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-osd \
     tesseract-ocr-tel \
@@ -49,22 +30,12 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 # Install Python dependencies.
-# uv resolves and downloads from PyPI (files.pythonhosted.org, served by Fastly),
-# which the deploy host cannot reach at a usable rate: ~40 KB/s for bulk transfer
-# and HTTP/2 streams that stall or reset outright, measured 2026-11-13. This is a
-# path problem on the host, not a PyPI problem (GCP reaches the same endpoint at
-# 12.5 MB/s), so use a mirror on a network the host can reach, and raise the
-# client timeouts so a slow-but-progressing download is not aborted.
 COPY pyproject.toml uv.lock* ./
 # The OCR worker image (build arg OCR_LINE=true) adds CPU torch + transformers
 # and bakes the Telugu line model into the image. The backend/flower images
 # skip both, so they stay small and never need the model.
 ARG OCR_LINE=false
-RUN UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
-    UV_HTTP_TIMEOUT=300 \
-    PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
-    PIP_DEFAULT_TIMEOUT=300 \
-    uv sync --no-dev $([ "$OCR_LINE" = "true" ] && echo "--extra ocr-line")
+RUN uv sync --no-dev $([ "$OCR_LINE" = "true" ] && echo "--extra ocr-line")
 RUN if [ "$OCR_LINE" = "true" ]; then \
       .venv/bin/python -c "from huggingface_hub import snapshot_download; snapshot_download('harsha-desaraju/telugu-ocr-model', local_dir='/app/ocr_models/telugu-ocr-model')"; \
     fi

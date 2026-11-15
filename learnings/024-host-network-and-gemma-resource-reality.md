@@ -65,6 +65,9 @@ ISO mirror range request timed out after a 302, but that path is not needed.
 ## Recommendation
 
 - Do **not** build a registry bypass for egress; it is no longer a blocker.
+- Remove the Debian/PyPI mirror workaround from `docker/Dockerfile.backend`;
+  the host now reaches `deb.debian.org` (43 MB/s HTTPS, 6.7 MB/s HTTP) and PyPI
+  (47 MB/s) directly. Reverted 2026-11-15.
 - Keep the worker-only OCR build (`OCR_LINE=true`) so backend/flower stay small.
 - Raise the Ollama cap to 9 GB and keep `phi4-mini` as the rollback model.
 - Treat ingress as the only remaining launch-blocking network action.

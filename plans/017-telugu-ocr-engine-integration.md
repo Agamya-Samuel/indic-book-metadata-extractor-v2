@@ -47,14 +47,15 @@ Tesseract error rate.
 - Hindi stays on Tesseract (median CER ~0.07); IndicOCR is gated and not
   CPU-viable.
 
-## Blocker
+## Blocker (resolved 2026-11-15)
 
-The model needs `torch` + `transformers` (multi-GB) and its weights fetched
-from Hugging Face. The production host's egress to Fastly/PyPI is ~40–60 KB/s
-([deploy-host-egress]), so neither an image build nor a first-boot download is
-practical. A GCP Mumbai node fetches the same endpoints at ~12 MB/s and is the
-right place to build and benchmark, but the artifact still has to be baked into
-the production image or mounted as a volume.
+The model needs `torch` + `transformers` and its weights from Hugging Face. On
+2026-11-13 the host's egress to Fastly/PyPI was ~40–60 KB/s, so neither an image
+build nor a first-boot download was practical. On 2026-11-15 the host measured
+PyPI ~32 MB/s and Hugging Face ~1.1–2.3 MB/s, so the worker image now installs
+the extra and bakes the 310 MB weights directly. The old Debian/PyPI mirror
+workaround in `docker/Dockerfile.backend` was reverted; the host reaches the
+upstream repositories directly.
 
 ## Integration design
 
