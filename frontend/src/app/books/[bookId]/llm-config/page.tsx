@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
-  getAllAvailableModels,
   getAllMetadataFieldDefinitions,
   runExtraction,
   retryExtraction,
@@ -23,10 +22,10 @@ import { Chip } from "@/components/shared/chip";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { WorkflowPageSkeleton } from "@/components/shared/skeleton";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
-import { Field, Select, Textarea } from "@/components/shared/input";
+import { Field, Textarea } from "@/components/shared/input";
 import { Button, LinkButton } from "@/components/shared/button";
 import { WorkflowNav } from "@/components/shared/workflow-nav";
-import { Banner, ErrorState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/empty-state";
 import JobProgressCard from "@/components/shared/job-progress-card";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -85,18 +84,6 @@ export default function LlmConfigPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const {
-    data: models,
-    isLoading: isLoadingModels,
-    isError: modelsError,
-  } = useQuery({
-    queryKey: ["models", "all"],
-    queryFn: getAllAvailableModels,
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 1,
-  });
-
   const { data: fieldDefs, isLoading: isLoadingFields } = useQuery({
     queryKey: ["metadata-fields", bookId, "all"],
     queryFn: () => getAllMetadataFieldDefinitions(bookId),
@@ -110,9 +97,6 @@ export default function LlmConfigPage() {
     startedAt,
     enabled: !!bookId,
   });
-
-  const ollamaUnreachable =
-    modelsError || (models !== undefined && models.length === 0);
 
   const fieldsByBatch = useMemo(() => {
     if (!fieldDefs) return {};
@@ -177,7 +161,7 @@ export default function LlmConfigPage() {
   const currentRunComplete = Boolean(startedAt) && progress.isComplete;
   const currentRunFailed = Boolean(startedAt) && progress.isFailed;
 
-  if (isLoadingBook || isLoadingModels || isLoadingFields) {
+  if (isLoadingBook || isLoadingFields) {
     return <WorkflowPageSkeleton />;
   }
 
@@ -243,35 +227,18 @@ export default function LlmConfigPage() {
           </div>
         )}
 
-        {ollamaUnreachable && (
-          <Banner tone="warning" className="mb-6">
-            Ollama is unreachable or has no models installed. Start Ollama and
-            pull a model before running extraction.
-          </Banner>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-3">
             <Stack gap={4}>
-              <Card title="Model Selection" description="Pick the LLM and tune sampling.">
+              <Card title="Model" description="The extractor is pinned for production.">
                 <Stack gap={4}>
                   <Field label="LLM Model">
-                    <Select
-                      value={config.model}
-                      onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, model: e.target.value }))
-                      }
-                    >
-                      <option value="gemma4:e4b">gemma4:e4b (default)</option>
-                      {models
-                        ?.filter((m) => m.name !== "gemma4:e4b")
-                        .map((m) => (
-                          <option key={m.name} value={m.name}>
-                            {m.name}
-                            {m.size_gb ? ` (${m.size_gb.toFixed(1)} GB)` : ""}
-                          </option>
-                        ))}
-                    </Select>
+                    <div className="flex min-h-11 items-center rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 text-[length:var(--text-sm)]">
+                      <span className="font-medium">{config.model}</span>
+                      <span className="ml-2 text-[var(--text-muted)]">
+                        pinned
+                      </span>
+                    </div>
                   </Field>
 
                   <SliderControl
@@ -315,11 +282,7 @@ export default function LlmConfigPage() {
                     )}
                     <Button
                       onClick={() => runMutation.mutate()}
-                      disabled={
-                        runMutation.isPending ||
-                        currentRunActive ||
-                        ollamaUnreachable
-                      }
+                      disabled={runMutation.isPending || currentRunActive}
                       loading={runMutation.isPending}
                       className="w-full"
                     >

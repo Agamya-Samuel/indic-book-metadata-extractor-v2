@@ -52,7 +52,8 @@ ISO mirror range request timed out after a 302, but that path is not needed.
   a real 8-batch extraction** — too close to the old cap. Ollama's cap was
   raised first to 8 GB, then to **9 GB** after the end-to-end run.
 - Host has 15.6 GiB total with no swap; production + staging cannot both load
-  gemma4 simultaneously on this box.
+  gemma4 simultaneously on this box. By decision, **only production runs on
+  oki; staging runs on a separate server.**
 
 ### 4. Telugu OCR artifact is smaller than documented
 

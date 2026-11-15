@@ -32,6 +32,13 @@ if [ -n "$OLLAMA_PRELOAD_MODEL" ]; then
     else
         echo "[Ollama Entrypoint] Model '$OLLAMA_PRELOAD_MODEL' already available."
     fi
+
+    # Load the pinned model into memory now, not on the first user request.
+    # Ollama handles the residency; the 30m keep-alive matches the compose env.
+    echo "[Ollama Entrypoint] Warming '$OLLAMA_PRELOAD_MODEL'..."
+    if ! timeout 300 ollama run --think=false --keepalive 30m "$OLLAMA_PRELOAD_MODEL" "Reply with OK" >/dev/null 2>&1; then
+        echo "[Ollama Entrypoint] WARNING: warm-up failed; the model will load on first request."
+    fi
 fi
 
 echo "[Ollama Entrypoint] Ollama setup complete. Serving..."

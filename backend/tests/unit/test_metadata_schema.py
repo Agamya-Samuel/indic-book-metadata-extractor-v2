@@ -73,13 +73,16 @@ class TestExtractionRequest:
 
     def test_custom_values(self):
         req = ExtractionRequest(
-            model="llama2",
             temperature=0.7,
             max_tokens=4096,
             custom_system_prompt="custom",
         )
-        assert req.model == "llama2"
+        assert req.model == "gemma4:e4b"
         assert req.temperature == 0.7
+
+    def test_rejects_unpinned_model(self):
+        with pytest.raises(ValidationError):
+            ExtractionRequest(model="phi4-mini")
 
     def test_invalid_temperature_high(self):
         with pytest.raises(ValidationError):

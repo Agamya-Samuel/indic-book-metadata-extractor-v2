@@ -100,13 +100,22 @@ succeeds, and the notification stays visible in the app.
 Production is configured for Resend's raw SMTP endpoint and a live signup +
 password-reset round trip succeeded on 2026-11-14.
 
+### An all-null batch is a normal answer, not a job error
+
+A batch whose fields do not appear in the book (for example `relationships`)
+returns an all-null JSON object. The job completes normally and no `error_log`
+is written when only some batches are empty; a message is only set when every
+batch is empty. The raw response and parsed fields remain in the LLM run
+history for audit.
+
 ### Landing page model label
 
 The home page now says **"Local LLM"** instead of naming a specific model, so
 the copy does not go stale between `gemma4:e4b` (the default, native `/api/chat`
 path) and `phi4-mini` (rollback). Fixed 2026-11-15; see
 `plans/012-llm-service-native-endpoint.md` and the model evaluation reports. The
-model remains selectable per run on the LLM configuration page.
+model is now **pinned** to `gemma4:e4b`: the LLM configuration page shows it
+read-only and the API rejects any other model.
 
 ### Server-Sent Events fall back to polling
 

@@ -177,11 +177,11 @@ Volumes (persisted across deploys):
 
 You can host both environments on a single Dokploy server using **two full standalone compose files + per-env env file**. Each compose is self-contained and reviewable in one read — no merge semantics, no override surprises.
 
-> **Memory warning (gemma4).** `gemma4:e4b` needs ~6.7 GB idle and peaks around
-> 7.9 GB during extraction; each Ollama service is capped at 9 GB. On this
-> 15.6 GB no-swap host, production and staging **cannot both keep gemma4 loaded
-> at once**. Run one environment per host, or point staging at `phi4-mini`
-> (`OLLAMA_PRELOAD_MODEL: phi4-mini`).
+> **Memory note (gemma4).** `gemma4:e4b` needs ~6.7 GB idle and peaks around
+> 7.9 GB during extraction; each Ollama service is capped at 9 GB. **Production
+> runs on the oki host and staging runs on a separate server by decision — do
+> not co-locate both gemma instances on one 15.6 GB host.** Keep staging on
+> `phi4-mini` if it ever shares the host.
 
 ### File layout
 

@@ -174,8 +174,8 @@ task with live progress.
    available — a running job shows as a progress card above the form instead
    of replacing it.
 2. Configure extraction settings:
-   - **Model**: Choose from available Ollama models (`gemma4:e4b` is the
-     default)
+   - **Model**: Pinned to `gemma4:e4b`; the page shows it read-only so every
+     run uses the same model and memory footprint
    - **Temperature**: Controls randomness (0.3 recommended for factual extraction)
    - **Max Tokens**: Maximum response length per batch
    - **System Prompt**: The instruction given to the model (editable)

@@ -300,6 +300,14 @@ class ExtractionRequest(BaseModel):
     custom_system_prompt: str | None = None
     custom_extraction_prompt: str | None = None
 
+    @field_validator("model")
+    @classmethod
+    def _only_supported_model(cls, value: str) -> str:
+        """Pin the extractor: one model, one memory footprint."""
+        if value != DEFAULT_LLM_MODEL:
+            raise ValueError(f"Only {DEFAULT_LLM_MODEL} is supported")
+        return value
+
 
 class ExtractionResponse(BaseModel):
     job_id: uuid.UUID

@@ -265,11 +265,20 @@ async def _persist_extraction_results(
                     await StageManager.complete_stage(db, book_id, "llm_extraction")
             elif empty_batches:
                 job.status = JobStatus.COMPLETED
-                job.error_log = (
-                    f"LLM returned no values for {len(empty_batches)} "
-                    f"batch(es): {', '.join(empty_batches)}. "
-                    "Likely context-length truncation; check num_ctx and per-batch OCR cap."
-                )
+                if len(empty_batches) == len(batch_results):
+                    job.error_log = (
+                        f"LLM returned no values for any of the {len(empty_batches)} batches. "
+                        "Check the OCR text and the model output."
+                    )
+                else:
+                    # An all-null batch is a valid answer when those fields are
+                    # absent from the book; it is not a job error.
+                    logger.info(
+                        "LLM returned no values for %d of %d batch(es): %s (expected when fields are absent)",
+                        len(empty_batches),
+                        len(batch_results),
+                        ", ".join(empty_batches),
+                    )
                 if book:
                     await StageManager.complete_stage(db, book_id, "llm_extraction")
             else:

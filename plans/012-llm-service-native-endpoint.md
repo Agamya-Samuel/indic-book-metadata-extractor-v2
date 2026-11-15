@@ -77,9 +77,10 @@ and [022](../learnings/022-gt-source-expansion.md); the harness `--native` path
   residency is **6.71 GiB idle / 7.9 GiB during a real extraction**, so the Ollama cap moved
   7 GB → **9 GB**. The compose preload, `LLM_NATIVE_ENDPOINT=true`, and the `gemma4:e4b`
   default are deployed; one Telugu book completed end to end with 8/8 non-empty runs.
-- **Thinking models now route native automatically** (`_native_endpoint_enabled`), so selecting
-  gemma4 cannot silently fall back to the empty-content `/v1` path. `phi4-mini` remains the
-  rollback model.
+- **The model is pinned:** `ExtractionRequest` rejects anything except `gemma4:e4b`, the LLM
+  configuration page shows the model read-only, and the Ollama entrypoint warms gemma at boot
+  (keep-alive 30m). Only one model is ever resident (`OLLAMA_MAX_LOADED_MODELS=1`), with a 9 GB
+  cap. `phi4-mini` remains the code-level rollback, not a user choice.
 - **Egress is no longer a blocker** (PyPI ~32 MB/s, HF ~1.1 MB/s — [learnings/024](../learnings/024-host-network-and-gemma-resource-reality.md)).
 
 ## Open questions
