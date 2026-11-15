@@ -183,9 +183,10 @@ notifications are unaffected.
    (`qa-admin`, `qa-user`, `qa-signup`, pending `notif-signup-1113`), decide the
    3 sample books, rotate `reference/oki-qa-accounts`, and confirm the real first
    admin has a strong password.
-6. **Copy check.** The landing page still advertises "Qwen2.5 7B" while
-   production runs phi4-mini; confirm the pilot-phase / approval-based signup
-   wording is intended for the public page.
+6. **Copy check.** The landing page now says "Local LLM" (fixed 2026-11-15) and
+   carries the Telugu (CER ≈ 0.40) / Hindi (≈ 0.07) OCR expectation note. Still
+   confirm the pilot-phase / approval-based signup wording is intended for the
+   public page.
 
 Full status and expectation-setting: `plans/011-launch-readiness.md`.
 

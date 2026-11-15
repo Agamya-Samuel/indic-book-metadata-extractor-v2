@@ -61,8 +61,16 @@ Completed since the checklist above:
 - [x] CI green: ruff check/format, pytest on Python 3.11, fresh-DB migrations,
       frontend lint/tests/build; `make check-compose-drift` passes
 - [x] Per-user quotas removed by decision (approved, verified users unlimited)
-- [x] Telugu OCR integration plan recorded (`plans/017-...`), blocked on the
-      model artifact/egress
+- [x] Telugu OCR line model implemented and baked into the worker image
+      (`OCR_TEL_ENGINE=line_model`, 310 MB weights, Tesseract fallback);
+      deploy + one-book CER verification pending
+
+Host network re-check (2026-11-15):
+
+- [x] Egress is fixed — PyPI ~32 MB/s, HF ~1.1–2.3 MB/s, Docker/Ollama
+      registry pulls work ([learnings/024](../learnings/024-host-network-and-gemma-resource-reality.md))
+- [ ] Ingress is **still open** — the origin answers 200 with the real Host
+      header; `:3000`/`:8080` remain published
 
 Still open before public:
 
@@ -74,8 +82,9 @@ Still open before public:
       `qa-user`, `qa-signup` and the pending `notif-signup-1113`; decide the
       3 sample books; rotate `reference/oki-qa-accounts`; confirm the first
       admin's password
-- [ ] Copy accuracy: landing page says "Qwen2.5 7B" but production runs
-      phi4-mini; confirm pilot-phase/approval signup copy
+- [x] Copy accuracy: landing page now says "Local LLM" and carries the
+      Telugu/Hindi OCR expectation note (2026-11-15)
+- [ ] Confirm the pilot-phase / approval-based signup wording
 
 Expectation-setting (not blockers): Telugu CER ≈ 0.40 (Hindi ≈ 0.07); CPU-only
 ~10–20 min/book with a global single-book queue; per-IP rate limits, no quotas.

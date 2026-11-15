@@ -56,13 +56,15 @@ Tesseract OCR accuracy on Telugu and Hindi scripts varies significantly dependin
 
 Pages containing mixed languages (e.g., Telugu + English) use multi-language OCR mode (`tel+eng` or `hin+eng`). Accuracy may decrease on pages with heavy code-switching.
 
-### Telugu OCR is the accuracy ceiling (engine selected, not yet wired)
+### Telugu OCR is the accuracy ceiling (engine wired, activation blocked)
 
-Measured on our verified scans ([learnings/020](../learnings/020-ocr-engine-benchmark.md)): Tesseract Telugu leaves ~40 % of characters wrong (median CER 0.40) — the dominant pipeline error. A Telugu-specific line model (`harsha-desaraju/telugu-ocr-model`) more than halves it (median CER 0.16) and is the **chosen** Telugu engine, but it is **not yet integrated** into `ocr_service.py`.
+Measured on our verified scans ([learnings/020](../learnings/020-ocr-engine-benchmark.md)): Tesseract Telugu leaves ~40 % of characters wrong (median CER 0.40) — the dominant pipeline error. A Telugu-specific line model (`harsha-desaraju/telugu-ocr-model`) more than halves it (median CER 0.16) and is the **chosen** Telugu engine.
 
-**Mitigation (until integrated):** the OCR review step; optionally switch Telugu to `tessdata_best`. Preprocessing (binarization/denoise) did **not** help Telugu and is disabled by default.
+**Status (2026-11-15):** wired and active in production compose (`OCR_TEL_ENGINE=line_model`, `ocr_line_model.py`, Telugu only). The worker image bakes CPU `torch`/`transformers` plus the **310 MB** weights (not 1.7 GB), so nothing is downloaded at runtime; any load/inference error falls back to Tesseract per page. The host's egress is now fast enough (PyPI ~32 MB/s, Hugging Face ~1.1 MB/s) that the old artifact blocker is gone.
 
-**Integration plan and blocker:** [plans/017](../plans/017-telugu-ocr-engine-integration.md). The model needs `torch`/`transformers` and weights fetched from Hugging Face; the production host's egress (~40–60 KB/s) makes an image build or first-boot download impractical. Build and measure on a GCP node, then bake the artifact into the image or a volume.
+**Mitigation when the model cannot load:** the per-page Tesseract fallback plus the OCR review step; optionally switch Telugu back to `tessdata_best`. Preprocessing (binarization/denoise) did **not** help Telugu and is disabled by default.
+
+**Integration plan and next steps:** [plans/017](../plans/017-telugu-ocr-engine-integration.md), [todos/012](../todos/012-ocr-engine-integration-handoff.md). The worker build bakes the artifact (build arg `OCR_LINE=true`); verify CER on one Telugu book after the deploy.
 
 ### IndicOCR (Hindi step-change) is gated and not CPU-viable
 
@@ -98,12 +100,13 @@ succeeds, and the notification stays visible in the app.
 Production is configured for Resend's raw SMTP endpoint and a live signup +
 password-reset round trip succeeded on 2026-11-14.
 
-### Landing page advertises an older LLM
+### Landing page model label
 
-The home page's stat strip says "Qwen2.5 7B" while production runs
-`phi4-mini` (see `plans/012-llm-service-native-endpoint.md` and the model
-evaluation reports). Copy should be corrected before public launch; the model is
-selectable per run on the LLM configuration page.
+The home page now says **"Local LLM"** instead of naming a specific model, so
+the copy does not go stale between `gemma4:e4b` (the default, native `/api/chat`
+path) and `phi4-mini` (rollback). Fixed 2026-11-15; see
+`plans/012-llm-service-native-endpoint.md` and the model evaluation reports. The
+model remains selectable per run on the LLM configuration page.
 
 ### Server-Sent Events fall back to polling
 
@@ -131,11 +134,17 @@ one page or one book, so they keep loading after the access cookie expires.
 
 ### The origin is reachable without Cloudflare
 
-`https://<origin-ip>/` answers directly, so Cloudflare's WAF and rate rules
-can be bypassed by connecting to the IP, and the proxy headers the app trusts
-(`CF-Connecting-IP`, the last `X-Forwarded-For` hop) can be forged that way.
+`https://indic-book-metadata-extractor.agamya.us.kg/` resolves to the origin
+`<origin-ip>` and answers **200** with the real Host header, so Cloudflare's
+WAF and rate rules can be bypassed by connecting to the IP, and the proxy
+headers the app trusts (`CF-Connecting-IP`, the last `X-Forwarded-For` hop) can
+be forged that way. Dokploy `:3000` and Traefik `:8080` also stay published.
 Closing ingress to Cloudflare ranges (or moving to a Cloudflare Tunnel) is an
 operator action on the Cloudflare side; see `docs/runbook.md`.
+
+**Egress is no longer a problem (measured 2026-11-15):** PyPI ~32 MB/s,
+Cloudflare ~20 MB/s, Hugging Face ~1.1–2.3 MB/s, Docker/Ollama registry pulls
+work. The old ~40–60 KB/s figure is stale ([learnings/024](../learnings/024-host-network-and-gemma-resource-reality.md)).
 
 ### Public launch is gated on operator actions
 
@@ -150,8 +159,9 @@ public, the operator still has to:
 4. perform launch hygiene: remove/rotate the QA accounts and the pending signup,
    decide the 3 sample books, rotate `reference/oki-qa-accounts`, and confirm the
    real first admin's password;
-5. confirm the landing-page copy (it still says "Qwen2.5 7B" while production
-   runs phi4-mini) and the pilot-phase/approval-based signup wording.
+5. ~~confirm the landing-page copy~~ — fixed 2026-11-15: the page says
+   "Local LLM" and carries the Telugu/Hindi OCR expectation note. Still open:
+   confirm the pilot-phase/approval-based signup wording.
 
 The full checklist, owners and expectation-setting live in
 [plans/011-launch-readiness.md](../plans/011-launch-readiness.md).
@@ -171,10 +181,11 @@ minimum alert set is in `docs/runbook.md`.
 
 ### Ollama memory cap has killed the model mid-run
 
-`llama-server` measured ~6.15 GB resident, above the previous 6 GB container cap,
-and was OOM-killed twice on 2026-11-13 (the host has no swap). The cap is now
-7 GB. An extraction that starts while the model is being restarted fails its
-batches and reports "All batches failed".
+`phi4-mini` measured ~6.15 GB resident, above the old 6 GB cap, and was
+OOM-killed twice on 2026-11-13 (the host has no swap). `gemma4:e4b` is larger:
+**6.6 GB on disk / 6.71 GiB resident** when loaded, so the cap is now **8 GB**.
+`phi4-mini` stays installed as the rollback model. An extraction that starts
+while the model is restarting fails its batches and reports "All batches failed".
 
 ## Platform-Specific
 
@@ -186,4 +197,4 @@ Docker Desktop on Windows may experience slower file I/O with bind-mounted volum
 
 ### First Run Model Download
 
-On first startup, Ollama downloads the default model (`phi4-mini`, ~2.5 GB). This can take several minutes depending on network speed. The `ollama` health check has a 60-second start period to accommodate it.
+On first startup, Ollama downloads the default model (`gemma4:e4b`, ~6.6 GB). On the current host this takes ~1–2 minutes (registry throughput is high); on a slower link it can take much longer. The `ollama` health check has a 120-second start period to accommodate it.

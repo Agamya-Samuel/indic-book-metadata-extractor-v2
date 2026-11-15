@@ -75,7 +75,7 @@ Dokploy panel**, so treat it as a deliberate loss of IP access, not a free win.
 
 ### 4. Deploy
 
-Click **Deploy**. First deploy takes ~15 min (Ollama downloads the Airavata 7B model).
+Click **Deploy**. First deploy takes ~5–15 min (Ollama downloads the 6.6 GB `gemma4:e4b` model; the worker also bakes CPU torch + the 310 MB Telugu OCR model).
 
 ### 5. Create the first admin
 
@@ -131,7 +131,7 @@ Go to Dokploy → Service → click **Deploy**.
 | CPU | 2 cores | 4 cores |
 | Disk | 40 GB | 80 GB |
 
-> **Why so much RAM?** Ollama + Airavata 7B needs ~5GB, plus Postgres, Redis, backend, frontend, and Celery worker.
+> **Why so much RAM?** Ollama + `gemma4:e4b` needs ~6.7GB resident (8 GB cap), plus Postgres, Redis, backend, frontend, and Celery worker.
 
 ---
 
@@ -142,8 +142,8 @@ Go to Dokploy → Service → click **Deploy**.
 │                    Dokploy Host                              │
 │                                                              │
 │  ┌──────────────┐  ┌──────────┐  ┌──────────────────────────┐│
-│  │  postgres    │  │  redis   │  │  ollama (Airavata 7B)    ││
-│  │  pgvector:16 │  │  7-alpine│  │  ~5GB RAM                ││
+│  │  postgres    │  │  redis   │  │  ollama (gemma4:e4b)     ││
+│  │  pgvector:16 │  │  7-alpine│  │  ~7GB RAM (8 GB cap)     ││
 │  │  port 5432   │  │  6379    │  │  11434                   ││
 │  └──────┬───────┘  └────┬─────┘  └───────────┬──────────────┘│
 │         │               │                    │               │
@@ -176,6 +176,11 @@ Volumes (persisted across deploys):
 ## Running Production + Staging on the Same Host
 
 You can host both environments on a single Dokploy server using **two full standalone compose files + per-env env file**. Each compose is self-contained and reviewable in one read — no merge semantics, no override surprises.
+
+> **Memory warning (gemma4).** `gemma4:e4b` needs ~6.7 GB resident and each
+> Ollama service is capped at 8 GB. On this 15.6 GB no-swap host, production and
+> staging **cannot both keep gemma4 loaded at once**. Run one environment per
+> host, or point staging at `phi4-mini` (`OLLAMA_PRELOAD_MODEL: phi4-mini`).
 
 ### File layout
 

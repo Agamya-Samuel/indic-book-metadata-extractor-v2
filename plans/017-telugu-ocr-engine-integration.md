@@ -1,7 +1,33 @@
 # 017 — Telugu OCR Engine Integration (planned)
 
-Status: **not implemented** — blocked on the model artifact, not on design.
-Owner: next OCR sprint (requires a GCP test node and a packaging decision).
+Status: **implemented and baked into the worker image (2026-11-15)** — production
+defaults to `line_model`; verify CER on one Telugu book after the deploy.
+Owner: next OCR sprint.
+
+## Implementation (2026-11-15)
+
+- `Settings.ocr_tel_engine` (`OCR_TEL_ENGINE`, default `tesseract`), plus
+  `ocr_line_model_name`, `ocr_line_model_decode`, and a conservative
+  `ocr_line_model_confidence` for the unscored line output.
+- New `backend/app/services/ocr_line_model.py`: lazy `AutoModel`/`AutoTokenizer`
+  load (`trust_remote_code=True`, process-wide lock), Tesseract `--psm 6` line
+  boxes, batched `model.transcribe`, and the same return contract as `run_ocr`
+  (`engine: "line_model"`, one line-level `word` entry per box).
+- `ocr_service.run_ocr` dispatches **Telugu only** when the flag is
+  `line_model`; Hindi/English never touch the model. Any load/inference error
+  falls through to Tesseract for that page and records
+  `engine_fallback_reason`.
+- `ocr_tasks` skips `retry_low_confidence_words` for non-Tesseract output (it
+  would overwrite the model) and records a fallback in `pages.ocr_error`.
+- Tests use a fake model; the real weights/torch path is **not** exercised here
+  (no `torch`, no HF cache in this environment). Default config reproduces
+  today's behaviour exactly.
+- **Packaging (done):** the worker image builds with `OCR_LINE=true`, installing
+  CPU `torch` (2.15.0+cpu) + `transformers` 4.46.3 via the `ocr-line` extra and
+  baking the **310 MB** weights into `/app/ocr_models/telugu-ocr-model`
+  (`HF_HUB_OFFLINE=1` at runtime). Production compose defaults
+  `OCR_TEL_ENGINE=line_model`. The old 1.7 GB/40–60 KB/s blocker is obsolete: the
+  measured egress is PyPI ~32 MB/s, HF ~1.1 MB/s ([learnings/024](../learnings/024-host-network-and-gemma-resource-reality.md)).
 
 ## Why
 

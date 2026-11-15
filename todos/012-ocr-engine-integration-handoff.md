@@ -1,6 +1,6 @@
 # 012 — Handoff: OCR engine decision locked → implement the Telugu line OCR
 
-- **Status:** Decision complete; implementation pending (for the next agent).
+- **Status:** Decision complete; **implemented and packaged 2026-11-15** — production defaults to `OCR_TEL_ENGINE=line_model`, the worker image bakes CPU torch/transformers + the 310 MB weights, and a per-page Tesseract fallback covers load failures. Deploy + CER verification pending.
 - **Decision & evidence:** [plans/003](../plans/003-ocr-engine-evaluation.md) · [learnings/020](../learnings/020-ocr-engine-benchmark.md) · [learnings/021](../learnings/021-ocr-engine-operational-requirements.md) · harness [backend/scripts/ocr_bench/](../backend/scripts/ocr_bench/).
 
 ## Locked decision (do not re-litigate without new measurements)
@@ -14,20 +14,16 @@ Rejected: PaddleOCR (no gain, slower, heavier, Paddle 3.x CPU segfault); IndicOC
 
 ## What still needs to be built (ordered)
 
-1. **Config** ([backend/app/core/config.py](../backend/app/core/config.py)): add `ocr_tel_engine: str = "tesseract"` (values `tesseract|line_model`), `ocr_line_model_name = "harsha-desaraju/telugu-ocr-model"`, `ocr_line_model_decode = "ctc"`, and a word-confidence policy setting. Default stays `tesseract` so behaviour is unchanged until flipped.
-2. **New service** `backend/app/services/ocr_line_model.py`:
-   - Lazy-load `AutoModel`/`AutoTokenizer` with `trust_remote_code=True` (cache + process-safe lock; Celery may run books concurrently).
-   - Segment a page into lines with `pytesseract.image_to_data(..., lang=..., config="--psm 6")`, group by `(block_num, par_num, line_num)`, order top→bottom.
-   - `model.transcribe(crops, tokenizer, decode=...)` (batch per page).
-   - Return the **same contract as `run_ocr`**: `{words, full_text, avg_confidence, word_count, psm, psm_label}` + a new `"engine": "line_model"`.
-3. **Dispatch** in `ocr_service.run_ocr`: Telugu + `ocr_tel_engine=="line_model"` → line pipeline; otherwise Tesseract. Add `"engine"` to the Tesseract return too.
-4. **Guard Tesseract-only steps** in [backend/app/tasks/ocr_tasks.py](../backend/app/tasks/ocr_tasks.py): skip `retry_low_confidence_words` when `engine != "tesseract"` (it would re-OCR words with Tesseract and undo the model output).
-5. **Dependencies**: `torch` (CPU wheel) + `transformers==4.46.x` + the 81 M model weights vendored into the image/mount (offline). Backend already `requires-python >=3.11`. `pytesseract` + `tesseract` already present.
-6. **Tests**: unit test the adapter with a fake model (no torch in CI); a golden-page check that page CER on a known Telugu page beats the Tesseract path.
+1. [x] **Config** (`config.py`): `ocr_tel_engine` (default `tesseract`), `ocr_line_model_name`, `ocr_line_model_decode`, `ocr_line_model_confidence` (conservative 50).
+2. [x] **New service** `backend/app/services/ocr_line_model.py`: lazy `AutoModel`/`AutoTokenizer` (`trust_remote_code=True`, process-wide lock), Tesseract `--psm 6` line boxes grouped by `(block_num, par_num, line_num)` and ordered top→bottom, batched `model.transcribe`, same contract as `run_ocr` plus `"engine": "line_model"`.
+3. [x] **Dispatch** in `ocr_service.run_ocr`: Telugu + `ocr_tel_engine=="line_model"` → line pipeline; otherwise Tesseract. `"engine"` added to the Tesseract return too; any model error falls back to Tesseract with `engine_fallback_reason`.
+4. [x] **Guard Tesseract-only steps** in `ocr_tasks.py`: `retry_low_confidence_words` is skipped when `engine != "tesseract"`; a fallback is recorded in `pages.ocr_error`.
+5. [x] **Dependencies**: `ocr-line` extra (`torch` from the PyTorch CPU index → 2.15.0+cpu, `transformers==4.46.3`) in `pyproject.toml`/`uv.lock`; the worker image builds with `OCR_LINE=true` and bakes the **310 MB** weights into `/app/ocr_models/telugu-ocr-model`. Backend/flower skip both. Egress measured at PyPI ~32 MB/s / HF ~1.1 MB/s ([learnings/024](../learnings/024-host-network-and-gemma-resource-reality.md)).
+6. [x] **Tests**: adapter tested with a fake model; dispatch/fallback tested without torch. The golden-page CER check still needs the artifact.
 
 ## Open design decisions the next agent must settle
 
-- **Word-level confidence:** the line model emits no per-word confidence. `run_ocr`'s `words[].confidence` / `avg_confidence` feed the review-UI confidence dot and metrics. Decide: map line→words with line bbox and a *conservative* confidence (do **not** fake green), or extend the schema/UI to handle "unscored". This is the main reason integration was not rushed.
+- **Word-level confidence — settled:** the line model emits no confidence, so each line is stored as one `word` entry with the line bbox and a conservative `ocr_line_model_confidence` (default 50). Do **not** fake green; a future "unscored" UI can replace this.
 - **Line segmentation source:** Tesseract boxes are adequate and cheap; a dedicated line detector may improve the ceiling (optional).
 - **Offline weights path:** where to vendor `weights/ocr` (1.7 GB) — image layer vs mounted volume — per the offline constraint.
 

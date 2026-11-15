@@ -1,7 +1,7 @@
 # 012 — Route `LLMService` through Ollama's native endpoint (enable gemma4 in production)
 
 - **Date:** 2026-11-14
-- **Status:** Plan — implement after the model×language matrix ([plans/011](011-ground-truth-source-expansion.md) task 2). **Needs a production deploy (Dokploy).**
+- **Status:** **Implemented and verified on `oki` (2026-11-15)** — gemma4 pulled, native call returns valid JSON, and the default model is switched. The Dokploy deploy is the remaining step.
 - **Why:** the best-measured model is `gemma4:e4b` (`think:false`) — Telugu 0.523, Hindi 0.640 vs `phi4-mini` 0.400 — but it **cannot run on the current production call path**.
 
 ## Problem
@@ -52,7 +52,35 @@ and [022](../learnings/022-gt-source-expansion.md); the harness `--native` path
 
 - Production extracts with `gemma4:e4b` end-to-end, valid JSON per batch, no empty-response batches.
 - Measured F1 on the deployed host ≥ the harness numbers (Telugu ≈ 0.52, Hindi ≈ 0.64).
-- Flag off ⇒ behaviour identical to today (`phi4-mini`, no regression).
+- Flag off + `phi4-mini` ⇒ behaviour identical to today (no regression). Thinking
+  models force the native path regardless of the flag.
+
+## Implementation (2026-11-15)
+
+- `Settings.llm_native_endpoint` (env `LLM_NATIVE_ENDPOINT`, default `false`), wired into
+  `docker-compose.production.yml` and `docker-compose.staging.yml` for **both** the backend
+  and the worker, plus `.env.example` / `.env.{production,staging}.example`.
+- `LLMService.extract_batch` branches to `_extract_batch_native`: POST `{ollama}/api/chat`
+  with `think:false` (thinking families only — sending it to `phi4-mini` errors),
+  `options={num_predict, temperature}`, and `stream:false`; reads `message.content`.
+- The schema hint instructor used to inject is replaced by `_json_schema_hint` appended to the
+  prompt (so the stored audit prompt matches exactly what was sent). Replies go through
+  `_parse_json_object` (tolerant of prose/fences), with **one retry**, then the existing
+  `fallback` / `empty_response` statuses and empty-batch fallback.
+- Circuit breaker, raw-response capture, `_strip_schema_echoes`, the 1200 s per-batch timeout,
+  and the whole OpenAI path are unchanged. Flag off ⇒ byte-for-byte the old behaviour.
+- Tests: `backend/tests/unit/test_llm_service.py` covers the parser, schema hint, flag gating,
+  success/`done_reason`, retry recovery, empty content, unparseable content, and transport
+  failure. `pytest tests/unit -q` → **281 passed**; `ruff` clean.
+- **Production state (2026-11-15):** `gemma4:e4b` is pulled on `oki` (6.6 GB, 7.5B, Q4_K_M,
+  thinking default true). A native `/api/chat` call with `think:false` returned valid JSON;
+  loaded residency was **6.71 GiB**, so the Ollama cap moved 7 GB → **8 GB**. The compose
+  preload, `LLM_NATIVE_ENDPOINT=true`, and the `gemma4:e4b` default are in the working tree;
+  the Dokploy deploy is pending.
+- **Thinking models now route native automatically** (`_native_endpoint_enabled`), so selecting
+  gemma4 cannot silently fall back to the empty-content `/v1` path. `phi4-mini` remains the
+  rollback model.
+- **Egress is no longer a blocker** (PyPI ~32 MB/s, HF ~1.1 MB/s — [learnings/024](../learnings/024-host-network-and-gemma-resource-reality.md)).
 
 ## Open questions
 

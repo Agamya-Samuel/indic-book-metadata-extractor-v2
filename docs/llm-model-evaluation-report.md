@@ -4,7 +4,7 @@
 
 > **Status (2026-11-14): `gemma4:e4b` (`think:false`) wins *both* languages** on the enriched corpus, **8 books each** — **Telugu 0.670 vs `phi4-mini` 0.564**; **Hindi 0.560 vs 0.367** (§9).
 >
-> **Hard constraint:** gemma4 works **only** on Ollama's native `/api/chat`. The OpenAI-compatible endpoint that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty** there. **Production default therefore remains `phi4-mini`** — path-safe and **not discarded** — until §7 option A (native-endpoint switch) is implemented and verified. See §6 (superseded), §7, §9.
+> **Hard constraint:** gemma4 works **only** on Ollama's native `/api/chat`. The OpenAI-compatible endpoint **drops `think:false`**, so gemma4 returns **empty** there. **The native path is implemented (`LLM_NATIVE_ENDPOINT`, auto-enabled for thinking models) and `gemma4:e4b` is the production default**; `phi4-mini` stays as the rollback. See §6 (superseded), §7, §9 and `plans/012`.
 
 ## 1. Resource / speed / JSON validity — 7-model sweep (test-node-2)
 
@@ -82,10 +82,10 @@ gemma4:e4b needed a larger output budget to run end-to-end (truncated at 1024; *
 
 **Hard constraint:** gemma4 only works on Ollama's **native `/api/chat`** endpoint. The OpenAI-compatible path that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty content** there (§5/§9, [learnings/022](../learnings/022-gt-source-expansion.md) finding 6). Switching production to gemma4 therefore requires a **production code change** (§7 options below), not just a Modelfile/model-name swap.
 
-- **A — switch to `gemma4:e4b` (recommended target):** move `LLMService` to the native endpoint (or otherwise ensure `think:false` is honoured), then set `docker/Modelfile` + `OLLAMA_PRELOAD_MODEL=gemma4:e4b`. Needs a PoC against the service path + a Dokploy deploy. **Not done.**
-- **B — current production default stays `phi4-mini`** (PR `964d5af`): it works on the existing path and is **not discarded**. It remains the safe fallback until A lands.
+- **A — switch to `gemma4:e4b` (adopted):** `LLMService` routes thinking models through the native `/api/chat` automatically; `gemma4:e4b` is the default and `OLLAMA_PRELOAD_MODEL=gemma4:e4b` ([plans/012](../plans/012-llm-service-native-endpoint.md)). Gemma was pulled and the native `think:false` call verified on `oki` on 2026-11-15; the Dokploy deploy is the remaining step.
+- **B — rollback stays `phi4-mini`** (PR `964d5af`): it works on the existing `/v1` path and is **not discarded**. It is the fallback if the gemma4 deploy regresses.
 
-**Not discarded:** `phi4-mini` is retained — it is the only model that works unmodified through the production call path today.
+**Not discarded:** `phi4-mini` is retained as the rollback model on the `/v1` path. The production call path is now the native `/api/chat` for gemma4.
 
 **Do not use:** `qwen2.5:7b` (near-empty output) or any thinking model **without** `think:false` / the native endpoint.
 

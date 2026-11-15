@@ -33,12 +33,16 @@ Shipped and verified on production (`159961f`, CI all six jobs green):
 | 2 | Offsite backup copy + one restore drill from it; dumps are only on the same host/disk | Operator (destination + credentials) | Open |
 | 3 | Alerting: site down, worker down, stuck job, disk >85%, backup older than 36 h | Operator | Open |
 | 4 | Launch hygiene: remove/rotate QA accounts (`qa-admin`, `qa-user`, `qa-signup`, pending `notif-signup-1113`), decide the 3 sample books, rotate `reference/oki-qa-accounts`, confirm the real first admin has a strong password | Owner approval + operator | Pending approval |
-| 5 | Copy accuracy: landing page still says "Qwen2.5 7B" while production runs phi4-mini; confirm the pilot-phase / approval-based signup messaging is the intended public statement | Product owner | Open |
+| 5 | Copy accuracy: **landing copy fixed 2026-11-15** — says "Local LLM" plus the Telugu (CER ≈ 0.40) / Hindi (≈ 0.07) expectation note; the pilot-phase / approval-based signup wording still needs product-owner confirmation | Product owner | Copy fixed; signup wording open |
 
 ### Expectation-setting (not release blockers)
 
-- **Telugu OCR** median CER ≈ 0.40 (Hindi ≈ 0.07); the OCR review step is
-  load-bearing. Integration plan: `plans/017-telugu-ocr-engine-integration.md`.
+- **Telugu OCR** now uses the Telugu line model (measured CER ≈ 0.16; Tesseract
+  fallback ≈ 0.40), Hindi ≈ 0.07. The OCR review step remains load-bearing.
+  Integration: `plans/017-telugu-ocr-engine-integration.md`.
+- **Host egress is fixed** (2026-11-15): PyPI ~32 MB/s, Hugging Face ~1.1–2.3 MB/s,
+  registry pulls work. **Ingress is still open** — the origin answers 200 with
+  the real Host header; close it to Cloudflare ranges/tunnel.
 - **Throughput:** CPU-only inference, ~10–20 min per book, and the global
   single-book lock means concurrent users queue.
 - **Limits:** rate limiting is per client IP (10/min auth, 60/min general) and

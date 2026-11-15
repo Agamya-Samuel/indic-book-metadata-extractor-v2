@@ -78,10 +78,17 @@ exhaustive):
   per-page Tesseract PSM (1/3/4/6/11) based on layout density. This
   is the second-largest OCR accuracy lever.
 - The OCR review UI lets users correct text before extraction.
+- Indic-language-specific OCR engines — **evaluated 2026-11-13, shipped
+  2026-11-15**: a Telugu-specific line model
+  (`harsha-desaraju/telugu-ocr-model`) more than halves Telugu CER (0.16 vs
+  0.40); Hindi stays on Tesseract. **`OCR_TEL_ENGINE=line_model` is the
+  production default**; the worker image bakes CPU torch/transformers plus the
+  310 MB weights, with a per-page Tesseract fallback. See
+  [learnings/020](../learnings/020-ocr-engine-benchmark.md),
+  [todos/012](../todos/012-ocr-engine-integration-handoff.md).
 
 **Mitigations NOT yet implemented**:
 - Page-rotation detection (planned: run `--psm 1` OSD on page 1)
-- Indic-language-specific OCR engines — **evaluated 2026-11-13**: a Telugu-specific line model (`harsha-desaraju/telugu-ocr-model`) more than halves Telugu CER (0.16 vs 0.40) and is the **chosen** Telugu engine; Hindi stays on Tesseract. Integration pending — see [learnings/020](../learnings/020-ocr-engine-benchmark.md), [learnings/021](../learnings/021-ocr-engine-operational-requirements.md), [todos/012](../todos/012-ocr-engine-integration-handoff.md). (IndicOCR is gated and not CPU-viable.)
 - Script-aware preprocessing (different denoising parameters for
   Telugu vs Hindi)
 
@@ -89,9 +96,14 @@ exhaustive):
 
 ## LLM extraction quality
 
-The current model is `ai4bharat/Airavata-GGUF:Q4_K_M` (4-bit
-quantized, ~4 GB on disk, runs on CPU). This is a deliberate choice
-to honor the CPU-only / local-only constraint. Trade-offs:
+Production now defaults to **`gemma4:e4b`** (7.5B, 6.6 GB, Q4_K_M, CPU) through
+Ollama's native `/api/chat` with `think:false`; thinking models are routed there
+automatically. On the enriched, source-verified corpus it scored better in both
+languages (Telugu 0.670 vs `phi4-mini` 0.564, Hindi 0.560 vs 0.367).
+`phi4-mini` (3.8B, ~2.5 GB) stays installed as the rollback model on the
+`/v1` path — see [plans/012](../plans/012-llm-service-native-endpoint.md).
+Both are a deliberate choice to honor the CPU-only / local-only constraint.
+Trade-offs:
 
 - **Inference time**: 8 - 20 minutes per book (8 batches, ~2 - 3
   concurrent) on a modern x86 CPU. The hybrid pipeline (cheap
@@ -115,14 +127,11 @@ to honor the CPU-only / local-only constraint. Trade-offs:
 - Per-field confidence stored in DB and surfaced in the metadata
   review UI.
 
-**Mitigations NOT yet implemented**:
-- Few-shot examples in the prompt (Airavata needs them badly for
-  Indic; the current prompt has zero examples)
-- Larger or non-quantized Airavata (`ai4bharat/Airavata` full 7B is
-  ~14 GB on disk)
-- Per-language prompt templates (currently the same prompt is used
-  for Telugu, Hindi, and English; a per-language variant with
-  examples would help)
+**Mitigations still open**:
+- Per-language prompt templates (the shared template already carries
+  per-language few-shot examples; dedicated template variants would go further)
+- A repetition/loop guard for weaker models (measured on `phi4-mini`,
+  [learnings/018](../learnings/018-llm-config-validation.md))
 
 ---
 
@@ -189,7 +198,7 @@ and should be prioritized for the next sprint:
 |------|--------|-------|
 | `num_ctx=4096` doubles inference time | **mitigated** | Hybrid pipeline + parallel batches keep total time under 20 min |
 | Indic-script Tesseract errors | **open** | The OCR review UI is the safety net; no automated fix available without a better OCR engine |
-| 4-bit Airavata wrong model tier | **open** | Document this. Escalate to OKI for the full 7B if accuracy doesn't reach 0.7 F1 in the next sprint |
+| Model tier below the 0.7 F1 target | **mitigated** | `gemma4:e4b` is the default (measured 0.67/0.56); `phi4-mini` is the rollback. Escalate if the deployed numbers miss 0.7 |
 | 5 ground-truth books too small | **mitigated** | Up to 5 ground-truth fixtures are committed (eng/clean, hin/clean, tel/clean, hin/modern, tel/degraded). Pipeline for adding more is documented in `scripts/generate_sample_pdf.py` |
 | Frontend blocks the human-in-the-loop demo | **mitigated** | `metadata-review/page.tsx` now calls `/books/{id}/metadata/evidence` and renders the per-field confidence via the existing tri-state indicator |
 

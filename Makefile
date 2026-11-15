@@ -102,8 +102,8 @@ reset-db:
 	@echo "Database reset complete. Run 'make up' to start all services."
 
 download-model:
-	@echo "Downloading Qwen2.5 7B model..."
-	docker compose exec ollama ollama pull qwen2.5:7b
+	@echo "Downloading gemma4:e4b model..."
+	docker compose exec ollama ollama pull gemma4:e4b
 
 test-e2e:
 	@echo "Running E2E smoke test..."

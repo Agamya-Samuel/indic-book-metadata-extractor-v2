@@ -55,7 +55,7 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
        │                              │
 ┌──────▼──────┐              ┌────────▼─────────┐
 │ Celery +    │              │  Ollama (:11434) │
-│ Redis Queue │              │  Airavata 7B LLM │
+│ Redis Queue │              │  gemma4:e4b LLM  │
 └──────┬──────┘              └──────────────────┘
        │
 ┌──────▼───────────────────────────────────────────┐
@@ -148,7 +148,7 @@ see [DEPLOY.md](DEPLOY.md) and `.env.example` for the variables.
 | `make migrate` | Run database migrations |
 | `make reset-db` | Reset database (destroys data!) |
 | `make create-admin` | Create the first administrator (`EMAIL=... DISPLAY_NAME=... [PASSWORD=...]`) |
-| `make download-model` | Download Airavata model to Ollama |
+| `make download-model` | Download the gemma4:e4b model to Ollama |
 | `make test-e2e` | Run E2E smoke test |
 | `make shell-backend` | Open shell in backend container |
 | `make clean` | Remove containers, volumes, and images |
