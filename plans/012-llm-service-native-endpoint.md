@@ -74,9 +74,9 @@ and [022](../learnings/022-gt-source-expansion.md); the harness `--native` path
   failure. `pytest tests/unit -q` → **281 passed**; `ruff` clean.
 - **Production state (2026-11-15):** `gemma4:e4b` is pulled on `oki` (6.6 GB, 7.5B, Q4_K_M,
   thinking default true). A native `/api/chat` call with `think:false` returned valid JSON;
-  loaded residency was **6.71 GiB**, so the Ollama cap moved 7 GB → **8 GB**. The compose
-  preload, `LLM_NATIVE_ENDPOINT=true`, and the `gemma4:e4b` default are in the working tree;
-  the Dokploy deploy is pending.
+  residency is **6.71 GiB idle / 7.9 GiB during a real extraction**, so the Ollama cap moved
+  7 GB → **9 GB**. The compose preload, `LLM_NATIVE_ENDPOINT=true`, and the `gemma4:e4b`
+  default are deployed; one Telugu book completed end to end with 8/8 non-empty runs.
 - **Thinking models now route native automatically** (`_native_endpoint_enabled`), so selecting
   gemma4 cannot silently fall back to the empty-content `/v1` path. `phi4-mini` remains the
   rollback model.

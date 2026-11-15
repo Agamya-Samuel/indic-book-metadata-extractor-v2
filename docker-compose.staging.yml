@@ -72,8 +72,8 @@ services:
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
       - ./docker/Modelfile.phi4-mini:/models/Modelfile.phi4-mini
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
-    mem_limit: "8g"
-    memswap_limit: "8g"
+    mem_limit: "9g"
+    memswap_limit: "9g"
     environment:
       OLLAMA_PRELOAD_MODEL: gemma4:e4b
       OLLAMA_KEEP_ALIVE: "30m"

@@ -183,9 +183,10 @@ minimum alert set is in `docs/runbook.md`.
 
 `phi4-mini` measured ~6.15 GB resident, above the old 6 GB cap, and was
 OOM-killed twice on 2026-11-13 (the host has no swap). `gemma4:e4b` is larger:
-**6.6 GB on disk / 6.71 GiB resident** when loaded, so the cap is now **8 GB**.
-`phi4-mini` stays installed as the rollback model. An extraction that starts
-while the model is restarting fails its batches and reports "All batches failed".
+**6.6 GB on disk, ~6.7 GiB idle and ~7.9 GiB during a real extraction**, so the
+cap is now **9 GB**. `phi4-mini` stays installed as the rollback model. An
+extraction that starts while the model is restarting fails its batches and
+reports "All batches failed".
 
 ## Platform-Specific
 

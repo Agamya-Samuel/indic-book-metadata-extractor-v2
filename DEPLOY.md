@@ -131,7 +131,7 @@ Go to Dokploy → Service → click **Deploy**.
 | CPU | 2 cores | 4 cores |
 | Disk | 40 GB | 80 GB |
 
-> **Why so much RAM?** Ollama + `gemma4:e4b` needs ~6.7GB resident (8 GB cap), plus Postgres, Redis, backend, frontend, and Celery worker.
+> **Why so much RAM?** Ollama + `gemma4:e4b` peaks around 7.9GB resident (9 GB cap), plus Postgres, Redis, backend, frontend, and Celery worker.
 
 ---
 
@@ -143,7 +143,7 @@ Go to Dokploy → Service → click **Deploy**.
 │                                                              │
 │  ┌──────────────┐  ┌──────────┐  ┌──────────────────────────┐│
 │  │  postgres    │  │  redis   │  │  ollama (gemma4:e4b)     ││
-│  │  pgvector:16 │  │  7-alpine│  │  ~7GB RAM (8 GB cap)     ││
+│  │  pgvector:16 │  │  7-alpine│  │  ~7.9GB peak (9 GB cap)  ││
 │  │  port 5432   │  │  6379    │  │  11434                   ││
 │  └──────┬───────┘  └────┬─────┘  └───────────┬──────────────┘│
 │         │               │                    │               │
@@ -177,10 +177,11 @@ Volumes (persisted across deploys):
 
 You can host both environments on a single Dokploy server using **two full standalone compose files + per-env env file**. Each compose is self-contained and reviewable in one read — no merge semantics, no override surprises.
 
-> **Memory warning (gemma4).** `gemma4:e4b` needs ~6.7 GB resident and each
-> Ollama service is capped at 8 GB. On this 15.6 GB no-swap host, production and
-> staging **cannot both keep gemma4 loaded at once**. Run one environment per
-> host, or point staging at `phi4-mini` (`OLLAMA_PRELOAD_MODEL: phi4-mini`).
+> **Memory warning (gemma4).** `gemma4:e4b` needs ~6.7 GB idle and peaks around
+> 7.9 GB during extraction; each Ollama service is capped at 9 GB. On this
+> 15.6 GB no-swap host, production and staging **cannot both keep gemma4 loaded
+> at once**. Run one environment per host, or point staging at `phi4-mini`
+> (`OLLAMA_PRELOAD_MODEL: phi4-mini`).
 
 ### File layout
 
@@ -273,7 +274,7 @@ Deploy each service in any order. To keep them in sync, the recommended workflow
 | Backend memory limit | 2 GB | 1 GB |
 | Worker memory limit | 4 GB | 2 GB |
 | Worker concurrency | 8 | 4 |
-| Ollama memory limit | 8 GB | 6 GB |
+| Ollama memory limit | 9 GB | 9 GB |
 | Wikibase `MW_WG_SERVER` | `https://...` | `http://...` |
 | Backup memory limit | (none) | 128 MB |
 

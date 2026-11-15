@@ -7,7 +7,8 @@
   ~1.1–2.3 MB/s, Docker pulls work), so the registry/artifact workaround is not
   needed. The **ingress bypass is still open**. `gemma4:e4b` is **6.6 GB / 7.5B**
   (not the 1.8 GiB assumed in plans/012) and loads at **6.71 GiB**, so its memory
-  cap was raised to 8 GB. The Telugu OCR model is **310 MB**, not 1.7 GB.
+  cap was raised to **9 GB** after the extraction measured a 7.9 GiB peak. The
+  Telugu OCR model is **310 MB**, not 1.7 GB.
 
 ## Key findings (measured on 2026-11-15)
 
@@ -47,8 +48,9 @@ ISO mirror range request timed out after a 302, but that path is not needed.
   131k context, capabilities include `thinking` with default `true`.
 - Native `/api/chat` with `think:false` returns valid JSON (verified:
   `{"ok": true}` in 29 s including a 27 s cold load).
-- Loaded residency on the host: **6.71 GiB / 7 GiB (95.9%)** — too close to
-  the old cap. Ollama's cap was raised to **8 GB** in prod/staging compose.
+- Loaded residency on the host: **6.71 GiB idle**, and **7.907 GiB peak during
+  a real 8-batch extraction** — too close to the old cap. Ollama's cap was
+  raised first to 8 GB, then to **9 GB** after the end-to-end run.
 - Host has 15.6 GiB total with no swap; production + staging cannot both load
   gemma4 simultaneously on this box.
 
@@ -64,7 +66,7 @@ ISO mirror range request timed out after a 302, but that path is not needed.
 
 - Do **not** build a registry bypass for egress; it is no longer a blocker.
 - Keep the worker-only OCR build (`OCR_LINE=true`) so backend/flower stay small.
-- Raise the Ollama cap to 8 GB and keep `phi4-mini` as the rollback model.
+- Raise the Ollama cap to 9 GB and keep `phi4-mini` as the rollback model.
 - Treat ingress as the only remaining launch-blocking network action.
 
 ## Next steps

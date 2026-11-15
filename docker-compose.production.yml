@@ -68,11 +68,11 @@ services:
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
       - ./docker/Modelfile.phi4-mini:/models/Modelfile.phi4-mini
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
-    # Measured gemma4:e4b residency at ctx 4096 is ~6.7 GB; 8 GB leaves
-    # headroom without risking the 15 GB no-swap host. phi4-mini stays as the
-    # rollback model (2.5 GB) and is also reachable through the native path.
-    mem_limit: "8g"
-    memswap_limit: "8g"
+    # Measured gemma4:e4b residency is ~6.7 GB idle and ~7.9 GB during a real
+    # extraction; 9 GB leaves headroom without risking the 15 GB no-swap host.
+    # phi4-mini stays as the rollback model (2.5 GB).
+    mem_limit: "9g"
+    memswap_limit: "9g"
     environment:
       OLLAMA_PRELOAD_MODEL: gemma4:e4b
       OLLAMA_KEEP_ALIVE: "30m"
