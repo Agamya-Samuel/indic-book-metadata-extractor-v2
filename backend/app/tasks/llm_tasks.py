@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import newrelic.agent
 from sqlalchemy import exc as sa_exc, select
 
-from app.core.config import settings
+from app.core.config import DEFAULT_LLM_MODEL, settings
 from app.core.database import async_session_factory
 from app.core.errors import JobCancelled
 from app.models.book import Book, BookStatus
@@ -221,7 +221,7 @@ async def _persist_extraction_results(
                 )
             llm_run = LlmRun(
                 job_id=job_id,
-                model=br.get("model", "phi4-mini"),
+                model=br.get("model", DEFAULT_LLM_MODEL),
                 prompt_template=prompt_template,
                 batch_config={"batch_name": br["batch_name"]},
                 raw_response=br.get("raw_response"),
@@ -353,7 +353,7 @@ def run_llm_extraction(
     self,
     job_id_str: str,
     book_id_str: str,
-    model: str = "phi4-mini",
+    model: str = DEFAULT_LLM_MODEL,
     temperature: float = 0.3,
     max_tokens: int = 512,
     system_prompt_override: str | None = None,

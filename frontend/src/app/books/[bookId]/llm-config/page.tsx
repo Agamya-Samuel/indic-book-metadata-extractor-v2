@@ -262,9 +262,9 @@ export default function LlmConfigPage() {
                         setConfig((prev) => ({ ...prev, model: e.target.value }))
                       }
                     >
-                      <option value="phi4-mini">phi4-mini (default)</option>
+                      <option value="gemma4:e4b">gemma4:e4b (default)</option>
                       {models
-                        ?.filter((m) => m.name !== "phi4-mini")
+                        ?.filter((m) => m.name !== "gemma4:e4b")
                         .map((m) => (
                           <option key={m.name} value={m.name}>
                             {m.name}

@@ -6,13 +6,21 @@ import httpx
 from instructor.core import InstructorRetryException
 import pytest
 
+from app.core.config import settings
 from app.schemas.metadata import (
     BATCH_FIELD_ORDER,
     FIELD_TO_BATCH,
     CoreIdentityBatch,
     FullMetadata,
+    PhysicalExtraBatch,
 )
-from app.services.llm_service import LLMService, _empty_batch, _fallback_parse
+from app.services.llm_service import (
+    LLMService,
+    _empty_batch,
+    _fallback_parse,
+    _parse_json_object,
+    _with_schema_hint,
+)
 
 
 class TestEmptyBatch:
@@ -68,6 +76,7 @@ class TestLLMServiceExtractBatch:
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
+            model="phi4-mini",
         )
 
         assert isinstance(result, CoreIdentityBatch)
@@ -84,6 +93,7 @@ class TestLLMServiceExtractBatch:
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
+            model="phi4-mini",
         )
 
         assert isinstance(result, CoreIdentityBatch)
@@ -118,6 +128,7 @@ class TestLLMServiceExtractBatch:
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
+            model="phi4-mini",
         )
 
         assert isinstance(result, CoreIdentityBatch)
@@ -138,6 +149,7 @@ class TestLLMServiceExtractBatch:
             ocr_text="some text",
             batch_name="core_identity",
             batch_schema=CoreIdentityBatch,
+            model="phi4-mini",
         )
 
         assert isinstance(result, CoreIdentityBatch)
@@ -278,3 +290,184 @@ class TestLLMServiceClose:
         service = LLMService()
         await service.close()
         assert service._http_client is None
+
+
+class TestParseJsonObject:
+    def test_fenced_json(self):
+        parsed = _parse_json_object('```json\n{"title": "x"}\n```', CoreIdentityBatch)
+        assert parsed is not None
+        assert parsed.title == "x"
+
+    def test_prose_around_object(self):
+        parsed = _parse_json_object('Here you go: {"title": "x"} — done', CoreIdentityBatch)
+        assert parsed is not None
+        assert parsed.title == "x"
+
+    def test_empty_returns_none(self):
+        assert _parse_json_object("", CoreIdentityBatch) is None
+
+    def test_invalid_returns_none(self):
+        assert _parse_json_object("{not json", CoreIdentityBatch) is None
+
+    def test_skips_object_that_fails_validation(self):
+        parsed = _parse_json_object('{"label": {"nested": 1}} {"title": "x"}', CoreIdentityBatch)
+        assert parsed is not None
+        assert parsed.title == "x"
+
+
+class TestSchemaHint:
+    def test_lists_fields_and_skips_custom_fields(self):
+        hint = _with_schema_hint("base prompt", PhysicalExtraBatch)
+        assert hint.startswith("base prompt")
+        assert '"pages": string | null' in hint
+        assert "custom_fields" not in hint
+
+
+def _native_response(content: str, done_reason: str = "stop") -> MagicMock:
+    response = MagicMock()
+    response.json.return_value = {"message": {"content": content}, "done_reason": done_reason}
+    response.raise_for_status = MagicMock()
+    return response
+
+
+class TestNativeEndpoint:
+    @pytest.fixture
+    def native_service(self, monkeypatch):
+        monkeypatch.setattr(settings, "llm_native_endpoint", True)
+        service = LLMService(ollama_url="http://fake-ollama:11434")
+        service._http_client = AsyncMock()
+        return service
+
+    async def test_success_posts_to_api_chat_with_think_false(self, native_service):
+        content = '{"title": "బుక్", "author": null}'
+        native_service._http_client.post.return_value = _native_response(content)
+
+        result, raw, usage, prompt = await native_service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+            model="gemma4:e4b",
+        )
+
+        assert usage["status"] == "success"
+        assert usage["done_reason"] == "stop"
+        assert result.title == "బుక్"
+        assert raw == content
+        assert "JSON schema:" in prompt
+
+        call = native_service._http_client.post.call_args
+        assert call.args[0] == "/api/chat"
+        payload = call.kwargs["json"]
+        assert payload["model"] == "gemma4:e4b"
+        assert payload["think"] is False
+        assert payload["stream"] is False
+        assert payload["options"] == {"num_predict": 256, "temperature": 0.3}
+
+    async def test_non_thinking_model_omits_think_flag(self, native_service):
+        native_service._http_client.post.return_value = _native_response('{"title": "x"}')
+
+        await native_service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+            model="phi4-mini",
+        )
+
+        payload = native_service._http_client.post.call_args.kwargs["json"]
+        assert "think" not in payload
+
+    async def test_empty_content_retries_once_then_reports_empty_response(self, native_service):
+        native_service._http_client.post.return_value = _native_response("")
+
+        result, raw, usage, _ = await native_service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+        )
+
+        assert usage["status"] == "empty_response"
+        assert raw == ""
+        assert all(value is None for value in result.model_dump().values())
+        assert native_service._http_client.post.await_count == 2
+
+    async def test_unparseable_content_retries_then_falls_back(self, native_service):
+        native_service._http_client.post.return_value = _native_response("I cannot answer")
+
+        result, raw, usage, _ = await native_service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+        )
+
+        assert usage["status"] == "fallback"
+        assert "unparseable" in usage["error"]
+        assert raw == "I cannot answer"
+        assert all(value is None for value in result.model_dump().values())
+        assert native_service._http_client.post.await_count == 2
+
+    async def test_retry_recovers_from_bad_reply(self, native_service):
+        native_service._http_client.post.side_effect = [
+            _native_response("oops"),
+            _native_response('{"title": "ok"}'),
+        ]
+
+        result, _, usage, _ = await native_service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+        )
+
+        assert usage["status"] == "success"
+        assert result.title == "ok"
+        assert native_service._http_client.post.await_count == 2
+
+    async def test_transport_failure_is_error(self, native_service):
+        native_service._http_client.post.side_effect = httpx.ConnectError("connection refused")
+
+        result, _, usage, _ = await native_service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+        )
+
+        assert usage["status"] == "error"
+        assert "connection refused" in usage["error"]
+        assert all(value is None for value in result.model_dump().values())
+
+    async def test_flag_off_keeps_openai_path(self, monkeypatch):
+        monkeypatch.setattr(settings, "llm_native_endpoint", False)
+        service = LLMService(ollama_url="http://fake-ollama:11434")
+        service._http_client = AsyncMock()
+        mock_client = AsyncMock()
+        mock_client.chat.completions.create.return_value = CoreIdentityBatch(title="v1")
+        service._client = mock_client
+
+        result, _, usage, _ = await service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+            model="phi4-mini",
+        )
+
+        assert usage["status"] == "success"
+        assert result.title == "v1"
+        service._http_client.post.assert_not_awaited()
+        mock_client.chat.completions.create.assert_awaited_once()
+
+    async def test_thinking_model_uses_native_even_when_flag_is_off(self, monkeypatch):
+        monkeypatch.setattr(settings, "llm_native_endpoint", False)
+        service = LLMService(ollama_url="http://fake-ollama:11434")
+        service._http_client = AsyncMock()
+        service._http_client.post.return_value = _native_response('{"title": "gemma"}')
+
+        result, _, usage, _ = await service.extract_batch(
+            ocr_text="some text",
+            batch_name="core_identity",
+            batch_schema=CoreIdentityBatch,
+            model="gemma4:e4b",
+        )
+
+        assert usage["status"] == "success"
+        assert result.title == "gemma"
+        service._http_client.post.assert_awaited_once()
+        assert service._http_client.post.call_args.kwargs["json"]["think"] is False

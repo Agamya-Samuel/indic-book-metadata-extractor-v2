@@ -595,7 +595,7 @@ export interface LlmRunResponse {
 }
 
 export const DEFAULT_EXTRACTION_CONFIG: ExtractionRequest = {
-  model: "phi4-mini",
+  model: "gemma4:e4b",
   temperature: 0.3,
   max_tokens: 512,
   fields_per_batch: 10,

@@ -1,5 +1,9 @@
 from pydantic_settings import BaseSettings
 
+# Production extraction model. Thinking models must use Ollama's native
+# /api/chat (the OpenAI-compatible /v1 path drops think:false).
+DEFAULT_LLM_MODEL = "gemma4:e4b"
+
 
 class Settings(BaseSettings):
     # Application
@@ -19,6 +23,11 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_url: str = "http://localhost:11434"
+    # Force extraction through Ollama's native /api/chat for non-thinking
+    # models too. Thinking models (gemma4) always use it regardless of this
+    # flag, because the /v1 path drops `think:false` and they return empty
+    # content there. Off by default so phi4-mini keeps the /v1 path.
+    llm_native_endpoint: bool = False
 
     # Storage
     storage_path: str = "/app/storage"
@@ -76,6 +85,17 @@ class Settings(BaseSettings):
 
     # OCR models (Tier 2 + Tier 3)
     ocr_custom_model_dir: str = ""
+    # Telugu line OCR engine. "tesseract" (default) keeps today's behaviour;
+    # "line_model" selects harsha-desaraju/telugu-ocr-model (measured Telugu
+    # CER 0.16 vs Tesseract 0.40). Hindi and English always use Tesseract.
+    # The line model needs torch/transformers plus vendored weights — never
+    # downloaded at runtime — and falls back to Tesseract per page on error.
+    ocr_tel_engine: str = "tesseract"
+    ocr_line_model_name: str = "harsha-desaraju/telugu-ocr-model"
+    ocr_line_model_decode: str = "ctc"
+    # The line model emits no word confidences. Store a conservative value so
+    # the review UI warns instead of showing a false green.
+    ocr_line_model_confidence: float = 50.0
 
     # OCR dictionaries (Tier 4)
     ocr_use_dictionary: str = ""  # comma-separated language codes, e.g. "hin,tel"

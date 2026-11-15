@@ -13,7 +13,7 @@ from instructor.core import InstructorRetryException
 import openai
 from pydantic import BaseModel
 
-from app.core.config import settings
+from app.core.config import DEFAULT_LLM_MODEL, settings
 from app.core.errors import JobCancelled
 from app.schemas.metadata import (
     METADATA_BATCHES,
@@ -84,6 +84,11 @@ class LLMService:
     MAX_OCR_CHARS: int = 2500  # per-batch budget under num_ctx=8192
     MAX_PARALLEL_BATCHES: int = 2  # safe for CPU Ollama; raise if GPU
 
+    # Native /api/chat: long CPU generations, and one retry when the model
+    # answers with empty or unparseable content.
+    NATIVE_TIMEOUT_SECONDS: float = 1200.0
+    NATIVE_MAX_ATTEMPTS: int = 2
+
     def __init__(self, ollama_url: str | None = None):
         self._ollama_url = ollama_url or settings.ollama_url
         self._client: instructor.AsyncInstructor | None = None
@@ -119,7 +124,7 @@ class LLMService:
         ocr_text: str,
         batch_name: str,
         batch_schema: type[BaseModel],
-        model: str = "phi4-mini",
+        model: str = DEFAULT_LLM_MODEL,
         temperature: float = 0.3,
         max_tokens: int = 256,
         language: str = "tel",
@@ -163,30 +168,43 @@ class LLMService:
         usage_stats: dict = {}
 
         try:
-            result = await self.client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": extraction_prompt},
-                ],
-                response_model=batch_schema,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                max_retries=2,
-                timeout=1200.0,
-                extra_body=_thinking_body(model),
-            )
-
-            raw_response_text = result.model_dump_json()
-            # Distinguish "LLM succeeded but returned nothing useful" from
-            # "LLM succeeded and returned real values". The former almost
-            # always means context truncation; the UI / job status must
-            # surface this so users know the batch produced zero evidence.
-            if all(v is None for v in result.model_dump().values()):
-                usage_stats = {"status": "empty_response"}
+            if _native_endpoint_enabled(model):
+                extraction_prompt = _with_schema_hint(extraction_prompt, batch_schema)
+                result, raw_response_text, usage_stats = await self._extract_batch_native(
+                    model=model,
+                    system_prompt=system_prompt,
+                    extraction_prompt=extraction_prompt,
+                    batch_schema=batch_schema,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    batch_name=batch_name,
+                )
+                self._record_success()
             else:
-                usage_stats = {"status": "success"}
-            self._record_success()
+                result = await self.client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": extraction_prompt},
+                    ],
+                    response_model=batch_schema,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    max_retries=2,
+                    timeout=1200.0,
+                    extra_body=_thinking_body(model),
+                )
+
+                raw_response_text = result.model_dump_json()
+                # Distinguish "LLM succeeded but returned nothing useful" from
+                # "LLM succeeded and returned real values". The former almost
+                # always means context truncation; the UI / job status must
+                # surface this so users know the batch produced zero evidence.
+                if all(v is None for v in result.model_dump().values()):
+                    usage_stats = {"status": "empty_response"}
+                else:
+                    usage_stats = {"status": "success"}
+                self._record_success()
 
         except InstructorRetryException as e:
             transport_error = _transport_failure(e)
@@ -225,11 +243,80 @@ class LLMService:
 
         return _strip_schema_echoes(result), raw_response_text, usage_stats, extraction_prompt
 
+    async def _extract_batch_native(
+        self,
+        *,
+        model: str,
+        system_prompt: str,
+        extraction_prompt: str,
+        batch_schema: type[BaseModel],
+        temperature: float,
+        max_tokens: int,
+        batch_name: str,
+    ) -> tuple[BaseModel, str, dict]:
+        """One batch through Ollama's native ``/api/chat``.
+
+        Unlike the OpenAI-compatible endpoint, ``/api/chat`` honours
+        ``think:false``, so thinking models answer in ``message.content``.
+        The schema-constrained decoding that instructor provided is gone, so
+        the prompt carries a compact key/type hint and the reply is parsed
+        tolerantly; empty or unparseable replies get one retry.
+        """
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": extraction_prompt},
+            ],
+            "stream": False,
+            "options": {"num_predict": max_tokens, "temperature": temperature},
+            # Only thinking-capable models accept this; sending it to
+            # phi4-mini makes Ollama reject the request.
+            **(_thinking_body(model) or {}),
+        }
+        timeout = httpx.Timeout(self.NATIVE_TIMEOUT_SECONDS)
+
+        last_content = ""
+        saw_content = False
+        parse_failed = False
+        for attempt in range(self.NATIVE_MAX_ATTEMPTS):
+            response = await self.http_client.post("/api/chat", json=payload, timeout=timeout)
+            response.raise_for_status()
+            data = response.json()
+            content = (data.get("message") or {}).get("content") or ""
+            last_content = content
+
+            if content.strip():
+                saw_content = True
+                parsed = _parse_json_object(content, batch_schema)
+                if parsed is not None:
+                    usage: dict = {
+                        "status": "empty_response"
+                        if all(value is None for value in parsed.model_dump().values())
+                        else "success"
+                    }
+                    if data.get("done_reason"):
+                        usage["done_reason"] = data["done_reason"]
+                    return parsed, content, usage
+                parse_failed = True
+
+            if attempt + 1 < self.NATIVE_MAX_ATTEMPTS:
+                logger.info(
+                    "Native LLM returned %s for batch '%s'; retrying once",
+                    "unparseable JSON" if content.strip() else "empty content",
+                    batch_name,
+                )
+
+        usage = {"status": "fallback" if saw_content else "empty_response"}
+        if parse_failed:
+            usage["error"] = "unparseable JSON from native endpoint"
+        return _empty_batch(batch_schema), last_content, usage
+
     @newrelic.agent.function_trace(name="LLM: Run Full Extraction", group="Custom")
     async def run_full_extraction(
         self,
         ocr_text: str,
-        model: str = "phi4-mini",
+        model: str = DEFAULT_LLM_MODEL,
         temperature: float = 0.3,
         max_tokens: int = 256,
         language: str = "tel",
@@ -351,7 +438,7 @@ class LLMService:
     async def run_hybrid_full_extraction(
         self,
         ocr_text: str,
-        model: str = "phi4-mini",
+        model: str = DEFAULT_LLM_MODEL,
         temperature: float = 0.3,
         max_tokens: int = 256,
         language: str = "tel",
@@ -633,8 +720,29 @@ _BATCH_CLASS_NAMES = {cls.__name__ for cls in METADATA_BATCHES.values()}
 _THINKING_MODELS = ("gemma4", "gemma3", "qwen3")
 
 
+def _native_endpoint_enabled(model: str) -> bool:
+    """Thinking models must use /api/chat even when the global flag is off."""
+    return settings.llm_native_endpoint or any(tag in model.lower() for tag in _THINKING_MODELS)
+
+
 def _thinking_body(model: str) -> dict | None:
     return {"think": False} if any(tag in model.lower() for tag in _THINKING_MODELS) else None
+
+
+def _json_schema_hint(batch_schema: type[BaseModel]) -> str:
+    """Compact key/type hint replacing instructor's injected JSON schema."""
+    properties = batch_schema.model_json_schema().get("properties", {})
+    fields = []
+    for name, spec in properties.items():
+        if name == "custom_fields":
+            continue
+        kind = "object" if spec.get("type") == "object" else "string"
+        fields.append(f'"{name}": {kind} | null')
+    return "JSON schema: {" + ", ".join(fields) + "}"
+
+
+def _with_schema_hint(prompt: str, batch_schema: type[BaseModel]) -> str:
+    return f"{prompt}\n\n{_json_schema_hint(batch_schema)}"
 
 
 def _strip_schema_echoes(result: BaseModel) -> BaseModel:
@@ -651,38 +759,43 @@ def _strip_schema_echoes(result: BaseModel) -> BaseModel:
     return result
 
 
-def _fallback_parse(raw_text: str, batch_schema: type[BaseModel]) -> BaseModel:
-    """Best-effort parse of free-form LLM output.
+def _parse_json_object(raw_text: str, batch_schema: type[BaseModel]) -> BaseModel | None:
+    """Return the first JSON object in ``raw_text`` that validates, else ``None``.
 
     Walks the string with :class:`json.JSONDecoder.raw_decode` to grab the
     first valid JSON object that validates against the schema. This
     handles cases like ``{"a": 1}\\n{"b": 2}`` where naive
-    ``find('{')``/``rfind('}')`` slicing picks up invalid fragments.
+    ``find('{')``/``rfind('}')`` slicing picks up invalid fragments, and it
+    tolerates fenced blocks or prose around the object.
     """
     if not raw_text:
-        return _empty_batch(batch_schema)
+        return None
 
     decoder = json.JSONDecoder()
     cursor = 0
-    last_error: Exception | None = None
     while True:
         start = raw_text.find("{", cursor)
         if start == -1:
-            break
+            return None
         try:
             obj, end = decoder.raw_decode(raw_text[start:])
-        except json.JSONDecodeError as exc:
-            last_error = exc
+        except json.JSONDecodeError:
             cursor = start + 1
             continue
         try:
             return batch_schema(**obj)
-        except Exception as exc:
-            last_error = exc
+        except Exception:
             cursor = start + end
             continue
-    if last_error is not None:
-        logger.warning("Fallback parse failed: %s", last_error)
+
+
+def _fallback_parse(raw_text: str, batch_schema: type[BaseModel]) -> BaseModel:
+    """Best-effort parse of free-form LLM output, falling back to an empty batch."""
+    parsed = _parse_json_object(raw_text, batch_schema)
+    if parsed is not None:
+        return parsed
+    if raw_text:
+        logger.warning("Fallback parse failed for %s", batch_schema.__name__)
     return _empty_batch(batch_schema)
 
 

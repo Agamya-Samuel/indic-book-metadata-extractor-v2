@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.config import DEFAULT_LLM_MODEL
+
 
 class CoreIdentityBatch(BaseModel):
     label: str | None = Field(default=None, description="Label (Work and Edition)")
@@ -292,7 +294,7 @@ ALL_METADATA_FIELDS: list[MetadataFieldDefinition] = [
 
 
 class ExtractionRequest(BaseModel):
-    model: str = "phi4-mini"
+    model: str = DEFAULT_LLM_MODEL
     temperature: float = Field(default=0.3, ge=0.0, le=2.0)
     max_tokens: int = Field(default=512, ge=256, le=8192)
     custom_system_prompt: str | None = None

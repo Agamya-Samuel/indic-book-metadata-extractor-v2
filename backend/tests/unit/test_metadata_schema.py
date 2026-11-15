@@ -65,7 +65,7 @@ class TestFieldDefinitions:
 class TestExtractionRequest:
     def test_defaults(self):
         req = ExtractionRequest()
-        assert req.model == "phi4-mini"
+        assert req.model == "gemma4:e4b"
         assert req.temperature == 0.3
         assert req.max_tokens == 512
         assert req.custom_system_prompt is None
