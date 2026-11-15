@@ -1,12 +1,48 @@
 # 011 — Launch readiness
 
-- **Date:** 2026-11-14
-- **Status:** Code workstreams done, deployed and verified on the host. Four
-  operator actions remain: close origin ingress, edge WAF/rate rules, offsite
-  backups, alerting.
+- **Date:** 2026-11-14 (updated 2026-11-15)
+- **Status:** Code workstreams complete, deployed and verified. **Public release
+  is gated on five operator/hygiene actions** listed below — none require code.
 - **Context:** The core product is complete and the notification feature shipped.
   Production is deployed behind Cloudflare on a 4 vCPU / 15 GiB host with no swap.
   This phase hardens what a public launch needs and records the audit evidence.
+
+## Current release status (2026-11-15)
+
+Shipped and verified on production (`159961f`, CI all six jobs green):
+
+- Auth/RBAC, moderated signup, approval holding screen, owner-scoped data.
+- Resend raw-SMTP delivery: a real signup verification email and a password
+  reset were received and completed end to end.
+- Full pipeline with cancellation, re-run replace semantics, partial-OCR flags,
+  idempotent submissions and owner notifications.
+- Single-book lock + concurrency 1; reaper keyed on last progress.
+- Signed page/thumbnail URLs (six-hour, page/book-scoped) so images survive
+  access-token expiry.
+- Upload/metadata/bulk guards, JWT/CORS start-up checks, security headers,
+  per-client rate limiting, liveness endpoint.
+- CI: ruff check/format, pytest, migrations on a fresh Postgres, frontend lint,
+  tests and build all pass; compose drift check passes.
+- Per-user quotas removed by decision: approved, verified users are unlimited.
+
+### Remaining before opening to the public
+
+| # | Action | Owner | Status |
+|---|---|---|---|
+| 1 | Close origin ingress: `https://<origin-ip>/` still serves the app directly, bypassing Cloudflare (WAF/rate rules and proxy headers spoofable) | Operator (Cloudflare/DNS) | Open |
+| 2 | Offsite backup copy + one restore drill from it; dumps are only on the same host/disk | Operator (destination + credentials) | Open |
+| 3 | Alerting: site down, worker down, stuck job, disk >85%, backup older than 36 h | Operator | Open |
+| 4 | Launch hygiene: remove/rotate QA accounts (`qa-admin`, `qa-user`, `qa-signup`, pending `notif-signup-1113`), decide the 3 sample books, rotate `reference/oki-qa-accounts`, confirm the real first admin has a strong password | Owner approval + operator | Pending approval |
+| 5 | Copy accuracy: landing page still says "Qwen2.5 7B" while production runs phi4-mini; confirm the pilot-phase / approval-based signup messaging is the intended public statement | Product owner | Open |
+
+### Expectation-setting (not release blockers)
+
+- **Telugu OCR** median CER ≈ 0.40 (Hindi ≈ 0.07); the OCR review step is
+  load-bearing. Integration plan: `plans/017-telugu-ocr-engine-integration.md`.
+- **Throughput:** CPU-only inference, ~10–20 min per book, and the global
+  single-book lock means concurrent users queue.
+- **Limits:** rate limiting is per client IP (10/min auth, 60/min general) and
+  there are no per-user quotas by decision.
 
 ## Objective
 
@@ -30,6 +66,11 @@ runbook an operator can follow at 2 a.m.
 Already good: `DEBUG=false`, `Secure` cookies, CORS pinned to the public origin,
 server-side 200 MB upload cap, Redis-backed rate limiting exists, API docs and
 OpenAPI are not publicly exposed, disk at 21%, all containers healthy.
+
+**Status 2026-11-15:** findings 1, 3, 4, 6 and 7 are fixed and verified (client
+IP precedence, security headers, liveness endpoint, reaper, Ollama cap). Findings
+2 (direct origin), 5 (offsite copy) and 8 (alerting) remain operator actions; the
+edge WAF/rate rules are part of finding 2's operator work.
 
 ## Workstreams
 
@@ -99,5 +140,6 @@ OpenAPI are not publicly exposed, disk at 21%, all containers healthy.
 
 - Cloudflare account configuration (WAF, origin allowlist) — needs the operator's
   account; documented as required actions.
-- SMTP delivery (deferred by decision).
-- OCR quality (owned by the OCR-engine workstream).
+- SMTP delivery — **done** (Resend raw SMTP, verified with a real signup and
+  password reset on 2026-11-15).
+- OCR quality (owned by the OCR-engine workstream; plan 017).

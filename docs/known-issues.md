@@ -29,6 +29,13 @@ LLM metadata extraction runs entirely on CPU via Ollama. A full 52-field extract
 
 **Mitigation**: The job runs in the background. Users can leave and return — progress streams over SSE (with polling fallback) and the job can be cancelled.
 
+### One book is processed at a time
+
+A global Redis lock plus worker concurrency 1 means a second book queues until
+the first book's OCR and extraction finish. This is deliberate (4 vCPU / 16 GB,
+no swap) and keeps a single book's latency predictable; concurrent users should
+expect a queue. The dashboard shows queue position.
+
 ### Large PDF Rendering
 
 Rendering all pages of a 500+ page PDF at 300 DPI simultaneously may consume significant memory.
@@ -91,6 +98,13 @@ succeeds, and the notification stays visible in the app.
 Production is configured for Resend's raw SMTP endpoint and a live signup +
 password-reset round trip succeeded on 2026-11-14.
 
+### Landing page advertises an older LLM
+
+The home page's stat strip says "Qwen2.5 7B" while production runs
+`phi4-mini` (see `plans/012-llm-service-native-endpoint.md` and the model
+evaluation reports). Copy should be corrected before public launch; the model is
+selectable per run on the LLM configuration page.
+
 ### Server-Sent Events fall back to polling
 
 Job status updates stream over SSE (`/api/sse/books/{id}/events`). If the
@@ -122,6 +136,25 @@ can be bypassed by connecting to the IP, and the proxy headers the app trusts
 (`CF-Connecting-IP`, the last `X-Forwarded-For` hop) can be forged that way.
 Closing ingress to Cloudflare ranges (or moving to a Cloudflare Tunnel) is an
 operator action on the Cloudflare side; see `docs/runbook.md`.
+
+### Public launch is gated on operator actions
+
+The application code and deployment are complete (CI green, Resend mail live,
+signed media URLs, single-book pipeline, guarded inputs). Before opening to the
+public, the operator still has to:
+
+1. close origin ingress so only Cloudflare reaches the host (the raw IP bypasses
+   WAF/rate rules today);
+2. copy backups off-host and complete one restore drill from that copy;
+3. configure alerting (site, worker, stuck job, disk, backup age);
+4. perform launch hygiene: remove/rotate the QA accounts and the pending signup,
+   decide the 3 sample books, rotate `reference/oki-qa-accounts`, and confirm the
+   real first admin's password;
+5. confirm the landing-page copy (it still says "Qwen2.5 7B" while production
+   runs phi4-mini) and the pilot-phase/approval-based signup wording.
+
+The full checklist, owners and expectation-setting live in
+[plans/011-launch-readiness.md](../plans/011-launch-readiness.md).
 
 ### Backups have no offsite copy
 

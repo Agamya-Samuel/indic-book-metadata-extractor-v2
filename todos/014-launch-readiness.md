@@ -51,3 +51,31 @@ Plan: [`plans/011-launch-readiness.md`](../plans/011-launch-readiness.md)
 - [ ] Edge WAF + rate rule for `/api/auth/*`
 - [ ] Offsite backup destination + credentials
 - [ ] Uptime/alerting monitor against `/api/health`
+## Public-release blockers (2026-11-15)
+
+Completed since the checklist above:
+
+- [x] Resend raw SMTP configured in Dokploy; real signup verification and
+      password-reset emails delivered and completed end to end
+- [x] Signed page/thumbnail URLs (six-hour, page/book-scoped); verified in prod
+- [x] CI green: ruff check/format, pytest on Python 3.11, fresh-DB migrations,
+      frontend lint/tests/build; `make check-compose-drift` passes
+- [x] Per-user quotas removed by decision (approved, verified users unlimited)
+- [x] Telugu OCR integration plan recorded (`plans/017-...`), blocked on the
+      model artifact/egress
+
+Still open before public:
+
+- [ ] Close origin ingress to Cloudflare ranges or move to a Tunnel
+- [ ] Cloudflare edge WAF + `/api/auth/*` rate rule
+- [ ] Offsite backup destination + credentials and a restore drill from it
+- [ ] Alerting: site, worker, stuck job, disk >85%, backup age >36 h
+- [ ] Launch hygiene (owner approval needed): remove/rotate `qa-admin`,
+      `qa-user`, `qa-signup` and the pending `notif-signup-1113`; decide the
+      3 sample books; rotate `reference/oki-qa-accounts`; confirm the first
+      admin's password
+- [ ] Copy accuracy: landing page says "Qwen2.5 7B" but production runs
+      phi4-mini; confirm pilot-phase/approval signup copy
+
+Expectation-setting (not blockers): Telugu CER ≈ 0.40 (Hindi ≈ 0.07); CPU-only
+~10–20 min/book with a global single-book queue; per-IP rate limits, no quotas.

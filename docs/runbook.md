@@ -154,17 +154,19 @@ Useful lines:
 
 ## Email
 
-SMTP is configured through `SMTP_*` on both the backend and worker services (the
-worker needs them too — it sends job notifications). With the host resolving:
+Production sends through Resend's raw SMTP endpoint. The `SMTP_*` values live in
+the Dokploy environment and are mirrored into the worker (it sends job
+notifications): `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`,
+`SMTP_USERNAME=resend`, `SMTP_PASSWORD=<Resend API key>`,
+`SMTP_FROM=<verified sender>`.
 
-1. Set `SMTP_*` in the Dokploy environment and redeploy.
-2. Trigger one notification (e.g. approve a test account).
-3. Confirm `Sent '<subject>' email to <address>` in the backend/worker log.
+A live signup verification and password reset completed on 2026-11-15. To
+re-verify after an environment change, register a disposable address (or use
+`backend/scripts/e2e_prod.py`) and confirm the email arrives and the link works.
+When SMTP is misconfigured, every send is logged and skipped; in-app
+notifications are unaffected.
 
-Until the mail host resolves, every send fails with `socket.gaierror` and the
-in-app notification is unaffected.
-
-## Outstanding security actions (operator, Cloudflare account)
+## Public launch checklist (operator)
 
 1. **Close the origin.** `https://<origin-ip>/` currently serves the app
    directly, bypassing Cloudflare. Restrict ingress to Cloudflare IP ranges
@@ -175,6 +177,17 @@ in-app notification is unaffected.
 3. **Alerting.** At minimum: site down (`/api/health` != 200), worker container
    not running, any `running` job older than 90 minutes, disk > 85%, and a backup
    older than 36 hours.
+4. **Offsite backups.** The newest 7 dumps live in the host's `backup_data`
+   volume; copy them off-host and run one restore drill from the copy.
+5. **Launch hygiene (owner approval).** Remove or rotate the QA accounts
+   (`qa-admin`, `qa-user`, `qa-signup`, pending `notif-signup-1113`), decide the
+   3 sample books, rotate `reference/oki-qa-accounts`, and confirm the real first
+   admin has a strong password.
+6. **Copy check.** The landing page still advertises "Qwen2.5 7B" while
+   production runs phi4-mini; confirm the pilot-phase / approval-based signup
+   wording is intended for the public page.
+
+Full status and expectation-setting: `plans/011-launch-readiness.md`.
 
 ## Incident checklist
 
