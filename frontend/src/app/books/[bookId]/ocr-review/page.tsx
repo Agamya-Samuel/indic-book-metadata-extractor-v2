@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
@@ -33,6 +33,7 @@ import {
 } from "@/hooks/use-unsaved-changes";
 import { cn } from "@/lib/utils";
 import { focusRing } from "@/lib/focus-ring";
+import { pageNumberFromParam } from "@/lib/ocr-corpus";
 
 export default function OcrReviewPage() {
   useDocumentTitle("OCR review");
@@ -42,22 +43,15 @@ export default function OcrReviewPage() {
   const bookId = params.bookId as string;
   const jobId = searchParams.get("jobId");
 
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [selectedPageIndex, setSelectedPageIndex] = useState<number | null>(
+    null,
+  );
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | undefined>(undefined);
   const [editorDirty, setEditorDirty] = useState(false);
   const [filmstripOpen, setFilmstripOpen] = useState(true);
   const filmstripRef = useRef<HTMLDivElement>(null);
 
   useUnsavedChanges(editorDirty);
-
-  // Keep the page being reviewed in view as the reviewer pages through.
-  useEffect(() => {
-    const container = filmstripRef.current;
-    if (!container) return;
-    container
-      .querySelector<HTMLElement>(`[data-page-index="${currentPageIndex}"]`)
-      ?.scrollIntoView({ block: "nearest" });
-  }, [currentPageIndex]);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
@@ -80,7 +74,30 @@ export default function OcrReviewPage() {
     enabled: !!jobId,
   });
 
+  // Derive ?page=N while the reviewer has not navigated yet, so the deep link
+  // needs no effect and survives the pages query resolving late.
+  const requestedPage = pages
+    ? pageNumberFromParam(searchParams.get("page"), pages.length)
+    : null;
+  const initialPageIndex = useMemo(() => {
+    if (!pages || pages.length === 0 || requestedPage == null) return 0;
+    const index = pages.findIndex(
+      (page) => page.page_number === requestedPage,
+    );
+    return index >= 0 ? index : Math.min(pages.length - 1, requestedPage - 1);
+  }, [pages, requestedPage]);
+  const currentPageIndex = selectedPageIndex ?? initialPageIndex;
+
   const currentPage = pages?.[currentPageIndex];
+
+  // Keep the page being reviewed in view as the reviewer pages through.
+  useEffect(() => {
+    const container = filmstripRef.current;
+    if (!container) return;
+    container
+      .querySelector<HTMLElement>(`[data-page-index="${currentPageIndex}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [currentPageIndex]);
 
   const { data: ocrResult, isLoading: isLoadingOcr } = useQuery({
     queryKey: ["ocr", currentPage?.id],
@@ -146,21 +163,25 @@ export default function OcrReviewPage() {
 
   const handlePrevPage = useCallback(() => {
     if (!canLeavePage()) return;
-    setCurrentPageIndex((prev) => Math.max(0, prev - 1));
+    setSelectedPageIndex((prev) =>
+      Math.max(0, (prev ?? initialPageIndex) - 1),
+    );
     setSelectedWordIndex(undefined);
-  }, [canLeavePage]);
+  }, [canLeavePage, initialPageIndex]);
 
   const handleNextPage = useCallback(() => {
     if (!pages) return;
     if (!canLeavePage()) return;
-    setCurrentPageIndex((prev) => Math.min(pages.length - 1, prev + 1));
+    setSelectedPageIndex((prev) =>
+      Math.min(pages.length - 1, (prev ?? initialPageIndex) + 1),
+    );
     setSelectedWordIndex(undefined);
-  }, [pages, canLeavePage]);
+  }, [pages, canLeavePage, initialPageIndex]);
 
   const handlePageSelect = useCallback(
     (idx: number) => {
       if (!canLeavePage()) return;
-      setCurrentPageIndex(idx);
+      setSelectedPageIndex(idx);
       setSelectedWordIndex(undefined);
     },
     [canLeavePage],
