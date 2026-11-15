@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -59,12 +59,24 @@ export default function MetadataReviewPage() {
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [runsPage, setRunsPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [paneOpened, setPaneOpened] = useState(
+  const [paneOpened, setPaneOpened] = useState(false);
+  // The desktop split is CSS-driven, so the corpus must be enabled whenever the
+  // viewport is at the split breakpoint — including after a resize from a narrow
+  // window where the split has only just appeared. `isDesktop` tracks that
+  // media query; `paneOpened` covers the sub-lg sheet.
+  const [isDesktop, setIsDesktop] = useState(
     () =>
       typeof window !== "undefined" &&
       !!window.matchMedia &&
       window.matchMedia("(min-width: 1024px)").matches,
   );
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = (event: MediaQueryListEvent) => setIsDesktop(event.matches);
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const [formStats, setFormStats] = useState<MetadataFormStats>(EMPTY_STATS);
   const [panePage, setPanePage] = useState<number | null>(null);
   const formActionsRef = useRef<MetadataFormActions | null>(null);
@@ -106,7 +118,7 @@ export default function MetadataReviewPage() {
     staleTime: 30 * 1000,
   });
 
-  const corpusQuery = useOcrCorpus(bookId, paneOpened);
+  const corpusQuery = useOcrCorpus(bookId, paneOpened || isDesktop);
 
   const confidenceByField = useMemo(() => {
     const map: Record<string, {
