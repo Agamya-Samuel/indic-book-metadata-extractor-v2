@@ -2,7 +2,7 @@
 
 **Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../learnings/005-llm-model-evaluation.md), [010](../learnings/010-llm-shortlist-benchmark.md), [013](../learnings/013-verified-shortlist-and-ocr.md).** Last updated **2026-11-14**.
 
-> **Status (2026-11-14): `gemma4:e4b` (`think:false`) now leads *both* languages** — Telugu 0.523, and **Hindi 0.640 vs phi4-mini 0.400** on the enriched corpus (§9).
+> **Status (2026-11-14): `gemma4:e4b` (`think:false`) wins *both* languages** on the enriched corpus, **8 books each** — **Telugu 0.670 vs `phi4-mini` 0.564**; **Hindi 0.560 vs 0.367** (§9).
 >
 > **Hard constraint:** gemma4 works **only** on Ollama's native `/api/chat`. The OpenAI-compatible endpoint that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty** there. **Production default therefore remains `phi4-mini`** — path-safe and **not discarded** — until §7 option A (native-endpoint switch) is implemented and verified. See §6 (superseded), §7, §9.
 
@@ -78,7 +78,7 @@ gemma4:e4b needed a larger output budget to run end-to-end (truncated at 1024; *
 
 ## 7. Decision & recommendation
 
-**Evidence (updated 2026-11-14):** `gemma4:e4b` (`think:false`) is now the best measured extractor in **both** languages — Telugu 0.523, and **Hindi 0.640 vs phi4-mini 0.400** on the enriched corpus (§9).
+**Evidence (updated 2026-11-14, 8 books/language):** `gemma4:e4b` (`think:false`) is the best extractor in **both** languages — **Telugu 0.670 vs phi4-mini 0.564**, **Hindi 0.560 vs 0.367** (§9).
 
 **Hard constraint:** gemma4 only works on Ollama's **native `/api/chat`** endpoint. The OpenAI-compatible path that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty content** there (§5/§9, [learnings/022](../learnings/022-gt-source-expansion.md) finding 6). Switching production to gemma4 therefore requires a **production code change** (§7 options below), not just a Modelfile/model-name swap.
 
@@ -111,16 +111,13 @@ Reports: `backend/reports/gt-bench-*.json`, `backend/reports/gt-verified-*.json`
 
 ## 9. Enriched-corpus re-evaluation (2026-11-14)
 
-Re-ran the end-to-end harness against the **enriched 71-book corpus** (`evaluate_extraction --ground-truth`, field-aware — model-prefilled fields excluded from scoring). Node: `test-node-1`.
+Expanded head-to-head — **8 books per language**, end-to-end harness (`evaluate_extraction --ground-truth`, field-aware — model-prefilled fields excluded). Nodes: `test-node-1` (phi4) and `test-node-1`+`test-node-2` (gemma4 native, parallel).
 
-| Model | Books | Micro P | Micro R | Micro F1 |
-|---|---|---|---|---|
-| `phi4-mini` (OpenAI path) | 4 Hindi | 0.448 | 0.361 | 0.400 |
-| `gemma4:e4b` (`--native`) | 4 Hindi | 0.615 | 0.667 | **0.640** |
+| Model (8 books each) | Telugu P / R / **F1** | Hindi P / R / **F1** |
+|---|---|---|
+| `phi4-mini` (OpenAI path) | 0.639 / 0.505 / **0.564** | 0.370 / 0.364 / **0.367** |
+| **`gemma4:e4b` (`--native`, `think:false`)** | 0.707 / 0.637 / **0.670** | 0.455 / 0.727 / **0.560** |
 
-`phi4-mini` per-field F1 on the 4 Hindi books: `title` 1.00, `author` 0.86, `publication_date` 0.86, `publisher` 0.67, `pages` 0.40.
-`gemma4:e4b` (`--native`): `subject` 1.00, `language` 1.00, `description_work` 0.86, `original_language` 0.86, `title` 0.86, `pages` 0.80, `author` 0.67, `publication_date` 0.67.
-
-**Head-to-head:** on the same 4 Hindi books, **`gemma4:e4b` (native `think:false`) F1 0.640 ≫ `phi4-mini` 0.400**. This is the **first valid gemma4 Hindi measurement** — every earlier gemma4 run scored 0 because the OpenAI-compatible path returned empty content (the think trap), so the previous "phi4-mini wins Hindi" conclusion was an artifact of that bug, not a real model ranking.
+**Decision-grade result: `gemma4:e4b` wins *both* languages** — Telugu **0.670 vs 0.564**, Hindi **0.560 vs 0.367**. `gemma4`'s edge is mostly recall (Telugu R 0.64 vs 0.51; Hindi R 0.73 vs 0.36). This also overturns the earlier "phi4-mini leads Hindi" claim, which was an artifact of the think trap (gemma4 previously returned empty). Reports: `backend/reports/gt-eval-{phi4,gemma4}-{tel,hin}-8book.json`.
 
 **Harness caveat:** `evaluate_extraction` calls `LLMService`, i.e. Ollama's **OpenAI-compatible** endpoint, where `think:false` is dropped — a thinking model (`gemma4`) then returns empty content and scores 0. Added an opt-in **`--native`** flag ([`scripts/native_extract.py`](../backend/scripts/native_extract.py)) that calls `/api/chat` with `think:false`; the production extraction path is unchanged. (See [learnings/022](../learnings/022-gt-source-expansion.md) finding 6.)
