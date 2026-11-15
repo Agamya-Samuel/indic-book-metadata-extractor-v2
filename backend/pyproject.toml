@@ -53,6 +53,12 @@ dev = [
     "black>=24.4",
     "aiosqlite>=0.20",
 ]
+# Telugu line OCR (OCR_TEL_ENGINE=line_model). The worker image bakes these
+# plus the 310 MB weights; runtime never downloads them.
+ocr-line = [
+    "torch>=2.2",
+    "transformers==4.46.*",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -60,3 +66,12 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
+
+# CPU-only torch for the Telugu line model; never pull the CUDA wheels.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }

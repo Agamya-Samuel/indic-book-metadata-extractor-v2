@@ -85,9 +85,12 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
             image_path = output_path
 
         ocr_data = ocr_service.run_ocr(image_path, language, page_position=page.page_number - 1)
+        engine = ocr_data.get("engine", "tesseract")
 
         words = ocr_data["words"]
-        if settings.ocr_low_conf_retry:
+        # The line model emits line-level boxes, not words: re-OCR'ing them
+        # with Tesseract would overwrite the model's output.
+        if settings.ocr_low_conf_retry and engine == "tesseract":
             words = ocr_service.retry_low_confidence_words(
                 image_path, words, language, threshold=settings.ocr_low_conf_threshold
             )
@@ -121,6 +124,9 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
             db.add(new_result)
 
         page.ocr_error = None
+        fallback_reason = ocr_data.get("engine_fallback_reason")
+        if fallback_reason:
+            page.ocr_error = f"Telugu line OCR fell back to Tesseract: {fallback_reason}"[:2000]
         await db.commit()
         return {
             "page_id": page_id_str,

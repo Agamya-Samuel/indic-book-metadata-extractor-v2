@@ -58,7 +58,7 @@ services:
       start_period: 10s
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # LLM Inference (Qwen2.5 7B)
+  # LLM Inference (gemma4:e4b — native /api/chat, think:false)
   # ─────────────────────────────────────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
@@ -68,13 +68,13 @@ services:
       - ./docker/ollama-entrypoint.sh:/entrypoint.sh
       - ./docker/Modelfile.phi4-mini:/models/Modelfile.phi4-mini
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
-    # Measured llama-server residency for phi4-mini at ctx 4096 was ~6.15 GB,
-    # which the old 6 GB cap OOM-killed mid-run; 7 GB leaves headroom without
-    # risking the 15 GB no-swap host.
-    mem_limit: "7g"
-    memswap_limit: "7g"
+    # Measured gemma4:e4b residency at ctx 4096 is ~6.7 GB; 8 GB leaves
+    # headroom without risking the 15 GB no-swap host. phi4-mini stays as the
+    # rollback model (2.5 GB) and is also reachable through the native path.
+    mem_limit: "8g"
+    memswap_limit: "8g"
     environment:
-      OLLAMA_PRELOAD_MODEL: phi4-mini
+      OLLAMA_PRELOAD_MODEL: gemma4:e4b
       OLLAMA_KEEP_ALIVE: "30m"
       # Bound RAM/first-load on the 4 vCPU / 16 GB no-swap host (a 4B fits ~3.5 GB).
       OLLAMA_MAX_LOADED_MODELS: "1"
@@ -108,9 +108,11 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       OLLAMA_URL: http://ollama:11434
+      LLM_NATIVE_ENDPOINT: ${LLM_NATIVE_ENDPOINT:-true}
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
       DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
+      OCR_TEL_ENGINE: ${OCR_TEL_ENGINE:-tesseract}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
@@ -159,6 +161,9 @@ services:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
+      args:
+        # Bake torch/transformers + the Telugu line model into the worker only.
+        OCR_LINE: "true"
     restart: unless-stopped
     command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=1", "-Q", "ocr,llm,default"]
     environment:
@@ -166,9 +171,13 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       OLLAMA_URL: http://ollama:11434
+      LLM_NATIVE_ENDPOINT: ${LLM_NATIVE_ENDPOINT:-true}
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
       DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
+      OCR_TEL_ENGINE: ${OCR_TEL_ENGINE:-line_model}
+      OCR_LINE_MODEL_NAME: /app/ocr_models/telugu-ocr-model
+      HF_HUB_OFFLINE: "1"
       OCR_BATCH_SIZE: ${OCR_BATCH_SIZE:-10}
       OCR_THREAD_WORKERS: ${OCR_THREAD_WORKERS:-4}
       OCR_RENDER_DPI: ${OCR_RENDER_DPI:-300}

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import newrelic.agent
@@ -5,6 +6,7 @@ import pytesseract
 from PIL import Image
 
 from app.core.config import settings
+from app.services import ocr_line_model
 from app.services.ocr_dictionaries import get_dictionary_paths
 from app.services.page_classifier import (
     Classification,
@@ -12,6 +14,8 @@ from app.services.page_classifier import (
     classify_page,
     psm_to_tesseract_arg,
 )
+
+logger = logging.getLogger(__name__)
 
 LANGUAGE_MAP = {
     # Telugu + English (bilingual colonial-era pages)
@@ -25,6 +29,11 @@ LANGUAGE_MAP = {
 
 def _get_tesseract_lang(language: str) -> str:
     return LANGUAGE_MAP.get(language, language)
+
+
+def _use_line_model(language: str) -> bool:
+    """Telugu only, and only when the line engine is explicitly selected."""
+    return language == "tel" and settings.ocr_tel_engine.strip().lower() == "line_model"
 
 
 def _is_dictionary_enabled(language: str) -> bool:
@@ -81,7 +90,25 @@ def run_ocr(image_path: Path, language: str = "tel", page_position: int | None =
     # under concurrent OCR the descriptor table fills up over the
     # lifetime of the worker.
     with Image.open(str(image_path)) as img:
-        return _run_ocr_with_img(img, image_path, language, page_position)
+        if _use_line_model(language):
+            try:
+                result = ocr_line_model.run_line_ocr(img, image_path, language, page_position)
+                newrelic.agent.add_custom_attribute("ocr_engine", result.get("engine"))
+                return result
+            except Exception as exc:  # noqa: BLE001 - a missing/broken model must not fail the page
+                logger.warning(
+                    "Telugu line OCR failed for %s; falling back to Tesseract",
+                    image_path.name,
+                    exc_info=True,
+                )
+                result = _run_ocr_with_img(img, image_path, language, page_position)
+                result["engine_fallback_reason"] = f"{type(exc).__name__}: {exc}"
+                newrelic.agent.add_custom_attribute("ocr_engine", result.get("engine"))
+                return result
+
+        result = _run_ocr_with_img(img, image_path, language, page_position)
+        newrelic.agent.add_custom_attribute("ocr_engine", result.get("engine"))
+        return result
 
 
 def _run_ocr_with_img(
@@ -148,6 +175,7 @@ def _run_ocr_with_img(
         "word_count": len(words),
         "psm": psm,
         "psm_label": classification.label,
+        "engine": "tesseract",
     }
 
 

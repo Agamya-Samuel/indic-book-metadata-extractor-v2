@@ -48,7 +48,7 @@ services:
       - ./docker/Modelfile.qwen2.5:/models/Modelfile.qwen2.5
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     environment:
-      - OLLAMA_PRELOAD_MODEL=qwen2.5
+      - OLLAMA_PRELOAD_MODEL=gemma4:e4b
       - OLLAMA_KEEP_ALIVE=30m
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
