@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -171,6 +171,20 @@ export default function BookDetailPage() {
     enabled: !!bookId,
     staleTime: 5 * 1000,
   });
+
+  // `get_current_stages` returns rows ordered by stage_name, so items[0] is
+  // `completion` — often a cancelled older attempt. The badge should reflect
+  // the most recently updated stage instead.
+  const latestStageStatus = useMemo(() => {
+    const items = stages?.items;
+    if (!items?.length) return undefined;
+    return items.reduce((latest, stage) =>
+      (stage.updated_at ?? stage.created_at ?? "") >
+      (latest.updated_at ?? latest.created_at ?? "")
+        ? stage
+        : latest,
+    ).status;
+  }, [stages]);
 
   const { data: pagesData, isLoading: pagesLoading } = useQuery({
     queryKey: ["book", bookId, "pages", pagesPage, pagesPageSize],
@@ -469,7 +483,7 @@ export default function BookDetailPage() {
           title={book.title || metadataFields.label || book.filename}
           description={
             <span className="flex flex-wrap items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-muted)]">
-              <StatusBadge status={book.status} stageStatus={stages?.items[0]?.status as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
+              <StatusBadge status={book.status} stageStatus={latestStageStatus as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
               {book.total_pages && (
                 <>
                   <span aria-hidden="true">&bull;</span>

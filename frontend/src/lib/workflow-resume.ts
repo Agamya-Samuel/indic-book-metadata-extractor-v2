@@ -72,12 +72,32 @@ const STAGE_CTA: Record<string, { ctaLabel: string; href: string | ((bookId: str
 
 function findFailedStage(stages: BookStageResponse[] = []): BookStageResponse | null {
   for (const s of stages) {
-    if (s.status === "failed" || s.status === "cancelled") {
+    // `cancelled` means superseded by a newer run, not failed. Treating it as
+    // a failure made a re-run book show "Stage failed" while it was actually
+    // awaiting review.
+    if (s.status === "failed") {
       return s;
     }
   }
   return null;
 }
+
+const STATUS_RESUME: Record<string, ResumeTarget> = {
+  uploaded: STAGE_CTA.upload,
+  pages_selected: STAGE_CTA.page_selection,
+  ocr_running: STAGE_CTA.ocr,
+  ocr_complete: {
+    ctaLabel: "Run extraction",
+    href: (bookId: string) => `/books/${bookId}/llm-config`,
+    headline: "OCR complete",
+    description:
+      "Review the OCR text, then run the language model to extract metadata.",
+    variant: "info",
+    showProgress: false,
+  },
+  llm_running: STAGE_CTA.llm_extraction,
+  awaiting_review: STAGE_CTA.human_review,
+};
 
 export function getResumeTarget(
   book: Pick<BookDetail, "id" | "status">,
@@ -113,6 +133,8 @@ export function getResumeTarget(
   const currentStage = stages.find((s) => s.status === "processing" || s.status === "initiated");
   if (!currentStage) {
     if (book.status === "complete") return null;
+    const byStatus = STATUS_RESUME[book.status];
+    if (byStatus) return byStatus;
     return {
       ctaLabel: "Select pages",
       href: `/books/${bookId}/select-pages`,
