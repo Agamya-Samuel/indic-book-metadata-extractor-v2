@@ -57,7 +57,7 @@ export default function Home() {
         <dl className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--border)] sm:grid-cols-3 animate-hero animate-hero-5">
           {[
             { k: "OCR", v: "Tesseract 5 + Indic scripts" },
-            { k: "LLM", v: "Qwen2.5 7B" },
+            { k: "LLM", v: "Local LLM" },
             { k: "Export", v: "Wikibase · OpenRefine" },
           ].map((item) => (
             <div
@@ -73,6 +73,15 @@ export default function Home() {
             </div>
           ))}
         </dl>
+
+        {/* Honest expectations: Telugu is the accuracy ceiling today, and the
+            review step is part of the product, not an optional extra. */}
+        <p className="mx-auto mt-6 max-w-xl text-pretty text-[length:var(--text-sm)] leading-relaxed text-[var(--text-muted)] animate-fade-in">
+          Telugu OCR is the accuracy ceiling — the Telugu line model measures
+          ≈ 0.16 median character error (Tesseract ≈ 0.40), versus ≈ 0.07 for
+          Hindi — so the OCR review step is part of the workflow. Hindi stays
+          on Tesseract.
+        </p>
 
         {/* OKI attribution — placed below the stat strip as a quiet credit
             rather than a sponsor banner. The 9-unit margin matches the
