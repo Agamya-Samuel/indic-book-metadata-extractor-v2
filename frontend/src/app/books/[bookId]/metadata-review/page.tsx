@@ -2,12 +2,9 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
-  getAllBookPages,
-  getPageImageUrl,
   getMetadata,
   updateMetadata,
   getAllMetadataFieldDefinitions,
@@ -19,9 +16,14 @@ import {
 import { getLanguageName } from "@/lib/utils";
 import { useJobPolling } from "@/hooks/use-job-polling";
 import { useBookStatus } from "@/hooks/use-book-status";
+import { useOcrCorpus } from "@/hooks/use-ocr-corpus";
 import { getErrorMessage } from "@/lib/error-handler";
-import MetadataForm from "@/components/metadata/metadata-form";
-import { Chip } from "@/components/shared/chip";
+import MetadataForm, {
+  type MetadataFormActions,
+  type MetadataFormStats,
+} from "@/components/metadata/metadata-form";
+import OcrReferencePane from "@/components/metadata/ocr-reference-pane";
+import ReviewWorkspace from "@/components/metadata/review-workspace";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { MetadataReviewSkeleton } from "@/components/shared/skeleton";
 import { toast } from "sonner";
@@ -37,6 +39,13 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import Pagination from "@/components/shared/pagination";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
+const EMPTY_STATS: MetadataFormStats = { dirty: 0, missing: 0, uncertain: 0 };
+
+function isBelowDesktop(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(max-width: 1023.98px)").matches;
+}
+
 export default function MetadataReviewPage() {
   useDocumentTitle("Metadata review");
   const params = useParams();
@@ -49,19 +58,21 @@ export default function MetadataReviewPage() {
   const [showLlmHistory, setShowLlmHistory] = useState(false);
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
   const [runsPage, setRunsPage] = useState(1);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [paneOpened, setPaneOpened] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !!window.matchMedia &&
+      window.matchMedia("(min-width: 1024px)").matches,
+  );
+  const [formStats, setFormStats] = useState<MetadataFormStats>(EMPTY_STATS);
+  const [panePage, setPanePage] = useState<number | null>(null);
+  const formActionsRef = useRef<MetadataFormActions | null>(null);
 
   const { data: book, isLoading: isLoadingBook } = useQuery({
     queryKey: ["book", bookId],
     queryFn: () => getBook(bookId),
     staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
-
-  const { data: pages, isLoading: isLoadingPages } = useQuery({
-    queryKey: ["book", bookId, "pages", "all"],
-    queryFn: () => getAllBookPages(bookId),
-    enabled: !!bookId,
-    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
@@ -95,6 +106,8 @@ export default function MetadataReviewPage() {
     staleTime: 30 * 1000,
   });
 
+  const corpusQuery = useOcrCorpus(bookId, paneOpened);
+
   const confidenceByField = useMemo(() => {
     const map: Record<string, {
       confidence: number | null;
@@ -125,11 +138,6 @@ export default function MetadataReviewPage() {
     });
 
   const bookStatus = useBookStatus({ bookId });
-
-  const [metadataDirtyCount, setMetadataDirtyCount] = useState(0);
-  const formActionsRef = useRef<{ save: () => void; discard: () => void } | null>(
-    null,
-  );
 
   const saveMutation = useMutation({
     mutationFn: async (
@@ -170,7 +178,40 @@ export default function MetadataReviewPage() {
     },
   });
 
-  if (isLoadingBook || isLoadingPages || isLoadingMetadata || isLoadingFields) {
+  const openSheet = useCallback(() => {
+    setPaneOpened(true);
+    setSheetOpen(true);
+  }, []);
+
+  const handleFieldFocus = useCallback(
+    (fieldName: string) => {
+      setFocusedField(fieldName);
+      const sourcePage = confidenceByField[fieldName]?.source_page_number;
+      if (sourcePage != null) setPanePage(sourcePage);
+    },
+    [confidenceByField],
+  );
+
+  const handleShowSource = useCallback(
+    (fieldName: string) => {
+      setFocusedField(fieldName);
+      setPaneOpened(true);
+      const sourcePage = confidenceByField[fieldName]?.source_page_number;
+      if (sourcePage != null) setPanePage(sourcePage);
+      if (isBelowDesktop()) setSheetOpen(true);
+    },
+    [confidenceByField],
+  );
+
+  const handleAppend = useCallback(
+    (text: string) => {
+      if (!focusedField) return;
+      formActionsRef.current?.appendToField(focusedField, text);
+    },
+    [focusedField],
+  );
+
+  if (isLoadingBook || isLoadingMetadata || isLoadingFields) {
     return <MetadataReviewSkeleton />;
   }
 
@@ -205,29 +246,20 @@ export default function MetadataReviewPage() {
   }
 
   const evidence = focusedField ? confidenceByField[focusedField] : undefined;
-  const evidencePage =
-    evidence?.source_page_number != null
-      ? pages?.find((page) => page.page_number === evidence.source_page_number)
-      : undefined;
   const focusedFieldLabel = focusedField
     ? (fieldDefs?.find((f) => f.field_name === focusedField)?.display_name ??
       focusedField)
     : undefined;
 
   const metadataValues = metadata?.fields ?? {};
-
-  const emptyFieldCount = (fieldDefs ?? []).filter((f) => {
-    const v = metadataValues[f.field_name];
-    return v === undefined || v === null || String(v).trim() === "";
-  }).length;
-  const lowConfidenceFieldCount = Object.values(confidenceByField).filter(
-    (e) => e.confidence !== null && e.confidence < 0.5,
-  ).length;
+  const rawFocusedValue = focusedField ? metadataValues[focusedField] : undefined;
+  const focusedValue =
+    typeof rawFocusedValue === "string" ? rawFocusedValue : undefined;
   const alreadyComplete = book.status === "complete";
 
   return (
     <WorkflowShell bookId={bookId}>
-      <PageContainer className="flex-1 flex flex-col">
+      <PageContainer layout="workspace" className="flex-1 flex flex-col">
         <PageHeader
           title="Metadata Review"
           description={
@@ -239,6 +271,13 @@ export default function MetadataReviewPage() {
           }
           actions={
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="lg:hidden"
+                onClick={openSheet}
+              >
+                OCR
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowLlmHistory(!showLlmHistory)}
@@ -262,213 +301,168 @@ export default function MetadataReviewPage() {
           }
         />
 
-        {bookStatus.isRunning && (
-          <Card>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text)]">
-                  Auto-processing in progress
-                </h2>
-                <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
-                  {Math.round(bookStatus.progress)}%
-                </span>
-              </div>
-              <Progress value={bookStatus.progress} />
-              <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
-                Status: <span className="font-mono">{bookStatus.status}</span>
-                {bookStatus.connectionMode === "polling" && (
-                  <span className="ml-2 text-[var(--warning-700)]">
-                    (SSE disconnected — using polling fallback)
-                  </span>
-                )}
-              </p>
-            </div>
-          </Card>
-        )}
+        <ReviewWorkspace
+          sheetOpen={sheetOpen}
+          onSheetOpenChange={setSheetOpen}
+          renderPane={(controls) => (
+            <OcrReferencePane
+              bookId={bookId}
+              pages={corpusQuery.data}
+              isLoading={corpusQuery.isLoading}
+              error={corpusQuery.error}
+              onRetry={() => {
+                void corpusQuery.refetch();
+              }}
+              focusedField={focusedField}
+              focusedFieldLabel={focusedFieldLabel}
+              focusedValue={focusedValue}
+              evidence={evidence}
+              pageNumber={panePage}
+              onPageNumberChange={setPanePage}
+              canAppend={!!focusedField}
+              onAppend={handleAppend}
+              onCollapse={
+                controls.variant === "split" ? controls.onCollapse : undefined
+              }
+              onRequestCloseSheet={controls.onRequestCloseSheet}
+            />
+          )}
+        >
+          <Stack gap={6}>
+            {bookStatus.isRunning && (
+              <Card>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text)]">
+                      Auto-processing in progress
+                    </h2>
+                    <span className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
+                      {Math.round(bookStatus.progress)}%
+                    </span>
+                  </div>
+                  <Progress value={bookStatus.progress} />
+                  <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
+                    Status: <span className="font-mono">{bookStatus.status}</span>
+                    {bookStatus.connectionMode === "polling" && (
+                      <span className="ml-2 text-[var(--warning-700)]">
+                        (SSE disconnected — using polling fallback)
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </Card>
+            )}
 
-        <Stack gap={6}>
-          {showLlmHistory && (
-            <Card title="LLM Run History" description="Past LLM extraction runs and their outputs.">
-              {llmRuns && llmRuns.total > 0 ? (
-                <CollapsibleSection
-                  title="All Runs"
-                  count={llmRuns.total}
-                  defaultOpen={true}
-                >
-                  <Stack gap={3}>
-                    {llmRuns.items.map((run) => (
-                      <div
-                        key={run.id}
-                        className="border border-[var(--border)] rounded-[var(--radius)] p-3 text-[length:var(--text-sm)]"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-[var(--text)]">
-                              {run.model}
-                            </span>
-                            {run.created_at && (
-                              <span className="text-[length:var(--text-xs)] text-[var(--text-subtle)]">
-                                {new Date(run.created_at).toLocaleString()}
+            {showLlmHistory && (
+              <Card title="LLM Run History" description="Past LLM extraction runs and their outputs.">
+                {llmRuns && llmRuns.total > 0 ? (
+                  <CollapsibleSection
+                    title="All Runs"
+                    count={llmRuns.total}
+                    defaultOpen={true}
+                  >
+                    <Stack gap={3}>
+                      {llmRuns.items.map((run) => (
+                        <div
+                          key={run.id}
+                          className="border border-[var(--border)] rounded-[var(--radius)] p-3 text-[length:var(--text-sm)]"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-[var(--text)]">
+                                {run.model}
                               </span>
-                            )}
-                          </div>
-                        </div>
-                        {run.prompt_template && (
-                          <details className="mt-1">
-                            <summary className="text-[length:var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
-                              View prompt
-                            </summary>
-                            <pre className="mt-1 text-[length:var(--text-xs)] bg-[var(--surface-sunken)] p-2 rounded-[var(--radius)] overflow-x-auto whitespace-pre-wrap text-[var(--text)]">
-                              {run.prompt_template}
-                            </pre>
-                          </details>
-                        )}
-                        {run.parsed_fields && (
-                          <details className="mt-1">
-                            <summary className="text-[length:var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
-                              View extracted fields (
-                              {Object.keys(run.parsed_fields).length})
-                            </summary>
-                            <div className="mt-1 grid grid-cols-2 gap-1">
-                              {Object.entries(run.parsed_fields).map(
-                                ([k, v]) => (
-                                  <div key={k} className="text-[length:var(--text-xs)]">
-                                    <span className="text-[var(--text-muted)]">{k}:</span>{" "}
-                                    <span className="text-[var(--text)]">{v ?? "null"}</span>
-                                  </div>
-                                )
+                              {run.created_at && (
+                                <span className="text-[length:var(--text-xs)] text-[var(--text-subtle)]">
+                                  {new Date(run.created_at).toLocaleString()}
+                                </span>
                               )}
                             </div>
-                          </details>
-                        )}
-                      </div>
-                    ))}
-                  </Stack>
-                  <Pagination
-                    page={runsPage}
-                    totalPages={llmRuns.total_pages}
-                    onPageChange={setRunsPage}
-                  />
-                </CollapsibleSection>
-              ) : (
-                <EmptyState
-                  title="No LLM runs yet"
-                  description="Past LLM extraction runs will appear here."
-                />
-              )}
-            </Card>
-          )}
-
-          <Card
-            title="Evidence"
-            description={
-              focusedField
-                ? "Where the focused field's value came from."
-                : "Focus a field below to see where its value came from."
-            }
-          >
-            {focusedField && evidence ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Chip
-                    dot
-                    tone={
-                      evidence.confidence == null
-                        ? "neutral"
-                        : evidence.confidence >= 0.85
-                          ? "success"
-                          : evidence.confidence >= 0.5
-                            ? "warning"
-                            : "danger"
-                    }
-                  >
-                    {evidence.confidence == null
-                      ? "no score"
-                      : `${Math.round(evidence.confidence * 100)}% confidence`}
-                  </Chip>
-                  <Chip mono>{evidence.extraction_method}</Chip>
-                  {evidence.source_page_number != null && (
-                    <Chip>page {evidence.source_page_number}</Chip>
-                  )}
-                  <span className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
-                    {focusedFieldLabel}
-                  </span>
-                </div>
-
-                {evidencePage && (
-                  <Image
-                    src={evidencePage.image_url ?? getPageImageUrl(evidencePage.id)}
-                    alt={`Source page ${evidence.source_page_number}`}
-                    width={900}
-                    height={1200}
-                    sizes="(min-width: 1024px) 40vw, 100vw"
-                    className="max-h-[420px] w-auto rounded-[var(--radius)] border border-[var(--border)]"
-                    unoptimized
-                  />
-                )}
-
-                {evidence.source_text_snippet ? (
-                  <p className="rounded-[var(--radius)] bg-[var(--surface-sunken)] p-3 text-[length:var(--text-sm)] leading-relaxed text-[var(--text)]">
-                    …{evidence.source_text_snippet}…
-                  </p>
+                          </div>
+                          {run.prompt_template && (
+                            <details className="mt-1">
+                              <summary className="text-[length:var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
+                                View prompt
+                              </summary>
+                              <pre className="mt-1 text-[length:var(--text-xs)] bg-[var(--surface-sunken)] p-2 rounded-[var(--radius)] overflow-x-auto whitespace-pre-wrap text-[var(--text)]">
+                                {run.prompt_template}
+                              </pre>
+                            </details>
+                          )}
+                          {run.parsed_fields && (
+                            <details className="mt-1">
+                              <summary className="text-[length:var(--text-xs)] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text)]">
+                                View extracted fields (
+                                {Object.keys(run.parsed_fields).length})
+                              </summary>
+                              <div className="mt-1 grid grid-cols-2 gap-1">
+                                {Object.entries(run.parsed_fields).map(
+                                  ([k, v]) => (
+                                    <div key={k} className="text-[length:var(--text-xs)]">
+                                      <span className="text-[var(--text-muted)]">{k}:</span>{" "}
+                                      <span className="text-[var(--text)]">{v ?? "null"}</span>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      ))}
+                    </Stack>
+                    <Pagination
+                      page={runsPage}
+                      totalPages={llmRuns.total_pages}
+                      onPageChange={setRunsPage}
+                    />
+                  </CollapsibleSection>
                 ) : (
-                  <p className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
-                    No source snippet was recorded for this field.
-                  </p>
+                  <EmptyState
+                    title="No LLM runs yet"
+                    description="Past LLM extraction runs will appear here."
+                  />
                 )}
-
-                <LinkButton
-                  href={`/books/${bookId}/ocr-review`}
-                  variant="outline"
-                  size="sm"
-                >
-                  Open in OCR review
-                </LinkButton>
-              </div>
-            ) : (
-              <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
-                Focus a field to see its source page, snippet, confidence and
-                extraction method.
-              </p>
+              </Card>
             )}
-          </Card>
 
-          {fieldDefs && (
-            <MetadataForm
-              fieldDefinitions={fieldDefs}
-              values={metadataValues}
-              onSave={handleSave}
-              isSaving={saveMutation.isPending}
-              confidenceByField={confidenceByField}
-              onFieldFocus={setFocusedField}
-              onDirtyCountChange={setMetadataDirtyCount}
-              onRegisterActions={(actions) => {
-                formActionsRef.current = actions;
+            {fieldDefs && (
+              <MetadataForm
+                fieldDefinitions={fieldDefs}
+                values={metadataValues}
+                onSave={handleSave}
+                isSaving={saveMutation.isPending}
+                confidenceByField={confidenceByField}
+                onFieldFocus={handleFieldFocus}
+                onShowSource={handleShowSource}
+                onStatsChange={setFormStats}
+                onRegisterActions={(actions) => {
+                  formActionsRef.current = actions;
+                }}
+              />
+            )}
+
+            {saveMutation.isError && (
+              <ErrorState
+                title="Failed to save metadata"
+                description={getErrorMessage(saveMutation.error)}
+              />
+            )}
+
+            <WorkflowNav
+              prev={{
+                href: `/books/${bookId}/llm-config`,
+                label: "Re-run extraction",
               }}
-            />
-          )}
-
-          {saveMutation.isError && (
-            <ErrorState
-              title="Failed to save metadata"
-              description={getErrorMessage(saveMutation.error)}
-            />
-          )}
-
-          <WorkflowNav
-            prev={{
-              href: `/books/${bookId}/llm-config`,
-              label: "Re-run extraction",
-            }}
-          >
-            <LinkButton href="/dashboard" variant="outline" size="sm">
-              Go to dashboard
-            </LinkButton>
-          </WorkflowNav>
-        </Stack>
+            >
+              <LinkButton href="/dashboard" variant="outline" size="sm">
+                Go to dashboard
+              </LinkButton>
+            </WorkflowNav>
+          </Stack>
+        </ReviewWorkspace>
 
         <SaveBar
-          dirtyCount={metadataDirtyCount}
+          dirtyCount={formStats.dirty}
           saving={saveMutation.isPending}
           saveLabel="Save metadata"
           onSave={() => formActionsRef.current?.save()}
@@ -489,19 +483,21 @@ export default function MetadataReviewPage() {
                 This finalizes the book and completes the workflow. Saving
                 metadata no longer completes a book automatically.
               </p>
-              {(emptyFieldCount > 0 || lowConfidenceFieldCount > 0) && (
+              {(formStats.missing > 0 || formStats.uncertain > 0) && (
                 <ul className="list-disc pl-4 space-y-1 text-[var(--warning-700)] dark:text-[var(--warning-100)]">
-                  {emptyFieldCount > 0 && (
+                  {formStats.missing > 0 && (
                     <li>
-                      {emptyFieldCount} field{emptyFieldCount === 1 ? "" : "s"}{" "}
-                      {emptyFieldCount === 1 ? "is" : "are"} still empty.
+                      {formStats.missing} field
+                      {formStats.missing === 1 ? "" : "s"}{" "}
+                      {formStats.missing === 1 ? "is" : "are"} still empty.
                     </li>
                   )}
-                  {lowConfidenceFieldCount > 0 && (
+                  {formStats.uncertain > 0 && (
                     <li>
-                      {lowConfidenceFieldCount} field
-                      {lowConfidenceFieldCount === 1 ? " has" : "s have"} low
-                      confidence — consider reviewing the evidence.
+                      {formStats.uncertain} field
+                      {formStats.uncertain === 1 ? " has" : "s have"} low
+                      confidence or an uncertain value — consider reviewing the
+                      evidence.
                     </li>
                   )}
                 </ul>

@@ -8,6 +8,8 @@ interface CollapsibleSectionProps {
   title: string;
   count?: number;
   defaultOpen?: boolean;
+  /** Holds the panel open while true; the uncontrolled state resumes after. */
+  forceOpen?: boolean;
   children: React.ReactNode;
   className?: string;
   /** Render a description or right-aligned meta next to the title. */
@@ -18,11 +20,13 @@ export default function CollapsibleSection({
   title,
   count,
   defaultOpen = true,
+  forceOpen = false,
   children,
   className,
   meta,
 }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const open = forceOpen || isOpen;
   const panelId = useId();
 
   return (
@@ -37,7 +41,7 @@ export default function CollapsibleSection({
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        aria-expanded={isOpen}
+        aria-expanded={open}
         aria-controls={panelId}
         className={cn(
           "group flex w-full items-center justify-between gap-3 px-4 py-3 text-left",
@@ -53,7 +57,7 @@ export default function CollapsibleSection({
             className={cn(
               "size-3.5 shrink-0 text-[var(--text-muted)]",
               "transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)]",
-              isOpen ? "rotate-90" : "rotate-0",
+              open ? "rotate-90" : "rotate-0",
             )}
             fill="currentColor"
           >
@@ -82,10 +86,10 @@ export default function CollapsibleSection({
         // clipped to a zero-height row, then fade in once the row opens.
         // `aria-hidden` mirrors `hidden` for assistive tech, but `hidden`
         // alone is not used — we want the height to animate, not snap.
-        aria-hidden={!isOpen}
+        aria-hidden={!open}
         className={cn(
           "grid transition-[grid-template-rows] duration-[var(--duration)] ease-[var(--ease-out)]",
-          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
         style={{
           transitionProperty: "grid-template-rows",
@@ -95,7 +99,7 @@ export default function CollapsibleSection({
           className={cn(
             "min-h-0 overflow-hidden border-t border-[var(--border)]",
             "transition-opacity duration-[var(--duration)] ease-[var(--ease-out)]",
-            isOpen ? "opacity-100" : "opacity-0",
+            open ? "opacity-100" : "opacity-0",
           )}
         >
           <div className="px-4 py-3">{children}</div>

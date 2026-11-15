@@ -188,6 +188,9 @@ Phase 1–2.
   sticky apply), OCR review (`workspace` + filmstrip + toolbar), metadata review
   (evidence pane + section nav + filter empty/low-confidence + sticky `SaveBar`),
   llm-config (collapsed prompts), the two monitor pages folded into sub-states.
+  The evidence pane is extended by
+  [015](015-integrated-ocr-metadata-review.md) into a book-wide, searchable OCR
+  reference with a resizable split, append actions, and field filters.
 - Exit: each screen usable on a 119-page book without a nested scroll trap.
 
 ### Phase 3 — book detail + dashboard  ← **milestone push #1**

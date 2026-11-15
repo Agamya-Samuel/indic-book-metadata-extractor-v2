@@ -1,18 +1,38 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { MetadataFieldDefinition } from "@/lib/api";
 import CollapsibleSection from "@/components/shared/collapsible-section";
 import { Button } from "@/components/shared/button";
 import { Field, Input, Textarea } from "@/components/shared/input";
 import { Card, Stack } from "@/components/shared/card";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
+import {
+  LONG_TEXT_FIELDS,
+  appendSeparatorFor,
+  appendToValue,
+  classifyFieldValue,
+  computeFieldCounts,
+} from "@/lib/metadata-stats";
 
 interface FieldConfidence {
   confidence: number | null;
   extraction_method: string;
   source_page_number: number | null;
   source_text_snippet: string | null;
+}
+
+export interface MetadataFormStats {
+  dirty: number;
+  missing: number;
+  uncertain: number;
+}
+
+export interface MetadataFormActions {
+  save: () => void;
+  discard: () => void;
+  appendToField: (fieldName: string, text: string) => void;
 }
 
 interface MetadataFormProps {
@@ -24,15 +44,14 @@ interface MetadataFormProps {
   /** Retained for callers; the page's save bar owns the saving state now. */
   isSaving?: boolean;
   confidenceByField?: Record<string, FieldConfidence>;
-  /** Reports which field the reviewer is working on, for the evidence pane. */
+  /** Reports which field the reviewer is working on, for the reference pane. */
   onFieldFocus?: (fieldName: string) => void;
-  /** Reports the unsaved-change count so the page can own the save bar. */
-  onDirtyCountChange?: (count: number) => void;
-  /** Hands the save and discard actions up to the page's save bar. */
-  onRegisterActions?: (actions: {
-    save: () => void;
-    discard: () => void;
-  }) => void;
+  /** Jumps the reference pane to a field with a recorded source page. */
+  onShowSource?: (fieldName: string) => void;
+  /** Reports dirty, missing and uncertain counts to the page. */
+  onStatsChange?: (stats: MetadataFormStats) => void;
+  /** Hands the save, discard, and append actions up to the page. */
+  onRegisterActions?: (actions: MetadataFormActions) => void;
 }
 
 const BATCH_DISPLAY_NAMES: Record<string, string> = {
@@ -46,37 +65,18 @@ const BATCH_DISPLAY_NAMES: Record<string, string> = {
   physical_extra: "Physical & Extra",
 };
 
-const LONG_TEXT_FIELDS = new Set([
-  "description_work",
-  "description_edition",
-  "dedication",
-  "dedication_verbatim",
-  "forewords",
-  "abbreviations",
-  "authors_in_compilation",
-  "opinions_messages",
-  "context",
-]);
+type FieldFilter = "all" | "missing" | "uncertain";
 
 function getFieldConfidence(
   value: string | undefined | null,
   realConfidence: number | null | undefined,
 ): "high" | "medium" | "empty" {
-  if (!value || value.trim() === "") return "empty";
+  const status = classifyFieldValue(value, realConfidence);
+  if (status === "empty") return "empty";
+  if (status === "uncertain") return "medium";
   if (typeof realConfidence === "number") {
-    if (realConfidence >= 0.85) return "high";
-    if (realConfidence >= 0.5) return "medium";
-    return "medium";
+    return realConfidence >= 0.85 ? "high" : "medium";
   }
-  const lower = value.toLowerCase();
-  if (
-    lower === "n/a" ||
-    lower === "not found" ||
-    lower === "null" ||
-    lower === "none" ||
-    lower === "unknown"
-  )
-    return "medium";
   return "high";
 }
 
@@ -101,13 +101,66 @@ const CONFIDENCE_STYLES = {
   },
 };
 
+const FILTER_DOTS: Record<FieldFilter, string> = {
+  all: "bg-[var(--text-subtle)]",
+  missing: "bg-[var(--danger-500)]",
+  uncertain: "bg-[var(--warning-500)]",
+};
+
+function afterRender(callback: () => void): void {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.requestAnimationFrame === "function"
+  ) {
+    window.requestAnimationFrame(callback);
+    return;
+  }
+  setTimeout(callback, 0);
+}
+
+function FilterChip({
+  filter,
+  active,
+  count,
+  onClick,
+}: {
+  filter: FieldFilter;
+  active: boolean;
+  count: number;
+  onClick: () => void;
+}) {
+  const label = filter === "all" ? "All" : filter === "missing" ? "Missing" : "Uncertain";
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1",
+        "text-[11px] font-medium tabular-nums",
+        focusRing,
+        active
+          ? "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent-soft-text)]"
+          : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text)]",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn("size-1.5 shrink-0 rounded-full", FILTER_DOTS[filter])}
+      />
+      {label} ({count})
+    </button>
+  );
+}
+
 export default function MetadataForm({
   fieldDefinitions,
   values,
   onSave,
   confidenceByField,
   onFieldFocus,
-  onDirtyCountChange,
+  onShowSource,
+  onStatsChange,
   onRegisterActions,
 }: MetadataFormProps) {
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
@@ -116,6 +169,11 @@ export default function MetadataForm({
   const [removedCustomKeys, setRemovedCustomKeys] = useState<Set<string>>(
     new Set(),
   );
+  const [filter, setFilter] = useState<FieldFilter>("all");
+  const [activeField, setActiveField] = useState<string | undefined>(undefined);
+  const fieldRefs = useRef<
+    Record<string, HTMLInputElement | HTMLTextAreaElement | null>
+  >({});
 
   // ``custom_fields`` is the one nested value; normalise it once.
   const persistedCustomFields = useMemo<Record<string, string>>(() => {
@@ -180,9 +238,54 @@ export default function MetadataForm({
     persistedCustomFields,
   ]);
 
+  const fieldCounts = useMemo(
+    () => computeFieldCounts(fieldDefinitions, currentValues, confidenceByField),
+    [fieldDefinitions, currentValues, confidenceByField],
+  );
+
+  const statusFor = useCallback(
+    (fieldName: string) =>
+      classifyFieldValue(
+        currentValues[fieldName],
+        confidenceByField?.[fieldName]?.confidence,
+      ),
+    [currentValues, confidenceByField],
+  );
+
   const handleChange = useCallback((fieldName: string, value: string) => {
     setEditedValues((prev) => ({ ...prev, [fieldName]: value }));
   }, []);
+
+  const focusField = useCallback(
+    (fieldName: string) => {
+      setActiveField(fieldName);
+      onFieldFocus?.(fieldName);
+      afterRender(() => {
+        const element = fieldRefs.current[fieldName];
+        if (!element) return;
+        element.focus({ preventScroll: true });
+        if (typeof element.scrollIntoView === "function") {
+          element.scrollIntoView({ block: "center", behavior: "auto" });
+        }
+        const end = element.value.length;
+        element.setSelectionRange(end, end);
+      });
+    },
+    [onFieldFocus],
+  );
+
+  const appendToField = useCallback(
+    (fieldName: string, text: string) => {
+      const next = appendToValue(
+        currentValues[fieldName] ?? "",
+        text,
+        appendSeparatorFor(LONG_TEXT_FIELDS.has(fieldName)),
+      );
+      setEditedValues((prev) => ({ ...prev, [fieldName]: next }));
+      focusField(fieldName);
+    },
+    [currentValues, focusField],
+  );
 
   const handleAddCustomField = useCallback(() => {
     const name = customFieldName.trim();
@@ -257,12 +360,48 @@ export default function MetadataForm({
   }, []);
 
   useEffect(() => {
-    onDirtyCountChange?.(dirtyKeys.size);
-  }, [dirtyKeys.size, onDirtyCountChange]);
+    onStatsChange?.({
+      dirty: dirtyKeys.size,
+      missing: fieldCounts.missing,
+      uncertain: fieldCounts.uncertain,
+    });
+  }, [
+    dirtyKeys.size,
+    fieldCounts.missing,
+    fieldCounts.uncertain,
+    onStatsChange,
+  ]);
 
   useEffect(() => {
-    onRegisterActions?.({ save: handleSave, discard: handleDiscard });
-  }, [onRegisterActions, handleSave, handleDiscard]);
+    onRegisterActions?.({
+      save: handleSave,
+      discard: handleDiscard,
+      appendToField,
+    });
+  }, [onRegisterActions, handleSave, handleDiscard, appendToField]);
+
+  const matchesFilter = useCallback(
+    (fieldName: string) => {
+      if (filter === "all") return true;
+      if (activeField === fieldName) return true;
+      const status = statusFor(fieldName);
+      return filter === "missing" ? status === "empty" : status === "uncertain";
+    },
+    [filter, activeField, statusFor],
+  );
+
+  const goToNextMissing = useCallback(() => {
+    const missing = fieldDefinitions.filter(
+      (field) => statusFor(field.field_name) === "empty",
+    );
+    if (missing.length === 0) return;
+    const index = missing.findIndex(
+      (field) => field.field_name === activeField,
+    );
+    const next = missing[(index + 1) % missing.length];
+    if (filter === "uncertain") setFilter("all");
+    focusField(next.field_name);
+  }, [fieldDefinitions, statusFor, activeField, filter, focusField]);
 
   const fieldsByBatch = useMemo(() => {
     const grouped: Record<string, MetadataFieldDefinition[]> = {};
@@ -277,89 +416,162 @@ export default function MetadataForm({
 
   return (
     <div>
-      <Stack gap={3}>
-        {Object.entries(fieldsByBatch).map(([batch, fields]) => (
-          <CollapsibleSection
-            key={batch}
-            title={BATCH_DISPLAY_NAMES[batch] ?? batch}
-            count={fields.length}
-            defaultOpen={batch === "core_identity" || batch === "publication"}
-          >
-            <Stack gap={2}>
-              {fields.map((field) => {
-                const value = currentValues[field.field_name] ?? "";
-                const realConf = confidenceByField?.[field.field_name]?.confidence;
-                const confidence = getFieldConfidence(value, realConf);
-                const style = CONFIDENCE_STYLES[confidence];
-                const isLong = LONG_TEXT_FIELDS.has(field.field_name);
-                const tooltip =
-                  realConf != null
-                    ? `${style.label} (confidence ${(realConf * 100).toFixed(0)}%, ${confidenceByField?.[field.field_name]?.extraction_method ?? "unknown"})`
-                    : style.label;
+      <div
+        role="group"
+        aria-label="Filter metadata fields"
+        className="mb-3 flex flex-wrap items-center gap-1.5"
+      >
+        <FilterChip
+          filter="all"
+          active={filter === "all"}
+          count={fieldDefinitions.length}
+          onClick={() => setFilter("all")}
+        />
+        <FilterChip
+          filter="missing"
+          active={filter === "missing"}
+          count={fieldCounts.missing}
+          onClick={() => setFilter("missing")}
+        />
+        <FilterChip
+          filter="uncertain"
+          active={filter === "uncertain"}
+          count={fieldCounts.uncertain}
+          onClick={() => setFilter("uncertain")}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
+          onClick={goToNextMissing}
+          disabled={fieldCounts.missing === 0}
+        >
+          Next missing
+        </Button>
+      </div>
 
-                return (
-                  <div
-                    key={field.field_name}
-                    className={cn(
-                      "flex flex-col gap-2 rounded-[var(--radius)] border px-3 py-2.5 sm:flex-row sm:items-start sm:gap-3",
-                      style.border,
-                      style.bg,
-                    )}
-                  >
-                    <div className="shrink-0 sm:w-44">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          aria-hidden="true"
-                          className={cn("inline-block size-2 rounded-full", style.dot)}
-                        />
-                        <label
-                          htmlFor={`field-${field.field_name}`}
-                          className="text-[length:var(--text-xs)] font-medium text-[var(--text)]"
-                          title={tooltip}
-                        >
-                          {field.display_name}
-                        </label>
+      <Stack gap={3}>
+        {Object.entries(fieldsByBatch).map(([batch, fields]) => {
+          const visibleFields = fields.filter((field) =>
+            matchesFilter(field.field_name),
+          );
+          if (visibleFields.length === 0) return null;
+
+          return (
+            <CollapsibleSection
+              key={batch}
+              title={BATCH_DISPLAY_NAMES[batch] ?? batch}
+              count={visibleFields.length}
+              defaultOpen={batch === "core_identity" || batch === "publication"}
+              forceOpen={filter !== "all"}
+            >
+              <Stack gap={2}>
+                {visibleFields.map((field) => {
+                  const value = currentValues[field.field_name] ?? "";
+                  const fieldConfidence = confidenceByField?.[field.field_name];
+                  const realConf = fieldConfidence?.confidence;
+                  const confidence = getFieldConfidence(value, realConf);
+                  const style = CONFIDENCE_STYLES[confidence];
+                  const isLong = LONG_TEXT_FIELDS.has(field.field_name);
+                  const sourcePage = fieldConfidence?.source_page_number;
+                  const tooltip =
+                    realConf != null
+                      ? `${style.label} (confidence ${(realConf * 100).toFixed(0)}%, ${fieldConfidence?.extraction_method ?? "unknown"})`
+                      : style.label;
+
+                  return (
+                    <div
+                      key={field.field_name}
+                      className={cn(
+                        "flex flex-col gap-2 rounded-[var(--radius)] border px-3 py-2.5 xl:flex-row xl:items-start xl:gap-3",
+                        style.border,
+                        style.bg,
+                      )}
+                    >
+                      <div className="shrink-0 xl:w-44">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "inline-block size-2 rounded-full",
+                              style.dot,
+                            )}
+                          />
+                          <label
+                            htmlFor={`field-${field.field_name}`}
+                            className="text-[length:var(--text-xs)] font-medium text-[var(--text)]"
+                            title={tooltip}
+                          >
+                            {field.display_name}
+                          </label>
+                        </div>
+                        {field.wikidata_property && (
+                          <span className="mt-1 ml-3.5 inline-block rounded-[var(--radius-xs)] bg-[var(--neutral-100)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)] dark:bg-[var(--neutral-800)]">
+                            {field.wikidata_property}
+                          </span>
+                        )}
+                        {onShowSource && sourcePage != null && (
+                          <button
+                            type="button"
+                            onClick={() => onShowSource(field.field_name)}
+                            className={cn(
+                              "mt-1 ml-3.5 block rounded-[var(--radius-xs)] px-1 py-0.5",
+                              "text-[10px] font-medium text-[var(--accent-soft-text)]",
+                              "hover:bg-[var(--accent-soft)]",
+                              focusRing,
+                            )}
+                          >
+                            Source p.{sourcePage}
+                          </button>
+                        )}
                       </div>
-                      {field.wikidata_property && (
-                        <span className="mt-1 ml-3.5 inline-block rounded-[var(--radius-xs)] bg-[var(--neutral-100)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)] dark:bg-[var(--neutral-800)]">
-                          {field.wikidata_property}
-                        </span>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        {isLong ? (
+                          <Textarea
+                            id={`field-${field.field_name}`}
+                            ref={(element) => {
+                              fieldRefs.current[field.field_name] = element;
+                            }}
+                            value={value}
+                            onChange={(e) =>
+                              handleChange(field.field_name, e.target.value)
+                            }
+                            onFocus={() => {
+                              setActiveField(field.field_name);
+                              onFieldFocus?.(field.field_name);
+                            }}
+                            rows={3}
+                            dir="auto"
+                          />
+                        ) : (
+                          <Input
+                            id={`field-${field.field_name}`}
+                            ref={(element) => {
+                              fieldRefs.current[field.field_name] = element;
+                            }}
+                            type="text"
+                            value={value}
+                            onChange={(e) =>
+                              handleChange(field.field_name, e.target.value)
+                            }
+                            onFocus={() => {
+                              setActiveField(field.field_name);
+                              onFieldFocus?.(field.field_name);
+                            }}
+                            dir="auto"
+                            placeholder={
+                              confidence === "empty" ? "Not extracted" : ""
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      {isLong ? (
-                        <Textarea
-                          id={`field-${field.field_name}`}
-                          value={value}
-                          onChange={(e) =>
-                            handleChange(field.field_name, e.target.value)
-                          }
-                          onFocus={() => onFieldFocus?.(field.field_name)}
-                          rows={3}
-                          dir="auto"
-                        />
-                      ) : (
-                        <Input
-                          id={`field-${field.field_name}`}
-                          type="text"
-                          value={value}
-                          onChange={(e) =>
-                            handleChange(field.field_name, e.target.value)
-                          }
-                          onFocus={() => onFieldFocus?.(field.field_name)}
-                          dir="auto"
-                          placeholder={
-                            confidence === "empty" ? "Not extracted" : ""
-                          }
-                        />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </Stack>
-          </CollapsibleSection>
-        ))}
+                  );
+                })}
+              </Stack>
+            </CollapsibleSection>
+          );
+        })}
       </Stack>
 
       <Card className="mt-4" title="Custom fields" description="Add any field that's not in the standard list.">
