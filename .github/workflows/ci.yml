@@ -12,21 +12,21 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   lint-backend:
     name: Lint Backend (Python)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -42,16 +42,16 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   lint-frontend:
     name: Lint Frontend (Node)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -71,22 +71,22 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   test-backend:
     name: Test Backend (Python)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint-backend
     defaults:
       run:
         working-directory: backend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -99,17 +99,17 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   test-frontend:
     name: Test Frontend (Node)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint-frontend
     defaults:
       run:
         working-directory: frontend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -126,7 +126,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   build-frontend:
     name: Build Frontend (Next.js)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: lint-frontend
     defaults:
       run:
@@ -137,10 +137,10 @@ jobs:
       NEXT_PUBLIC_OPENREFINE_URL: http://localhost:3333
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -159,7 +159,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   test-migrations:
     name: Test DB Migrations
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: backend
@@ -181,15 +181,15 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/indic_books
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
 
       - name: Install dependencies
         run: uv sync --extra dev
