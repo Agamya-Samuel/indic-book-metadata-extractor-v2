@@ -448,6 +448,16 @@ export const getThumbnailUrl = (
   return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 };
 
+export const getPagePreviewUrl = (
+  bookId: string,
+  pageNumber: number,
+  token?: string | null,
+  width = 1600,
+): string => {
+  const base = `${api.defaults.baseURL}/books/${bookId}/pages/${pageNumber}/preview?width=${width}`;
+  return token ? `${base}&token=${encodeURIComponent(token)}` : base;
+};
+
 export const selectPages = async (
   bookId: string,
   selectedPages: number[]

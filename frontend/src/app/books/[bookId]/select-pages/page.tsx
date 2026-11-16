@@ -15,6 +15,7 @@ import { PageContainer, PageHeader } from "@/components/shared/card";
 import { Toolbar, ToolbarGroup } from "@/components/shared/toolbar";
 import { Button } from "@/components/shared/button";
 import Image from "next/image";
+import PageViewer from "@/components/book/page-viewer";
 import { EmptyState, ErrorState } from "@/components/shared/empty-state";
 import { Spinner } from "@/components/shared/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -78,6 +79,7 @@ export default function SelectPagesPage() {
   const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE;
   const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewerPage, setViewerPage] = useState<number | null>(null);
 
   // Only clear the persisted selection when the bookId changes, so
   // navigating away and back doesn't wipe edits.
@@ -164,7 +166,7 @@ export default function SelectPagesPage() {
         <PageHeader
           eyebrow={getLanguageName(book.language)}
           title={book.title || book.filename}
-          description={`Total pages: ${totalPages}`}
+          description={`Total pages: ${totalPages} · Click a page to select it, or use the magnifier to inspect it up close`}
         />
 
         <Toolbar sticky className="mb-4">
@@ -211,64 +213,95 @@ export default function SelectPagesPage() {
               const isLoaded = imagesLoaded.has(pageNumber);
 
               return (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  onClick={() => togglePageSelection(pageNumber)}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    "relative bg-[var(--surface)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all hover:shadow-[var(--shadow-md)]",
-                    focusRing,
-                    isSelected
-                      ? "border-2 border-[var(--accent-ring)] shadow-[var(--shadow-md)]"
-                      : "border-2 border-[var(--border)]"
-                  )}
-                >
-                  <div className="aspect-[3/4] relative bg-[var(--surface-sunken)]">
-                    <Image
-                      src={getThumbnailUrl(bookId, pageNumber, book.thumbnail_token)}
-                      alt={`Page ${pageNumber}`}
-                      fill
-                      sizes="(min-width: 1280px) 12vw, (min-width: 768px) 20vw, 45vw"
-                      className="object-cover"
-                      onLoad={() => handleImageLoad(pageNumber)}
-                      onError={() => handleImageError(pageNumber)}
-                      unoptimized
-                    />
-                    {!isLoaded && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface-sunken)]">
-                        <Spinner className="h-8 w-8 border-2 text-[var(--text-subtle)]" />
-                      </div>
+                <div key={pageNumber} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => togglePageSelection(pageNumber)}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "relative block w-full bg-[var(--surface)] rounded-[var(--radius-lg)] overflow-hidden cursor-pointer transition-all hover:shadow-[var(--shadow-md)]",
+                      focusRing,
+                      isSelected
+                        ? "border-2 border-[var(--accent-ring)] shadow-[var(--shadow-md)]"
+                        : "border-2 border-[var(--border)]"
                     )}
-                  </div>
-
-                  <div className="absolute top-2 right-2">
-                    <div
-                      className={cn(
-                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                        isSelected
-                          ? "bg-[var(--accent)] border-[var(--accent)]"
-                          : "bg-[var(--surface)] border-[var(--border-strong)]"
-                      )}
-                    >
-                      {isSelected && (
-                        <svg className="w-4 h-4 text-[var(--text-inverse)]" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                  >
+                    <div className="aspect-[3/4] relative bg-[var(--surface-sunken)]">
+                      <Image
+                        src={getThumbnailUrl(bookId, pageNumber, book.thumbnail_token)}
+                        alt={`Page ${pageNumber}`}
+                        fill
+                        sizes="(min-width: 1280px) 12vw, (min-width: 768px) 20vw, 45vw"
+                        className="object-cover"
+                        onLoad={() => handleImageLoad(pageNumber)}
+                        onError={() => handleImageError(pageNumber)}
+                        unoptimized
+                      />
+                      {!isLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface-sunken)]">
+                          <Spinner className="h-8 w-8 border-2 text-[var(--text-subtle)]" />
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--neutral-1000)]/80 to-transparent p-2">
-                    <p className="text-[var(--text-inverse)] text-[length:var(--text-xs)] font-medium text-center">
-                      Page {pageNumber}
-                    </p>
-                  </div>
-                </button>
+                    <div className="absolute top-2 right-2">
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                          isSelected
+                            ? "bg-[var(--accent)] border-[var(--accent)]"
+                            : "bg-[var(--surface)] border-[var(--border-strong)]"
+                        )}
+                      >
+                        {isSelected && (
+                          <svg className="w-4 h-4 text-[var(--text-inverse)]" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--neutral-1000)]/80 to-transparent p-2">
+                      <p className="text-[var(--text-inverse)] text-[length:var(--text-xs)] font-medium text-center">
+                        Page {pageNumber}
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setViewerPage(pageNumber);
+                    }}
+                    aria-label={`View page ${pageNumber} larger`}
+                    aria-haspopup="dialog"
+                    title={`View page ${pageNumber} larger`}
+                    className={cn(
+                      "absolute left-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--neutral-1000)]/75 text-[var(--text-inverse)] shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--neutral-1000)]/90",
+                      focusRing,
+                    )}
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+                      />
+                    </svg>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -283,6 +316,26 @@ export default function SelectPagesPage() {
           <p className="mt-1 text-center text-[length:var(--text-xs)] text-[var(--text-subtle)]">
             Showing pages {startPage}–{endPage} of {totalPages}
           </p>
+        )}
+
+        {viewerPage !== null && (
+          <PageViewer
+            key={viewerPage}
+            bookId={bookId}
+            pageNumber={viewerPage}
+            totalPages={totalPages}
+            token={book.thumbnail_token}
+            isSelected={selectedPages.has(viewerPage)}
+            onToggleSelect={() => togglePageSelection(viewerPage)}
+            onNavigate={(delta) =>
+              setViewerPage((current) =>
+                current === null
+                  ? null
+                  : Math.min(totalPages, Math.max(1, current + delta)),
+              )
+            }
+            onClose={() => setViewerPage(null)}
+          />
         )}
       </PageContainer>
     </WorkflowShell>
