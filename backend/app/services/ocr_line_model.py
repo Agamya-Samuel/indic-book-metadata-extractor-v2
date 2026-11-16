@@ -235,9 +235,7 @@ def run_line_ocr(
         )
 
     if lines and not words:
-        raise LineModelEmptyOutput(
-            f"line model transcribed none of {len(lines)} detected lines"
-        )
+        raise LineModelEmptyOutput(f"line model transcribed none of {len(lines)} detected lines")
 
     return {
         "words": words,

@@ -79,7 +79,11 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
 
-    rows = [json.loads(line) for line in (args.data / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line)
+        for line in (args.data / "manifest.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     grouped: dict[tuple[str, int], list[dict]] = defaultdict(list)
     for row in rows:
         grouped[(row["book"], row["page"])].append(row)

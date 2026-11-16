@@ -80,14 +80,17 @@ def now_iso() -> str:
 
 def git_sha() -> str:
     try:
-        return subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=BACKEND_ROOT,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        ).stdout.strip() or "unknown"
+        return (
+            subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=BACKEND_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            ).stdout.strip()
+            or "unknown"
+        )
     except Exception:  # noqa: BLE001 - metadata only
         return "unknown"
 

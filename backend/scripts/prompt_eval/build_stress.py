@@ -75,7 +75,7 @@ def substitute(text: str, language: str, share: float, rng: random.Random) -> st
         if rng.random() < share:
             for index, char in enumerate(word):
                 if char in mapping:
-                    word = f"{word[:index]}{mapping[char]}{word[index + 1:]}"
+                    word = f"{word[:index]}{mapping[char]}{word[index + 1 :]}"
                     break
         words.append(word)
     return " ".join(words)

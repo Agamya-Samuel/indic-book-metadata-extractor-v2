@@ -112,9 +112,7 @@ class TestRendering:
     def test_unknown_batch_raises_for_every_profile(self):
         for profile_id in PROMPT_PROFILES:
             with pytest.raises(ValueError, match="Unknown batch"):
-                render_extraction_prompt(
-                    batch_name="nope", ocr_text="x", language="tel", profile=profile_id
-                )
+                render_extraction_prompt(batch_name="nope", ocr_text="x", language="tel", profile=profile_id)
 
 
 class TestFieldGuidance:

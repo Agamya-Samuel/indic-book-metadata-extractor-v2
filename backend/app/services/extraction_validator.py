@@ -105,7 +105,6 @@ class FieldResult:
         return self.predicted_present and not self.expected_present
 
 
-
 def _is_present(v: object) -> bool:
     if v is None:
         return False
@@ -388,9 +387,7 @@ class OverallEvaluation:
     def value_micro_precision(self) -> float:
         """TP = present and correct; FP = present but wrong or spurious."""
         correct = self.value_correct_count()
-        predicted = sum(
-            1 for b in self.books for r in b.scored_results if r.predicted_present
-        )
+        predicted = sum(1 for b in self.books for r in b.scored_results if r.predicted_present)
         return round(correct / predicted, 3) if predicted else 0.0
 
     def value_micro_recall(self) -> float:
@@ -550,9 +547,7 @@ BOOK_METRICS = {
     "field_level_accuracy": lambda b: b.field_level_accuracy(),
     "presence_f1": lambda b: _f1(b.tp(), b.fp(), b.fn()),
     "mean_token_f1": lambda b: b.mean_token_f1(),
-    "hallucination_rate": lambda b: (
-        b.hallucination_count() / b.absent_count() if b.absent_count() else 0.0
-    ),
+    "hallucination_rate": lambda b: b.hallucination_count() / b.absent_count() if b.absent_count() else 0.0,
 }
 
 

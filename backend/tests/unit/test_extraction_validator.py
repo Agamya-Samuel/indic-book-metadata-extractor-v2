@@ -167,7 +167,10 @@ class TestMaskScoring:
         expected = {"title": "A", "printer": "Leader Press"}
         predicted = {"title": "A"}
         evaln = evaluate_book(
-            "a", expected, predicted, ["title", "printer"],
+            "a",
+            expected,
+            predicted,
+            ["title", "printer"],
             mask={"title": "visible", "printer": "unroutable"},
         )
         # printer is not a recall miss: it was never in the routed text.
@@ -178,7 +181,10 @@ class TestMaskScoring:
     def test_not_in_scan_fields_are_excluded(self):
         expected = {"title": "A", "genre": "autobiography"}
         evaln = evaluate_book(
-            "a", expected, {"title": "A"}, ["title", "genre"],
+            "a",
+            expected,
+            {"title": "A"},
+            ["title", "genre"],
             mask={"title": "visible", "genre": "not_in_scan"},
         )
         assert evaln.fn() == 0
@@ -186,7 +192,10 @@ class TestMaskScoring:
 
     def test_absent_field_value_is_a_hallucination(self):
         evaln = evaluate_book(
-            "a", {"title": "A"}, {"title": "A", "isbn": "invented"}, ["title", "isbn"],
+            "a",
+            {"title": "A"},
+            {"title": "A", "isbn": "invented"},
+            ["title", "isbn"],
             mask={"title": "visible", "isbn": "absent"},
         )
         assert evaln.hallucination_count() == 1
@@ -195,7 +204,10 @@ class TestMaskScoring:
 
     def test_mask_counts_report_every_bucket(self):
         evaln = evaluate_book(
-            "a", {"title": "A"}, {}, ["title"],
+            "a",
+            {"title": "A"},
+            {},
+            ["title"],
             mask={"title": "visible"},
         )
         assert evaln.mask_counts() == {"visible": 1}
@@ -205,10 +217,20 @@ class TestValueAggregates:
     def _overall(self):
         # Two books: one perfect, one with a present-but-wrong author and a
         # spurious ISBN.
-        a = evaluate_book("tel/a", {"title": "A", "author": "B"}, {"title": "A", "author": "B"},
-                          ["title", "author", "isbn"], mask={"title": "visible", "author": "visible", "isbn": "absent"})
-        b = evaluate_book("tel/b", {"title": "X", "author": "Y"}, {"title": "X", "author": "Z", "isbn": "spurious"},
-                          ["title", "author", "isbn"], mask={"title": "visible", "author": "visible", "isbn": "absent"})
+        a = evaluate_book(
+            "tel/a",
+            {"title": "A", "author": "B"},
+            {"title": "A", "author": "B"},
+            ["title", "author", "isbn"],
+            mask={"title": "visible", "author": "visible", "isbn": "absent"},
+        )
+        b = evaluate_book(
+            "tel/b",
+            {"title": "X", "author": "Y"},
+            {"title": "X", "author": "Z", "isbn": "spurious"},
+            ["title", "author", "isbn"],
+            mask={"title": "visible", "author": "visible", "isbn": "absent"},
+        )
         return OverallEvaluation(books=[a, b])
 
     def test_field_level_accuracy_counts_values_not_presence(self):

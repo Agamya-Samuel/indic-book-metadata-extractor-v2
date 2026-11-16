@@ -172,8 +172,7 @@ def build_clean(book: common.Book, force: bool = False) -> dict | None:
         return None
     records.sort(key=lambda p: int(p.get("page") or 0))
     pages = [
-        {"n": int(rec.get("page") or i + 1), "text": (rec.get("text") or "").strip()}
-        for i, rec in enumerate(records)
+        {"n": int(rec.get("page") or i + 1), "text": (rec.get("text") or "").strip()} for i, rec in enumerate(records)
     ]
     meta = _write(
         "clean",

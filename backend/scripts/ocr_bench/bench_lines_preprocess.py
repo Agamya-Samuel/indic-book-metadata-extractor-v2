@@ -203,8 +203,14 @@ def main() -> int:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(
             json.dumps(
-                {"engine": "telugu-ocr-model", "decode": args.decode, "dpi": args.dpi,
-                 "summary": summary, "paired_vs_raw": paired, "rows": rows},
+                {
+                    "engine": "telugu-ocr-model",
+                    "decode": args.decode,
+                    "dpi": args.dpi,
+                    "summary": summary,
+                    "paired_vs_raw": paired,
+                    "rows": rows,
+                },
                 indent=2,
                 ensure_ascii=False,
             ),

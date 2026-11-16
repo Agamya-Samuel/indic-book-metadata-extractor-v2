@@ -75,12 +75,8 @@ def script_counts(text: str) -> dict:
     # Combining matras are not `LETTER`, so they must be in the denominator or
     # a Telugu share can exceed 1.0.
     total_letters = len(LETTER.findall(text))
-    tel = sum(
-        1 for ch in text if "\u0C00" <= ch <= "\u0C7F" and unicodedata.category(ch)[0] in ("L", "M")
-    )
-    dev = sum(
-        1 for ch in text if "\u0900" <= ch <= "\u097F" and unicodedata.category(ch)[0] in ("L", "M")
-    )
+    tel = sum(1 for ch in text if "\u0c00" <= ch <= "\u0c7f" and unicodedata.category(ch)[0] in ("L", "M"))
+    dev = sum(1 for ch in text if "\u0900" <= ch <= "\u097f" and unicodedata.category(ch)[0] in ("L", "M"))
     lat = len(LATIN.findall(text))
     # Denominator: every letter or combining mark. Indic marks are category M,
     # so an L-only denominator would under-count matras and inflate shares.
@@ -179,8 +175,7 @@ def telugu_pages(books: int, per_book: int) -> list[dict]:
         if used >= books:
             break
     print(
-        f"Telugu: {len(out)} pages from {used} books "
-        f"({skipped_no_pdf} GT books without a local PDF skipped)",
+        f"Telugu: {len(out)} pages from {used} books ({skipped_no_pdf} GT books without a local PDF skipped)",
         file=sys.stderr,
     )
     return out

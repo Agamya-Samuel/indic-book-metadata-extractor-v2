@@ -43,9 +43,7 @@ def _series(report: dict, metric: str) -> dict[str, float]:
 
 def _language_series(report: dict, metric: str, language: str) -> dict[str, float]:
     return {
-        sample_id: value
-        for sample_id, value in _series(report, metric).items()
-        if sample_id.split("/")[0] == language
+        sample_id: value for sample_id, value in _series(report, metric).items() if sample_id.split("/")[0] == language
     }
 
 
@@ -89,8 +87,7 @@ def build_leaderboard(reports: dict[str, dict]) -> dict:
             "tokens_out_mean": report["cost"]["tokens_out_mean"],
             "wall_s_mean": report["cost"]["wall_s_mean"],
             "per_language": {
-                language: report["per_language"].get(language, {}).get("field_level_accuracy")
-                for language in languages
+                language: report["per_language"].get(language, {}).get("field_level_accuracy") for language in languages
             },
             "delta": None,
             "regressions": [],
@@ -122,9 +119,11 @@ def build_leaderboard(reports: dict[str, dict]) -> dict:
 
 def to_markdown(leaderboard: dict) -> str:
     languages = leaderboard["languages"]
-    header = "| Variant | Label | Books | Field acc | Presence F1 | Value F1 | Halluc | Missing-det | JSON | " + " | ".join(
-        f"{language} acc" for language in languages
-    ) + " | Δ vs V00 (acc) | Verdict | Regressions |"
+    header = (
+        "| Variant | Label | Books | Field acc | Presence F1 | Value F1 | Halluc | Missing-det | JSON | "
+        + " | ".join(f"{language} acc" for language in languages)
+        + " | Δ vs V00 (acc) | Verdict | Regressions |"
+    )
     divider = "|" + "---|" * (11 + len(languages) + 3)
     lines = [header, divider]
     for row in leaderboard["rows"]:
@@ -167,9 +166,7 @@ def emit_stage3(leaderboard: dict, out_path: Path) -> dict:
     systems = ranked(SYSTEM_ARMS)
     extractions = ranked(EXTRACTION_ARMS)
     if not systems or not extractions:
-        raise SystemExit(
-            "Stage-3 selection needs Stage 1 (system arms) and Stage 2 (extraction arms) reports first."
-        )
+        raise SystemExit("Stage-3 selection needs Stage 1 (system arms) and Stage 2 (extraction arms) reports first.")
 
     pairs = [
         (systems[0]["variant"], extractions[0]["variant"]),
@@ -214,7 +211,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--track", default="clean", choices=common.TRACKS)
     parser.add_argument("--report-dir", type=Path, default=common.REPORT_ROOT)
-    parser.add_argument("--output", type=Path, default=None, help="Markdown output (default: reports/prompt-eval/leaderboard.<track>.md)")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Markdown output (default: reports/prompt-eval/leaderboard.<track>.md)",
+    )
     parser.add_argument("--emit-stage3", action="store_true")
     args = parser.parse_args()
 

@@ -45,11 +45,7 @@ def _request_is_admin(request) -> bool:
 class MaintenanceMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         path = request.url.path
-        if (
-            request.method == "OPTIONS"
-            or path in _ALLOW_EXACT
-            or path.startswith(_ALLOW_PREFIXES)
-        ):
+        if request.method == "OPTIONS" or path in _ALLOW_EXACT or path.startswith(_ALLOW_PREFIXES):
             return await call_next(request)
 
         state = maintenance_service.get_state()

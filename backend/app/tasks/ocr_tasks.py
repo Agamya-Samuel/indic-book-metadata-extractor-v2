@@ -87,9 +87,7 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
         # One shared pass for worker and evaluation corpus: OCR -> low-confidence
         # retry -> text normalisation. Duplicating this sequence is what let the
         # frozen corpus drift from production.
-        ocr_data = ocr_service.process_page_image(
-            image_path, language, page_position=page.page_number - 1
-        )
+        ocr_data = ocr_service.process_page_image(image_path, language, page_position=page.page_number - 1)
         words = ocr_data["words"]
         raw_text = ocr_data["raw_text"]
         cleaned_text = ocr_data["cleaned_text"]
@@ -98,11 +96,7 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
         ocr_result = await db.execute(select(OcrResult).where(OcrResult.page_id == page.id))
         existing = ocr_result.scalar_one_or_none()
         detected_lines = ocr_data.get("detected_lines")
-        coverage = (
-            round(ocr_data.get("word_count", 0) / detected_lines, 4)
-            if detected_lines
-            else None
-        )
+        coverage = round(ocr_data.get("word_count", 0) / detected_lines, 4) if detected_lines else None
 
         if existing:
             existing.raw_text = raw_text

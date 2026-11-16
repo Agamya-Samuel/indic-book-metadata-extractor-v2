@@ -72,9 +72,7 @@ async def test_admin_status_includes_updater(db_session) -> None:
     db_session.add(admin)
     await db_session.commit()
 
-    await ms.set_maintenance(
-        db_session, enabled=True, message="Patch", until=None, updated_by_id=admin.id
-    )
+    await ms.set_maintenance(db_session, enabled=True, message="Patch", until=None, updated_by_id=admin.id)
     status = await ms.get_admin_status(db_session)
 
     assert status["enabled"] is True

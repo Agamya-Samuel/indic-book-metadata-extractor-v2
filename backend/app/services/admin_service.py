@@ -174,9 +174,7 @@ async def _queue_positions(db: AsyncSession, jobs: list[Job]) -> dict[UUID, int]
     if not queued_ids:
         return {}
 
-    rows = (
-        await db.execute(select(Job.id, Job.job_type, Job.created_at).where(Job.status == JobStatus.QUEUED))
-    ).all()
+    rows = (await db.execute(select(Job.id, Job.job_type, Job.created_at).where(Job.status == JobStatus.QUEUED))).all()
 
     families: dict[str, list[tuple[datetime, UUID]]] = {}
     for job_id, job_type, created_at in rows:
@@ -659,9 +657,7 @@ async def change_language(
     book.language = language
     await db.flush()
 
-    has_page = (
-        await db.execute(select(Page.id).where(Page.book_id == book_id).limit(1))
-    ).scalar_one_or_none()
+    has_page = (await db.execute(select(Page.id).where(Page.book_id == book_id).limit(1))).scalar_one_or_none()
     if has_page is None:
         await db.commit()
         await db.refresh(book)

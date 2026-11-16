@@ -82,9 +82,7 @@ def pad_batch(model, images, input_ids, ctc_ids):
         lengths.append(tensor.shape[-1] // model.config.downsample)
     max_w = max(t.shape[-1] for t in pixel)
     pixel = [
-        torch.cat([t, torch.ones(t.shape[0], max_w - t.shape[-1], dtype=t.dtype)], dim=-1)
-        if t.shape[-1] < max_w
-        else t
+        torch.cat([t, torch.ones(t.shape[0], max_w - t.shape[-1], dtype=t.dtype)], dim=-1) if t.shape[-1] < max_w else t
         for t in pixel
     ]
     pixel = torch.stack(pixel, dim=0).unsqueeze(1)  # (B, 1, 64, W)

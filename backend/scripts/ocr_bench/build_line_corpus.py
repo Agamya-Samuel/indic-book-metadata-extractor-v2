@@ -39,9 +39,7 @@ def script_share(text: str) -> float:
 
 
 def line_boxes(img: Image.Image) -> list[dict]:
-    data = pytesseract.image_to_data(
-        img, lang="tel", config="--psm 6", output_type=pytesseract.Output.DICT
-    )
+    data = pytesseract.image_to_data(img, lang="tel", config="--psm 6", output_type=pytesseract.Output.DICT)
     groups: dict[tuple[int, int, int], dict] = {}
     for i, raw in enumerate(data["text"]):
         if not str(raw).strip():

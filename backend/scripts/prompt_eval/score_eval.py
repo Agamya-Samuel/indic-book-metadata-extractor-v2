@@ -180,8 +180,11 @@ def main() -> int:
     registry["experiments"] = [
         entry
         for entry in registry["experiments"]
-        if not (entry.get("track") == args.track and entry.get("suffix", "") == args.suffix
-                and entry.get("variant") in by_variant)
+        if not (
+            entry.get("track") == args.track
+            and entry.get("suffix", "") == args.suffix
+            and entry.get("variant") in by_variant
+        )
     ]
 
     books_by_id = {book.sample_id: book for book in common.discover_books()}
