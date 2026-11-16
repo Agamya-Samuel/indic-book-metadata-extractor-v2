@@ -67,6 +67,32 @@ docker start <container>
 `unless-stopped` policy will **not** bring it back. Use `docker start` after an
 intentional stop. A container that exits on its own is restarted by the policy.
 
+## Maintenance mode
+
+Turn it on from **Admin → System → Maintenance mode**. The toggle is stored in
+the singleton `system_settings` row and mirrored to Redis (`system:maintenance`);
+the backend refreshes its snapshot every 10 seconds.
+
+- Regular users get a full-screen maintenance page and non-admin API calls
+  return **503** (`type: "maintenance"`).
+- Admins keep full access, and `/login`, `/api/auth/*`, `/api/health`, and
+  `/api/status` stay reachable so you can always turn it off.
+- Queued and running OCR/LLM jobs **continue to completion**. New uploads and
+  job submissions are refused.
+- Set **End automatically at** to reopen at a fixed time. A past time is treated
+  as off even if the switch is still on.
+
+If the admin UI is unavailable, clear it directly:
+
+```bash
+docker exec <postgres> psql -U postgres -d indic_books -c \
+  "update system_settings set maintenance_enabled=false, maintenance_until=null where id=1;"
+docker exec <redis> redis-cli DEL system:maintenance
+```
+
+The backend picks up the change within one refresh interval (10 s); restart the
+backend if you need it immediately.
+
 ## Stuck jobs
 
 A worker crash can leave `jobs.status = 'running'` with the book locked in

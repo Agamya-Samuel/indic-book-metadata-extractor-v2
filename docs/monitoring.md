@@ -271,6 +271,36 @@ Custom events are emitted via helpers in `backend/app/services/metrics.py`. Each
 
 ---
 
+## In-app admin monitoring
+
+The admin UI has a live operations view at **`/admin/system`** (and queue
+management at `/admin/jobs`) backed by `GET /api/admin/system`.
+
+| Source | What it reports | Cost |
+|--------|-----------------|------|
+| `psutil` in the backend process | Host CPU, load average, RAM, swap, disk usage, uptime | 0.2 s CPU sample |
+| `redis.asyncio` (shared pool) | Redis reachability, `LLEN` per queue (`ocr`, `llm`, `default`) | One `PING` + one `LLEN` per queue |
+| Celery `control.inspect` | Worker count, active tasks, configured queues | ≤ 1 s broker timeout, skipped when Redis is down |
+| `GET {OLLAMA_URL}/api/tags` and `/api/ps` | Ollama reachability, available and loaded model size | 3 s HTTP timeout |
+| Tesseract binary | Installed version | Cached once per process |
+| `jobs` table | Counts by status/type, completions in the last 15 min | Grouped SQL |
+
+The whole probe is cached for **10 seconds** and single-flighted, so dashboard
+polling does not multiply the work. A default Docker container shares the host
+kernel's `/proc`, so the CPU/RAM/disk figures are host-level without mounting
+anything; if namespaces are later isolated, those numbers become
+container-scoped.
+
+**Division of responsibility:** this page answers “what is happening right
+now”. Long-term history, alerting, and trace/error detail stay in the external
+providers (New Relic when enabled, Better Stack once wired, Flower for Celery
+task detail). The page links to those instead of duplicating them.
+
+**Sentry:** not integrated (no SDK in the repo). If error tracking is added
+later, configure it alongside New Relic — this page is not a replacement.
+
+---
+
 ## Local Development
 
 For local development, New Relic is **disabled by default** to avoid sending test data to your production dashboard.
