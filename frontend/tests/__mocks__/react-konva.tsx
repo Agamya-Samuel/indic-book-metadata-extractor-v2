@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import React from "react";
 
 export const Stage = vi.fn((props: Record<string, unknown>) => {
-  const { children, width, height, onWheel, ...rest } = props;
+  const { children, width, height } = props;
   return React.createElement(
     "div",
     {
@@ -23,12 +23,12 @@ export const Layer = vi.fn((props: Record<string, unknown>) => {
   );
 });
 
-export const Image = vi.fn((props: Record<string, unknown>) => {
+export const Image = vi.fn((_props: Record<string, unknown>) => {
   return React.createElement("div", { "data-testid": "konva-image" });
 });
 
 export const Rect = vi.fn((props: Record<string, unknown>) => {
-  const { onClick, ...rest } = props;
+  const { onClick } = props;
   return React.createElement("div", {
     "data-testid": "konva-rect",
     onClick: onClick as React.MouseEventHandler,

@@ -35,8 +35,6 @@ vi.mock("@/lib/api", async (importOriginal) => {
   };
 });
 
-import { login } from "@/lib/api";
-const mockLogin = vi.mocked(login);
 const mockUseAuth = vi.mocked(useAuth);
 
 function mockAuth(loginImpl: ReturnType<typeof vi.fn>) {
