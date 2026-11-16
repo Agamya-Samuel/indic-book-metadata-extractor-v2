@@ -55,7 +55,71 @@ backend and worker from starting at all. That is the most common "deploy looks d
 
 ---
 
-## 3. Custom events (New Relic)
+## 3. New Relic
+
+New Relic Cloud (SaaS) — there are no self-hosted New Relic components. Four agents cover the stack:
+
+| Agent | Runs in | Collects |
+| --- | --- | --- |
+| **Python APM** | FastAPI backend and Celery worker | Routes, SQLAlchemy queries, HTTP clients, Redis, Celery tasks |
+| **Node APM** | Next.js server process (hybrid OTel mode) | SSR timings, API routes, browser snippet injection |
+| **Browser (RUM)** | User's browser | Page loads, AJAX, JS errors, session traces, Core Web Vitals |
+| **Infrastructure** | Separate sidecar container | Container CPU/memory/network, Docker events, host disk and load |
+
+Key files:
+
+| File | Purpose |
+| --- | --- |
+| `backend/newrelic.ini` | Python agent configuration |
+| `backend/app/main.py` | Idempotent `initialize()` fallback for local runs |
+| `backend/app/tasks/celery_app.py` | `worker_init` hook, safety net when `sitecustomize` is absent |
+| `frontend/newrelic.cjs` | Node agent configuration |
+| `frontend/src/instrumentation.ts` | Loads the agent on server startup |
+| `frontend/src/app/layout.tsx` | Injects the browser snippet, with a static fallback |
+
+**Browser snippet fallback.** `getBrowserTimingHeader()` returns a placeholder
+(`<!-- NREUM: (4) -->`) if called before the agent has received the browser payload from the
+collector. The root layout detects that and builds a static snippet from `NEXT_PUBLIC_NEW_RELIC_*`
+instead. That is why those variables exist despite being used only server-side.
+
+**Do not double-wrap.** Production runs under `newrelic-admin run-program`, which auto-instruments via
+`sitecustomize`. Wrapping the ASGI app again in `main.py` produces duplicate traces. `initialize()` is
+kept only as an idempotent fallback for local development.
+
+### 3.1 Environment variables
+
+| Variable | Purpose | Default | Services |
+| --- | --- | --- | --- |
+| `NEW_RELIC_ENABLED` | Master toggle | `false` | backend, worker, frontend |
+| `NEW_RELIC_LICENSE_KEY` | Ingest key | — | backend, worker, infra |
+| `NEW_RELIC_APP_NAME` | Dashboard name | app name | backend, worker, frontend |
+| `NEW_RELIC_ENVIRONMENT` | Environment label | `production` | backend, worker |
+| `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED` | Cross-service traces | `true` | backend, worker |
+| `NEW_RELIC_LOG` | Agent log level | `error` | all |
+| `NEW_RELIC_CONFIG_FILE` | Path to `newrelic.ini` | `newrelic.ini` | backend, worker |
+| `NEW_RELIC_MONITOR_MODE` | Run the APM agent process | `true` | backend, worker |
+| `NEW_RELIC_DEVELOPER_MODE` | Low-overhead dev mode | `false` | backend, worker |
+| `NEXT_PUBLIC_NEW_RELIC_LICENSE_KEY` / `_APP_ID` / `_ACCOUNT_ID` | Browser fallback snippet | — | frontend **build args** |
+| `NRIA_LICENSE_KEY` | Infra agent key (falls back to the shared key) | — | infra |
+| `NRIA_DISPLAY_NAME` | Host label | — | infra |
+| `NRIA_LOG` | Infra log level | `info` | infra |
+
+### 3.2 Compose wiring
+
+| Service | Wiring |
+| --- | --- |
+| `backend` | `NEW_RELIC_*` env; `newrelic-admin run-program` in the image command |
+| `worker` | Same env; `newrelic-admin run-program celery …` |
+| `frontend` | `NEXT_PUBLIC_NEW_RELIC_*` and `NEW_RELIC_*` passed as **build args** (baked at build time) plus runtime env |
+| `newrelic-infra` | `privileged: true`, `pid: host`, `network_mode: host`, `SYS_PTRACE`; mounts `/`, `/proc`, `/sys` read-only and `/var/run/docker.sock` |
+
+The infra agent needs those privileges because the APM agents can only see their own process — they
+cannot answer "is Postgres hot", "did Redis restart three times", or "is the disk filling".
+
+The infra sidecar exists only in `docker-compose.yml` (dev), under the `monitoring` profile. It is not
+part of the production compose.
+
+### 3.3 Custom events
 
 `services/metrics.py` records domain events through `newrelic.agent.record_custom_event`, so they are
 queryable in NRQL rather than being log lines:
@@ -67,6 +131,40 @@ queryable in NRQL rather than being log lines:
 | `record_llm_extraction(...)` | Extraction outcome and timing |
 
 These are no-ops when `NEW_RELIC_ENABLED=false`, so local runs are unaffected.
+
+### 3.4 Local development
+
+New Relic is disabled by default locally. To test the integration without polluting production:
+
+```bash
+NEW_RELIC_ENABLED=true
+NEW_RELIC_ENVIRONMENT=local
+NEW_RELIC_APP_NAME=Indic Book Metadata Extractor (Local)
+NRIA_DISPLAY_NAME=local-dev-machine
+```
+
+Verify each agent:
+
+```bash
+docker compose logs backend  | grep -i newrelic     # Python APM
+docker compose logs frontend | grep -i newrelic     # Node APM
+docker compose logs newrelic-infra                  # infra sidecar
+curl -s http://localhost:3000 | grep -o 'NREUM.info={[^}]*}'   # browser snippet
+```
+
+### 3.5 Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| No data in the dashboard | Disabled or missing key | `NEW_RELIC_ENABLED=true` and a valid `NEW_RELIC_LICENSE_KEY` |
+| Infra agent crash loop | Docker socket not mounted | Mount `/var/run/docker.sock` read-only |
+| Snippet is `<!-- NREUM: (4) -->` | Agent had not received browser JS | Expected on first load; the `NEXT_PUBLIC_*` fallback should cover it |
+| `Cannot find module 'meriyah'` | Missing from standalone build | Keep it in `outputFileTracingIncludes` and `serverExternalPackages` |
+| `dotenv` error in frontend | Agent config loads dotenv | Remove `require("dotenv").config()`; Compose injects env |
+| `EACCES` on the log file | Next.js user cannot write it | `chown` the log file, or log to `stdout` |
+| No Celery task traces | Worker not instrumented | Ensure the `newrelic-admin run-program` prefix is present |
+| Duplicate traces | Agent wrapped twice | Do not wrap the ASGI app when `newrelic-admin` is used |
+| Distributed traces not linking | DT off on one service | Enable on **all** services |
 
 ---
 

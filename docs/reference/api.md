@@ -235,6 +235,241 @@ Event types:
 
 ---
 
+## Request and response bodies
+
+Concrete shapes for the endpoints where the table above is not enough. Examples are illustrative;
+field names and nullability are the contract.
+
+### Authentication
+
+```json
+POST /api/auth/register
+{ "email": "reader@example.com", "display_name": "Ada", "password": "long-enough-password" }
+
+201 → { "message": "Account created. …", "email": "reader@example.com" }
+```
+
+Registration is moderated by default: the account is `pending` and unverified. `REGISTRATION_REQUIRES_APPROVAL=false`
+auto-approves.
+
+```json
+POST /api/auth/login       { "email": "…", "password": "…" }
+POST /api/auth/verify-email { "token": "<from email link>" }
+POST /api/auth/reset-password { "token": "…", "new_password": "…" }
+```
+
+Each of these sets `access_token`, `refresh_token`, and `csrf_token` and returns the user object:
+
+```json
+{
+  "id": "…", "email": "reader@example.com", "display_name": "Ada",
+  "role": "user", "is_active": true, "account_status": "approved",
+  "rejection_reason": null,
+  "email_verified_at": "…", "last_login_at": "…", "created_at": "…"
+}
+```
+
+`POST /api/auth/refresh` rotates the refresh cookie. Reusing a rotated token is treated as theft:
+all sessions are revoked and the token version is bumped.
+
+### Books
+
+```text
+POST /api/books/upload            multipart/form-data
+```
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `file` | file | yes | PDF, capped by `MAX_UPLOAD_SIZE_MB` (200) |
+| `title` | string | no | Optional display title |
+| `language` | string | **yes** | `tel` \| `hin` \| `eng`; anything else is 422 |
+
+```json
+201 → { "id": "…", "filename": "book.pdf", "title": "…", "language": "tel",
+        "total_pages": 250, "status": "uploaded", "created_at": "…" }
+```
+
+```json
+PATCH /api/books/{book_id}/language   { "language": "hin" }
+200 → { "id": "…", "language": "hin", "job_id": "…" }
+```
+
+Changing the language cancels active jobs, discards OCR derived from the old language, resets from
+the OCR stage, keeps the PDF and page images, and queues fresh OCR. `job_id` is `null` when no pages
+are selected or the language was already correct.
+
+```json
+POST /api/books/{book_id}/pages   { "selected_pages": [1, 2, 3, 248, 249, 250] }
+200 → { "book_id": "…", "selected_count": 6, "status": "pages_selected" }
+```
+
+```json
+POST /api/books/{book_id}/run-ocr
+201 → { "id": "…", "book_id": "…", "job_type": "ocr", "status": "queued",
+        "progress": 0.0, "created_at": "…", "started_at": null,
+        "completed_at": null, "error_log": null }
+```
+
+```json
+GET /api/books/{book_id}/ocr-status
+{ "total_pages": 8, "ocr_complete_count": 8, "ocr_pending_count": 0,
+  "avg_confidence": 78.5,
+  "pages": [ { "page_number": 1, "page_id": "…", "has_ocr": true, "confidence": 82.0 } ] }
+```
+
+```json
+GET /api/books/{book_id}/detail        (owner or admin; 404 otherwise)
+{ "book": { "id": "…", "filename": "book.pdf", "title": "…", "language": "tel",
+            "total_pages": 250, "status": "complete", "created_at": "…", "updated_at": "…" },
+  "metadata": { "title": "…", "author": "…" },
+  "metadata_updated_at": "…",
+  "owner_display_name": "Ada Lovelace",
+  "pages": [ { "id": "…", "page_number": 1, "image_url": "/api/pages/…/image",
+               "ocr_text": "…", "ocr_confidence": 82.0 } ],
+  "llm_runs": [], "jobs": [] }
+```
+
+`owner_display_name` is exposed; the owner's email never is.
+
+Lifecycle endpoints return `{ "id", "status" }` unless noted:
+`DELETE /api/books/{id}`, `POST /api/books/{id}/reset`,
+`POST /api/books/{id}/rerun-ocr` (`{ "job_id", "book_id", "status" }`, 400 when no pages),
+`POST /api/books/{id}/rerun-extraction` (400 when OCR has not run or a job is active).
+
+### Pages
+
+```json
+PUT /api/pages/{page_id}/preprocessing
+{ "grayscale": true, "brightness": 10, "contrast": 20, "binarization": "otsu",
+  "adaptive_block_size": 11, "adaptive_c": 2, "deskew": true,
+  "denoise": false, "denoise_strength": 10 }
+
+200 → { "page_id": "…", "processed_image_url": "/api/pages/…/image",
+        "config_applied": { … } }
+```
+
+```json
+GET /api/pages/{page_id}/ocr
+{ "page_id": "…", "raw_text": "…", "cleaned_text": "…", "corrected_text": null,
+  "bounding_boxes": [ { "text": "…", "confidence": 92,
+                        "bbox": { "x": 100, "y": 50, "w": 40, "h": 20 },
+                        "block_num": 1, "line_num": 1, "word_num": 1 } ],
+  "confidence": 78.5, "language_detected": "tel",
+  "ocr_engine": "line_model", "ocr_route": null,
+  "ocr_coverage": 1.0, "ocr_script": { "latin": 0.01, "telugu": 0.98, "devanagari": 0.0 } }
+
+PUT /api/pages/{page_id}/ocr   { "corrected_text": "…" }   → same shape, corrected_text set
+```
+
+`GET /api/pages/{page_id}/image` serves the processed image when one exists, otherwise the original.
+
+### Extraction
+
+```json
+GET /api/books/models                    (paginated envelope)
+{ "items": [ { "name": "gemma4:e4b", "size_gb": 6.6, "parameter_count": "7.5B" } ],
+  "total": 1, "page": 1, "page_size": 20 }
+```
+
+```json
+POST /api/books/{book_id}/run-extraction
+{ "model": "gemma4:e4b", "temperature": 0.3, "max_tokens": 512,
+  "custom_system_prompt": null, "custom_extraction_prompt": null }
+
+201 → { "job_id": "…", "book_id": "…", "status": "queued", "total_batches": 8 }
+```
+
+The model is pinned to `gemma4:e4b`; other names are rejected. Book status must be `ocr_complete`.
+`POST /api/books/{book_id}/retry-extraction` takes the same body and also accepts `complete`.
+
+### Metadata
+
+```json
+GET /api/books/{book_id}/metadata
+{ "book_id": "…", "fields": { "title": "…", "author": "…", "publisher": "…",
+                              "publication_date": "2020", "pages": "250",
+                              "custom_fields": { "my_key": "value" } },
+  "updated_at": "…" }
+
+PUT /api/books/{book_id}/metadata
+{ "fields": { "title": "Corrected Title", "author": "Corrected Author" } }
+```
+
+`PUT` **merges** the supplied keys; unspecified fields are untouched.
+
+```json
+GET /api/books/{book_id}/metadata/fields     (paginated)
+{ "items": [ { "field_name": "author", "display_name": "Author",
+               "wikidata_property": "P50", "batch_group": "core_identity" } ], … }
+```
+
+49 standard fields plus `custom_fields`. `GET /api/books/{book_id}/metadata/evidence` returns the
+per-field provenance rows; `GET /api/books/{book_id}/llm-runs` returns the batch audit trail
+(prompts, raw responses, parsed fields).
+
+### Dashboard
+
+```json
+GET /api/dashboard/summary
+{ "books": { "total": 3, "by_status": { "complete": 1, "awaiting_review": 1, "uploaded": 1 } },
+  "jobs":  { "total": 12, "queued": 1, "running": 1, "completed": 9, "failed": 1, "cancelled": 0 },
+  "queue": { "ocr": 2, "llm": 0 } }
+```
+
+Job rows include `queue_ahead` — queued jobs ahead in the same queue (`0` when running, `null` when
+not queued). `POST /api/dashboard/jobs/{job_id}/cancel` returns `{ "id", "status" }` and 400s on a
+terminal job.
+
+### Admin
+
+`GET /api/admin/stats` includes `users: { total, active, pending }` and a top-level
+`pending_user_count`. Role changes, deactivation, rejection, and password resets revoke the target
+user's sessions. The last active admin cannot be demoted or deactivated, and an admin cannot reject or
+delete their own account.
+
+### Bulk
+
+```json
+GET /api/bulk/stats
+{ "total_books": 1234, "books_with_metadata": 1100,
+  "languages": { "tel": 800, "hin": 434 },
+  "statuses": { "complete": 1100, "ocr_complete": 134 } }
+
+POST /api/bulk/import?mode=merge    (multipart, `file` = CSV with a book_id column)
+200 → { "total_rows": 500, "books_updated": 498, "books_not_found": 2,
+        "fields_changed": 1523, "errors": ["Row 45: invalid book_id 'not-a-uuid'"] }
+```
+
+`POST /api/bulk/export?language=&status=` returns `text/csv` with one row per book, first column
+`book_id`. `mode=overwrite` replaces all fields; default `merge` updates only the provided ones.
+
+`POST /api/bulk/export-wikibase?language=` returns `text/tab-separated-values` (QuickStatements),
+generated locally:
+
+```text
+CREATE
+LAST	Len	"Book Title"
+LAST	P50	"Author Name"
+LAST	P123	"Publisher Name"
+LAST	P31	Q571
+LAST	P407	Q809
+```
+
+### Notifications
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/notifications` | `{ items, total, unread_count, total_pages }`; query `page`, `page_size`, `unread_only` |
+| GET | `/api/notifications/unread-count` | `{ "count": N }` |
+| POST | `/api/notifications/{id}/read` | Row; 404 if it belongs to another user |
+| POST | `/api/notifications/read-all` | `{ "updated": N }` |
+| GET / PATCH | `/api/notifications/preferences` | `{ "email_enabled": true }` |
+
+Types: `job_completed`, `job_failed`, `job_cancelled`, `account_approved`, `pending_registration`.
+Creation is idempotent per `(user, event_key)`.
+
+---
+
 ## Status codes
 
 | Code | Meaning here |
