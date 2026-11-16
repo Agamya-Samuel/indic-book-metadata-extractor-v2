@@ -92,6 +92,7 @@ export default function Home() {
           <p className="max-w-md text-[length:var(--text-sm)] leading-relaxed text-[var(--text-muted)]">
             Developed under the Guidance, Mentorship, and Support of{" "}
             <span className="font-medium text-[var(--text)]">
+              <br />
               Open Knowledge Initiatives (OKI)
             </span>
             , IIIT Hyderabad.
