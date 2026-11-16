@@ -28,7 +28,7 @@ from app.schemas.metadata import ALL_METADATA_FIELDS
 
 CANON = [f.field_name for f in ALL_METADATA_FIELDS]
 CANON_SET = set(CANON)
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 
 def normalize_dict(d: dict, default) -> tuple[dict, list[str], list[str]]:

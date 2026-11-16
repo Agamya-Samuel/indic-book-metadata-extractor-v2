@@ -827,7 +827,7 @@ def main() -> None:
         "--output-dir",
         type=Path,
         default=None,
-        help="Output directory for PDFs (default: tests/fixtures/samples/<lang>/<quality>/)",
+        help="Output directory for PDFs (default: datasets/samples/<lang>/<quality>/)",
     )
     parser.add_argument(
         "--skip-fixtures",
@@ -837,9 +837,9 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Resolve paths
-    project_root = Path(__file__).resolve().parent.parent
-    fixtures_dir = project_root / "tests" / "fixtures" / "samples"
+    # Resolve paths (parents[2] is the repository root: backend/scripts/<file>)
+    project_root = Path(__file__).resolve().parents[2]
+    fixtures_dir = project_root / "datasets" / "samples"
 
     if args.all:
         keys = list(BOOKS.keys())

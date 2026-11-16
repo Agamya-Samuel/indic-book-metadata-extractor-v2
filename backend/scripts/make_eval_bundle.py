@@ -6,7 +6,7 @@ can run them on a remote node (no backend install there).
 
 Usage:
     python -m scripts.make_eval_bundle \
-        --book tests/fixtures/ground_truth/tel/2015.373190.Athma-Charitramu \
+        --book datasets/ground-truth/tel/2015.373190.Athma-Charitramu \
         --batches core_identity,publication \
         --output /tmp/bundle_athma.json
 """

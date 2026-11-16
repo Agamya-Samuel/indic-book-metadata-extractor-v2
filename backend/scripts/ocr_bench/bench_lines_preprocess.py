@@ -23,7 +23,7 @@ over a hard limit.
 Usage:
     HF_HUB_OFFLINE=1 TESSDATA_PREFIX=/tmp/ocr-eval/tessdata_fast \\
       ~/.cache/ocr-line-venv/bin/python backend/scripts/ocr_bench/bench_lines_preprocess.py \\
-        --books 8 --pages 3 --out backend/reports/ocr-lines-preprocess-bench.json
+        --books 8 --pages 3 --out benchmarks/reports/ocr-lines-preprocess-bench.json
 """
 
 from __future__ import annotations

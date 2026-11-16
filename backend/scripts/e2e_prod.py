@@ -22,7 +22,7 @@ BASE = os.environ.get("E2E_BASE_URL", "https://indic-book-metadata-extractor.aga
 PDF = Path(
     os.environ.get(
         "E2E_PDF",
-        "backend/tests/fixtures/ground_truth/hin/"
+        "datasets/ground-truth/hin/"
         "Srimad_Bhagavad_Gita_Bhavartha_Translation_by_Gadadhar_Singh_1896/original.pdf",
     )
 )

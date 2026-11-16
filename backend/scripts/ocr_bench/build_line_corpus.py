@@ -23,7 +23,7 @@ import fitz
 import pytesseract
 from PIL import Image
 
-GT_ROOT = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[3] / "datasets" / "ground-truth"
 TELUGU = re.compile(r"[\u0C00-\u0C7F]")
 LETTER = re.compile(r"[^\W\d_]", re.UNICODE)
 

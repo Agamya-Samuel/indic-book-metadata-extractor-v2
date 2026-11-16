@@ -30,7 +30,7 @@ from app.schemas.metadata import ALL_METADATA_FIELDS
 from app.services.prompts import FIELD_DISPLAY_NAMES
 
 FIELD_NAMES = [f.field_name for f in ALL_METADATA_FIELDS]
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 _TELUGU = re.compile(r"[\u0c00-\u0c7f]")
 _YEAR = re.compile(r"\b(1[0-9]{3}|20[0-9]{2})\b")

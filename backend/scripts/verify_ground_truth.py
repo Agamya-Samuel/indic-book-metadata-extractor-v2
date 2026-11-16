@@ -27,7 +27,7 @@ from pathlib import Path
 from app.schemas.metadata import ALL_METADATA_FIELDS
 
 FIELD_NAMES = [f.field_name for f in ALL_METADATA_FIELDS]
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 
 def norm(text: object) -> str:

@@ -18,7 +18,7 @@ Modes mirror the six probes in learnings/009-decision-classification-models.md (
 
 Usage:
     pdftoppm -f 3 -l 3 -r 150 -png \\
-        backend/tests/fixtures/ground_truth/tel/2015.373190.Athma-Charitramu/original.pdf /tmp/tp
+        datasets/ground-truth/tel/2015.373190.Athma-Charitramu/original.pdf /tmp/tp
     python3 backend/scripts/probe_openrouter_extractions.py --model scaledown/extract \\
         --mode text --yes-spend
     python3 backend/scripts/probe_openrouter_extractions.py --model cloudflare/clairic \\

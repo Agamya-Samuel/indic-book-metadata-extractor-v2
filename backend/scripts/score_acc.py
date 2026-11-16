@@ -5,7 +5,7 @@ with the shared validator. Ground truth is unverified — treat as provisional.
 
 Usage:
     python -m scripts.score_acc --jsonl /tmp/acc_qwen35_4b.jsonl \
-        --book tests/fixtures/ground_truth/tel/2015.373190.Athma-Charitramu
+        --book datasets/ground-truth/tel/2015.373190.Athma-Charitramu
 """
 
 from __future__ import annotations

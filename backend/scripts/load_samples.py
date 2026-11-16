@@ -1,6 +1,6 @@
 """Sample dataset fixture loader.
 
-Bulk-imports sample PDFs from tests/fixtures/samples/ and validates
+Bulk-imports sample PDFs from datasets/samples/ and validates
 OCR + metadata extraction against expected outputs.
 
 Usage:
@@ -16,7 +16,7 @@ import asyncio
 import json
 from pathlib import Path
 
-FIXTURES_DIR = Path(__file__).parent.parent / "tests" / "fixtures" / "samples"
+FIXTURES_DIR = Path(__file__).resolve().parents[2] / "datasets" / "samples"
 
 
 def discover_samples(language: str | None = None) -> list[dict]:

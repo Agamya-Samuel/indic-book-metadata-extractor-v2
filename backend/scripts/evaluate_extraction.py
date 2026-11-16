@@ -1,6 +1,6 @@
 """End-to-end accuracy harness.
 
-Discovers all ``backend/tests/fixtures/samples/*/clean/expected_metadata.json``
+Discovers all ``datasets/samples/*/clean/expected_metadata.json``
 fixtures, runs the full pipeline on the matching sample PDF, compares
 predicted vs expected metadata, and writes a report.
 
@@ -39,9 +39,8 @@ from app.services.extraction_validator import (
 
 logger = logging.getLogger(__name__)
 
-FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "samples"
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
-GT_ROOT = FIXTURE_ROOT.parent / "ground_truth"
+FIXTURE_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "samples"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 # Books eligible for scoring by default. ``prefilled_llm_unverified`` books have
 # a verified catalog core plus model-prefilled extras; those extras are excluded
@@ -264,7 +263,7 @@ def main() -> int:
         metavar="DIR",
         help=(
             "Score the per-book Commons corpus under ground_truth/{lang}/{slug}/ "
-            f"instead of fixtures/samples (default dir: {GT_ROOT})"
+            f"instead of datasets/samples (default dir: {GT_ROOT})"
         ),
     )
     parser.add_argument(

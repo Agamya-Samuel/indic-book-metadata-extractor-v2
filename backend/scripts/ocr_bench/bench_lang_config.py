@@ -11,7 +11,7 @@ model lets the large English LSTM explain Indic glyphs as Latin rubble, and an
 upload mislabelled as Telugu sends Hindi pages through ``tel+eng``.
 
 Telugu references come from the repo's Wikisource-verified page text
-(``tests/fixtures/ground_truth/tel/*/wikisource_gt.json``). Hindi references
+(``datasets/ground-truth/tel/*/wikisource_gt.json``). Hindi references
 come from the IndicVisionBench ``ocr`` bundle produced by
 ``fetch_indicvision_hindi.py`` (real printed Hindi pages with verified text),
 because the Hindi books in the repo have metadata-only ground truth.
@@ -40,7 +40,7 @@ import Levenshtein
 import pytesseract
 from PIL import Image
 
-GT_ROOT = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[3] / "datasets" / "ground-truth"
 HIN_BUNDLE = Path("/tmp/hin_bundle")
 
 TELUGU = re.compile(r"[\u0C00-\u0C7F]")

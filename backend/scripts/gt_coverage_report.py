@@ -47,7 +47,7 @@ def main() -> int:
     order = {b: i for i, b in enumerate(BATCH_FIELD_ORDER)}
     out = ["# Ground Truth vs. Metadata Fields (49-field conformance & coverage)\n"]
     out.append(
-        "Comparison of the corpus in `backend/tests/fixtures/ground_truth/` against "
+        "Comparison of the corpus in `datasets/ground-truth/` against "
         "[`docs/metadata-fields.md`](metadata-fields.md) (source: `app/schemas/metadata.py`). "
         "Regenerate with `uv run python -m scripts.gt_coverage_report`.\n"
     )

@@ -17,18 +17,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = BACKEND_ROOT.parent
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-GT_ROOT = BACKEND_ROOT / "tests" / "fixtures" / "ground_truth"
-EVAL_ROOT = BACKEND_ROOT / "prompt_eval"
+GT_ROOT = REPO_ROOT / "datasets" / "ground-truth"
+EVAL_ROOT = REPO_ROOT / "datasets" / "evaluation"
 CORPUS_ROOT = EVAL_ROOT / "corpus"
 BUNDLE_ROOT = EVAL_ROOT / "bundles"
 MASK_ROOT = EVAL_ROOT / "masks"
 STRESS_ROOT = EVAL_ROOT / "stress"
 FEWSHOT_ROOT = EVAL_ROOT / "fewshot"
 MANIFEST_PATH = EVAL_ROOT / "manifest.json"
-REPORT_ROOT = BACKEND_ROOT / "reports" / "prompt-eval"
+REPORT_ROOT = REPO_ROOT / "benchmarks" / "prompt-eval"
 
 MAX_OCR_CHARS = 2500
 # Wide OCR window: metadata can sit past page 12 (measured), so scan further and

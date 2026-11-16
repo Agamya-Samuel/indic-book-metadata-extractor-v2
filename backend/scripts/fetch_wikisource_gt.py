@@ -24,7 +24,7 @@ Notes on per-wiki configuration, both learned the hard way:
 Usage:
     cd backend
     uv run python -m scripts.fetch_wikisource_gt \\
-        --book-dir tests/fixtures/ground_truth/tel/2015.373190.Athma-Charitramu
+        --book-dir datasets/ground-truth/tel/2015.373190.Athma-Charitramu
 
     # enumerate levels only, do not download page text
     uv run python -m scripts.fetch_wikisource_gt --book-dir ... --max-text 0
