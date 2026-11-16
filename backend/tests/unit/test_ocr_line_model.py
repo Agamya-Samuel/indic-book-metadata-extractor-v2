@@ -23,6 +23,24 @@ def _image() -> Image.Image:
     return Image.new("RGB", (100, 60), "white")
 
 
+def test_resolve_model_name_uses_fallback_when_finetune_missing(monkeypatch, tmp_path):
+    fallback = tmp_path / "base"
+    fallback.mkdir()
+    monkeypatch.setattr(settings, "ocr_line_model_name", str(tmp_path / "missing"))
+    monkeypatch.setattr(settings, "ocr_line_model_fallback_name", str(fallback))
+
+    assert ocr_line_model._resolve_model_name() == str(fallback)
+
+
+def test_resolve_model_name_keeps_present_finetune(monkeypatch, tmp_path):
+    finetuned = tmp_path / "finetuned"
+    finetuned.mkdir()
+    monkeypatch.setattr(settings, "ocr_line_model_name", str(finetuned))
+    monkeypatch.setattr(settings, "ocr_line_model_fallback_name", str(tmp_path / "base"))
+
+    assert ocr_line_model._resolve_model_name() == str(finetuned)
+
+
 def test_run_line_ocr_contract(monkeypatch):
     boxes = [
         {"bbox": {"x": 1, "y": 2, "w": 30, "h": 10}, "block_num": 1, "line_num": 1},

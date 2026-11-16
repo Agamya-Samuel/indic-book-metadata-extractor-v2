@@ -1,0 +1,19 @@
+{
+  "baseline": {
+    "lines": 250,
+    "median_cer": 0.0236,
+    "mean_cer": 0.0546
+  },
+  "final": {
+    "lines": 300,
+    "median_cer": 0.0213,
+    "mean_cer": 0.0604
+  },
+  "epoch": 4,
+  "train_lines": 1868,
+  "test_lines": 313,
+  "batch_size": 8,
+  "lr": 5e-05,
+  "ctc_loss_weight": 0.3,
+  "elapsed_min": 85.1
+}

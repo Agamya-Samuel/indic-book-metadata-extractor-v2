@@ -206,7 +206,8 @@ All settings live in `backend/app/core/config.py` (`Settings`, env prefix
 | `OCR_BATCH_SIZE` | `10` | Pages per batch |
 | `OCR_THREAD_WORKERS` | `4` | Thread workers for page batches |
 | `OCR_TEL_ENGINE` | `tesseract` (dev) / `line_model` (staging+prod) | Telugu engine selector |
-| `OCR_LINE_MODEL_NAME` | `harsha-desaraju/telugu-ocr-model` | HF id or local path |
+| `OCR_LINE_MODEL_NAME` | `harsha-desaraju/telugu-ocr-model` | HF id or local path; production defaults to `/app/storage/models/telugu-ocr-ft` |
+| `OCR_LINE_MODEL_FALLBACK_NAME` | `/app/ocr_models/telugu-ocr-model` | Baked base checkpoint used when the fine-tuned path is absent |
 | `OCR_LINE_MODEL_DECODE` | `ctc` | Decoding strategy |
 | `OCR_LINE_MODEL_CONFIDENCE` | `50.0` | Synthetic confidence stored per line |
 | `OCR_SCRIPT_ROUTING` | `true` | Re-run Latin-dominated line-model pages through Tesseract and keep the better-coverage result |

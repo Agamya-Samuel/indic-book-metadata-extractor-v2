@@ -39,6 +39,24 @@ _model = None
 _tokenizer = None
 
 
+def _resolve_model_name() -> str:
+    """Use the configured local model, or the baked fallback if it is absent.
+
+    A fine-tuned checkpoint lives on the persistent storage volume. On a fresh
+    host (or before the artifact is copied) that path may not exist yet; the
+    image still contains the base checkpoint, so never fail into Tesseract when
+    the fallback is available.
+    """
+    name = settings.ocr_line_model_name
+    if not name.startswith("/") or Path(name).exists():
+        return name
+    fallback = settings.ocr_line_model_fallback_name
+    if fallback and (not fallback.startswith("/") or Path(fallback).exists()):
+        logger.warning("Model path %s is missing; falling back to %s", name, fallback)
+        return fallback
+    return name
+
+
 def _load_model():
     """Load the model once per process (Celery concurrency is 1)."""
     global _model, _tokenizer
@@ -49,13 +67,14 @@ def _load_model():
         if _model is None or _tokenizer is None:
             from transformers import AutoModel, AutoTokenizer
 
-            logger.info("Loading Telugu line OCR model '%s'", settings.ocr_line_model_name)
+            model_name = _resolve_model_name()
+            logger.info("Loading Telugu line OCR model '%s'", model_name)
             tokenizer = AutoTokenizer.from_pretrained(
-                settings.ocr_line_model_name,
+                model_name,
                 trust_remote_code=True,
             )
             model = AutoModel.from_pretrained(
-                settings.ocr_line_model_name,
+                model_name,
                 trust_remote_code=True,
             ).eval()
             _tokenizer = tokenizer

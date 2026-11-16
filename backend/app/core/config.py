@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     # downloaded at runtime — and falls back to Tesseract per page on error.
     ocr_tel_engine: str = "tesseract"
     ocr_line_model_name: str = "harsha-desaraju/telugu-ocr-model"
+    # Used when OCR_LINE_MODEL_NAME points at a local fine-tuned directory that
+    # is not present (fresh host, volume not populated yet).
+    ocr_line_model_fallback_name: str = "/app/ocr_models/telugu-ocr-model"
     ocr_line_model_decode: str = "ctc"
     # The line model emits no word confidences. Store a conservative value so
     # the review UI warns instead of showing a false green.
