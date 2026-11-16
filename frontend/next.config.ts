@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
+// `npm run build` passes --webpack deliberately. Turbopack's next/font/google
+// loader intermittently fails in CI with
+//   "next/font/google queries have exactly one entry"
+// while resolving Noto Serif (multiple weights plus italic). The webpack font
+// pipeline handles the same configuration deterministically. `next dev` still
+// uses Turbopack, so local DX is unchanged.
+
 // Keep frame-ancestors only: a full script-src policy needs testing against
 // Next's inline bootstrap and would risk breaking the app untested.
 const SECURITY_HEADERS = [

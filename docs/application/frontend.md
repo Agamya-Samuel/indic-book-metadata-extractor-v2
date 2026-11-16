@@ -30,6 +30,11 @@ same-origin `/api` calls.
 keeps the New Relic browser agent out of webpack via `serverExternalPackages` plus
 `outputFileTracingIncludes`.
 
+**Build tooling:** `npm run build` passes `--webpack`. Turbopack's `next/font/google` loader fails
+intermittently in CI with *"next/font/google queries have exactly one entry"* while resolving Noto
+Serif (four weights plus italic), which the webpack font pipeline handles deterministically.
+`next dev` still uses Turbopack, so local development is unaffected.
+
 ---
 
 ## 2. Provider composition
