@@ -1,0 +1,287 @@
+[
+  {
+    "test": "anon: /api/health is public",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "anon: models requires auth",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "anon: dashboard requires auth",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "anon: admin requires auth",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "user: login",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "user: /me approved",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "user: dashboard summary",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "user: own books list",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "user: own jobs list",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "user: admin denied",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "user: notifications",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "admin: login",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "admin: stats",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "admin: users list",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "admin: books list",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "rbac: foreign book returns 404",
+    "ok": true,
+    "detail": "404"
+  },
+  {
+    "test": "rbac: foreign pages return 404",
+    "ok": true,
+    "detail": "404"
+  },
+  {
+    "test": "upload: accepted",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "upload: page count",
+    "ok": true,
+    "detail": "92"
+  },
+  {
+    "test": "language: corrected before pages",
+    "ok": true,
+    "detail": "200 {\"id\":\"72a6b2ba-e13e-43bf-a8e4-39f630d3c983\",\"language\":\"hin\",\"job_id\":null}"
+  },
+  {
+    "test": "pages: select two",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "pages: duplicate submission is 409",
+    "ok": true,
+    "detail": "409 job=16e235e2-fc6e-49fe-9e86-e05502ccf88c"
+  },
+  {
+    "test": "pages: extraction completed",
+    "ok": true,
+    "detail": "completed"
+  },
+  {
+    "test": "preprocess: job accepted",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "preprocess: completed",
+    "ok": true,
+    "detail": "completed"
+  },
+  {
+    "test": "ocr: first run accepted",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "ocr: cancel accepted",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "ocr: cancelled job stays cancelled",
+    "ok": true,
+    "detail": "cancelled"
+  },
+  {
+    "test": "ocr: re-run accepted",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "ocr: completed after re-run",
+    "ok": true,
+    "detail": "completed "
+  },
+  {
+    "test": "ocr: pages listed",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "ocr: no page-level failures",
+    "ok": true,
+    "detail": "0 flagged"
+  },
+  {
+    "test": "ocr: text available",
+    "ok": true,
+    "detail": "page=9b8e958e-71d9-4ce7-af8f-df5ffdd758c1"
+  },
+  {
+    "test": "ocr: engine/script metadata present",
+    "ok": true,
+    "detail": "engine=tesseract route=None"
+  },
+  {
+    "test": "ocr: correction saved",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "ocr: correction read back",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "llm: run accepted",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "llm: duplicate submission is 409",
+    "ok": true,
+    "detail": "409"
+  },
+  {
+    "test": "llm: finished",
+    "ok": true,
+    "detail": "completed "
+  },
+  {
+    "test": "llm: book reached awaiting_review",
+    "ok": true,
+    "detail": "awaiting_review"
+  },
+  {
+    "test": "llm: metadata present",
+    "ok": true,
+    "detail": "50 fields"
+  },
+  {
+    "test": "llm: evidence present",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "llm: re-run from awaiting_review accepted",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "llm: re-run cancel accepted",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "metadata: unknown field rejected",
+    "ok": true,
+    "detail": "422"
+  },
+  {
+    "test": "metadata: save accepted",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "metadata: values persisted",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "review: complete accepted",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "test": "review: book complete",
+    "ok": true,
+    "detail": "complete"
+  },
+  {
+    "test": "notifications: job events present",
+    "ok": true,
+    "detail": "24 rows"
+  },
+  {
+    "test": "notifications: mark read",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "notifications: preferences read",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "admin: create user",
+    "ok": true,
+    "detail": "201"
+  },
+  {
+    "test": "admin: delete user",
+    "ok": true,
+    "detail": "204"
+  },
+  {
+    "test": "admin: global job queue shows the book",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "test": "cleanup: test book deleted",
+    "ok": true,
+    "detail": "204"
+  },
+  {
+    "test": "cleanup: book gone",
+    "ok": true,
+    "detail": "404"
+  }
+]
