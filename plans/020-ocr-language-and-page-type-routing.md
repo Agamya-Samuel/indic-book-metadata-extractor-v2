@@ -1,6 +1,6 @@
 # 020 — OCR Language Integrity and Page-Type Routing
 
-**Status:** complete for P0/P1 routing — A1/A2/A4, C1/C2/C3, the Latin/dominant-script reroutes, and the `TESSERACT_TESSDATA_DIR` fix are shipped. A3 (OSD preflight) and C4 (line detector) are deferred by measurement; fine-tuning remains gated by plan 019's Hindi GT/training work.
+**Status:** complete and production-verified on oki (57/57 E2E; migration 017 live; `dominant_script_reroute` observed on a pure-Devanagari page). A1/A2/A4, C1/C2/C3, the Latin/dominant-script reroutes, and the `TESSERACT_TESSDATA_DIR` fix are shipped. A3 (OSD preflight) and C4 (line detector) are deferred by measurement; fine-tuning remains gated by plan 019's Hindi GT/training work.
 **Evidence:** [learnings/029](../learnings/029-ocr-language-routing-and-font-benchmarks.md) (this plan implements its P0–P1)
 **Related:** [learnings/026](../learnings/026-ocr-accuracy-strategy-review.md) (dead settings/training path), [027](../learnings/027-default-preprocessing-upscale-benchmark.md) / [028](../learnings/028-line-model-preprocessing-benchmark.md) (preprocessing)
 **Depends on:** [learnings/020](../learnings/020-ocr-engine-benchmark.md) (locked engine decision), [plans/019](019-ocr-accuracy-improvement.md) (Hindi GT/fine-tune phases)
