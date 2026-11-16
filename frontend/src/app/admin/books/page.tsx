@@ -56,7 +56,7 @@ function workflowHref(book: BookSearchResult): string {
     case "ocr_complete":
       return `/books/${book.id}/ocr-review`;
     case "llm_running":
-      return `/books/${book.id}/llm-config`;
+      return `/books/${book.id}/llm-processing`;
     case "complete":
       return `/books/${book.id}/metadata-review`;
     default:
@@ -75,7 +75,7 @@ function workflowLabel(status: string): string {
     case "ocr_complete":
       return "OCR review";
     case "llm_running":
-      return "LLM config";
+      return "LLM running";
     case "complete":
       return "Metadata review";
     default:

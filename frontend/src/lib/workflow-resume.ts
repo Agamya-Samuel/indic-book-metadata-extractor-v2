@@ -46,7 +46,7 @@ const STAGE_CTA: Record<string, { ctaLabel: string; href: string | ((bookId: str
   },
   llm_extraction: {
     ctaLabel: "View progress",
-    href: (bookId: string) => `/books/${bookId}/llm-config`,
+    href: (bookId: string) => `/books/${bookId}/llm-processing`,
     headline: "LLM extraction in progress",
     description: "The language model is extracting bibliographic metadata from the OCR text. You can wait here — the job runs in the background.",
     variant: "info",

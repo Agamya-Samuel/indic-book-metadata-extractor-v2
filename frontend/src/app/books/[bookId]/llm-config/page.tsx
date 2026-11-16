@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
@@ -44,6 +44,7 @@ const BATCH_DISPLAY_NAMES: Record<string, string> = {
 export default function LlmConfigPage() {
   useDocumentTitle("LLM configuration");
   const params = useParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const bookId = params.bookId as string;
 
@@ -132,10 +133,11 @@ export default function LlmConfigPage() {
       setStartedAt(new Date().toISOString());
       setError(null);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["book", bookId] });
       queryClient.invalidateQueries({ queryKey: ["book", bookId, "jobs"] });
       toast.info("LLM extraction started");
+      router.replace(`/books/${bookId}/llm-processing?job=${data.job_id}`);
     },
     onError: (err) => {
       setStartedAt(null);

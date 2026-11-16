@@ -286,14 +286,18 @@ export function deriveWorkflowState({
   const steps: WorkflowStep[] = STEP_ORDER.map((key) => {
     const meta = STEP_META[key];
     let detail: string | undefined;
+    let href = stepHref(key, bookId);
     if (key === "pages" && pageExtractionJob) detail = "Rendering pages…";
     if (key === "ocr" && ocrJob) detail = "Reading pages…";
-    if (key === "llm" && llmJob) detail = "Extracting metadata…";
+    if (key === "llm" && llmJob) {
+      detail = "Extracting metadata…";
+      href = `/books/${bookId}/llm-processing?job=${llmJob.id}`;
+    }
     return {
       key,
       label: meta.label,
       shortLabel: meta.shortLabel,
-      href: stepHref(key, bookId),
+      href,
       state: state[key],
       detail,
     };

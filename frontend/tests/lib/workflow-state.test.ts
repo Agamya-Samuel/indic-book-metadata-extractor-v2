@@ -176,6 +176,18 @@ describe("deriveWorkflowState", () => {
     expect(state.currentStep).toBe("llm");
   });
 
+  it("routes an active LLM job to the progress page", () => {
+    const state = deriveWorkflowState({
+      book: makeBook({ status: "llm_running" }),
+      stages: [makeStage("ocr", "completed"), makeStage("llm_extraction", "processing")],
+      jobs: [makeJob({ id: "llm-job", job_type: "llm", status: "running", progress: 12 })],
+    });
+    expect(state.byKey.llm.href).toBe(
+      "/books/book-1/llm-processing?job=llm-job",
+    );
+    expect(state.processing).toMatchObject({ kind: "llm", progress: 12 });
+  });
+
   it("completes LLM and points at metadata review", () => {
     const state = deriveWorkflowState({
       book: makeBook({ status: "awaiting_review" }),
