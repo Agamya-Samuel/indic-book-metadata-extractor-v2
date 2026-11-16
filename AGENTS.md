@@ -1,13 +1,25 @@
 # Indic Book Metadata Extractor — Agent Instructions
 
-## Current Phase: Pipeline Hardening & Metadata Quality
+## Current Phase: Documented and Stable
 
-The core platform is implemented and deployed (staging + production via Dokploy): PDF upload → page selection → preprocessing → OCR review → LLM extraction → metadata review → library, plus an admin panel and bulk operations (OpenRefine → Wikibase/QuickStatements). Current work focuses on extraction reliability and metadata quality:
+The platform is implemented, deployed (staging + production via Dokploy) and fully documented. The
+pipeline runs PDF upload → page selection → preprocessing → OCR review → LLM extraction → metadata
+review, with an admin panel, bulk operations (OpenRefine → Wikibase/QuickStatements), and
+email-verified, admin-approved accounts.
 
-- Hardened extraction pipeline: DB constraints, concurrency-safe OCR corrections, audit trails, per-stage lifecycle tracking (`book_stage_status`)
-- Multi-tier Indic OCR: stock Tesseract models, Sauvola binarization, dictionary-based post-processing
-- Hybrid extraction with per-field provenance; default LLM is Qwen2.5 7B via Ollama (replaced Airavata)
-- Open gaps: CPU-only inference (~10–20 min/book), Telugu/Hindi only, no authentication, pgvector semantic search not yet implemented
+- **OCR:** Tesseract (LSTM only) for Hindi and English; an optional fine-tuned Telugu line model with
+  per-page Tesseract fallback; script-aware routing; Unicode normalisation. Binarization and denoising
+  are off by default because they erode the Indic headstroke.
+- **Extraction:** hybrid regex → dictionary → LLM across 49 fields in 8 batches. Default model is
+  `gemma4:e4b` via Ollama's native `/api/chat`; `phi4-mini` is the rollback.
+- **Auth:** cookie sessions, CSRF double-submit, email verification, moderated signup, `user`/`admin`
+  roles, owner-scoped access.
+- **Layout:** current documentation in `docs/`, evaluation inputs in `datasets/`, measured outputs in
+  `benchmarks/`, archived material in `docs/history/`.
+
+Open gaps: CPU-only inference (tens of minutes per book), Telugu/Hindi only, one book processed at a
+time, pgvector semantic search unimplemented, and Compose-profile gating for the optional services
+still unshipped.
 
 ---
 
@@ -39,10 +51,12 @@ The core platform is implemented and deployed (staging + production via Dokploy)
 - No big-bang implementation
 
 ### 4. Documentation Standards
-- All findings → `learnings/XXX-*.md`
-- Use the template in `learnings/README.md`
-- Update PRODUCT.md only for product-level changes
+- Current behaviour → `docs/` (index: `docs/README.md`). Update the affected document in the same change
+- Archived documents → `docs/history/`; never edit them to match current behaviour
+- All findings → `learnings/XXX-*.md` (template in `learnings/README.md`)
 - Technical decisions → `plans/` (ADRs) or `learnings/`
+- No host-specific detail (IPs, node names, panel ports, credentials) in tracked files; use the gitignored `infra/local/`
+- Keep relative documentation links resolvable
 
 ### 5. Commit Guidelines
 - Do not make one giant commit.
@@ -56,7 +70,7 @@ The core platform is implemented and deployed (staging + production via Dokploy)
 
 - Check `learnings/README.md` for completed studies before starting new work
 - Before creating or using any GCP/compute resource, read `infra/gcp-test-nodes.md` and claim a node in its live tracker
-- Post new findings to `learnings/` after each probing/PoC
+- Post new findings to `learnings/` after each experiment or PoC
 - Update relevant `plans/XXX-*.md` with results
 - No parallel work on dependent studies (see plan dependencies)
 
