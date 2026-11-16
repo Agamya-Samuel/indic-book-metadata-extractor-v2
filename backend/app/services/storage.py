@@ -45,6 +45,12 @@ def thumbnail_path(book_id: str, page_number: int) -> Path:
     return thumbnails_dir(book_id) / f"p{page_number:04d}.jpg"
 
 
+def page_preview_path(book_id: str, page_number: int, width: int) -> Path:
+    """Cached higher-resolution page preview used by the select-pages viewer."""
+    book_id = _validate_book_id(book_id)
+    return thumbnails_dir(book_id) / "previews" / f"p{page_number:04d}_w{width}.jpg"
+
+
 def full_page_path(book_id: str, page_number: int) -> Path:
     return pages_dir(book_id) / f"p{page_number:04d}.png"
 

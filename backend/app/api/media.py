@@ -91,6 +91,58 @@ async def get_thumbnail(
     return FileResponse(thumb_path, media_type="image/jpeg")
 
 
+@router.get("/books/{book_id}/pages/{page_number}/preview")
+async def get_page_preview(
+    book_id: UUID,
+    page_number: int,
+    width: int = Query(default=1600, ge=400, le=2400),
+    token: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+) -> FileResponse:
+    """Higher-resolution page image for the select-pages zoom viewer.
+
+    The regular thumbnail is 180 px wide, which is too small to inspect type
+    or damage. Render from the original PDF on demand and cache per width.
+    """
+    if user is not None:
+        book = await db.get(Book, book_id)
+        if book is None or not can_view_full_book(book, user):
+            raise HTTPException(status_code=404, detail="Book not found")
+    else:
+        scope, resource = thumbnail_scope(book_id)
+        if not verify_media_token(token, scope, resource):
+            raise HTTPException(
+                status_code=401,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        book = await db.get(Book, book_id)
+        if book is None:
+            raise HTTPException(status_code=404, detail="Book not found")
+
+    if page_number < 1 or (book.total_pages and page_number > book.total_pages):
+        raise HTTPException(status_code=404, detail="Page number out of range")
+
+    preview_path = storage.page_preview_path(str(book.id), page_number, width)
+    if not preview_path.exists():
+        pdf_path = storage.original_pdf_path(str(book.id))
+        if not pdf_path.exists():
+            raise HTTPException(status_code=404, detail="Original PDF not found")
+        try:
+            await asyncio.to_thread(
+                pdf_service.render_thumbnail,
+                pdf_path,
+                page_number,
+                preview_path,
+                width,
+            )
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to render page preview")
+
+    return FileResponse(preview_path, media_type="image/jpeg")
+
+
 @router.get("/pages/{page_id}/preprocessing/preview")
 async def get_preprocessing_preview(
     page_id: UUID,

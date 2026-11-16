@@ -193,6 +193,22 @@ class TestThumbnail:
         response = await client.get(f"/api/books/{book['id']}/pages/999/thumbnail")
         assert response.status_code == 404
 
+    async def test_get_page_preview_success(self, client, make_book):
+        book = await make_book()
+        response = await client.get(f"/api/books/{book['id']}/pages/1/preview?width=800")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("image/")
+
+    async def test_get_page_preview_out_of_range(self, client, make_book):
+        book = await make_book()
+        response = await client.get(f"/api/books/{book['id']}/pages/999/preview")
+        assert response.status_code == 404
+
+    async def test_get_page_preview_rejects_invalid_width(self, client, make_book):
+        book = await make_book()
+        response = await client.get(f"/api/books/{book['id']}/pages/1/preview?width=100")
+        assert response.status_code == 422
+
 
 class TestRunOcr:
     async def test_run_ocr_dispatch(self, client, make_book_with_pages, mock_celery):
