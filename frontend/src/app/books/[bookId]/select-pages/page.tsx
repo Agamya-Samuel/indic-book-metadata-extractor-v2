@@ -207,7 +207,7 @@ export default function SelectPagesPage() {
             description="There are no pages in the visible range."
           />
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
             {visiblePageNumbers.map((pageNumber) => {
               const isSelected = selectedPages.has(pageNumber);
               const isLoaded = imagesLoaded.has(pageNumber);
@@ -231,8 +231,8 @@ export default function SelectPagesPage() {
                         src={getThumbnailUrl(bookId, pageNumber, book.thumbnail_token)}
                         alt={`Page ${pageNumber}`}
                         fill
-                        sizes="(min-width: 1280px) 12vw, (min-width: 768px) 20vw, 45vw"
-                        className="object-cover"
+                        sizes="(min-width: 1536px) 11vw, (min-width: 1280px) 15vw, (min-width: 1024px) 18vw, (min-width: 768px) 22vw, 45vw"
+                        className="object-contain"
                         onLoad={() => handleImageLoad(pageNumber)}
                         onError={() => handleImageError(pageNumber)}
                         unoptimized
@@ -265,12 +265,12 @@ export default function SelectPagesPage() {
                       </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[var(--neutral-1000)]/80 to-transparent p-2">
-                      <p className="text-[var(--text-inverse)] text-[length:var(--text-xs)] font-medium text-center">
-                        Page {pageNumber}
-                      </p>
-                    </div>
-                  </button>
+                  <div className="flex items-center justify-center border-t border-[var(--border)] px-2 py-1.5">
+                    <span className="text-[length:var(--text-xs)] font-medium text-[var(--text)]">
+                      Page {pageNumber}
+                    </span>
+                  </div>
+                </button>
 
                   <button
                     type="button"
