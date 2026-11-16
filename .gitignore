@@ -70,5 +70,11 @@ project-update.html
 .kilo/
 .commandcode/
 
-reference/
+# Root-only: host notes and external reference material. Anchored so it does
+# not also ignore docs/reference/.
+/reference/
 infra/gcp-test-nodes.md
+
+# Host-specific operational detail (IPs, node names, panel ports, credentials).
+# This repository is public — keep real infrastructure facts out of it.
+infra/local/
