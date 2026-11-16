@@ -408,7 +408,7 @@ export default function PreprocessingPage() {
                   width={1200}
                   height={1600}
                   sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="max-w-full max-h-[600px] w-auto h-auto object-contain"
+                  className="max-w-full max-h-[calc(100dvh-var(--nav-height)-16rem)] w-auto h-auto object-contain"
                   unoptimized
                 />
               </div>

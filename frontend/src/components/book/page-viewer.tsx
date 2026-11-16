@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getPagePreviewUrl } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/shared/button";
 import { Chip } from "@/components/shared/chip";
 import { Spinner } from "@/components/shared/spinner";
@@ -194,15 +195,23 @@ export default function PageViewer({
             </div>
           ) : (
             <div
-              className="mx-auto p-4 transition-[width] duration-150"
-              style={{ width: `${zoom * 100}%` }}
+              className={cn(
+                "p-4",
+                zoom === 1 && "flex h-full items-center justify-center",
+              )}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 key={`${pageNumber}-${retryKey}`}
                 src={src}
                 alt={`Page ${pageNumber} of ${totalPages}`}
-                className="block h-auto w-full rounded-[var(--radius)] bg-white shadow-[var(--shadow-sm)]"
+                className={cn(
+                  "mx-auto block h-auto rounded-[var(--radius)] bg-white shadow-[var(--shadow-sm)]",
+                  zoom === 1
+                    ? "max-h-full max-w-full object-contain"
+                    : "max-w-none",
+                )}
+                style={zoom === 1 ? undefined : { width: `${zoom * 100}%` }}
                 onLoad={() => setLoading(false)}
                 onError={() => {
                   setLoading(false);

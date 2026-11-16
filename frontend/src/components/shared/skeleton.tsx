@@ -217,7 +217,7 @@ export function SelectPagesSkeleton() {
             <Skeleton className="h-6 w-64" />
             <Skeleton className="h-9 w-32" />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 12 }).map((_, i) => (
               <SkeletonImage key={i} />
             ))}
