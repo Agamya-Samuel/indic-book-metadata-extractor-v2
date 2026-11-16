@@ -1,0 +1,11 @@
+# Regenerable output — rebuild with the scripts, never commit.
+bundles/
+bundles-*/
+stress/
+results/
+
+# Committed on purpose (the experiment's evidence):
+#   corpus/       frozen OCR + clean page text (byte-identical inputs)
+#   masks/        visibility mask + calibration
+#   fewshot/      held-out real exemplars for V11
+#   manifest.json per-book SHA256, coverage and the few-shot holdout list

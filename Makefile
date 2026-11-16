@@ -1,4 +1,4 @@
-.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init check-compose-drift create-admin
+.PHONY: help up down build rebuild logs logs-backend logs-worker-ocr logs-worker-llm reset-db download-model migrate test-e2e status shell-backend clean restart backup-db backup-storage backup restore-db deploy deploy-status deploy-env wikibase-shell wikibase-logs wikibase-update install-gadgets wikibase-init check-compose-drift create-admin prompt-corpus prompt-mask prompt-fewshot prompt-bundles prompt-stress prompt-eval prompt-report prompt-variants prompt-consistency prompt-watch
 
 help:
 	@echo "Indic Book Metadata Extractor - Development Commands"
@@ -38,6 +38,13 @@ help:
 	@echo "  make deploy          Push to main + trigger Dokploy deploy"
 	@echo "  make deploy-status   Check Dokploy deployment status"
 	@echo "  make deploy-env      Show required env vars for Dokploy"
+	@echo ""
+	@echo "  Prompt evaluation (plans/018):"
+	@echo "  make prompt-corpus   Freeze OCR/clean corpus (TRACK=both|ocr|clean, FORCE=1)"
+	@echo "  make prompt-mask     Build the visibility mask (TRACK=clean)"
+	@echo "  make prompt-bundles  Render prompt bundles (TRACK=, VARIANTS=, STAGE=)"
+	@echo "  make prompt-eval     Score results (RESULT=path.jsonl, TRACK=clean)"
+	@echo "  make prompt-report   Leaderboard (TRACK=clean, STAGE3=1 to emit stage3.json)"
 	@echo ""
 	@echo "  Multi-env safety:"
 	@echo "  make check-compose-drift  Diff prod vs staging compose, fail on unexpected drift"
@@ -165,6 +172,50 @@ deploy-status:
 
 deploy-env:
 	@bash scripts/dokploy-deploy.sh --env-setup
+
+# ── Prompt Evaluation (plans/018) ─────────────────────────────────────────────
+# Harness for the prompt-engineering study. Bundles contain prompts only (no
+# ground truth), so they can be copied to a benchmark node and run there with
+# scripts/prompt_eval/run_eval.py.
+#
+# Python selection: defaults to `uv run python` (the repo's tool). Override with
+# PYTHON=".venv/bin/python" when uv is not installed locally.
+
+PROMPT_PYTHON ?= $(or $(PYTHON),uv run python)
+
+prompt-corpus:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.build_corpus --track $(or $(TRACK),both) $(if $(FORCE),--force,)
+
+prompt-mask:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.build_mask --track $(or $(TRACK),clean)
+
+prompt-fewshot:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.build_fewshot --track $(or $(TRACK),clean)
+
+prompt-bundles:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.build_bundles --track $(or $(TRACK),clean) $(if $(VARIANTS),--variants $(VARIANTS),) $(if $(STAGE),--stage $(STAGE),)
+
+prompt-stress:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.build_stress --track $(or $(TRACK),ocr) $(if $(VARIANTS),--variants $(VARIANTS),)
+
+prompt-eval:
+	@test -n "$(RESULT)" || { echo "RESULT is required: make prompt-eval RESULT=results/V00.clean.jsonl TRACK=clean"; exit 1; }
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.score_eval --results $(RESULT) --track $(or $(TRACK),clean) $(if $(SUFFIX),--suffix $(SUFFIX),)
+
+prompt-report:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.compare --track $(or $(TRACK),clean) $(if $(STAGE3),--emit-stage3,)
+
+prompt-variants:
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.list_variants
+
+prompt-consistency:
+	@[ -n "$(A)" ] && [ -n "$(B)" ] || { echo "Usage: make prompt-consistency A=results/a.jsonl B=results/b.jsonl"; exit 1; }
+	cd backend && $(PROMPT_PYTHON) -m scripts.prompt_eval.consistency $(A) $(B)
+
+# Health of the three benchmark nodes during a long matrix run. FIX=1 restarts a
+# dead runner (resumable) and a hung Ollama; it never starts/stops instances.
+prompt-watch:
+	bash backend/scripts/prompt_eval/node_watch.sh $(if $(FIX),--fix,)
 
 # ── Compose Drift Check ────────────────────────────────────────────────────────
 # Production and staging compose files share 95% of their content. When you

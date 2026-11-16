@@ -388,3 +388,19 @@ class ModelInfo(BaseModel):
     name: str
     size_gb: float | None = None
     parameter_count: str | None = None
+
+
+class PromptDefaultsResponse(BaseModel):
+    """The prompt pair the backend will actually render.
+
+    The LLM-config step needs these raw templates (not a rendered prompt) so a
+    user can see and edit what production uses. Serving them from the backend is
+    what stops the frontend from drifting into template variables the renderer
+    never supplies.
+    """
+
+    profile: str
+    system_prompt: str
+    extraction_prompt: str
+    variables: list[str]
+    batch_field_order: list[str]

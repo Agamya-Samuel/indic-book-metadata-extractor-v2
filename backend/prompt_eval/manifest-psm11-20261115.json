@@ -1,0 +1,274 @@
+{
+  "generated_at": "2026-11-15T19:47:11.893899+00:00",
+  "books": {
+    "hin/19140101_Priyapravaas_Hindi_PDF": {
+      "language": "hin",
+      "slug": "19140101_Priyapravaas_Hindi_PDF",
+      "tracks": {
+        "ocr": {
+          "sha256": "abf9b13cd2ab2542c281c18df22065c919f831f0e26138c89f3355c50f5e07fe",
+          "pages": 12,
+          "chars": 14551
+        }
+      }
+    },
+    "hin/Antarrashtriya_Gyankosh": {
+      "language": "hin",
+      "slug": "Antarrashtriya_Gyankosh",
+      "tracks": {
+        "ocr": {
+          "sha256": "b0e01a00df12aa51ce4d3cc0bd9890795c6f595faa69753f7bedd77360b8a3e1",
+          "pages": 12,
+          "chars": 18800
+        }
+      }
+    },
+    "hin/Biography_of_Freedom_fighter_Mahadev_Mishra": {
+      "language": "hin",
+      "slug": "Biography_of_Freedom_fighter_Mahadev_Mishra",
+      "tracks": {
+        "ocr": {
+          "sha256": "366675897e05a7276373b43bac046736116f5bd9003b78900608228f173280ce",
+          "pages": 12,
+          "chars": 11750
+        }
+      }
+    },
+    "hin/Gandhi_-_Delhi_Diary_Hindi": {
+      "language": "hin",
+      "slug": "Gandhi_-_Delhi_Diary_Hindi",
+      "tracks": {
+        "ocr": {
+          "sha256": "7f9174c55274bd2d865a71a930479e3bc4470aa7eed10ffbf7d57201c2c0c63a",
+          "pages": 12,
+          "chars": 7966
+        }
+      }
+    },
+    "hin/Hindi_Sahitya_ka_Itihas_by_Acharya_Ramchandra_Shukla": {
+      "language": "hin",
+      "slug": "Hindi_Sahitya_ka_Itihas_by_Acharya_Ramchandra_Shukla",
+      "tracks": {
+        "ocr": {
+          "sha256": "a85674c77d235f322612fbf90e396237d4bc6c6422933210901ff031eb0a3288",
+          "pages": 12,
+          "chars": 14532
+        }
+      }
+    },
+    "hin/Prabhu-Padhare": {
+      "language": "hin",
+      "slug": "Prabhu-Padhare",
+      "tracks": {
+        "ocr": {
+          "sha256": "5819bfa5fa8169acc3ea0cb725885739a5d5cde33811adbfcf796bdd5202f249",
+          "pages": 12,
+          "chars": 15084
+        }
+      }
+    },
+    "hin/Thalua_Club_-_Babu_Gulabrai": {
+      "language": "hin",
+      "slug": "Thalua_Club_-_Babu_Gulabrai",
+      "tracks": {
+        "ocr": {
+          "sha256": "54745e6b8d208cf47f81e1e19c4f3abe43b1133cf8f7d313f8105800f8c83eef",
+          "pages": 12,
+          "chars": 8673
+        }
+      }
+    },
+    "hin/Yeh_Gali_Bikau_Nahin-Hindi": {
+      "language": "hin",
+      "slug": "Yeh_Gali_Bikau_Nahin-Hindi",
+      "tracks": {
+        "ocr": {
+          "sha256": "677cd4bda0d56da1fac118dcd0f009608e8420ca24c949ef989840b271d1150f",
+          "pages": 12,
+          "chars": 18857
+        }
+      }
+    },
+    "hin/अर_वल_क_आ_स": {
+      "language": "hin",
+      "slug": "अर_वल_क_आ_स",
+      "tracks": {
+        "ocr": {
+          "sha256": "d2a0b78eb7445ee3a96bd172c667c9ede1c0f72daa5e7eb781e920d038a781a5",
+          "pages": 12,
+          "chars": 18631
+        }
+      }
+    },
+    "hin/आप_और_म_-_क_र_ब_र_म": {
+      "language": "hin",
+      "slug": "आप_और_म_-_क_र_ब_र_म",
+      "tracks": {
+        "ocr": {
+          "sha256": "bece1a318413de5427d2b6286bf3c379c542b9201d4ba40b60bbae23e0fb2134",
+          "pages": 12,
+          "chars": 9475
+        }
+      }
+    },
+    "hin/इ_श_अल_ल_ह_ख_न_-_र_न_क_तक_क_कह_न": {
+      "language": "hin",
+      "slug": "इ_श_अल_ल_ह_ख_न_-_र_न_क_तक_क_कह_न",
+      "tracks": {
+        "ocr": {
+          "sha256": "ace415bc0267bf91e3cb475f14550292cb0c9f220876e00c850f4f3766b97837",
+          "pages": 12,
+          "chars": 13757
+        }
+      }
+    },
+    "hin/कव_त_क_म_द": {
+      "language": "hin",
+      "slug": "कव_त_क_म_द",
+      "tracks": {
+        "ocr": {
+          "sha256": "d12e6621979b903bf070769492b3579d5d505edde2a9ffc2f4fe8cace930b7fc",
+          "pages": 12,
+          "chars": 12305
+        }
+      }
+    },
+    "tel/10049upanyaasans033612mbp": {
+      "language": "tel",
+      "slug": "10049upanyaasans033612mbp",
+      "tracks": {
+        "ocr": {
+          "sha256": "ce145585c83ca3fae07f5be621fec0f03cfe0e1f660ab785ec8a7d625ee23f27",
+          "pages": 12,
+          "chars": 5251
+        }
+      }
+    },
+    "tel/1895_SarpaVishayaSarvasvaSangrahamu_Telugu_PDF": {
+      "language": "tel",
+      "slug": "1895_SarpaVishayaSarvasvaSangrahamu_Telugu_PDF",
+      "tracks": {
+        "ocr": {
+          "sha256": "a11e6c0ae18e04f63cc878f5c47c200aebe1f947041e0910337e627ac773adb3",
+          "pages": 12,
+          "chars": 14755
+        }
+      }
+    },
+    "tel/19220101_SriSugunaMani_Telugu_PDF": {
+      "language": "tel",
+      "slug": "19220101_SriSugunaMani_Telugu_PDF",
+      "tracks": {
+        "ocr": {
+          "sha256": "bcdbcb9b1bc4748ad8aaf6c0167979c4b534923dab9f7195089e09881bf867c4",
+          "pages": 12,
+          "chars": 10803
+        }
+      }
+    },
+    "tel/19240101_ChandrakantaNatakamu_Telugu_PDF": {
+      "language": "tel",
+      "slug": "19240101_ChandrakantaNatakamu_Telugu_PDF",
+      "tracks": {
+        "ocr": {
+          "sha256": "61504aa331a49945d8d21a8e52265a14e554a119ab1919c0173cc6bc15d06284",
+          "pages": 12,
+          "chars": 9177
+        }
+      }
+    },
+    "tel/1927_shhadchakravartulayindrajaalapukathalu_Telugu_PDF": {
+      "language": "tel",
+      "slug": "1927_shhadchakravartulayindrajaalapukathalu_Telugu_PDF",
+      "tracks": {
+        "ocr": {
+          "sha256": "4a7a9c1070b97b67eb8cbd1318cfff21f129ed0474be3da8ec5db7be363dc996",
+          "pages": 12,
+          "chars": 13961
+        }
+      }
+    },
+    "tel/19280101_Vasanthakumari_Telugu": {
+      "language": "tel",
+      "slug": "19280101_Vasanthakumari_Telugu",
+      "tracks": {
+        "ocr": {
+          "sha256": "4019296dc1552d53118e9ee3c7403552c4aea5e3588ff5d900773672baaeb411",
+          "pages": 12,
+          "chars": 11945
+        }
+      }
+    },
+    "tel/19380101_Savitri_Natakamu_Telugu_PDF": {
+      "language": "tel",
+      "slug": "19380101_Savitri_Natakamu_Telugu_PDF",
+      "tracks": {
+        "ocr": {
+          "sha256": "d8a8fc381d9b421c2e069f9abdc40b3df66be6ba65ce23e7f694e07a02c7b49d",
+          "pages": 12,
+          "chars": 10759
+        }
+      }
+    },
+    "tel/2015.373190.Athma-Charitramu": {
+      "language": "tel",
+      "slug": "2015.373190.Athma-Charitramu",
+      "tracks": {
+        "ocr": {
+          "sha256": "cdf4940bf1a760c46e510cd7d1f0fe47048a6f911c3df05cefa362951cb4d0e8",
+          "pages": 12,
+          "chars": 9069
+        }
+      }
+    },
+    "tel/A_Collection_of_Telugu_Proverbs": {
+      "language": "tel",
+      "slug": "A_Collection_of_Telugu_Proverbs",
+      "tracks": {
+        "ocr": {
+          "sha256": "f868dd5c651657b2c0d397f2ce0ced691a3290a9b44d644a1519803374e452b8",
+          "pages": 2,
+          "chars": 2315
+        }
+      }
+    },
+    "tel/Abalaa_sachcharitra_ratnamaala": {
+      "language": "tel",
+      "slug": "Abalaa_sachcharitra_ratnamaala",
+      "tracks": {
+        "ocr": {
+          "sha256": "33c73db30a371f2d70ab40040b7304eadf00da1569187720e47477d845fed5e1",
+          "pages": 12,
+          "chars": 13190
+        }
+      }
+    },
+    "tel/Acharya_SV_Jogarao_Sahitya_Varivasya_by_Velamala_Simmanna": {
+      "language": "tel",
+      "slug": "Acharya_SV_Jogarao_Sahitya_Varivasya_by_Velamala_Simmanna",
+      "tracks": {
+        "ocr": {
+          "sha256": "fc962796684c8f40a06d63d3196fcab016450a028a8b25d287bafd3c76d94983",
+          "pages": 12,
+          "chars": 14649
+        }
+      }
+    },
+    "tel/Aliya_Rama_Rayalu": {
+      "language": "tel",
+      "slug": "Aliya_Rama_Rayalu",
+      "tracks": {
+        "ocr": {
+          "sha256": "45052c8622015b1effe0e52241ba918458dfecf846a0c4b9a841866f0c457a8b",
+          "pages": 12,
+          "chars": 8042
+        }
+      }
+    }
+  },
+  "tracks": [
+    "ocr",
+    "clean"
+  ],
+  "holdout": []
+}

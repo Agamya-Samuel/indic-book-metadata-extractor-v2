@@ -1,0 +1,6 @@
+Example (tel, 1857 మ స ల ల):
+Input:
+[Page 1]
+1857 : MUSLIMS Telugu title of this book is 1857 : MUSLIMLU This book deal with the total story of 1857 in which Muslims of our great country fought for the emancipation from the yoke of British. It contain total Nine chapters. First chapter deals with total story of Muslims in the first was of independence. Second chapter deals with the role of Muslim women, third chapter deals with Moulvis, fourth chapter deals with Pen Men of that period, Fifth chapter deals with the role of Andhra Pradesh Muslims and Sixth chapter deals with the unity exhibited by Muslims and Hindus in the fight against the foreign ruler. After that in the Seventh chapter the cruel behavior of Britich was placed
+Output:
+{"typesetting_by": "Geeturai Graphics"}

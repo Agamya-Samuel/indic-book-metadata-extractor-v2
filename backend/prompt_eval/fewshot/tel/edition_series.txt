@@ -1,0 +1,11 @@
+Example (tel, 1857 మ స ల ల):
+Input:
+[Page 1]
+1857 : MUSLIMS Telugu title of this book is 1857 : MUSLIMLU This book deal with the total story of 1857 in which Muslims of our great country fought for the emancipation from the yoke of British. It contain total Nine chapters. First chapter deals with total story of Muslims in the first was of independence. Second chapter deals with the role of Muslim wo
+
+---
+
+[Page 3]
+: సయ్యద్ బీబీజాన్, సయ్యద్ మారా మొపిొద్దీన్ _ ౨2 డిసెంబరు 1955 ae జిల్లా పురిణి గ్రామం ; a జాస్మిన్ అహమ్మద్ అల అల్లుడు : 33 వ దాః ఎస్. ఎం. తల్మీజుద్దీన్ రచనలు = ఎనిమిది చరిత్ర [గ్రంథాలు ముద్రితం ఆశయం. ; అసమానతలు లెని లౌకిక వ. వస్త వ్యాపకం : అధ్యయనం, రచన, ae నివాసం : సయ్యద్ నశీర్ ఆహచ్ముద్ । శివప్రసాద్స్రేట్, కాత్రదేట,.
+Output:
+{"edition_number": "3", "part_of_series": "TIP", "serial_number_in_series": "219"}

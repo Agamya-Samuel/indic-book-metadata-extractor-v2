@@ -1,0 +1,28 @@
+{
+  "book": "19280101_AngleyaVaidyaRahasyamu_Telugu_PDF",
+  "language": "tel",
+  "track": "clean",
+  "pages": [
+    {
+      "n": 1,
+      "text": "SOME PAGES IN THE\nORIGINAL CONTAIN\nFLAWS AND OTHER\nDEFECTS WHICH\nAPPEAR ON THE FILM"
+    },
+    {
+      "n": 2,
+      "text": "Digitized in 2006\nby\nThrinaina Informatics Ltd, Secunderabad, A.P.,India.\n(http://www.thrinaina.com)\n\nFrom the original owned by\nSundarayya Vignana Kendram\nand its partner Institutions\n\nas part of the\n\nBritish Library Endangered Archives Programme\nsupported by the\nLisbet Rausing Charitable Fund\n\nExcept for individual research purpose\nany reproduction should be made with\nwritten permission from the\n\nSundarayya Vignana Kendram,\n1-8-1/B/25/A, Bagh Lingampally, Hyderabad - 500 044\nAndhra Pradesh, India"
+    },
+    {
+      "n": 4,
+      "text": "బుచ్చయ్యశర్మ, కొత్తపల్లి\nఆంగ్లేయ వైద్యరహస్యము\nరాజమహేంద్రవరము, 1928\nRecord no 1611"
+    }
+  ],
+  "meta": {
+    "source": "wikisource_gt.json",
+    "wiki": "te.wikisource.org",
+    "index_title": "సూచిక:19280101 AngleyaVaidyaRahasyamu Telugu PDF.pdf",
+    "coverage": "proofread pages only",
+    "built_at": "2026-11-15T14:43:53.580326+00:00",
+    "git_sha": "bfb8c6e"
+  },
+  "sha256": "b34c5935347d5df3978b224d86765a63e462f499723a3292d74dc7a5eb968141"
+}

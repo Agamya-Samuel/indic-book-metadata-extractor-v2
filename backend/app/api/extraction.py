@@ -22,11 +22,40 @@ from app.schemas.metadata import (
     ExtractionRequest,
     ExtractionResponse,
     ModelInfo,
+    PromptDefaultsResponse,
 )
 from app.services.llm_service import llm_service
+from app.services.prompt_profiles import get_profile
 from app.services.stage_manager import StageManager, StageStatus
 
 router = APIRouter()
+
+
+@router.get("/prompt-defaults", response_model=PromptDefaultsResponse)
+async def get_prompt_defaults(
+    _user: User = Depends(get_current_user),
+) -> PromptDefaultsResponse:
+    """The templates the backend renders, so the UI never keeps its own copy.
+
+    The previous UI hard-coded its own defaults using variables the renderer
+    does not provide (``{{language}}``, ``{{field_descriptions}}``), so any
+    edited prompt silently lost its field list.
+    """
+    profile = get_profile()
+    return PromptDefaultsResponse(
+        profile=profile.id,
+        system_prompt=profile.system_template,
+        extraction_prompt=profile.extraction_template,
+        variables=[
+            "language_name",
+            "fields",
+            "ocr_text",
+            "page_count",
+            "few_shot_examples",
+            "section_priority",
+        ],
+        batch_field_order=list(BATCH_FIELD_ORDER),
+    )
 
 
 @router.get("/models", response_model=PageEnvelope[ModelInfo])

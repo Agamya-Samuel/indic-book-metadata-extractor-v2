@@ -1,0 +1,11 @@
+Example (hin, Muntakhabat-i-hindi Vol. 1 Ed. 5th IA in.ernet.dli.2015.94432):
+Input:
+[Page 6]
+MUNTAKHABAT-I-HINDYI, SELECTIONS IN HINDUSTANI, WITH VERBAL TRANSLATIONS OR PARTICULAR VOCABULARIES, AND A GRAMMATICAL ANALYSIS OF SOME PARTs, FOR THE USE OF STUDENTS OF THAT LANGL AGE, By JOHN SHAKESPEAR. FIFTH EDITION. VOL. I. —————_————a LONDON: PRINTED FOR THE AUTHOR, By J. & H. COX, 74 & 75, Great Queen Street, Lincoln’s-Inn Fields ; ‘un sold by Wu. 
+
+---
+
+[Page 8]
+tO Sir JAMES WEIR HOGG, Bart., M.P., Chairman. HENRY ST. GEORGE TUCKER, Esq., Deputy Chairman. Witiiam Wieram, Esq. JoHN SHEPHERD, Esq. Sir Roper’ Campse.t, Bart. Francis Warnrn, Esq. Joun Locu, Esq. । Sir Henry Wrisock, K.L.S. Cuariis Miss, Esq. Mantis Trexer Smitn, Esq. Joun Perry Meseratrt, Esq. Lieut.-Col. Wittia
+Output:
+{"publication_date": "1846", "publisher": "J. And H. Cox, London", "printer": "J. & H. COX", "place_of_printing": "LONDON", "distributors": "Wu. H. ALLEN & Co., Booksellers to the Hon. East-India Company"}

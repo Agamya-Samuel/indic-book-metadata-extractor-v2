@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBook,
   getAllMetadataFieldDefinitions,
+  getPromptDefaults,
   runExtraction,
   retryExtraction,
   DEFAULT_EXTRACTION_CONFIG,
@@ -29,25 +30,6 @@ import { ErrorState } from "@/components/shared/empty-state";
 import JobProgressCard from "@/components/shared/job-progress-card";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
-const DEFAULT_SYSTEM_PROMPT = `You are an expert bibliographic metadata extractor specializing in {{language}} language books.
-You will be given OCR-extracted text from scanned book pages. The text may contain OCR errors — use your knowledge of {{language}} to interpret corrupted words.
-Extract the requested metadata fields as accurately as possible from the provided text.
-If a field cannot be determined from the text, return null for that field.
-Always respond with valid JSON matching the exact schema provided. Do not include any text outside the JSON object.`;
-
-const DEFAULT_EXTRACTION_PROMPT = `Extract the following metadata fields from this {{language}} book text.
-
-Fields to extract:
-{{field_descriptions}}
-
-OCR Text (from {{page_count}} pages of a scanned book):
----
-{{ocr_text}}
----
-
-Respond with a JSON object containing exactly these fields. Use null for fields not found in the text.
-Do not include any explanation or text outside the JSON object.`;
-
 const BATCH_DISPLAY_NAMES: Record<string, string> = {
   core_identity: "Core Identity",
   contributors: "Contributors",
@@ -68,10 +50,10 @@ export default function LlmConfigPage() {
   const [config, setConfig] = useState<ExtractionRequest>({
     ...DEFAULT_EXTRACTION_CONFIG,
   });
-  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
-  const [extractionPrompt, setExtractionPrompt] = useState(
-    DEFAULT_EXTRACTION_PROMPT
-  );
+  // `null` means "untouched": the live backend default is shown instead of a
+  // copy, so the two can never drift apart.
+  const [systemPrompt, setSystemPrompt] = useState<string | null>(null);
+  const [extractionPrompt, setExtractionPrompt] = useState<string | null>(null);
   // ISO timestamp of the current run. Scopes job lookups so a completed run
   // from a previous attempt can never shadow the form.
   const [startedAt, setStartedAt] = useState<string | null>(null);
@@ -90,6 +72,18 @@ export default function LlmConfigPage() {
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
+
+  const { data: promptDefaults } = useQuery({
+    queryKey: ["prompt-defaults"],
+    queryFn: getPromptDefaults,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+
+  const defaultSystemPrompt = promptDefaults?.system_prompt ?? "";
+  const defaultExtractionPrompt = promptDefaults?.extraction_prompt ?? "";
+  const effectiveSystemPrompt = systemPrompt ?? defaultSystemPrompt;
+  const effectiveExtractionPrompt = extractionPrompt ?? defaultExtractionPrompt;
 
   const progress = useJobProgress({
     bookId,
@@ -119,10 +113,12 @@ export default function LlmConfigPage() {
       const payload: ExtractionRequest = {
         ...config,
         custom_system_prompt:
-          systemPrompt !== DEFAULT_SYSTEM_PROMPT ? systemPrompt : null,
+          effectiveSystemPrompt !== defaultSystemPrompt
+            ? effectiveSystemPrompt
+            : null,
         custom_extraction_prompt:
-          extractionPrompt !== DEFAULT_EXTRACTION_PROMPT
-            ? extractionPrompt
+          effectiveExtractionPrompt !== defaultExtractionPrompt
+            ? effectiveExtractionPrompt
             : null,
       };
       if (book?.status === "complete") {
@@ -154,9 +150,12 @@ export default function LlmConfigPage() {
         j.status === "failed" ||
         j.status === "cancelled"),
   );
-  const systemPromptModified = systemPrompt !== DEFAULT_SYSTEM_PROMPT;
+  const systemPromptModified =
+    Boolean(promptDefaults) && systemPrompt !== null && systemPrompt !== defaultSystemPrompt;
   const extractionPromptModified =
-    extractionPrompt !== DEFAULT_EXTRACTION_PROMPT;
+    Boolean(promptDefaults) &&
+    extractionPrompt !== null &&
+    extractionPrompt !== defaultExtractionPrompt;
   const currentRunActive = Boolean(startedAt) && progress.isRunning;
   const currentRunComplete = Boolean(startedAt) && progress.isComplete;
   const currentRunFailed = Boolean(startedAt) && progress.isFailed;
@@ -315,11 +314,13 @@ export default function LlmConfigPage() {
                 }
               >
                 <p className="mb-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
-                  Instructs the model on its role and output format. Variables:{" "}
-                  {"{{language}}"}
+                  Instructs the model on its role and output format. The backend
+                  renders this as a Jinja2 template; available variables:{" "}
+                  {promptDefaults?.variables.map((name) => `{{ ${name} }}`).join(", ") ||
+                    "loading…"}
                 </p>
                 <Textarea
-                  value={systemPrompt}
+                  value={effectiveSystemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   rows={8}
                   className="font-mono"
@@ -330,7 +331,7 @@ export default function LlmConfigPage() {
                     variant="ghost"
                     size="sm"
                     className="mt-2"
-                    onClick={() => setSystemPrompt(DEFAULT_SYSTEM_PROMPT)}
+                    onClick={() => setSystemPrompt(null)}
                   >
                     Reset to default
                   </Button>
@@ -347,12 +348,15 @@ export default function LlmConfigPage() {
                 }
               >
                 <p className="mb-2 text-[length:var(--text-xs)] text-[var(--text-muted)]">
-                  The user-turn prompt that requests field extraction. Variables:{" "}
-                  {"{{language}}"}, {"{{field_descriptions}}"}, {"{{ocr_text}}"},{" "}
-                  {"{{page_count}}"}
+                  The user-turn prompt that requests field extraction. The field
+                  list is available as{" "}
+                  <code>{"{% for field in fields %}"}</code> with{" "}
+                  <code>{"{{ field.name }}"}</code>,{" "}
+                  <code>{"{{ field.description }}"}</code> and{" "}
+                  <code>{"{{ field.guidance }}"}</code> inside the loop.
                 </p>
                 <Textarea
-                  value={extractionPrompt}
+                  value={effectiveExtractionPrompt}
                   onChange={(e) => setExtractionPrompt(e.target.value)}
                   rows={12}
                   className="font-mono"
@@ -363,7 +367,7 @@ export default function LlmConfigPage() {
                     variant="ghost"
                     size="sm"
                     className="mt-2"
-                    onClick={() => setExtractionPrompt(DEFAULT_EXTRACTION_PROMPT)}
+                    onClick={() => setExtractionPrompt(null)}
                   >
                     Reset to default
                   </Button>

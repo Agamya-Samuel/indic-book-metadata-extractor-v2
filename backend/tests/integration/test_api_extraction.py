@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 
+from app.core.config import DEFAULT_LLM_MODEL
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
@@ -70,7 +71,7 @@ class TestRunExtraction:
 
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "qwen2.5", "temperature": 0.3, "max_tokens": 2048},
+            json={"model": DEFAULT_LLM_MODEL, "temperature": 0.3, "max_tokens": 2048},
         )
         assert response.status_code == 201
         data = response.json()
@@ -78,11 +79,24 @@ class TestRunExtraction:
         assert data["total_batches"] == 8
         mock_celery["llm"].delay.assert_called_once()
 
+    async def test_run_extraction_rejects_any_other_model(self, client, make_book, db_session, mock_celery):
+        # One model, one memory footprint: the extractor is pinned. This keeps
+        # the guard itself covered instead of only testing the happy path.
+        book = await _create_book_with_ocr(client, make_book, db_session)
+
+        response = await client.post(
+            f"/api/books/{book['id']}/run-extraction",
+            json={"model": "phi4-mini"},
+        )
+        assert response.status_code == 422
+        assert DEFAULT_LLM_MODEL in response.text
+        mock_celery["llm"].delay.assert_not_called()
+
     async def test_run_extraction_wrong_status(self, client, make_book_with_pages, mock_celery):
         book = await make_book_with_pages()
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert response.status_code == 400
 
@@ -104,7 +118,7 @@ class TestRunExtraction:
 
         response = await client.post(
             f"/api/books/{book_resp['id']}/run-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert response.status_code == 400
 
@@ -123,7 +137,7 @@ class TestRunExtraction:
 
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert response.status_code == 409
 
@@ -132,13 +146,13 @@ class TestRunExtraction:
 
         first = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert first.status_code == 201
 
         second = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert second.status_code == 409
         assert second.headers.get("X-Existing-Job-Id") == first.json()["job_id"]
@@ -158,7 +172,7 @@ class TestRetryExtraction:
 
         response = await client.post(
             f"/api/books/{book['id']}/retry-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert response.status_code == 201
 
@@ -183,7 +197,7 @@ class TestRerunFromAwaitingReview:
 
         response = await client.post(
             f"/api/books/{book['id']}/run-extraction",
-            json={"model": "qwen2.5"},
+            json={"model": DEFAULT_LLM_MODEL},
         )
         assert response.status_code == 201
 

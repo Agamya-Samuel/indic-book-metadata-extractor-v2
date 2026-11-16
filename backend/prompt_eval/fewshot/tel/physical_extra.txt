@@ -1,0 +1,31 @@
+Example (tel, 2015.373190.Athma-Charitramu):
+Input:
+[Page 3]
+అంధ్ర గ్రంథమాల : ౨౨ AUTOBIOGRAPHY: R. Venkata Sivudu, M. A., L. T., GUNTUR of Donated in Memory tate Sri P N Vv. Rao e855 & so wo 8
+
+---
+
+[Page 5]
+ఆంధ్ర గ్రంథమాల : ౨౨ AUTOBIOGRAPHY: R. Venkata Sivudu, M. A., L. T., GUNTUR of Donated in Wiemory ee 8 3 5 8 So wy oS ¥ 8: రాయనము నె
+
+---
+
+[Page 7]
+అ౦కితము ee x Sy సుఖములందు + కలిమిలేములయందు మించు నెయ్యమునను + మెలంగసచుండి పగలు లేయి యనక $ (బదుకు WS) HOY Seog GO Basoc # ness od 5 
+
+---
+
+[Page 9]
+౧౯౩8౩. రాయసం వెంకటశివుడం, రత్నన్హుయును
+
+---
+
+[Page 11]
+పరిచయచాక్యము క. ee చర్శిత్తలుు ఆత్మకథలు, ALIS WE Seo నకల జనులకును సవాజములు. జీవయాత్ర మానన్హు లకు పురుపార్థనిద్ధికి సాధనము. జీవయ్యాత
+
+---
+
+[Page 12]
+న్! 3 _సంసిద్ధిని బడయుట కవకాశములను నధికారమును గ
+Output:
+{"pages": "691"}

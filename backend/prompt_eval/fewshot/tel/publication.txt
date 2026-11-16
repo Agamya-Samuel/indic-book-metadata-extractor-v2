@@ -1,0 +1,16 @@
+Example (tel, 2015.373190.Athma-Charitramu):
+Input:
+[Page 3]
+అంధ్ర గ్రంథమాల : ౨౨ AUTOBIOGRAPHY: R. Venkata Sivudu, M. A., L. T., GUNTUR of Donated in Memory tate Sri P N Vv. Rao e855 & so wo 8S E: రాయసము వెంకటకివుండు,ు cho. Ba, wT. 8,, గుంటూరు అధ్య త అర ఆంధ్ర పత్రికా ముద్రాలయము థ్ మద్రాసు ౧౯౩౩ సర్వస్వామ్య సంక లిత ము] (వల ౧ రూపాధ్లు'
+
+---
+
+[Page 5]
+ఆంధ్ర గ్రంథమాల : ౨౨ AUTOBIOGRAPHY: R. Venkata Sivudu, M. A., L. T., GUNTUR of Donated in Wiemory ee 8 3 5 8 So wy oS ¥ 8: రాయనము నెంకటశివుండ, యం, రు, యల్,టి., గుంటూరు. అధ ఠి ఆధ ఆంధ్ర పతి, కా ముద్రాలయము : మద్రాసు ౧౯౩౩ స్టర్వస్వామ్యసంకలితమ్ను [Be 0 ovr
+
+---
+
+[Page 7]
+అ౦కితము ee x Sy సుఖములందు + కలిమిలేములయందు మించు నెయ్యమునను + మెలంగసచుండి పగలు లేయి యనక $ (బదుకు WS) HOY Seog GO Basoc # ness od 5 . అవన
+Output:
+{"publication_date": "1933", "publisher": "ఆంధ్ర పత్రికా ముద్రాలయము", "publisher_telugu": "ఆంధ్ర గ్రంథమాల", "place_of_publication": "మద్రాసు", "printer": "ఆంధ్ర పత్రికా ముద్రాలయము", "place_of_printing": "మద్రాసు", "distributors": "ఆంధ్ర గ్రంథమాల"}
