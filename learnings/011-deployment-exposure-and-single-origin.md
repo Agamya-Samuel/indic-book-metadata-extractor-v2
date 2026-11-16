@@ -16,7 +16,7 @@ public entry point with the API at `/api`, and by auditing/closing host-level ex
 
 ### 1. Prod deploy died at compose interpolation for ~7 weeks
 
-Dokploy's compose service `app` (`Wwaoy7RGlt8s08NqlyhI9`, branch `main`,
+Dokploy's compose service `app` (`<dokploy-compose-id>`, branch `main`,
 `./docker-compose.production.yml`) had `composeStatus = error`. The log:
 
 ```
@@ -61,8 +61,8 @@ Mechanism:
 | `…-extractor-flower.agamya.us.kg/` | `flower:5555` | leak (404 only because Flower was crash-looping) |
 | `…-extractor-openrefine.agamya.us.kg/` | `openrefine:3333` | operator tool, kept public |
 | `…-extractor-wikibase.agamya.us.kg/` | `wikibase:80` | publish target, kept public |
-| `<origin-ip>:3000` | Dokploy panel | public admin surface |
-| `<origin-ip>:8080` | Traefik API | **unauthenticated**; `/api/overview` returned every router/service/middleware |
+| `<origin-ip>:<dokploy-panel-port>` | Dokploy panel | public admin surface |
+| `<origin-ip>:<traefik-api-port>` | Traefik API | **unauthenticated**; `/api/overview` returned every router/service/middleware |
 
 - The host had **no firewall** (`ufw` inactive, `iptables -P INPUT ACCEPT`).
 - The compose files themselves were clean: zero `ports:` in production, everything else `expose`,
@@ -89,10 +89,12 @@ Host(app)                      →  frontend:3000
 - Backend, worker, postgres, redis, ollama, mysql, elasticsearch, flower and backup stay
   internal-only. OpenRefine and Wikibase keep public hosts as operator tools.
 - `/docs`, `/redoc` and `/openapi.json` now return `None` unless `DEBUG` is on.
-- Dokploy panel (`:3000`) and Traefik API (`:8080`) stay **published at the server IP**. They were
-  briefly blocked with a `DOCKER-USER` DROP, but `:3000` *is* the Dokploy panel, so that locked the
-  operator out of his own control plane; it was reverted. Reach them via `ssh -N -L 3000:localhost:3000 oki`
-  if you want an encrypted path, but do not close them without accepting the loss of IP access.
+- Dokploy panel and Traefik API stay **published at the server IP**. They were
+  briefly blocked with a `DOCKER-USER` DROP, but the panel port *is* the Dokploy
+  panel, so that locked the operator out of his own control plane; it was
+  reverted. Reach them via `ssh -N -L <panel-port>:localhost:<panel-port> <host>`
+  if you want an encrypted path, but do not close them without accepting the loss
+  of IP access.
 
 ### 4. Production bind-mounted the application source out of Dokploy's working copy
 

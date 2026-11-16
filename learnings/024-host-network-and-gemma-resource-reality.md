@@ -36,9 +36,8 @@ ISO mirror range request timed out after a 302, but that path is not needed.
   → **HTTP 200** on `/` and `/api/health` (real Host header, no Cloudflare).
 - Public DNS path also 200 and carries `cf-ray`, so Cloudflare is in front, but
   the origin is reachable around it.
-- `<origin-ip>:3000` (Dokploy) and `:8080/api/overview` (Traefik API) both
-  return 200; the raw IP with no Host returns 404 only because Traefik has no
-  catch-all router.
+- The Dokploy panel and the Traefik API both return 200 on the origin IP; the
+  raw IP with no Host returns 404 only because Traefik has no catch-all router.
 - Closing ingress to Cloudflare ranges (or a Cloudflare Tunnel) remains an
   operator action.
 

@@ -147,7 +147,7 @@ one page or one book, so they keep loading after the access cookie expires.
 `<origin-ip>` and answers **200** with the real Host header, so Cloudflare's
 WAF and rate rules can be bypassed by connecting to the IP, and the proxy
 headers the app trusts (`CF-Connecting-IP`, the last `X-Forwarded-For` hop) can
-be forged that way. Dokploy `:3000` and Traefik `:8080` also stay published.
+be forged that way. The Dokploy panel and Traefik API ports also stay published.
 Closing ingress to Cloudflare ranges (or moving to a Cloudflare Tunnel) is an
 operator action on the Cloudflare side; see `docs/runbook.md`.
 
