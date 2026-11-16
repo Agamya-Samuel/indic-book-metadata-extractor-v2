@@ -226,7 +226,7 @@ Upload a PDF file for processing. Creates a book record and analyzes page count.
 |-------|------|----------|---------|-------------|
 | `file` | File | Yes | — | PDF file (max 200 MB) |
 | `title` | string | No | null | Optional book title |
-| `language` | string | No | "tel" | Language code: "tel" or "hin" |
+| `language` | string | **Yes** | — | Language code: `tel`, `hin`, or `eng`. Missing/unsupported values return 422 |
 
 **Response** (`201 Created`):
 ```json
@@ -240,6 +240,28 @@ Upload a PDF file for processing. Creates a book record and analyzes page count.
   "created_at": "2026-05-23T01:30:00Z"
 }
 ```
+
+---
+
+### Change Book Language
+
+```
+PATCH /api/books/{book_id}/language
+```
+
+Corrects the language used for OCR. If pages already exist, the endpoint cancels active jobs, drops OCR derived from the old language, resets the pipeline from OCR, keeps the original PDF and page images, and queues a fresh OCR job.
+
+**Body**:
+```json
+{ "language": "hin" }
+```
+
+**Response** (`200 OK`):
+```json
+{ "id": "550e8400-e29b-41d4-a716-446655440000", "language": "hin", "job_id": "..." }
+```
+
+`job_id` is `null` when no pages have been selected yet (nothing to re-OCR) or the language was already correct. Unsupported codes return 422.
 
 ---
 
@@ -597,7 +619,11 @@ GET /api/pages/{page_id}/ocr
   ],
   "confidence": 78.5,
   "language_detected": "tel",
-  "corrected_text": null
+  "corrected_text": null,
+  "ocr_engine": "line_model",
+  "ocr_route": null,
+  "ocr_coverage": 1.0,
+  "ocr_script": { "latin": 0.01, "telugu": 0.98, "devanagari": 0.0 }
 }
 ```
 

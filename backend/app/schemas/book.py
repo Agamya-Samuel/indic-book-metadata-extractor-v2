@@ -32,6 +32,16 @@ class BookDetail(BookUploadResponse):
     thumbnail_token: str | None = None
 
 
+class BookLanguageUpdate(BaseModel):
+    language: str
+
+
+class BookLanguageResponse(BaseModel):
+    id: uuid.UUID
+    language: str
+    job_id: uuid.UUID | None = None
+
+
 class PageSelectionRequest(BaseModel):
     selected_pages: list[int] = Field(..., min_length=1)
 

@@ -214,6 +214,12 @@ export interface BookUploadResponse {
   owner_display_name?: string | null;
 }
 
+export interface BookLanguageResponse {
+  id: string;
+  language: string;
+  job_id: string | null;
+}
+
 export interface BookStageResponse {
   id: string;
   book_id: string;
@@ -277,7 +283,6 @@ export interface PreprocessingConfig {
   border_content_ratio?: number;
   sauvola_window?: number;
   sauvola_k?: number;
-  auto_preprocess?: boolean;
   // Manual rotation. Coarse first, fine (±15°) after deskew.
   rotation?: number;
   rotation_angle?: number;
@@ -310,6 +315,10 @@ export interface OcrResultResponse {
   confidence: number | null;
   language_detected: string | null;
   corrected_text: string | null;
+  ocr_engine?: string | null;
+  ocr_route?: string | null;
+  ocr_coverage?: number | null;
+  ocr_script?: Record<string, number> | null;
 }
 
 export interface JobResponse {
@@ -356,15 +365,14 @@ export const DEFAULT_PREPROCESSING_CONFIG: PreprocessingConfig = {
   border_content_ratio: 0.85,
   sauvola_window: 25,
   sauvola_k: 0.2,
-  auto_preprocess: true,
   rotation: 0,
   rotation_angle: 0,
 };
 
 export const uploadBook = async (
   file: File,
-  title?: string,
-  language: string = "tel"
+  title: string | undefined,
+  language: string
 ): Promise<BookUploadResponse> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -390,6 +398,17 @@ export const uploadBook = async (
 
 export const getBook = async (bookId: string): Promise<BookDetail> => {
   const response = await api.get<BookDetail>(`/books/${bookId}`);
+  return response.data;
+};
+
+export const updateBookLanguage = async (
+  bookId: string,
+  language: string
+): Promise<BookLanguageResponse> => {
+  const response = await api.patch<BookLanguageResponse>(
+    `/books/${bookId}/language`,
+    { language }
+  );
   return response.data;
 };
 
@@ -607,6 +626,21 @@ export const getAvailableModels = async (
   const response = await api.get<Page<ModelInfo>>(
     `/books/models${pageQuery(params)}`,
   );
+  return response.data;
+};
+
+export type PromptDefaults = {
+  profile: string;
+  system_prompt: string;
+  extraction_prompt: string;
+  variables: string[];
+  batch_field_order: string[];
+};
+
+// The backend owns the prompt templates. Fetching them stops this client from
+// keeping a drifted copy that references variables the renderer never supplies.
+export const getPromptDefaults = async (): Promise<PromptDefaults> => {
+  const response = await api.get<PromptDefaults>("/books/prompt-defaults");
   return response.data;
 };
 

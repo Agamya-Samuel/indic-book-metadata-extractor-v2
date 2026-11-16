@@ -46,12 +46,76 @@ class TestUploadBook:
         )
         assert response.status_code == 422
 
+    async def test_upload_requires_language(self, client, sample_pdf, test_storage):
+        pdf_bytes = sample_pdf.read_bytes()
+        response = await client.post(
+            "/api/books/upload",
+            files={"file": ("test.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
+        )
+        assert response.status_code == 422
+        assert "language" in response.json()["detail"].lower()
+
     async def test_upload_corrupted_pdf(self, client, test_storage):
         response = await client.post(
             "/api/books/upload",
             files={"file": ("bad.pdf", io.BytesIO(b"not a pdf"), "application/pdf")},
+            data={"language": "tel"},
         )
         assert response.status_code == 400
+
+
+class TestChangeLanguage:
+    async def test_change_language_before_pages(self, client, make_book):
+        book = await make_book(language="tel")
+
+        response = await client.patch(
+            f"/api/books/{book['id']}/language",
+            json={"language": "hin"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["language"] == "hin"
+        assert data["job_id"] is None
+
+        detail = await client.get(f"/api/books/{book['id']}")
+        assert detail.json()["language"] == "hin"
+
+    async def test_same_language_is_noop(self, client, make_book):
+        book = await make_book(language="tel")
+
+        response = await client.patch(
+            f"/api/books/{book['id']}/language",
+            json={"language": "tel"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["job_id"] is None
+
+    async def test_invalid_language_rejected(self, client, make_book):
+        book = await make_book(language="tel")
+
+        response = await client.patch(
+            f"/api/books/{book['id']}/language",
+            json={"language": "fra"},
+        )
+
+        assert response.status_code == 422
+
+    async def test_change_language_with_pages_reruns_ocr(self, client, make_book_with_pages, mock_celery):
+        book = await make_book_with_pages()
+
+        response = await client.patch(
+            f"/api/books/{book['id']}/language",
+            json={"language": "hin"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["language"] == "hin"
+        assert data["job_id"] is not None
+        mock_celery["preprocess"].delay.assert_called_once()
+        assert mock_celery["preprocess"].delay.call_args.args[2] == "hin"
 
 
 class TestGetBook:

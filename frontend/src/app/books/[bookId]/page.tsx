@@ -26,6 +26,7 @@ import Image from "next/image";
 import { ErrorState, Progress } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import WorkflowResumeBanner from "@/components/book/workflow-resume-banner";
+import BookLanguageControl from "@/components/book/language-control";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import Pagination from "@/components/shared/pagination";
@@ -502,6 +503,7 @@ export default function BookDetailPage() {
           }
           actions={
             <div className="flex items-center gap-2">
+              <BookLanguageControl bookId={bookId} language={book.language} />
               {book.status === "awaiting_review" && (
                 <LinkButton
                   href={`/books/${bookId}/metadata-review`}

@@ -27,7 +27,7 @@ export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [language, setLanguage] = useState("tel");
+  const [language, setLanguage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { setLanguage: setStoreLanguage } = useBookStore();
 
@@ -75,6 +75,10 @@ export default function UploadPage() {
     e.preventDefault();
     if (!file) {
       setError("Please select a file");
+      return;
+    }
+    if (!language) {
+      setError("Select the book's primary language");
       return;
     }
     uploadMutation.mutate();
@@ -192,6 +196,9 @@ export default function UploadPage() {
                   onChange={(e) => setLanguage(e.target.value)}
                   required
                 >
+                  <option value="" disabled>
+                    Select a language
+                  </option>
                   {LANGUAGES.map((l) => (
                     <option key={l.value} value={l.value}>
                       {l.label}
@@ -207,7 +214,7 @@ export default function UploadPage() {
                   type="submit"
                   size="lg"
                   loading={uploadMutation.isPending}
-                  disabled={uploadMutation.isPending}
+                  disabled={uploadMutation.isPending || !language}
                 >
                   {uploadMutation.isPending ? "Uploading" : "Upload and continue"}
                 </Button>

@@ -37,10 +37,11 @@ describe("UploadPage", () => {
     expect(screen.getByText(/or drag and drop/)).toBeDefined();
   });
 
-  it("renders language selector with default Telugu", () => {
+  it("starts with no language selected", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
-    const select = screen.getByDisplayValue("Telugu");
-    expect(select).toBeDefined();
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    expect(screen.getByText("Select a language")).toBeDefined();
   });
 
   it("renders language selector with Hindi option", () => {
@@ -61,13 +62,14 @@ describe("UploadPage", () => {
     expect(screen.getByText(/Upload and continue/)).toBeDefined();
   });
 
-  it("renders upload button enabled in idle state", () => {
+  it("disables upload until a language is chosen", () => {
     render(<UploadPage />, { wrapper: createWrapper() });
     const btn = screen.getByText(/Upload and continue/).closest("button")!;
-    // The upload page does not gate the button on file selection — the
-    // server-side validator rejects empty submissions. Verify the button is
-    // present and enabled.
-    expect(btn).toBeDefined();
+    expect(btn.disabled).toBe(true);
+
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: "hin" } });
+
     expect(btn.disabled).toBe(false);
   });
 

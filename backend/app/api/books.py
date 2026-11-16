@@ -23,6 +23,8 @@ from app.models.page import Page
 from app.schemas.book import (
     BookDetail,
     BookDetailResponse,
+    BookLanguageResponse,
+    BookLanguageUpdate,
     BookUploadResponse,
     OcrStatusResponse,
     OcrPageStatus,
@@ -77,7 +79,7 @@ async def upload_book(
     file: UploadFile,
     background_tasks: BackgroundTasks,
     title: str | None = Form(None),
-    language: str = Form("tel"),
+    language: str = Form(""),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> BookUploadResponse:
@@ -92,6 +94,12 @@ async def upload_book(
         raise HTTPException(
             status_code=413,
             detail=f"File exceeds {settings.max_upload_size_mb} MB limit",
+        )
+
+    if not language:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Language is required. Valid options: {sorted(VALID_LANGUAGES)}",
         )
 
     if language not in VALID_LANGUAGES:
@@ -149,6 +157,39 @@ async def upload_book(
     background_tasks.add_task(_pre_render_thumbnails, str(book_id), pdf_path, page_count)
 
     return BookUploadResponse.model_validate(book)
+
+
+@router.patch("/{book_id}/language", response_model=BookLanguageResponse)
+async def update_book_language(
+    body: BookLanguageUpdate,
+    book: Book = Depends(get_owned_book_or_404),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> BookLanguageResponse:
+    """Correct a book's language and re-run OCR when pages already exist.
+
+    Language is a page-routing input, not just metadata: a Hindi book stored as
+    Telugu is sent to the Telugu model and produces Latin/Telugu rubble
+    (learnings/029). Changing it clears OCR derived from the old language and
+    keeps the original PDF, page images, and reviewed metadata.
+    """
+    if body.language not in VALID_LANGUAGES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported language '{body.language}'. Valid options: {sorted(VALID_LANGUAGES)}",
+        )
+
+    updated, job = await admin_service.change_language(
+        db,
+        book.id,
+        body.language,
+        requested_by_id=user.id,
+    )
+    return BookLanguageResponse(
+        id=updated.id,
+        language=updated.language,
+        job_id=job.id if job is not None else None,
+    )
 
 
 async def _build_book_detail(

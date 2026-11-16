@@ -439,6 +439,41 @@ async def rerun_ocr(db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | 
     return job
 
 
+async def change_language(
+    db: AsyncSession,
+    book_id: UUID,
+    language: str,
+    *,
+    requested_by_id: UUID | None = None,
+) -> tuple[Book, Job | None]:
+    """Correct a book's language, clearing and re-running OCR when pages exist.
+
+    A wrong language silently sends Hindi through the Telugu line model / a
+    ``tel+eng`` Tesseract pass (learnings/029). This keeps the original PDF and
+    page images, but drops OCR output derived from the old language and, once
+    pages exist, dispatches a fresh OCR job.
+    """
+    book = await db.get(Book, book_id)
+    if book is None:
+        raise LookupError("Book not found")
+    if book.language == language:
+        return book, None
+
+    book.language = language
+    await db.flush()
+
+    has_page = (
+        await db.execute(select(Page.id).where(Page.book_id == book_id).limit(1))
+    ).scalar_one_or_none()
+    if has_page is None:
+        await db.commit()
+        await db.refresh(book)
+        return book, None
+
+    job = await rerun_ocr(db, book_id, requested_by_id=requested_by_id)
+    return book, job
+
+
 async def rerun_extraction(db: AsyncSession, book_id: UUID, *, requested_by_id: UUID | None = None) -> Job:
     """Re-run LLM extraction on existing OCR outputs with default config."""
     book = await db.get(Book, book_id)
