@@ -188,6 +188,37 @@ The UI surfaces a "review needed" hint below `LOW_CONFIDENCE_THRESHOLD` (default
 
 ---
 
+## Wikidata mapping
+
+22 of the 49 fields map to a Wikidata property; 27 do not. The mapping is `FIELD_WIKIDATA` in
+`backend/app/schemas/metadata.py` and is what `POST /api/bulk/export-wikibase` uses to build
+QuickStatements.
+
+| Field | P-ID | Field | P-ID |
+| --- | --- | --- | --- |
+| `author` | P50 | `volume` | P478 |
+| `translator` | P655 | `edition_number` | P393 |
+| `editor` | P98 | `publication_date` | P577 |
+| `inception` | P571 | `publisher` | P123 |
+| `form_of_creative_work` | P7937 | `place_of_publication` | P291 |
+| `genre` | P136 | `printer` | P872 |
+| `subject` | P921 | `place_of_printing` | P2919 |
+| `original_language` | P364 | `language` | P407 |
+| `edition_or_translation_of` | P629 | `cover_artist` | P736 |
+| `based_on` | P144 | `pages` | P1104 |
+| `inspired_by` | P941 | `sponsor` | P859 |
+
+**Unmapped (27):** `label`, `description_work`, `description_edition`, `compiler`,
+`cover_page_designer`, `typesetting_by`, `typing_by`, `book_designer`, `publisher_telugu`,
+`distributors`, `context`, `awards`, `part_of_series`, `serial_number_in_series`, `part_of_the_set`,
+`first_published_in`, `dedication`, `dedication_verbatim`, `forewords`, `abbreviations`,
+`authors_in_compilation`, `opinions_messages`, `scribes`, `isbn`, `title`, `subtitle`, `illustrators`.
+
+Local property IDs can differ from Wikidata's. A `property-mapping.json` is meant to translate between
+them, but the file is never loaded because the writer and reader use different volumes — see
+[integrations](../architecture/integrations.md#known-broken-wiring). Until that is fixed, exports use
+the Wikidata P-IDs above.
+
 ## Related
 
 - Extraction mechanics: [extraction](../processing/extraction.md)

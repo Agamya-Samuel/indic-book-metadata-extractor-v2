@@ -161,7 +161,29 @@ Expected saving: ~2.5 GiB per environment with no restructuring.
 
 ---
 
-## 9. Troubleshooting
+## 9. Extensions and gadgets
+
+The local Wikibase image bundles the extensions the workflow needs. Verify the live list at
+`/wiki/Special:Version`.
+
+**Wikibase:** WikibaseRepository, WikibaseClient, WikibaseCirrusSearch, WikibaseManifest,
+WikibaseLocalMedia, EntitySchema, WikibaseEdtf, WikibaseLexeme, WikibaseLexemeCirrusSearch,
+WikibaseQualityConstraints, PropertySuggester.
+
+**MediaWiki:** CirrusSearch, Elastica, Echo, OAuth (for QuickStatements), UniversalLanguageSelector,
+Babel, CLDR, VisualEditor, Scribunto, ParserFunctions, Cite, CodeMirror, DiscussionTools, ConfirmEdit,
+Nuke, SyntaxHighlight, AbuseFilter, AdvancedSearch, Gadgets.
+
+**Gadgets** (`make install-gadgets`), eight curated from wikidata.org: Merge, labelLister,
+KeyShortcuts, DuplicateReferences, compact items, NarrowUI, Descriptions, AuthorityControl. Enable
+per user at `/wiki/Special:Preferences#mw-prefsection-gadgets`.
+
+Extensions deliberately **not** installed are the ones that require Wikimedia-wide infrastructure
+(CentralAuth and similar); they are not feasible self-hosted.
+
+---
+
+## 10. Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |

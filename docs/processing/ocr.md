@@ -243,3 +243,29 @@ for both.
 5. **No automatic language detection at page level.** The book language drives everything; script
    shares are recorded but do not change the book language.
 
+---
+
+## 10. Troubleshooting
+
+| Symptom | Cause / fix |
+| --- | --- |
+| `TesseractNotFoundError` | Binary missing or `TESSERACT_CMD` wrong. Install `tesseract-ocr` or fix the path |
+| `Failed loading language 'tel'` | `tesseract-ocr-tel` not installed, or `TESSERACT_TESSDATA_DIR` lacks `tel.traineddata` |
+| Every Telugu page has `ocr_error: "… fell back to Tesseract"` | `OCR_TEL_ENGINE=line_model` without torch/transformers/weights. Build with `OCR_LINE=true`, or set the engine back to `tesseract` |
+| Worker OOM or very slow first page | The line model loads ~779 MB. Keep concurrency at 1 |
+| Poor accuracy on body pages | Check `OCR_RENDER_DPI` is 300, disable preprocessing, and read the PSM label in the logs |
+| Danda `।` appears in English text | Should not happen: `_danda_cleanup` is skipped when `language == "eng"` (regression test in `test_ocr_postprocess.py`) |
+| Dictionaries ignored | `OCR_USE_DICTIONARY` must list the language (`hin,tel`) **and** the files must exist in `backend/app/services/dictionaries/` |
+
+## 11. Adding a language
+
+1. Add `tesseract-ocr-<lang>` to `docker/Dockerfile.backend`.
+2. Add `"<lang>": "<lang>+eng"` to `LANGUAGE_MAP` in `ocr_service.py`.
+3. If using dictionaries, add `<lang>.words` / `<lang>.patterns` under
+   `backend/app/services/dictionaries/`.
+4. Rebuild the image (`make rebuild`).
+
+Route decisions, script thresholds and the line-model/model selection are described above; this is
+only the mechanical plumbing. New languages should also be added to the evaluation corpus before being
+claimed as supported — see [evaluation](../testing/evaluation.md).
+

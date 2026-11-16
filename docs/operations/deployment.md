@@ -97,7 +97,9 @@ Everything else has a working default. See [configuration](../development/config
 Press **Deploy**. The first deploy takes a while:
 
 - Ollama pulls `gemma4:e4b` (~6.6 GB).
-- The worker image bakes CPU torch/transformers plus the Telugu OCR model.
+- The worker image bakes CPU torch/transformers plus the Telugu OCR model, gated behind the
+  `OCR_LINE=true` build arg. Weights are baked in and never downloaded at runtime
+  (`HF_HUB_OFFLINE=1`). The backend image is built **without** the extra, so it stays small.
 - The backend entrypoint runs `alembic upgrade head` before starting.
 
 ### 2.5 Create the first administrator

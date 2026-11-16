@@ -62,6 +62,27 @@ The `BACKUP` argument is required — the target refuses to guess.
 6. Run `make migrate` — the dump may predate the current schema.
 7. Start services and verify `/health` and one book end to end.
 
+### Restore drill (verified 2026-11-14)
+
+Restore into a scratch database rather than over the live one:
+
+```bash
+docker cp <backup>:/backups/<dump>.dump /tmp/restore.dump
+docker cp /tmp/restore.dump <postgres>:/tmp/restore.dump
+docker exec <postgres> sh -lc '
+  dropdb -U postgres --if-exists indic_books_restore_check &&
+  createdb -U postgres indic_books_restore_check &&
+  pg_restore -U postgres -d indic_books_restore_check --no-owner --no-privileges /tmp/restore.dump &&
+  psql -U postgres -d indic_books_restore_check -c \
+    "select (select count(*) from users) users, (select count(*) from books) books,
+            (select count(*) from jobs) jobs, (select count(*) from pages) pages;"
+'
+# cleanup: dropdb -U postgres indic_books_restore_check; rm /tmp/restore.dump
+```
+
+Container names follow `<project>-<service>-1`. The dump carries `alembic_version` as of the dump, so
+the authorised upgrade path is: restore, then let the backend entrypoint run `alembic upgrade head`.
+
 ### Why order matters
 
 Migrations run only forward in practice. Restoring an older dump and starting the backend without
