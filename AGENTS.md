@@ -22,14 +22,15 @@ The core platform is implemented and deployed (staging + production via Dokploy)
 | Folder | Purpose | Naming |
 |--------|---------|--------|
 | `plans/` | Project plans, ADRs, study designs | `XXX-plan-description.md` |
-| `probing/` | Feasibility experiments, investigations | `XXX-probing-description.md` |
 | `poc/` | Proofs of concept (validated approaches) | `XXX-poc-description.md` |
-| `fixtures/` | Test data, sample inputs, ground truth | `XXX-fixtures-description.md` |
 | `learnings/` | Documented findings, conclusions | `XXX-finding-name.md` |
 | `todos/` | Project task tracking, long-running agent tasks | `XXX-todo-description.md` |
 | `infra/` | Cloud infrastructure inventory, live resource/task trackers | `descriptive-name.md` |
+| `docs/` | Current technical documentation — architecture, API, operations | `kebab-case.md` inside a category |
+| `datasets/` | Evaluation data: ground truth, samples, frozen corpus | fixed layout, see `datasets/README.md` |
+| `benchmarks/` | Measured outputs and reports | producer-defined |
 
-**Numbering:** Three-digit sequential (`001-`, `002-`, etc.) across all folders.
+**Numbering:** three-digit sequential (`001-`, `002-`, …) for `plans/`, `poc/`, `learnings/` and `todos/`. `docs/`, `datasets/` and `benchmarks/` are organised by category instead.
 
 ### 3. Incremental Development (When Implementation Starts)
 - One small increment at a time
@@ -65,5 +66,5 @@ The core platform is implemented and deployed (staging + production via Dokploy)
 
 If a feasibility study reveals a blocker (e.g., OCR accuracy too low on Indic scripts, LLM extraction unreliable):
 1. Document in `learnings/XXX-blocker-name.md`
-2. Update `plans/001-project-architecture.md` with alternative approaches
+2. Update the relevant `plans/XXX-*.md` with alternative approaches
 3. Notify user for product-level decision (scope change, pivot, etc.)
