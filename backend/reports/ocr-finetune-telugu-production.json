@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-16",
+  "host": "oki",
+  "url": "https://indic-book-metadata-extractor.agamya.us.kg",
+  "book": "19380101_Savitri_Natakamu_Telugu_PDF (held-out test book)",
+  "model_path": "/app/storage/models/telugu-ocr-ft",
+  "engine": "line_model",
+  "pages": [
+    {
+      "page": 7,
+      "cer": 0.0999,
+      "base_offline_cer": 0.103,
+      "chars": 1310,
+      "route": null
+    },
+    {
+      "page": 8,
+      "cer": 0.2952,
+      "base_offline_cer": 0.324,
+      "chars": 341,
+      "route": null
+    }
+  ],
+  "note": "Production requests ran through the normal upload -> select pages -> OCR API and the fine-tuned checkpoint loaded from the persistent volume. The first attempt fell back to Tesseract because the saved config auto_map still referenced the HF repo prefix; that was corrected to local module names before this run.",
+  "held_out_page_benchmark": {
+    "pages": 16,
+    "base_median_cer": 0.0667,
+    "ft_median_cer": 0.0514,
+    "base_median_wer": 0.5,
+    "ft_median_wer": 0.3894,
+    "pages_better": 11,
+    "pages_worse": 4
+  }
+}

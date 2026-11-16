@@ -239,6 +239,16 @@ def main() -> int:
         print(f"epoch {epoch} test {test}", file=sys.stderr)
         args.out.mkdir(parents=True, exist_ok=True)
         model.save_pretrained(args.out)
+        # save_pretrained keeps the source repo's auto_map prefix; point it at
+        # the local modules so HF_HUB_OFFLINE=1 can load the checkpoint.
+        config_path = args.out / "config.json"
+        config_data = json.loads(config_path.read_text(encoding="utf-8"))
+        config_data["auto_map"] = {
+            "AutoConfig": "configuration_telugu_ocr.TeluguOCRConfig",
+            "AutoModel": "modeling_telugu_ocr.TeluguOCRModel",
+        }
+        config_data["_name_or_path"] = str(args.out)
+        config_path.write_text(json.dumps(config_data, indent=2), encoding="utf-8")
         # The custom tokenizer's save_vocabulary() cannot serialize its
         # AddedToken keys, so copy the original tokenizer/code files instead.
         from huggingface_hub import snapshot_download

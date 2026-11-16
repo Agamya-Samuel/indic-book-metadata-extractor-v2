@@ -68,6 +68,17 @@ Speed/RAM in the held-out page run: **3.1 s/page, 566 MB peak** (the base run wa
 - `_resolve_model_name()` falls back to the baked base checkpoint if the volume artifact is missing (fresh host), so a deploy never drops to Tesseract just because the volume is empty.
 - Weights are not committed (311 MB); the training scripts and reports are.
 
+### Production verification (2026-11-16)
+
+Normal API flow on oki: upload a held-out Savitri PDF → select pages 7–8 → OCR. The worker logged `Loading Telugu line OCR model '/app/storage/models/telugu-ocr-ft'` and returned `engine=line_model` (no fallback):
+
+| Page | Base offline CER | Production fine-tuned CER |
+|---|---:|---:|
+| 7 | 0.103 | **0.0999** |
+| 8 | 0.324 | **0.2952** |
+
+**Gotcha found during deploy:** `save_pretrained()` preserved the source repo's `auto_map` prefix (`harsha-desaraju/telugu-ocr-model--…`), so `HF_HUB_OFFLINE=1` tried the hub and fell back to Tesseract. The saved `config.json` must point `AutoConfig`/`AutoModel` at the local module names; the training script now rewrites it, and the deployed artifact was patched. The page-7 run before the fix fell back to Tesseract at CER 0.2004, which shows how silently a wrong config disables the model.
+
 ## Reproduce
 
 ```bash
