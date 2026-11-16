@@ -1,7 +1,7 @@
 # Deployment
 
 Production runs on **Dokploy** as a self-contained Docker Compose stack. This document is the
-canonical deployment reference; `DEPLOY.md` at the repository root is a pointer to it.
+canonical deployment reference.
 
 - Production compose: `docker-compose.production.yml`
 - Staging compose: `docker-compose.staging.yml`

@@ -144,7 +144,7 @@ access**. Cookie-based sessions with two roles:
   Run this once after the first `make up` / `make migrate`.
 
 Email delivery (verification, password resets) requires SMTP configuration —
-see [DEPLOY.md](DEPLOY.md) and `.env.example` for the variables.
+see [deployment](docs/operations/deployment.md) and `.env.example` for the variables.
 
 ---
 

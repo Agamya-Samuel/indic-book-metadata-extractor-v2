@@ -79,7 +79,7 @@ check_config() {
     [ -z "$DOKPLOY_COMPOSE_ID" ] && missing+=("DOKPLOY_COMPOSE_ID")
 
     if [ ${#missing[@]} -gt 0 ]; then
-        fail "Missing required env vars: ${missing[*]}\n\nSet them in .env or export them. See DEPLOY.md for setup instructions."
+        fail "Missing required env vars: ${missing[*]}\n\nSet them in .env or export them. See docs/operations/deployment.md for setup instructions."
     fi
 }
 

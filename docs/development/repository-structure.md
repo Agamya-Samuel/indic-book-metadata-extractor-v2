@@ -27,7 +27,6 @@ Where things live and why. Paths are relative to the repository root.
 ├── Makefile                  Supported task entry point
 ├── README.md                 Project overview and docs pointer
 ├── CHANGELOG.md              Version history (currently stale)
-├── DEPLOY.md                 Pointer to docs/operations/deployment.md
 └── AGENTS.md                 Agent workflow conventions
 ```
 
