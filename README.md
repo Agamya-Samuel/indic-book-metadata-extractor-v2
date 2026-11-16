@@ -172,17 +172,16 @@ see [DEPLOY.md](DEPLOY.md) and `.env.example` for the variables.
 
 ---
 
-## Documentation
+## Additional documentation
 
 | Document | Description |
 |----------|-------------|
 | [User Guide](docs/user-guide.md) | Step-by-step walkthrough with screenshots |
-| [Developer Guide](docs/history/developer-guide-2026-11.md) | Architecture, local dev setup, extending the app |
-| [API Reference](docs/history/api-reference-2026-11.md) | Complete REST API documentation |
+| [Documentation index](docs/README.md) | Full tree, conventions, maintenance rules |
+| [System architecture](docs/architecture/system-architecture.md) | Topology, data model, pipeline |
+| [API Reference](docs/reference/api.md) | Endpoints, request/response bodies, status codes |
 | [Changelog](CHANGELOG.md) | Release notes and version history |
-| [Implementation Plan](docs/history/implementation-plan-2026-05.md) | Original 12-week development plan |
-| [Tech Stack](docs/history/tech-stack-2026-06.md) | Detailed technology choices and rationale |
-| [Product Spec](docs/history/project-overview-original.md) | Full product specification |
+| [History](docs/history/README.md) | Archived plans and the evidence behind past decisions |
 
 ---
 

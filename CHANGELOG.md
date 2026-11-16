@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+**Repository layout**
+- `datasets/` — ground truth, sample PDFs and the frozen evaluation corpus, moved out of `backend/tests/fixtures/` and `backend/prompt_eval/`
+- `benchmarks/` — measured outputs moved out of `backend/reports/`, so results are no longer stored inside the application source
+- `docs/` reorganised into `architecture/`, `application/`, `processing/`, `development/`, `operations/`, `testing/`, `reference/`, plus `history/` for archived material
+- `docs/history/` distinguishes merged-then-archived documents from genuine primary evidence
+
 **Authentication & Roles**
 - Email + password accounts with open self-registration, email verification (24 h token), and self-service password reset (1 h single-use token)
 - Two roles (`user` / `admin`) with backend-enforced authorization on every book/page/job endpoint (owner or admin); first admin via `make create-admin`
@@ -32,6 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Rate limiting on auth endpoints; CSRF (`X-CSRF-Token`) required on state-changing requests
 
 ### Changed
+- **Documentation restructured:** 54 files in a flat `docs/` became 37 categorised documents. Legacy content was merged forward before archiving, not discarded
+- **Data and results relocated:** evaluation inputs now live in `datasets/`, benchmark outputs in `benchmarks/`. PDFs remain gitignored, so the repository's git footprint is unchanged
+- **Path references repaired:** dataset constants in `backend/scripts/`, `.gitignore` rules, and every relative Markdown link were updated. A pre-existing off-by-one bug in cross-root documentation links was fixed at the same time
+- **`AGENTS.md`** no longer documents `probing/` and `fixtures/` directories that never existed
 - **Breaking:** no anonymous or guest access — every page and API except `/api/auth/*` and `/health` now requires authentication, and the public catalog (anonymous `/library` and `/api/library/*`) is gone
 - **Breaking:** registration is moderated by default (`REGISTRATION_REQUIRES_APPROVAL=true`). Deployments that do not set this variable will send new signups to a pending queue until an admin approves them; set it explicitly to `false` to keep open registration
 - Library (`/library`) is admin-only and lists all books across users; regular users use the owner-scoped Dashboard
@@ -40,6 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The separate `/library` catalog page is removed (superseded by the admin-only `/admin/books`); book detail moved from `/library/{id}` to `/books/{id}`
 
 ### Removed
+- Ten archived documents after their content was verified to exist in the current tree: `api-reference`, `local-development-guide`, `monitoring`, `ocr-setup`, `runbook`, `developer-guide`, `metadata-fields`, `wikibase-reference`, `known-issues`, and a duplicate project overview
+- `frontend/README.md` — unmodified `create-next-app` boilerplate
 - The public catalog: `PUBLIC_BOOK_STATUSES`, `get_visible_book_or_404`, and the anonymous metadata view are gone
 
 ---
@@ -119,3 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 1 integration test skipped (requires PostgreSQL JSONB `.astext` operator)
 - No book deletion endpoint
 - No WebSocket/SSE support (polling only)
+
+---
+
+Earlier history predates this file; use `git log` for the full record.
