@@ -20,6 +20,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
+from app.core.maintenance_middleware import MaintenanceMiddleware
+from app.core.redis import get_redis_pool, set_redis_pool
+from app.services import maintenance_service
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +42,6 @@ AUTH_RATE_LIMIT_PATHS = frozenset(
         "/api/auth/resend-verification",
     }
 )
-
-_redis_pool: aioredis.Redis | None = None
 
 
 def client_ip(request: Request) -> str:
@@ -73,7 +74,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks and static assets
-        if request.url.path in ("/health", "/api/health", "/docs", "/openapi.json", "/redoc"):
+        if request.url.path in ("/health", "/api/health", "/api/status", "/docs", "/openapi.json", "/redoc"):
             return await call_next(request)
 
         # Skip rate limiting for thumbnail GETs — they serve cached static files
@@ -85,7 +86,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "GET" and _SSE_PATH_RE.match(request.url.path):
             return await call_next(request)
 
-        if _redis_pool is None:
+        pool = get_redis_pool()
+        if pool is None:
             # Redis not available — skip rate limiting
             return await call_next(request)
 
@@ -103,7 +105,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         member = f"{now}:{_uuid.uuid4().hex[:8]}"
 
         try:
-            pipe = _redis_pool.pipeline()
+            pipe = pool.pipeline()
             pipe.zremrangebyscore(key, 0, window_start)
             pipe.zadd(key, {member: now})
             pipe.zcard(key)
@@ -192,46 +194,74 @@ async def _reaper_loop() -> None:
         await asyncio.sleep(REAPER_INTERVAL_SECONDS)
 
 
+MAINTENANCE_INTERVAL_SECONDS = 10
+
+
+async def _maintenance_loop() -> None:
+    """Reconcile the maintenance snapshot with Redis/the database."""
+    from app.core.database import async_session_factory
+
+    while True:
+        try:
+            async with async_session_factory() as db:
+                await maintenance_service.refresh_state(db, get_redis_pool())
+        except Exception:  # noqa: BLE001
+            logger.exception("Maintenance state refresh failed")
+        await asyncio.sleep(MAINTENANCE_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
     _validate_security_settings()
 
-    global _redis_pool
     from app.core.database import get_engine
     from app.services.llm_service import llm_service
     from app.services.sse_service import sse_service
 
     logger.info("Application starting up...")
+    pool = None
     try:
-        _redis_pool = aioredis.from_url(settings.redis_url, decode_responses=True)
-        await _redis_pool.ping()
+        pool = aioredis.from_url(settings.redis_url, decode_responses=True)
+        await pool.ping()
         logger.info("Redis connection established for rate limiting.")
     except Exception as e:
         logger.warning("Redis not available for rate limiting: %s", e)
-        _redis_pool = None
-    if _redis_pool is not None:
+        pool = None
+    set_redis_pool(pool)
+    if pool is not None:
         try:
-            await sse_service.start(_redis_pool)
+            await sse_service.start(pool)
         except Exception:
             logger.exception("Failed to start SSE service; clients will see no events")
+
+    from app.core.database import async_session_factory
+
+    try:
+        async with async_session_factory() as db:
+            await maintenance_service.refresh_state(db, pool)
+    except Exception:  # noqa: BLE001
+        logger.warning("Could not load maintenance state at startup", exc_info=True)
 
     reaper_task: asyncio.Task | None = None
     if settings.stale_job_reaper_enabled:
         reaper_task = asyncio.create_task(_reaper_loop(), name="job-reaper")
+    maintenance_task = asyncio.create_task(_maintenance_loop(), name="maintenance-refresh")
 
     yield
     # Shutdown
     logger.info("Application shutting down...")
-    if reaper_task is not None:
-        reaper_task.cancel()
-        try:
-            await reaper_task
-        except asyncio.CancelledError:
-            pass
+    for task in (reaper_task, maintenance_task):
+        if task is not None:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
     await sse_service.stop()
-    if _redis_pool:
-        await _redis_pool.aclose()
+    if pool is not None:
+        await pool.aclose()
+    set_redis_pool(None)
     engine = get_engine()
     if engine is not None:
         await engine.dispose()
@@ -275,6 +305,10 @@ app.add_middleware(RateLimitMiddleware)
 
 # Reject oversized upload bodies before the multipart part is spooled.
 app.add_middleware(UploadSizeLimitMiddleware)
+
+# Short-circuit non-admin API traffic while maintenance mode is on. Added
+# before CORS so CORS remains the outermost layer and decorates 503s too.
+app.add_middleware(MaintenanceMiddleware)
 
 # CORS from config
 _cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
@@ -328,8 +362,9 @@ async def health_check():
 
     # Redis — reuse the connection pool from lifespan
     try:
-        if _redis_pool is not None:
-            await _redis_pool.ping()
+        pool = get_redis_pool()
+        if pool is not None:
+            await pool.ping()
             checks["redis"] = "ok"
         else:
             checks["redis"] = "error: not connected"

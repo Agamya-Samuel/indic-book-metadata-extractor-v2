@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin
@@ -39,6 +39,11 @@ class Job(UUIDMixin, Base):
     last_progress_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_log: Mapped[str | None] = mapped_column(Text)
     celery_task_id: Mapped[str | None] = mapped_column(String(64), index=True)
+
+    __table_args__ = (
+        Index("ix_jobs_status_created_at", "status", "created_at"),
+        Index("ix_jobs_job_type_status", "job_type", "status"),
+    )
 
     book = relationship("Book", back_populates="jobs")
     requested_by = relationship("User", back_populates="jobs")

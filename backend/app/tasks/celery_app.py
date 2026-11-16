@@ -1,7 +1,7 @@
 import logging
 
 from celery import Celery
-from celery.signals import task_failure, task_rejected, worker_init
+from celery.signals import task_failure, task_rejected, task_revoked, worker_init
 
 from app.core.config import settings
 
@@ -111,6 +111,63 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
 def _on_task_rejected(sender=None, task_id=None, **kwargs):
     """Log rejected tasks; Celery handles re-queueing via ``task_reject_on_worker_lost``."""
     logger.warning("Task %s was rejected: %s", task_id, kwargs)
+
+
+@task_revoked.connect
+def _on_task_revoked(sender=None, request=None, task_id=None, terminated=None, **kwargs):
+    """Terminalise a job whose task was revoked outside ``cancel_job``.
+
+    The normal cancellation path commits the ``cancelled`` row *before* calling
+    ``revoke``, so this handler is defensive: it covers revokes issued
+    elsewhere (broker restarts, operator tooling) and guarantees a job is never
+    left ``running`` with no task behind it.
+    """
+    resolved_task_id = task_id or getattr(request, "id", None)
+    if not resolved_task_id:
+        return
+
+    async def _do():
+        from datetime import datetime, timezone
+
+        from sqlalchemy import select
+
+        from app.core.database import async_session_factory
+        from app.models.job import Job, JobStatus
+        from app.models.stage import StageStatus
+        from app.services.admin_service import _JOB_STAGE_NAME
+        from app.services.stage_manager import StageManager
+
+        try:
+            async with async_session_factory() as db:
+                result = await db.execute(select(Job).where(Job.celery_task_id == resolved_task_id))
+                job = result.scalar_one_or_none()
+                if not job or job.status in (
+                    JobStatus.COMPLETED,
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                ):
+                    return
+                job.status = JobStatus.CANCELLED
+                job.completed_at = datetime.now(timezone.utc)
+                job.error_log = job.error_log or "Task revoked"
+                await db.commit()
+
+                stage_name = _JOB_STAGE_NAME.get(job.job_type)
+                if stage_name and job.book_id:
+                    async with async_session_factory() as stage_db:
+                        row = await StageManager.get_stage(stage_db, job.book_id, stage_name)
+                        if row is not None and row.status in (StageStatus.PROCESSING, StageStatus.INITIATED):
+                            await StageManager.cancel_stage(stage_db, job.book_id, stage_name, "Task revoked")
+                            await stage_db.commit()
+        except Exception as exc:  # noqa: BLE001
+            logger.error("task_revoked handler could not mark job for %s: %s", resolved_task_id, exc)
+
+    try:
+        from app.tasks.async_utils import run_async
+
+        run_async(_do())
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Could not run task_revoked handler: %s", exc)
 
 
 celery_app = Celery(

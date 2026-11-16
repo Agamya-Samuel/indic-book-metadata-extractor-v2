@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.book import Book, BookStatus
-from app.models.stage import StageStatus
+from app.models.stage import BookStageStatus, StageStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.metadata import BookMetadata
 from app.models.metadata_field_evidence import MetadataFieldEvidence
@@ -26,6 +26,7 @@ from app.models.ocr_result import OcrResult
 from app.models.page import Page
 from app.models.user import AccountStatus, User
 from app.services import notification_service, storage
+from app.services.dashboard_service import queue_family
 from app.services.stage_manager import StageManager
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ _JOB_STAGE_NAME = {
     JobType.OCR: "ocr",
     JobType.LLM: "llm_extraction",
     JobType.PAGE_EXTRACTION: "page_selection",
+    JobType.PREPROCESSING: "ocr",
 }
 
 
@@ -146,6 +148,68 @@ async def get_admin_stats(db: AsyncSession) -> dict:
     }
 
 
+_SORT_COLUMNS = {
+    "created_at": Job.created_at,
+    "started_at": Job.started_at,
+    "completed_at": Job.completed_at,
+    "status": Job.status,
+    "job_type": Job.job_type,
+    "owner": func.coalesce(User.display_name, User.email, ""),
+    # Portable proxy for duration: most recent activity. Interval arithmetic
+    # differs between PostgreSQL and SQLite, so keep the ORDER BY simple.
+    "duration": func.coalesce(Job.completed_at, Job.started_at, Job.created_at),
+}
+
+
+def _as_aware(value: datetime | None) -> datetime | None:
+    """SQLite returns naive datetimes even for timezone-aware columns."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
+async def _queue_positions(db: AsyncSession, jobs: list[Job]) -> dict[UUID, int]:
+    """Queue position for the queued jobs on this page, in one query."""
+    queued_ids = {job.id for job in jobs if job.status == JobStatus.QUEUED and job.created_at is not None}
+    if not queued_ids:
+        return {}
+
+    rows = (
+        await db.execute(select(Job.id, Job.job_type, Job.created_at).where(Job.status == JobStatus.QUEUED))
+    ).all()
+
+    families: dict[str, list[tuple[datetime, UUID]]] = {}
+    for job_id, job_type, created_at in rows:
+        aware = _as_aware(created_at)
+        if aware is None:
+            continue
+        families.setdefault(queue_family(job_type), []).append((aware, job_id))
+
+    positions: dict[UUID, int] = {}
+    for entries in families.values():
+        entries.sort(key=lambda item: item[0])
+        for index, (_created_at, job_id) in enumerate(entries):
+            positions[job_id] = index
+    return {job_id: positions[job_id] for job_id in queued_ids if job_id in positions}
+
+
+async def _latest_stages(db: AsyncSession, book_ids: list[UUID]) -> dict[UUID, tuple[str, str]]:
+    """Most recently updated stage for each book, in one query."""
+    if not book_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(BookStageStatus.book_id, BookStageStatus.stage_name, BookStageStatus.status)
+            .where(BookStageStatus.book_id.in_(book_ids))
+            .order_by(BookStageStatus.updated_at.desc(), BookStageStatus.created_at.desc())
+        )
+    ).all()
+    latest: dict[UUID, tuple[str, str]] = {}
+    for book_id, stage_name, status in rows:
+        latest.setdefault(book_id, (stage_name, status))
+    return latest
+
+
 async def list_admin_jobs(
     db: AsyncSession,
     status: str | None,
@@ -154,6 +218,8 @@ async def list_admin_jobs(
     page: int,
     page_size: int,
     owner_id: UUID | None = None,
+    sort: str | None = None,
+    order: str | None = None,
 ) -> tuple[list[dict], int]:
     query = (
         select(
@@ -182,13 +248,37 @@ async def list_admin_jobs(
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
 
-    query = query.order_by(Job.created_at.desc())
+    sort_key = sort if sort in _SORT_COLUMNS else "created_at"
+    descending = (order or "desc").lower() != "asc"
+    sort_column = _SORT_COLUMNS[sort_key]
+    query = query.order_by(
+        sort_column.desc() if descending else sort_column.asc(),
+        Job.created_at.desc(),
+        Job.id.desc(),
+    )
     query = query.offset((page - 1) * page_size).limit(page_size)
 
     rows = (await db.execute(query)).all()
+    jobs = [row[0] for row in rows]
+    positions = await _queue_positions(db, jobs)
+    stages = await _latest_stages(db, [job.book_id for job in jobs if job.book_id])
 
+    now = datetime.now(timezone.utc)
     items = []
     for job, book_title, book_filename, owner_display_name, owner_email in rows:
+        start = _as_aware(job.started_at or job.created_at)
+        end = _as_aware(job.completed_at) or now
+        duration_seconds = int((end - start).total_seconds()) if start else None
+
+        if job.status == JobStatus.RUNNING:
+            queue_ahead = 0
+        elif job.status == JobStatus.QUEUED:
+            queue_ahead = positions.get(job.id)
+        else:
+            queue_ahead = None
+
+        stage_name, stage_status = stages.get(job.book_id, (None, None))
+
         items.append(
             {
                 "id": str(job.id),
@@ -204,11 +294,118 @@ async def list_admin_jobs(
                 "created_at": job.created_at.isoformat() if job.created_at else None,
                 "started_at": job.started_at.isoformat() if job.started_at else None,
                 "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+                "last_progress_at": job.last_progress_at.isoformat() if job.last_progress_at else None,
                 "error_log": job.error_log,
+                "celery_task_id": job.celery_task_id,
+                "duration_seconds": duration_seconds,
+                "queue_ahead": queue_ahead,
+                "stage_name": stage_name,
+                "stage_status": stage_status,
             }
         )
 
     return items, total
+
+
+async def get_job_summary(db: AsyncSession) -> dict:
+    """Global job counts plus a per-user breakdown, in one grouped query."""
+    owner = func.coalesce(Job.requested_by_id, Book.owner_id)
+    rows = (
+        await db.execute(
+            select(
+                owner.label("owner_id"),
+                User.display_name,
+                User.email,
+                Job.status,
+                func.count(Job.id),
+            )
+            .select_from(Job)
+            .outerjoin(Book, Job.book_id == Book.id)
+            .outerjoin(User, User.id == owner)
+            .group_by(owner, User.display_name, User.email, Job.status)
+        )
+    ).all()
+
+    by_user: dict[UUID | None, dict] = {}
+    status_keys = ("queued", "running", "completed", "failed", "cancelled")
+    totals = {key: 0 for key in status_keys}
+
+    for owner_id, display_name, email, job_status, count in rows:
+        bucket = by_user.setdefault(
+            owner_id,
+            {
+                "user_id": owner_id,
+                "display_name": display_name,
+                "email": email,
+                "total": 0,
+                **{key: 0 for key in status_keys},
+            },
+        )
+        bucket[job_status] = bucket.get(job_status, 0) + count
+        bucket["total"] += count
+        totals[job_status] = totals.get(job_status, 0) + count
+
+    type_rows = (await db.execute(select(Job.job_type, func.count(Job.id)).group_by(Job.job_type))).all()
+    by_type = {job_type: count for job_type, count in type_rows}
+
+    return {
+        "total": sum(totals.values()),
+        **totals,
+        "by_type": by_type,
+        "by_user": sorted(by_user.values(), key=lambda row: row["total"], reverse=True),
+    }
+
+
+async def cancel_jobs_bulk(
+    db: AsyncSession, job_ids: list[UUID], *, reason: str = "Cancelled by admin"
+) -> tuple[list[dict], list[UUID]]:
+    """Cancel each job independently; one terminal id must not abort the batch."""
+    results: list[dict] = []
+    notification_ids: list[UUID] = []
+
+    for job_id in job_ids:
+        job = await db.get(Job, job_id)
+        if job is None:
+            results.append({"id": job_id, "status": None, "ok": False, "error": "Job not found"})
+            continue
+        if job.status not in (JobStatus.QUEUED, JobStatus.RUNNING):
+            results.append(
+                {
+                    "id": job_id,
+                    "status": job.status,
+                    "ok": False,
+                    "error": f"Job is already {job.status}",
+                }
+            )
+            continue
+        try:
+            cancelled, notification_id = await cancel_job(db, job_id, reason=reason)
+        except (LookupError, ValueError) as exc:
+            results.append({"id": job_id, "status": None, "ok": False, "error": str(exc)})
+            continue
+
+        results.append({"id": job_id, "status": cancelled.status, "ok": True, "error": None})
+        if notification_id is not None:
+            notification_ids.append(notification_id)
+
+    return results, notification_ids
+
+
+async def retry_job(db: AsyncSession, job_id: UUID, *, requested_by_id: UUID | None = None) -> Job:
+    """Re-dispatch a failed OCR or LLM job through the existing re-run paths."""
+    job = await db.get(Job, job_id)
+    if job is None:
+        raise LookupError("Job not found")
+    if job.status != JobStatus.FAILED:
+        raise ValueError(f"Only failed jobs can be retried; job is '{job.status}'")
+    if job.book_id is None:
+        raise ValueError("The job's book no longer exists")
+
+    if job.job_type == JobType.OCR:
+        return await rerun_ocr(db, job.book_id, requested_by_id=requested_by_id)
+    if job.job_type == JobType.LLM:
+        return await rerun_extraction(db, job.book_id, requested_by_id=requested_by_id)
+    raise ValueError(f"Retry is not supported for '{job.job_type}' jobs")
 
 
 async def find_active_job(db: AsyncSession, book_id: UUID, job_type: str) -> Job | None:

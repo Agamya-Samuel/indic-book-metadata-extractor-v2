@@ -302,12 +302,13 @@ def publish_sync(book_id: str | UUID, event: dict[str, Any]) -> None:
 
 async def publish_async(book_id: str | UUID, event: dict[str, Any]) -> None:
     """Publish an event from the FastAPI process (uses the shared pool)."""
-    from app.main import _redis_pool  # local import to avoid circular
+    from app.core.redis import get_redis_pool
 
-    if _redis_pool is None:
+    pool = get_redis_pool()
+    if pool is None:
         return
     try:
-        await _redis_pool.publish(channel_for(book_id), json.dumps(event, default=str))
+        await pool.publish(channel_for(book_id), json.dumps(event, default=str))
     except Exception:  # noqa: BLE001
         logger.exception("SSE publish_async failed for book %s", book_id)
 

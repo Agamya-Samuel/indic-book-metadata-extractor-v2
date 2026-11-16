@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_admin
 from app.core.database import get_db
 from app.core.media_tokens import thumbnail_url
+from app.core.redis import get_redis_pool
 from app.models.user import AccountStatus, User
 from app.schemas.auth import (
     AdminPasswordResetRequest,
@@ -25,8 +26,18 @@ from app.schemas.book import (
     BookSearchResult,
     FilterOptionsResponse,
 )
-from app.schemas.job import AdminJobsResponse
-from app.services import admin_service, auth_service
+from app.schemas.job import (
+    AdminJobsResponse,
+    BulkCancelRequest,
+    BulkCancelResponse,
+    JobSummaryResponse,
+)
+from app.schemas.system import (
+    MaintenanceStatus,
+    MaintenanceUpdate,
+    SystemMetricsResponse,
+)
+from app.services import admin_service, auth_service, maintenance_service, system_metrics_service
 from app.services.auth_service import AuthError
 from app.services.notification_service import deliver_notification_emails
 from app.services.search_service import SearchService
@@ -347,6 +358,45 @@ async def admin_rerun_extraction(
 
 
 # ---------------------------------------------------------------------------
+# System / infrastructure
+# ---------------------------------------------------------------------------
+
+
+@router.get("/system", response_model=SystemMetricsResponse)
+async def admin_system_metrics(db: AsyncSession = Depends(get_db)) -> SystemMetricsResponse:
+    data = await system_metrics_service.collect_system_metrics(db, get_redis_pool())
+    return SystemMetricsResponse.model_validate(data)
+
+
+# ---------------------------------------------------------------------------
+# Maintenance mode
+# ---------------------------------------------------------------------------
+
+
+@router.get("/maintenance", response_model=MaintenanceStatus)
+async def admin_get_maintenance(db: AsyncSession = Depends(get_db)) -> MaintenanceStatus:
+    return MaintenanceStatus.model_validate(await maintenance_service.get_admin_status(db))
+
+
+@router.put("/maintenance", response_model=MaintenanceStatus)
+async def admin_update_maintenance(
+    body: MaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> MaintenanceStatus:
+    data = await maintenance_service.set_maintenance(
+        db,
+        enabled=body.enabled,
+        message=body.message,
+        until=body.until,
+        updated_by_id=admin.id,
+        redis=get_redis_pool(),
+    )
+    data["updated_by"] = admin.display_name
+    return MaintenanceStatus.model_validate(data)
+
+
+# ---------------------------------------------------------------------------
 # Jobs (cross-book)
 # ---------------------------------------------------------------------------
 
@@ -357,6 +407,8 @@ async def admin_list_jobs(
     job_type: str | None = Query(default=None, alias="job_type"),
     book_id: UUID | None = Query(default=None),
     owner_id: UUID | None = Query(default=None),
+    sort: str | None = Query(default=None),
+    order: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
@@ -369,6 +421,8 @@ async def admin_list_jobs(
         owner_id=owner_id,
         page=page,
         page_size=page_size,
+        sort=sort,
+        order=order,
     )
     return AdminJobsResponse.create(
         items=items,
@@ -376,6 +430,44 @@ async def admin_list_jobs(
         page=page,
         page_size=page_size,
     )
+
+
+# Declared before the `/jobs/{job_id}` paths so the literal segment is not
+# captured as a UUID.
+@router.get("/jobs/summary", response_model=JobSummaryResponse)
+async def admin_job_summary(db: AsyncSession = Depends(get_db)) -> JobSummaryResponse:
+    return JobSummaryResponse.model_validate(await admin_service.get_job_summary(db))
+
+
+@router.post("/jobs/cancel", response_model=BulkCancelResponse)
+async def admin_bulk_cancel_jobs(
+    body: BulkCancelRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> BulkCancelResponse:
+    results, notification_ids = await admin_service.cancel_jobs_bulk(db, body.job_ids)
+    if notification_ids:
+        background_tasks.add_task(deliver_notification_emails, notification_ids)
+    return BulkCancelResponse.model_validate({"results": results})
+
+
+@router.post("/jobs/{job_id}/retry", status_code=status.HTTP_201_CREATED)
+async def admin_retry_job(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> dict:
+    try:
+        job = await admin_service.retry_job(db, job_id, requested_by_id=admin.id)
+    except LookupError:
+        raise HTTPException(status_code=404, detail="Job not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "job_id": str(job.id),
+        "book_id": str(job.book_id) if job.book_id else None,
+        "status": job.status,
+    }
 
 
 @router.post("/jobs/{job_id}/cancel")
@@ -389,7 +481,7 @@ async def admin_cancel_job(
     except LookupError:
         raise HTTPException(status_code=404, detail="Job not found")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if notification_id is not None:
         background_tasks.add_task(deliver_notification_emails, [notification_id])
     return {"id": str(job.id), "status": job.status}
