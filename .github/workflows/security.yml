@@ -48,8 +48,14 @@ jobs:
           fetch-depth: 0
 
       - name: Run GitLeaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
+          # Authenticates the account-type lookup. Without it the request is
+          # anonymous, gets rate limited, and the action falls back to
+          # assuming an organization — which demands GITLEAKS_LICENSE. This
+          # repository belongs to a personal account, so no licence is needed
+          # once the lookup can actually run.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'true'
           GITLEAKS_ENABLE_SUMMARY: 'true'
