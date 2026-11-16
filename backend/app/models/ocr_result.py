@@ -18,5 +18,11 @@ class OcrResult(UUIDMixin, TimestampMixin, Base):
     corrections: Mapped[dict | None] = mapped_column(JSONB, default=dict)
     confidence: Mapped[float | None] = mapped_column(Float)
     language_detected: Mapped[str | None] = mapped_column(String(10))
+    # Which path produced the text, for audit/review. ``ocr_route`` is set only
+    # when page-level script routing changed the engine/model.
+    ocr_engine: Mapped[str | None] = mapped_column(String(20))
+    ocr_route: Mapped[str | None] = mapped_column(String(50))
+    ocr_coverage: Mapped[float | None] = mapped_column(Float)
+    ocr_script: Mapped[dict | None] = mapped_column(JSONB)
 
     page = relationship("Page", back_populates="ocr_result")

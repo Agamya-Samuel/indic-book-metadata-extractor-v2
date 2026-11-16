@@ -4,9 +4,14 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
+from app.core.config import settings
 from app.services.ocr_service import (
     LANGUAGE_MAP,
+    _build_config,
     _get_tesseract_lang,
+    _reroute_dominant_script_page,
+    _reroute_latin_page,
+    _script_shares,
     run_ocr,
 )
 
@@ -31,6 +36,149 @@ class TestGetTesseractLang:
             # All non-eng codes pair with English
             if code != "eng":
                 assert "eng" in LANGUAGE_MAP[code]
+
+
+class TestBuildConfig:
+    def test_includes_tessdata_dir(self, monkeypatch):
+        monkeypatch.setattr(settings, "tesseract_tessdata_dir", "/tmp/custom tessdata")
+
+        config = _build_config(3, "tel")
+
+        assert '--tessdata-dir "/tmp/custom tessdata"' in config
+        assert "--psm 3" in config
+
+    def test_omits_tessdata_dir_when_unset(self, monkeypatch):
+        monkeypatch.setattr(settings, "tesseract_tessdata_dir", "")
+
+        config = _build_config(3, "tel")
+
+        assert "--tessdata-dir" not in config
+
+
+class TestScriptRouting:
+    def test_script_shares(self):
+        assert _script_shares("Hello world")["latin"] == 1.0
+        assert _script_shares("నమస్తే")["telugu"] == 1.0
+        assert _script_shares("नमस्ते")["devanagari"] == 1.0
+        assert _script_shares("") == {"latin": 0.0, "telugu": 0.0, "devanagari": 0.0}
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_latin_line_output_reroutes_to_tesseract(self, mock_tesseract, mock_image_cls):
+        mock_image_cls.open.return_value = MagicMock()
+        mock_tesseract.return_value = {
+            "engine": "tesseract",
+            "words": [],
+            "full_text": "This is a longer English copyright page with enough text.",
+        }
+        data = {
+            "engine": "line_model",
+            "words": [],
+            "full_text": "short English cover",
+        }
+
+        result = _reroute_latin_page(data, Path("/fake/page.png"), "tel", 0)
+
+        assert result["engine"] == "tesseract"
+        assert result["route_reason"] == "latin_page_reroute"
+        mock_tesseract.assert_called_once()
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_telugu_line_output_is_not_rerouted(self, mock_tesseract, mock_image_cls):
+        data = {"engine": "line_model", "words": [], "full_text": "నమస్తే ప్రపంచం"}
+
+        result = _reroute_latin_page(data, Path("/fake/page.png"), "tel", 0)
+
+        assert result is data
+        mock_tesseract.assert_not_called()
+        mock_image_cls.open.assert_not_called()
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_short_tesseract_result_is_discarded(self, mock_tesseract, mock_image_cls):
+        mock_image_cls.open.return_value = MagicMock()
+        mock_tesseract.return_value = {"engine": "tesseract", "words": [], "full_text": "tiny"}
+        data = {
+            "engine": "line_model",
+            "words": [],
+            "full_text": "A long English page returned by the line model.",
+        }
+
+        result = _reroute_latin_page(data, Path("/fake/page.png"), "tel", 0)
+
+        assert result is data
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_hindi_dominant_page_drops_eng(self, mock_tesseract, mock_image_cls):
+        mock_image_cls.open.return_value = MagicMock()
+        alt = {
+            "engine": "tesseract",
+            "tesseract_lang": "hin",
+            "words": [],
+            "full_text": "नमस्ते " * 20,
+        }
+        mock_tesseract.return_value = alt
+        data = {
+            "engine": "tesseract",
+            "tesseract_lang": "hin+eng",
+            "words": [],
+            "full_text": "नमस्ते " * 20,
+        }
+
+        result = _reroute_dominant_script_page(data, Path("/fake/page.png"), "hin", 0)
+
+        assert result["tesseract_lang"] == "hin"
+        assert result["route_reason"] == "dominant_script_reroute"
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_telugu_dominant_page_drops_eng(self, mock_tesseract, mock_image_cls):
+        mock_image_cls.open.return_value = MagicMock()
+        mock_tesseract.return_value = {
+            "engine": "tesseract",
+            "tesseract_lang": "tel",
+            "words": [],
+            "full_text": "నమస్తే " * 20,
+        }
+        data = {
+            "engine": "tesseract",
+            "tesseract_lang": "tel+eng",
+            "words": [],
+            "full_text": "నమస్తే " * 20,
+        }
+
+        result = _reroute_dominant_script_page(data, Path("/fake/page.png"), "tel", 0)
+
+        assert result["tesseract_lang"] == "tel"
+        assert result["route_reason"] == "dominant_script_reroute"
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_latin_hindi_page_keeps_combined_model(self, mock_tesseract, mock_image_cls):
+        data = {
+            "engine": "tesseract",
+            "tesseract_lang": "hin+eng",
+            "words": [],
+            "full_text": "Publisher: Rajkamal Prakashan, New Delhi",
+        }
+
+        result = _reroute_dominant_script_page(data, Path("/fake/page.png"), "hin", 0)
+
+        assert result is data
+        mock_tesseract.assert_not_called()
+
+    @patch("app.services.ocr_service.Image")
+    @patch("app.services.ocr_service._run_ocr_with_img")
+    def test_routing_disabled(self, mock_tesseract, mock_image_cls, monkeypatch):
+        monkeypatch.setattr(settings, "ocr_script_routing", False)
+        data = {"engine": "line_model", "words": [], "full_text": "English cover"}
+
+        result = _reroute_latin_page(data, Path("/fake/page.png"), "tel", 0)
+
+        assert result is data
+        mock_tesseract.assert_not_called()
 
 
 def _mock_tesseract_data(words):

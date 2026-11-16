@@ -643,11 +643,6 @@ export default function PreprocessingPage() {
                         formatValue={(v) => `${v}%`}
                       />
                     )}
-                    <ToggleControl
-                      label="Auto preprocess"
-                      checked={config.auto_preprocess ?? true}
-                      onChange={(v) => updateConfig({ auto_preprocess: v })}
-                    />
                   </Stack>
                 </CollapsibleSection>
 

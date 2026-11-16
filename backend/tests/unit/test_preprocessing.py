@@ -186,6 +186,26 @@ class TestRunPipeline:
         run_pipeline(input_path, {}, output_path)
         assert output_path.exists()
 
+    def test_render_dpi_source_is_not_upscaled(self, tmp_path):
+        """A page rendered at OCR_RENDER_DPI must not be rescaled again."""
+        img = _white_image()
+        input_path = tmp_path / "input.png"
+        output_path = tmp_path / "output.png"
+        cv2.imwrite(str(input_path), img)
+
+        run_pipeline(input_path, {}, output_path, source_dpi=300)
+        assert cv2.imread(str(output_path)).shape == img.shape
+
+    def test_low_dpi_source_is_upscaled(self, tmp_path):
+        img = _white_image()
+        input_path = tmp_path / "input.png"
+        output_path = tmp_path / "output.png"
+        cv2.imwrite(str(input_path), img)
+
+        run_pipeline(input_path, {}, output_path, source_dpi=200)
+        h, w = img.shape[:2]
+        assert cv2.imread(str(output_path)).shape[:2] == (int(round(h * 1.5)), int(round(w * 1.5)))
+
 
 class TestBinarizeSauvola:
     def test_returns_binary(self):

@@ -7,8 +7,10 @@
 #     --base-model /usr/share/tesseract-ocr/5/tessdata/hin.traineddata \
 #     --output-dir /app/storage/models/hin_v2 \
 #     --training-dir /app/storage/training_data/hin \
-#     --fonts "NotoSansDevanagari, Mangal" \
-#     --epochs 200
+#     --fonts "Noto Sans Devanagari, Mangal"
+#
+# Training length is controlled by tesstrain.sh/lstmtraining; this wrapper no
+# longer accepts a no-op --epochs flag.
 #
 # Prereqs:
 #   - tesseract-ocr, tesseract-ocr-<lang>, libtesseract-dev
@@ -17,7 +19,7 @@
 #   - Indic fonts installed on the host
 #
 # The output is /output-dir/<lang>.traineddata, ready to be symlinked into
-# OCR_CUSTOM_MODEL_DIR.
+# TESSERACT_TESSDATA_DIR.
 
 set -euo pipefail
 
@@ -26,7 +28,7 @@ BASE_MODEL=""
 OUTPUT_DIR=""
 TRAINING_DIR=""
 FONTS=""
-EPOCHS="200"
+LANGDATA_DIR="${LANGDATA_DIR:-/usr/share/tesseract-ocr/5/langdata}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -35,7 +37,6 @@ while [[ $# -gt 0 ]]; do
     --output-dir) OUTPUT_DIR="$2"; shift 2 ;;
     --training-dir) TRAINING_DIR="$2"; shift 2 ;;
     --fonts) FONTS="$2"; shift 2 ;;
-    --epochs) EPOCHS="$2"; shift 2 ;;
     *) echo "Unknown flag: $1" >&2; exit 1 ;;
   esac
 done
@@ -59,20 +60,34 @@ echo "Fine-tuning $LANG_CODE → $OUTPUT_DIR"
 echo "  base model: $BASE_MODEL"
 echo "  training data: $TRAINING_DIR"
 echo "  fonts: ${FONTS:-<default>}"
-echo "  epochs: $EPOCHS"
 
-bash "$TESSTRAIN.sh" \
+# --fontlist takes one or more names; accept a comma-separated --fonts value.
+font_args=()
+if [[ -n "$FONTS" ]]; then
+  IFS=',' read -r -a font_names <<< "$FONTS"
+  for name in "${font_names[@]}"; do
+    name="$(echo "$name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    [[ -n "$name" ]] && font_args+=(--fontlist "$name")
+  done
+fi
+
+# tesstrain.sh: --training_text and --start_model are the real flags;
+# --trainlistfile/--continue_from/--traineddata do not exist.
+bash "$TESSTRAIN_SH" \
   --lang "$LANG_CODE" \
-  --traineddata "$BASE_MODEL" \
-  --trainlistfile "$TRAINING_DIR/training_text.txt" \
+  --start_model "$BASE_MODEL" \
+  --training_text "$TRAINING_DIR/training_text.txt" \
   --fonts_dir /usr/share/fonts \
-  --fontconfig_tmpdir /tmp/fontconfig \
+  --langdata_dir "$LANGDATA_DIR" \
   --output_dir "$OUTPUT_DIR" \
   --maxpages "${MAX_PAGES:-1000}" \
   --tessdata_dir /usr/share/tesseract-ocr/5/tessdata \
-  --continue_from "$OUTPUT_DIR/${LANG_CODE}.lstm"
+  "${font_args[@]}"
 
-# Combine the trained LSTM into a .traineddata file
-cd "$OUTPUT_DIR"
-combine_tessdata -e "$BASE_MODEL" "${LANG_CODE}.lstm" "${LANG_CODE}.traineddata"
+# If tesstrain emitted an LSTM, graft it into a copy of the base traineddata.
+# combine_tessdata -o takes the traineddata followed by component files.
+if [[ -f "$OUTPUT_DIR/${LANG_CODE}.lstm" && ! -f "$OUTPUT_DIR/${LANG_CODE}.traineddata" ]]; then
+  cp "$BASE_MODEL" "$OUTPUT_DIR/${LANG_CODE}.traineddata"
+  combine_tessdata -o "$OUTPUT_DIR/${LANG_CODE}.traineddata" "$OUTPUT_DIR/${LANG_CODE}.lstm"
+fi
 echo "Done. Output: $OUTPUT_DIR/${LANG_CODE}.traineddata"

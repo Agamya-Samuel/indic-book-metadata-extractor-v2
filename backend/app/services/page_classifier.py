@@ -10,8 +10,14 @@ The classifier here is intentionally lightweight:
   * Use component density and aspect ratio to bucket the page.
   * Map each bucket to the PSM that's known to work best for it.
 
-For the title page (page 1) we additionally try --psm 1 (auto with OSD)
-to detect page rotation, then fall back to the dense PSM.
+**--psm 11 (SPARSE) is deliberately not used for whole pages.** It tells
+Tesseract to find as much text as possible with no layout assumptions, and on
+Indic scripts it does the opposite of what it promises: decorative borders and
+margins get read as Latin rubble and matras are dropped. Measured on the
+ground-truth corpus, 25 of 72 front-matter pages were classified "sparse" and
+their text was unusable; re-running the same pages at --psm 4 raised the
+Devanagari share from 0.46-0.69 to 0.57-0.75. Short/loosely-set pages get
+SINGLE_COLUMN (4) instead, which is the mode they actually need.
 """
 
 from __future__ import annotations
@@ -29,7 +35,6 @@ class PSM(IntEnum):
     AUTO = 3
     SINGLE_COLUMN = 4
     UNIFORM_BLOCK = 6
-    SPARSE = 11
 
 
 @dataclass(frozen=True)
@@ -86,13 +91,12 @@ def classify_page(image_path: str) -> Classification:
     total_area = small.shape[0] * small.shape[1]
     density = total_text_area / total_area if total_area > 0 else 0
 
-    # Heuristics tuned for the OKI sample books.
-    if text_components < 25 and density < 0.05:
-        return Classification(psm=PSM.SPARSE, label="sparse_colophon_or_blank")
-    if text_components < 60 and density < 0.12:
-        return Classification(psm=PSM.SINGLE_COLUMN, label="title_or_short_page")
-    if text_components > 200 and density > 0.20:
-        return Classification(psm=PSM.UNIFORM_BLOCK, label="dense_body_text")
+    # Heuristics tuned for the OKI sample books. At this downscale almost every
+    # page lands under 60 components, so SINGLE_COLUMN must stay the exception:
+    # AUTO (PSM 3) is the safest general mode, and measured identical to PSM 4
+    # on normal body pages. Only clearly sparse pages get the single-column mode.
+    if text_components < 40 and density < 0.08:
+        return Classification(psm=PSM.SINGLE_COLUMN, label="sparse_colophon_or_blank")
     return Classification(psm=PSM.AUTO, label="default_auto")
 
 

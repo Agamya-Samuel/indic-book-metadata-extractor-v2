@@ -19,7 +19,6 @@ DEFAULT_PREPROCESSING_CONFIG = {
     "upscale_to_300dpi": True,
     "remove_borders": True,
     "border_content_ratio": 0.85,
-    "auto_preprocess": True,
     "rotation": 0,
     "rotation_angle": 0.0,
 }
@@ -237,8 +236,23 @@ def denoise(image: np.ndarray, strength: int = 7) -> np.ndarray:
     return cv2.fastNlMeansDenoising(image, None, strength, 7, 21)
 
 
-def run_pipeline(image_path: Path, config: dict, output_path: Path) -> Path:
+def run_pipeline(
+    image_path: Path,
+    config: dict,
+    output_path: Path,
+    source_dpi: int | None = None,
+) -> Path:
+    """Run the preprocessing chain.
+
+    ``source_dpi`` is the DPI the page was rendered at, used to decide whether
+    upscaling is needed. It defaults to the render DPI the pipeline produces, so
+    a 300-DPI render is not rescaled again (learnings/027).
+    """
     merged = {**DEFAULT_PREPROCESSING_CONFIG, **(config or {})}
+    if source_dpi is None:
+        from app.core.config import settings
+
+        source_dpi = settings.ocr_render_dpi
 
     image = cv2.imread(str(image_path))
     if image is None:
@@ -248,7 +262,7 @@ def run_pipeline(image_path: Path, config: dict, output_path: Path) -> Path:
     image = rotate_coarse(image, int(merged.get("rotation", 0) or 0))
 
     if merged.get("upscale_to_300dpi"):
-        image = upscale_to_dpi(image, current_dpi=200, target_dpi=300)
+        image = upscale_to_dpi(image, current_dpi=source_dpi, target_dpi=300)
 
     if merged.get("grayscale"):
         image = to_grayscale(image)

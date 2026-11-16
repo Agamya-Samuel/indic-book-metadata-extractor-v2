@@ -65,9 +65,11 @@ def normalize_text(text: str, language: str = "") -> tuple[str, list[dict]]:
         corrections.append(Correction(original=text, replacement=nfc, position=0, rule="nfc_normalize"))
     text = nfc
 
-    # Rule 2: danda / purna-virama cleanup (apply to all scripts)
-    text, danda_corrections = _danda_cleanup(text)
-    corrections.extend(danda_corrections)
+    # Rule 2: danda / purna-virama cleanup. Danda is Devanagari/Telugu
+    # punctuation; rewriting ASCII pipes in English text corrupts it.
+    if language.strip().lower() != "eng":
+        text, danda_corrections = _danda_cleanup(text)
+        corrections.extend(danda_corrections)
 
     # Rule 3: ZWJ/ZWNJ handling
     text, zwj_corrections = _zwj_cleanup(text)

@@ -134,6 +134,10 @@ async def get_ocr_result(
         confidence=ocr.confidence,
         language_detected=ocr.language_detected,
         corrected_text=ocr.corrected_text,
+        ocr_engine=ocr.ocr_engine,
+        ocr_route=ocr.ocr_route,
+        ocr_coverage=ocr.ocr_coverage,
+        ocr_script=ocr.ocr_script,
     )
 
 
@@ -168,4 +172,8 @@ async def update_ocr_correction(
         confidence=ocr.confidence,
         language_detected=ocr.language_detected,
         corrected_text=ocr.corrected_text,
+        ocr_engine=ocr.ocr_engine,
+        ocr_route=ocr.ocr_route,
+        ocr_coverage=ocr.ocr_coverage,
+        ocr_script=ocr.ocr_script,
     )

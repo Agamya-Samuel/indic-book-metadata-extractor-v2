@@ -69,22 +69,20 @@ class Settings(BaseSettings):
     tesseract_cmd: str = "tesseract"
     tesseract_oem: int = 1
     tesseract_tessdata_dir: str = ""
-    default_ocr_language: str = "tel"
     ocr_batch_size: int = 10
     ocr_thread_workers: int = 4
     ocr_render_dpi: int = 300
 
     # OCR preprocessing (Tier 1)
-    # Disabled by default — Sauvola binarization + denoise can erode shiro-rekha
-    # in Devanagari, causing conjunct misrecognition. Enable per-book via
-    # preprocessing_config or set OCR_AUTO_PREPROCESS=true to apply globally.
-    ocr_auto_preprocess: bool = False
+    # Sauvola binarization + denoise can erode the shiro-rekha in Devanagari,
+    # so both are off by default; enable per page via preprocessing_config.
     ocr_binarization: str = "sauvola"  # sauvola / otsu / adaptive / none
     ocr_denoise_strength: int = 7
     ocr_upscale_dpi: int = 300
 
     # OCR models (Tier 2 + Tier 3)
-    ocr_custom_model_dir: str = ""
+    # Custom Tesseract models go in TESSERACT_TESSDATA_DIR (a full tessdata
+    # directory including every language the configured OCR path loads).
     # Telugu line OCR engine. "tesseract" (default) keeps today's behaviour;
     # "line_model" selects harsha-desaraju/telugu-ocr-model (measured Telugu
     # CER 0.16 vs Tesseract 0.40). Hindi and English always use Tesseract.
@@ -99,6 +97,11 @@ class Settings(BaseSettings):
 
     # OCR dictionaries (Tier 4)
     ocr_use_dictionary: str = ""  # comma-separated language codes, e.g. "hin,tel"
+
+    # Page-level script routing. When the Telugu line model returns a
+    # Latin-dominated page (front matter / cover), re-run it through Tesseract
+    # and keep the better-coverage result. Pure Telugu pages are untouched.
+    ocr_script_routing: bool = True
 
     # OCR post-processing (Tier 5)
     ocr_postprocess: bool = True

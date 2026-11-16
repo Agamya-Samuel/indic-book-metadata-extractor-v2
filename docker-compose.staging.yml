@@ -111,7 +111,6 @@ services:
       LLM_NATIVE_ENDPOINT: ${LLM_NATIVE_ENDPOINT:-true}
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
-      DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
       OCR_TEL_ENGINE: ${OCR_TEL_ENGINE:-tesseract}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
@@ -174,7 +173,6 @@ services:
       LLM_NATIVE_ENDPOINT: ${LLM_NATIVE_ENDPOINT:-true}
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
-      DEFAULT_OCR_LANGUAGE: ${DEFAULT_OCR_LANGUAGE:-tel}
       OCR_TEL_ENGINE: ${OCR_TEL_ENGINE:-line_model}
       OCR_LINE_MODEL_NAME: /app/ocr_models/telugu-ocr-model
       HF_HUB_OFFLINE: "1"

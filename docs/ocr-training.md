@@ -86,8 +86,7 @@ docker run --rm \
     --base-model /usr/share/tesseract-ocr/5/tessdata/hin.traineddata \
     --output-dir /app/storage/models/hin_v2 \
     --training-dir /app/storage/training_data/hin \
-    --fonts "Noto Sans Devanagari" "Mangal" \
-    --epochs 200
+    --fonts "Noto Sans Devanagari, Mangal"
 ```
 
 This produces `/app/storage/models/hin_v2/hin.traineddata`.
@@ -114,21 +113,21 @@ Exits non-zero if the new model is more than 2 CER points worse than the base.
 Symlink the new model into the worker container's mount point and set:
 
 ```bash
-OCR_CUSTOM_MODEL_DIR=/app/storage/models/hin_v2
+TESSERACT_TESSDATA_DIR=/app/storage/models/hin_v2
 ```
 
-Then update `OCR_MODEL_OVERRIDE` (or extend `LANGUAGE_MAP`) so the service
-picks the new file. Roll out by enabling for one book first; once confidence
-deltas look healthy in Flower logs, expand to all books.
+The directory must contain the custom `hin.traineddata` **and** `eng.traineddata`
+(copy the stock English model in). Tesseract loads it through `--tessdata-dir`,
+so no code change or `LANGUAGE_MAP` edit is needed. Roll out by enabling for one
+book first; once confidence deltas look healthy in Flower logs, expand to all
+books.
 
 ## Performance tuning
 
 | Knob | Effect |
 |------|--------|
-| `--epochs 200 → 400` | More passes; diminishing returns above ~300 for fine-tunes. |
 | `--fonts` (more fonts) | Wider coverage of glyph variations; doubles training time per added font. |
-| `--maxpages 1000 → 5000` | More training images; CPU-time grows linearly. |
-| `--continue_from <lstm>` | Resume from the latest checkpoint if training was killed. |
+| `--maxpages 1000 → 5000` | More training images; CPU-time grows linearly. Training iterations are controlled by tesstrain/lstmtraining, not this wrapper. |
 
 ## Measuring impact
 

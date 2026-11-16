@@ -129,7 +129,6 @@ cmd_env_setup() {
   APP_NAME              = Indic Book Metadata Extractor
   DEBUG                 = false
   CORS_ORIGINS          = https://YOUR_DOMAIN
-  DEFAULT_OCR_LANGUAGE  = tel
   MAX_UPLOAD_SIZE_MB    = 200
   FLOWER_BASIC_AUTH     = admin:<password>
 

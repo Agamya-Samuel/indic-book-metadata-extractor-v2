@@ -11,7 +11,7 @@ from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
 from app.models.ocr_result import OcrResult
 from app.models.page import Page
-from app.services import notification_service, ocr_service, ocr_postprocess, preprocessing, storage
+from app.services import notification_service, ocr_service, preprocessing, storage
 from app.services.sse_service import event_id, publish_sync
 from app.services.stage_manager import StageManager, StageTransitionError
 from app.tasks.cancellation import (
@@ -84,25 +84,25 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
             await db.flush()
             image_path = output_path
 
-        ocr_data = ocr_service.run_ocr(image_path, language, page_position=page.page_number - 1)
-        engine = ocr_data.get("engine", "tesseract")
-
+        # One shared pass for worker and evaluation corpus: OCR -> low-confidence
+        # retry -> text normalisation. Duplicating this sequence is what let the
+        # frozen corpus drift from production.
+        ocr_data = ocr_service.process_page_image(
+            image_path, language, page_position=page.page_number - 1
+        )
         words = ocr_data["words"]
-        # The line model emits line-level boxes, not words: re-OCR'ing them
-        # with Tesseract would overwrite the model's output.
-        if settings.ocr_low_conf_retry and engine == "tesseract":
-            words = ocr_service.retry_low_confidence_words(
-                image_path, words, language, threshold=settings.ocr_low_conf_threshold
-            )
-
-        raw_text = ocr_data["full_text"]
-        cleaned_text = raw_text
-        corrections: list[dict] = []
-        if settings.ocr_postprocess:
-            cleaned_text, corrections = ocr_postprocess.normalize_text(raw_text, language)
+        raw_text = ocr_data["raw_text"]
+        cleaned_text = ocr_data["cleaned_text"]
+        corrections = ocr_data["corrections"]
 
         ocr_result = await db.execute(select(OcrResult).where(OcrResult.page_id == page.id))
         existing = ocr_result.scalar_one_or_none()
+        detected_lines = ocr_data.get("detected_lines")
+        coverage = (
+            round(ocr_data.get("word_count", 0) / detected_lines, 4)
+            if detected_lines
+            else None
+        )
 
         if existing:
             existing.raw_text = raw_text
@@ -111,6 +111,10 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
             existing.language_detected = language
             existing.cleaned_text = cleaned_text
             existing.corrections = {"rules": corrections}
+            existing.ocr_engine = ocr_data.get("engine")
+            existing.ocr_route = ocr_data.get("route_reason")
+            existing.ocr_coverage = coverage
+            existing.ocr_script = ocr_data.get("script_shares")
         else:
             new_result = OcrResult(
                 page_id=page.id,
@@ -120,6 +124,10 @@ async def _process_page_async(page_id_str: str, book_id_str: str, language: str)
                 language_detected=language,
                 cleaned_text=cleaned_text,
                 corrections={"rules": corrections},
+                ocr_engine=ocr_data.get("engine"),
+                ocr_route=ocr_data.get("route_reason"),
+                ocr_coverage=coverage,
+                ocr_script=ocr_data.get("script_shares"),
             )
             db.add(new_result)
 

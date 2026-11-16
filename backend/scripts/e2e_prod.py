@@ -203,7 +203,6 @@ def main() -> int:
             "denoise": False,
             "upscale_to_300dpi": True,
             "remove_borders": True,
-            "auto_preprocess": True,
         },
     )
     record("preprocess: job accepted", prep.status_code == 201, str(prep.status_code))

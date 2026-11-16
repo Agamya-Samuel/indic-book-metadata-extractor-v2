@@ -23,6 +23,15 @@ class TestNormalizeText:
         rule_names = {c["rule"] for c in corrections}
         assert "danda_normalize" not in rule_names
 
+    def test_english_pipe_is_preserved(self):
+        cleaned, corrections = normalize_text("A | B", "eng")
+        assert cleaned == "A | B"
+        assert not any(c["rule"] == "danda_normalize" for c in corrections)
+
+    def test_telugu_pipe_becomes_danda(self):
+        cleaned, _ = normalize_text("a | b", "tel")
+        assert cleaned == "a । b"
+
     def test_nfc_normalization(self):
         # 'café' with combining acute — NFD form
         nfd = "cafe\u0301"

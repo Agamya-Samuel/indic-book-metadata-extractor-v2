@@ -64,13 +64,13 @@ def test_dense_page_classified_as_uniform_block():
         Path(path).unlink()
 
 
-def test_sparse_page_classified_as_sparse():
+def test_sparse_page_never_gets_sparse_mode():
+    """--psm 11 destroys Indic text; short pages must use SINGLE_COLUMN."""
     path = _write_image(_text_sparse(n_components=3))
     try:
         c = classify_page(path)
-        # Either sparse or single_column, both are improvements over
-        # the previous hardcoded --psm 6.
-        assert c.psm in (PSM.SPARSE, PSM.SINGLE_COLUMN, PSM.AUTO)
+        assert c.psm in (PSM.SINGLE_COLUMN, PSM.AUTO)
+        assert psm_to_tesseract_arg(c.psm) != 11
     finally:
         Path(path).unlink()
 
@@ -79,7 +79,7 @@ def test_blank_page_returns_safe_classification():
     path = _write_image(_blank())
     try:
         c = classify_page(path)
-        assert c.psm in (PSM.AUTO, PSM.SPARSE, PSM.UNIFORM_BLOCK, PSM.SINGLE_COLUMN)
+        assert c.psm in (PSM.AUTO, PSM.UNIFORM_BLOCK, PSM.SINGLE_COLUMN)
     finally:
         Path(path).unlink()
 
@@ -90,8 +90,13 @@ def test_missing_file_returns_unreadable():
     assert c.label == "unreadable"
 
 
+def test_psm_enum_has_no_sparse_mode():
+    # Guard against reintroducing PSM 11 for whole pages.
+    assert not hasattr(PSM, "SPARSE")
+    assert 11 not in {int(p) for p in PSM}
+
+
 def test_psm_to_tesseract_arg_returns_int():
-    assert psm_to_tesseract_arg(PSM.SPARSE) == 11
     assert psm_to_tesseract_arg(PSM.AUTO) == 3
     assert psm_to_tesseract_arg(PSM.UNIFORM_BLOCK) == 6
     assert psm_to_tesseract_arg(PSM.SINGLE_COLUMN) == 4

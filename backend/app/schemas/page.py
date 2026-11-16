@@ -22,7 +22,6 @@ class PreprocessingConfig(BaseModel):
     border_content_ratio: float = Field(default=0.85, ge=0.0, le=1.0)
     sauvola_window: int = Field(default=25, ge=3)
     sauvola_k: float = Field(default=0.2)
-    auto_preprocess: bool = True
     # Manual rotation. Coarse applies first, fine (±15°) applies after deskew.
     rotation: int = 0
     rotation_angle: float = Field(default=0.0, ge=-15.0, le=15.0)
@@ -62,6 +61,10 @@ class OcrResultResponse(BaseModel):
     confidence: float | None
     language_detected: str | None
     corrected_text: str | None
+    ocr_engine: str | None = None
+    ocr_route: str | None = None
+    ocr_coverage: float | None = None
+    ocr_script: dict | None = None
 
 
 class OcrCorrectionRequest(BaseModel):

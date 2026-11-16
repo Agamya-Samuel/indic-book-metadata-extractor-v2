@@ -23,16 +23,24 @@ The Docker image uses the stock Tesseract models installed via apt-get.
 make rebuild
 ```
 
-### 1.3 Enable Tier 1 defaults gradually
+### 1.3 Verify the preprocessing defaults
 
-`OCR_AUTO_PREPROCESS=true` is on by default, which means every new book gets
-Sauvola binarization + denoise + 300 DPI upscale + border strip.
+Every new book gets `DEFAULT_PREPROCESSING_CONFIG` attached at render time and
+`run_pipeline` is executed before OCR. What that actually does today:
+
+- grayscale + deskew + border strip — **inert** on 300-DPI library scans
+  (measured: identical output on 18 pages).
+- upscale to 300 DPI — **skipped**, because the source DPI is already
+  `OCR_RENDER_DPI`. Until `learnings/027` this was a 1.5× rescale that raised
+  median CER from 0.285 to 0.365.
+- binarization and denoise are **off**.
+
+There is no global preprocessing switch. Preprocessing runs only when a page
+has a `preprocessing_config`: setting it to `null` skips the whole pass, while
+an empty `{}` still merges the defaults.
 
 - Watch the first 5–10 books processed post-deploy.
 - Compare `avg_confidence` in the Library page against the pre-deploy baseline.
-- If a particular book type regresses, that single user can set
-  `preprocessing_config: {"auto_preprocess": false}` per page to fall back
-  to the old pipeline.
 
 ---
 
@@ -117,8 +125,7 @@ docker run --rm -v /app/storage:/app/storage indic-trainer \
     --base-model /usr/share/tesseract-ocr/5/tessdata/hin.traineddata \
     --output-dir /app/storage/models/hin_v2 \
     --training-dir /app/storage/training_data/hin \
-    --fonts "Noto Sans Devanagari" "Mangal" \
-    --epochs 200
+    --fonts "Noto Sans Devanagari, Mangal"
 ```
 
 ### 3.5 Eval-gate
@@ -141,12 +148,14 @@ Exits non-zero if the new model is more than 2 CER points worse than base.
 Symlink the new model into the worker container's mount point and set:
 
 ```bash
-OCR_CUSTOM_MODEL_DIR=/app/storage/models/hin_v2
+TESSERACT_TESSDATA_DIR=/app/storage/models/hin_v2
 ```
 
-Then update `OCR_MODEL_OVERRIDE` (or extend `LANGUAGE_MAP`) so the service
-picks the new file. Roll out by enabling for one book first; once confidence
-deltas look healthy in Flower logs, expand to all books.
+The directory must contain the custom `hin.traineddata` **and** `eng.traineddata`
+(copy the stock English model in). Tesseract loads it through `--tessdata-dir`,
+so no code change or `LANGUAGE_MAP` edit is needed. Roll out by enabling for one
+book first; once confidence deltas look healthy in Flower logs, expand to all
+books.
 
 ---
 
