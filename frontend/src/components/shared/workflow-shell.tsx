@@ -74,7 +74,12 @@ export default function WorkflowShell({
   });
 
   return (
-    <div className={cn("flex w-full items-stretch", className)}>
+    <div
+      className={cn(
+        "flex min-h-[calc(100dvh-var(--nav-height))] w-full flex-1 items-stretch",
+        className,
+      )}
+    >
       <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] lg:block">
         <div className="sticky top-[var(--nav-height)] max-h-[calc(100dvh-var(--nav-height))] overflow-y-auto px-3 py-4">
           <p className="mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
@@ -88,7 +93,7 @@ export default function WorkflowShell({
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <StageRailMobile
           steps={state.steps}
           currentStep={state.currentStep}
