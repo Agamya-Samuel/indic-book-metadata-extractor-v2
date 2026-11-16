@@ -2,7 +2,10 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { focusRing } from "@/lib/focus-ring";
 import { SkeletonTable } from "./skeleton";
+
+export type SortDirection = "asc" | "desc";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -12,6 +15,8 @@ export interface DataTableColumn<T> {
   headerClassName?: string;
   /** Hide the column below this breakpoint. */
   hideBelow?: "sm" | "md" | "lg" | "xl";
+  /** Makes the header a sort control. Pair with `onSortChange`. */
+  sortKey?: string;
 }
 
 interface DataTableProps<T> {
@@ -38,6 +43,12 @@ interface DataTableProps<T> {
   expandedRowKey?: string | null;
   /** Detail content rendered full-width beneath the expanded row. */
   renderExpandedRow?: (row: T) => React.ReactNode;
+  /** Currently sorted column key, if the table is server-sorted. */
+  sortKey?: string | null;
+  /** Current sort direction. Defaults to `desc` server-side. */
+  sortDirection?: SortDirection;
+  /** Called with a column's `sortKey` when its header is activated. */
+  onSortChange?: (key: string) => void;
 }
 
 const HIDE_BELOW: Record<NonNullable<DataTableColumn<unknown>["hideBelow"]>, string> = {
@@ -46,6 +57,28 @@ const HIDE_BELOW: Record<NonNullable<DataTableColumn<unknown>["hideBelow"]>, str
   lg: "hidden lg:table-cell",
   xl: "hidden xl:table-cell",
 };
+
+function SortArrow({ direction }: { direction: SortDirection | null }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 10 12"
+      className={cn("size-2.5 shrink-0", direction ? "opacity-100" : "opacity-40")}
+      fill="currentColor"
+    >
+      {direction === "asc" ? (
+        <path d="M5 1.5 9 7H1z" />
+      ) : direction === "desc" ? (
+        <path d="M5 10.5 1 5h8z" />
+      ) : (
+        <>
+          <path d="M5 1.5 8 4.5H2z" />
+          <path d="M5 10.5 2 7.5h6z" />
+        </>
+      )}
+    </svg>
+  );
+}
 
 /**
  * Shared admin table shell: border/shadow surface, sticky-feeling header,
@@ -65,6 +98,9 @@ export function DataTable<T>({
   bare = false,
   expandedRowKey,
   renderExpandedRow,
+  sortKey = null,
+  sortDirection = "desc",
+  onSortChange,
 }: DataTableProps<T>) {
   if (loading) {
     return <SkeletonTable rows={5} />;
@@ -96,19 +132,45 @@ export function DataTable<T>({
             )}
           >
             <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  className={cn(
-                    "px-3 py-2.5 text-left font-medium whitespace-nowrap",
-                    column.hideBelow && HIDE_BELOW[column.hideBelow],
-                    column.headerClassName,
-                  )}
-                >
-                  {column.header}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const isSorted = column.sortKey != null && sortKey === column.sortKey;
+                return (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    aria-sort={
+                      column.sortKey && onSortChange
+                        ? isSorted
+                          ? sortDirection === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                        : undefined
+                    }
+                    className={cn(
+                      "px-3 py-2.5 text-left font-medium whitespace-nowrap",
+                      column.hideBelow && HIDE_BELOW[column.hideBelow],
+                      column.headerClassName,
+                    )}
+                  >
+                    {column.sortKey && onSortChange ? (
+                      <button
+                        type="button"
+                        onClick={() => onSortChange(column.sortKey as string)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-[var(--radius-xs)] uppercase tracking-wider",
+                          focusRing,
+                        )}
+                      >
+                        {column.header}
+                        <SortArrow direction={isSorted ? sortDirection : null} />
+                      </button>
+                    ) : (
+                      column.header
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">

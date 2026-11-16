@@ -80,8 +80,8 @@ export default function WorkflowShell({
         className,
       )}
     >
-      <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] lg:block">
-        <div className="sticky top-[var(--nav-height)] max-h-[calc(100dvh-var(--nav-height))] overflow-y-auto px-3 py-4">
+      <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] lg:sticky lg:top-[var(--nav-height)] lg:block lg:h-[calc(100dvh-var(--nav-height))] lg:overflow-y-auto">
+        <div className="px-3 py-4">
           <p className="mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             {railLabel}
           </p>
@@ -93,7 +93,7 @@ export default function WorkflowShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <StageRailMobile
           steps={state.steps}
           currentStep={state.currentStep}

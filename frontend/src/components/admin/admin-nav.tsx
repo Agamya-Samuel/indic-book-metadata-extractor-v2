@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/admin", label: "Operations", exact: true },
   { href: "/admin/books", label: "Books" },
   { href: "/admin/jobs", label: "Jobs" },
+  { href: "/admin/system", label: "System" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/bulk", label: "Bulk operations" },
   { href: "/admin/design", label: "Design" },

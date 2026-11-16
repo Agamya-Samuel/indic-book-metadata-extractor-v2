@@ -931,7 +931,13 @@ export interface AdminJobRow {
   created_at: string | null;
   started_at: string | null;
   completed_at: string | null;
+  last_progress_at?: string | null;
   error_log: string | null;
+  celery_task_id?: string | null;
+  duration_seconds?: number | null;
+  queue_ahead?: number | null;
+  stage_name?: string | null;
+  stage_status?: string | null;
 }
 
 export type AdminJobsResponse = Page<AdminJobRow>;
@@ -941,8 +947,112 @@ export interface AdminJobsParams {
   job_type?: "page_extraction" | "ocr" | "llm" | "preprocessing";
   book_id?: string;
   owner_id?: string;
+  sort?: string;
+  order?: "asc" | "desc";
   page?: number;
   page_size?: number;
+}
+
+export interface UserJobCounts {
+  user_id: string | null;
+  display_name: string | null;
+  email: string | null;
+  total: number;
+  queued: number;
+  running: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface JobSummaryResponse {
+  total: number;
+  queued: number;
+  running: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  by_type: Record<string, number>;
+  by_user: UserJobCounts[];
+}
+
+export interface BulkCancelItem {
+  id: string;
+  status: string | null;
+  ok: boolean;
+  error: string | null;
+}
+
+export interface BulkCancelResponse {
+  results: BulkCancelItem[];
+}
+
+export interface ServerMetrics {
+  available: boolean;
+  cpu_percent?: number | null;
+  cpu_count?: number | null;
+  load_1?: number | null;
+  load_5?: number | null;
+  load_15?: number | null;
+  memory_total_mb?: number | null;
+  memory_used_mb?: number | null;
+  memory_available_mb?: number | null;
+  memory_percent?: number | null;
+  swap_total_mb?: number | null;
+  swap_used_mb?: number | null;
+  disk_total_gb?: number | null;
+  disk_used_gb?: number | null;
+  disk_free_gb?: number | null;
+  disk_percent?: number | null;
+  storage_total_gb?: number | null;
+  storage_used_mb?: number | null;
+  uptime_seconds?: number | null;
+}
+
+export interface ServiceHealth {
+  name: string;
+  status: "ok" | "degraded" | "unreachable" | "unavailable" | string;
+  detail?: string | null;
+  latency_ms?: number | null;
+  meta?: Record<string, unknown>;
+}
+
+export interface QueueDepth {
+  name: string;
+  depth: number;
+}
+
+export interface QueueActivity {
+  queues: QueueDepth[];
+  by_status: Record<string, number>;
+  by_type: Record<string, number>;
+  completed_last_15m: number;
+}
+
+export interface SystemMetricsResponse {
+  generated_at: string;
+  overall_status: "ok" | "degraded" | "critical";
+  server: ServerMetrics;
+  services: ServiceHealth[];
+  queues: QueueActivity;
+}
+
+export interface MaintenanceStatus {
+  enabled: boolean;
+  message: string | null;
+  until: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+export interface PublicStatusResponse {
+  maintenance: MaintenanceStatus;
+}
+
+export interface MaintenanceUpdate {
+  enabled: boolean;
+  message?: string | null;
+  until?: string | null;
 }
 
 export const getAdminStats = async (): Promise<AdminStatsResponse> => {
@@ -1019,12 +1129,65 @@ export const getAdminJobs = async (
   if (params?.job_type) searchParams.set("job_type", params.job_type);
   if (params?.book_id) searchParams.set("book_id", params.book_id);
   if (params?.owner_id) searchParams.set("owner_id", params.owner_id);
+  if (params?.sort) searchParams.set("sort", params.sort);
+  if (params?.order) searchParams.set("order", params.order);
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.page_size) searchParams.set("page_size", String(params.page_size));
 
   const qs = searchParams.toString();
   const response = await api.get<AdminJobsResponse>(
     `/admin/jobs${qs ? `?${qs}` : ""}`
+  );
+  return response.data;
+};
+
+export const getAdminJobSummary = async (): Promise<JobSummaryResponse> => {
+  const response = await api.get<JobSummaryResponse>("/admin/jobs/summary");
+  return response.data;
+};
+
+export const cancelAdminJobsBulk = async (
+  jobIds: string[]
+): Promise<BulkCancelResponse> => {
+  const response = await api.post<BulkCancelResponse>("/admin/jobs/cancel", {
+    job_ids: jobIds,
+  });
+  return response.data;
+};
+
+export const retryAdminJob = async (
+  jobId: string
+): Promise<{ job_id: string; book_id: string | null; status: string }> => {
+  const response = await api.post<{
+    job_id: string;
+    book_id: string | null;
+    status: string;
+  }>(`/admin/jobs/${jobId}/retry`);
+  return response.data;
+};
+
+export const getAdminSystemMetrics =
+  async (): Promise<SystemMetricsResponse> => {
+    const response = await api.get<SystemMetricsResponse>("/admin/system");
+    return response.data;
+  };
+
+export const getPublicStatus = async (): Promise<PublicStatusResponse> => {
+  const response = await api.get<PublicStatusResponse>("/status");
+  return response.data;
+};
+
+export const getAdminMaintenance = async (): Promise<MaintenanceStatus> => {
+  const response = await api.get<MaintenanceStatus>("/admin/maintenance");
+  return response.data;
+};
+
+export const updateAdminMaintenance = async (
+  payload: MaintenanceUpdate,
+): Promise<MaintenanceStatus> => {
+  const response = await api.put<MaintenanceStatus>(
+    "/admin/maintenance",
+    payload,
   );
   return response.data;
 };

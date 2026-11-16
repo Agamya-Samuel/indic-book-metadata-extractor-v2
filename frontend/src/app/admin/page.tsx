@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { getAdminStats, getAdminJobs } from "@/lib/api";
+import { getAdminStats, getAdminJobs, getAdminMaintenance } from "@/lib/api";
 import StatusBadge from "@/components/shared/status-badge";
 import { Progress } from "@/components/shared/progress";
 import AdminStatsCard from "@/components/shared/stat-card";
+import { Banner } from "@/components/shared/empty-state";
 import { PageContainer, Card, PageHeader } from "@/components/shared/card";
 import { SkeletonTable } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -36,6 +37,13 @@ export default function AdminDashboardPage() {
     refetchInterval: 10 * 1000,
   });
 
+  const { data: maintenance } = useQuery({
+    queryKey: ["admin-maintenance"],
+    queryFn: getAdminMaintenance,
+    staleTime: 15 * 1000,
+    refetchInterval: 15 * 1000,
+  });
+
   const completionRate = useMemo(() => {
     if (!stats) return null;
     const total =
@@ -56,6 +64,20 @@ export default function AdminDashboardPage() {
         title="Operations"
         description="Live queue activity, recent failures, and book health."
       />
+
+      {maintenance?.enabled && (
+        <Banner tone="warning" className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              <strong className="font-semibold">Maintenance mode is on.</strong>{" "}
+              Regular users are blocked; background jobs continue.
+            </span>
+            <Link href="/admin/system" className="font-medium underline">
+              Manage maintenance
+            </Link>
+          </div>
+        </Banner>
+      )}
       {/*
         Monitor order: Pipeline first (what needs attention right now),
         then book holdings, then System footprint. Each cluster sits on

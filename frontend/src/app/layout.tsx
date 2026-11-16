@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import AppNavbar from "@/components/shared/app-navbar";
 import { RouteGuard } from "@/components/auth/route-guard";
+import MaintenanceGate from "@/components/auth/maintenance-gate";
 import { themeInitScript } from "@/components/shared/theme-provider";
 
 const geistSans = Geist({
@@ -122,7 +123,7 @@ export default function RootLayout({
           />
         )}
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-dvh flex-col">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--accent)] focus:text-[var(--text-inverse)] focus:rounded-[var(--radius)] focus:shadow-[var(--shadow)]"
@@ -130,10 +131,16 @@ export default function RootLayout({
           Skip to main content
         </a>
         <Providers>
-          <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
-            <AppNavbar />
-            <RouteGuard>{children}</RouteGuard>
-          </div>
+          <MaintenanceGate>
+            <div
+              id="main-content"
+              tabIndex={-1}
+              className="flex min-h-0 flex-1 flex-col focus:outline-none"
+            >
+              <AppNavbar />
+              <RouteGuard>{children}</RouteGuard>
+            </div>
+          </MaintenanceGate>
         </Providers>
       </body>
     </html>
