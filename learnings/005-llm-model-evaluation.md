@@ -35,7 +35,7 @@ A 7B Q4 model peaks at ~6.1 GiB of host RAM; the 4B models peak at ~4.6–4.8 Gi
 
 ### 4. Accuracy — NOT measured (the open gap)
 
-- All 14 ground-truth books are `verification_status: unverified` (machine-prefilled from Commons/Wikisource/Internet Archive; see e.g. [`.../Athma-Charitramu/expected_metadata.json`](../backend/tests/fixtures/ground_truth/tel/2015.373190.Athma-Charitramu/expected_metadata.json)). The prior session stopped for the same reason ("accuracy arm blocked on GT verification").
+- All 14 ground-truth books are `verification_status: unverified` (machine-prefilled from Commons/Wikisource/Internet Archive; see e.g. [`.../Athma-Charitramu/expected_metadata.json`](../datasets/ground-truth/tel/2015.373190.Athma-Charitramu/expected_metadata.json)). The prior session stopped for the same reason ("accuracy arm blocked on GT verification").
 - The measured sweep above scored only **JSON validity**, not correctness — the harness did not store response values.
 - Clean Telugu evaluation text *is* available (`wikisource_gt.json` holds proofread page text, e.g. page 3 of Athma is the title page: title, author, publisher, 1933), and an accuracy bundle + node runner are built and committed-ready (`backend/scripts/make_eval_bundle.py`, `backend/scripts/node_acc.py`).
 

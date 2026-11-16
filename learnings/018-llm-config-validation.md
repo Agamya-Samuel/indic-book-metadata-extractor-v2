@@ -90,12 +90,12 @@ Changed:
 
 1. Re-run the matrix on **Hindi** (needs `hin` tessdata or a proofread source) to close the cross-language gap.
 2. Implement the loop guard and re-measure `phi4-mini` on the same bundles.
-3. Fold the 4096 decision + the guard into [plans/004](004-llm-model-evaluation.md) and the Modelfiles.
+3. Fold the 4096 decision + the guard into [plans/004](../plans/004-llm-model-evaluation.md) and the Modelfiles.
 4. Keep the app's `MAX_PARALLEL_BATCHES` and Ollama's `NUM_PARALLEL` consistent (currently 2 vs 1).
 
 ## References
 
-- Probe/plan: [learnings/017](017-llm-configuration-research.md) · [plans/004](004-llm-model-evaluation.md)
+- Probe/plan: [learnings/017](017-llm-configuration-research.md) · [plans/004](../plans/004-llm-model-evaluation.md)
 - Harness: [node_cfg.py](../backend/scripts/node_cfg.py) · [run_matrix.sh](../backend/scripts/run_matrix.sh) · [summarize_cfg.py](../backend/scripts/summarize_cfg.py) · [memwatch.sh](../backend/scripts/memwatch.sh) · [make_eval_bundle.py](../backend/scripts/make_eval_bundle.py)
 - Prior: [004](004-ocr-stage-cer.md) · [005](005-llm-model-evaluation.md) · [006](006-first-real-accuracy.md) · [010](010-llm-shortlist-benchmark.md) · [013](013-verified-shortlist-and-ocr.md) · [015](015-service-inventory-and-gating.md)
 - Node: [infra/gcp-test-nodes.md](../infra/gcp-test-nodes.md) (`test-node-2`, stopped after the run)

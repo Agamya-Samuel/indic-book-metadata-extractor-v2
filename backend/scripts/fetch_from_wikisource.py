@@ -25,7 +25,7 @@ from scripts.enrich_ground_truth import FIELD_NAMES, parse_index_header
 from scripts.fetch_commons_ground_truth import USER_AGENT, _slugify, download_pdf, file_info, prefill
 from scripts.fetch_wikisource_gt import _api_get, resolve_namespaces
 
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 
 def list_index_pages(api: str, client: httpx.Client, ns_index: int, want: int, delay: float) -> list[str]:

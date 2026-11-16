@@ -64,7 +64,24 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
 └──────────────────────────────────────────────────┘
 ```
 
-**8 Docker services**: `postgres`, `redis`, `backend`, `worker-ocr`, `worker-llm`, `frontend`, `ollama`, `flower`
+**15 Docker services** in production: 6 core (`postgres`, `redis`, `backend`, `worker`, `frontend`, `ollama`), `backup`, and 8 optional (`flower`, `wikibase`, `wikibase-jobrunner`, `wikibase-init`, `quickstatements`, `mysql`, `elasticsearch`, `openrefine`). Production runs a **single** `worker` on all three queues; the development stack splits it into `worker-ocr` and `worker-llm`.
+
+---
+
+## Documentation
+
+Full technical documentation lives in **[`docs/README.md`](docs/README.md)** — architecture, API,
+data model, processing pipeline, development, operations and testing.
+
+Start here:
+
+| I want to… | Read |
+| --- | --- |
+| Understand the system | [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md) |
+| Set it up locally | [docs/development/local-development.md](docs/development/local-development.md) |
+| Call the API | [docs/reference/api.md](docs/reference/api.md) |
+| Deploy it | [docs/operations/deployment.md](docs/operations/deployment.md) |
+| Fix something | [docs/operations/runbook.md](docs/operations/runbook.md) |
 
 ---
 
@@ -72,7 +89,7 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
 | Backend | Python 3.11, FastAPI, Pydantic v2 |
 | Task Queue | Celery 5, Redis 7 |
 | PDF Processing | PyMuPDF |
@@ -93,8 +110,8 @@ The application guides users through a 7-step pipeline:
 3. **Preprocessing** — Tune image settings (grayscale, brightness, contrast, binarization, deskew)
 4. **OCR Review** — Side-by-side view with bounding box overlay and text correction editor
 5. **LLM Configuration** — Select model, tune parameters, edit prompts, run batched extraction
-6. **Metadata Review** — Review and edit 52 extracted bibliographic fields
-7. **Library** (admin) — Browse, search, and filter all processed books across users
+6. **Metadata Review** — Review and edit 49 extracted bibliographic fields
+7. **Admin catalog** — Browse, search, and filter all processed books across users (`/admin/books`)
 
 ---
 
@@ -160,12 +177,12 @@ see [DEPLOY.md](DEPLOY.md) and `.env.example` for the variables.
 | Document | Description |
 |----------|-------------|
 | [User Guide](docs/user-guide.md) | Step-by-step walkthrough with screenshots |
-| [Developer Guide](docs/developer-guide.md) | Architecture, local dev setup, extending the app |
-| [API Reference](docs/api-reference.md) | Complete REST API documentation |
-| [Changelog](docs/changelog.md) | Release notes and version history |
-| [Implementation Plan](docs/implementation_plan.md) | Original 12-week development plan |
-| [Tech Stack](docs/tech_stack.md) | Detailed technology choices and rationale |
-| [Product Spec](docs/indic_book_metadata_extractor.md) | Full product specification |
+| [Developer Guide](docs/history/developer-guide-2026-11.md) | Architecture, local dev setup, extending the app |
+| [API Reference](docs/history/api-reference-2026-11.md) | Complete REST API documentation |
+| [Changelog](CHANGELOG.md) | Release notes and version history |
+| [Implementation Plan](docs/history/implementation-plan-2026-05.md) | Original 12-week development plan |
+| [Tech Stack](docs/history/tech-stack-2026-06.md) | Detailed technology choices and rationale |
+| [Product Spec](docs/history/project-overview-original.md) | Full product specification |
 
 ---
 

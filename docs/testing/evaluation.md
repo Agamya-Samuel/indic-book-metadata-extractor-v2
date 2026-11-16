@@ -5,8 +5,8 @@ and how to read a result without fooling yourself.
 
 - Scoring: `backend/app/services/extraction_validator.py`
 - Scripts: `backend/scripts/`
-- Prompt harness: `backend/scripts/prompt_eval/`, `backend/prompt_eval/`
-- Reports: `backend/reports/`
+- Prompt harness: `backend/scripts/prompt_eval/`, `datasets/evaluation/`
+- Reports: `benchmarks/reports/`
 
 ---
 
@@ -171,7 +171,7 @@ without changing that constant.
 
 ## 8. Reading a report
 
-`backend/reports/` holds:
+`benchmarks/reports/` holds:
 
 | File pattern | Contents |
 | --- | --- |

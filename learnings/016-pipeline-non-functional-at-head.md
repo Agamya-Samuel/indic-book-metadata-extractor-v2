@@ -77,6 +77,6 @@ Fixed by running stage transitions on the caller's session, so the lock is self-
 ## References
 
 - Commits: `139fde7` (stage), `b2b3fa4` (OCR guard), `050e9e0` (deadlock)
-- Raw profile and phase timings: [`backend/reports/pipeline-profile-oki.json`](../backend/reports/pipeline-profile-oki.json)
+- Raw profile and phase timings: [`backend/reports/pipeline-profile-oki.json`](../benchmarks/reports/pipeline-profile-oki.json)
 - Related: [015](015-service-inventory-and-gating.md) · [005](005-llm-model-evaluation.md) · [013](013-verified-shortlist-and-ocr.md)
 - Code: [`stage_manager.py`](../backend/app/services/stage_manager.py) · [`ocr_tasks.py`](../backend/app/tasks/ocr_tasks.py) · [`llm_tasks.py`](../backend/app/tasks/llm_tasks.py)

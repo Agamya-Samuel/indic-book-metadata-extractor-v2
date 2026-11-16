@@ -29,7 +29,7 @@ from app.services.extraction_validator import (  # noqa: E402
     evaluate_book,
 )
 
-GT_ROOT = BACKEND / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = BACKEND.parent / "datasets" / "ground-truth"
 ALL_FIELDS = [f.field_name for f in ALL_METADATA_FIELDS]
 
 

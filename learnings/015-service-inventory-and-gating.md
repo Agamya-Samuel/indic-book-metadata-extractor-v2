@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-11
 - **Study context:** Original objective — the host is resource-constrained and OCR + LLM extraction are CPU/RAM heavy. Identify every service, classify essential vs non-essential for the core OCR pipeline, evaluate a flag-based gating approach, and recommend how to reduce consumption without losing the optional functionality.
-- **Status:** Profile and gating mechanism **measured and verified**. Gating **not yet implemented**. Raw data: [`backend/reports/pipeline-profile-oki.json`](../backend/reports/pipeline-profile-oki.json).
+- **Status:** Profile and gating mechanism **measured and verified**. Gating **not yet implemented**. Raw data: [`backend/reports/pipeline-profile-oki.json`](../benchmarks/reports/pipeline-profile-oki.json).
 
 ## Summary
 
@@ -79,7 +79,7 @@ One 30-page Telugu book, sequential pages: **OCR 568.4 s (18.9%)** vs **extracti
 
 ## References
 
-- Raw profile: [`backend/reports/pipeline-profile-oki.json`](../backend/reports/pipeline-profile-oki.json)
+- Raw profile: [`backend/reports/pipeline-profile-oki.json`](../benchmarks/reports/pipeline-profile-oki.json)
 - Related: [011](011-deployment-exposure-and-single-origin.md) (exposure/domains) · [013](013-verified-shortlist-and-ocr.md) (Ollama 6 GiB cap) · [016](016-pipeline-non-functional-at-head.md) (the defects found while measuring)
 - Compose: [`docker-compose.production.yml`](../docker-compose.production.yml) · [`docker/ollama-entrypoint.sh`](../docker/ollama-entrypoint.sh)
 - Host access: `reference/dokploy` (gitignored)

@@ -5,7 +5,7 @@
   API token. Nothing is wired yet.
 - **Related:** [`plans/011-launch-readiness.md`](../plans/011-launch-readiness.md),
   [`todos/014-launch-readiness.md`](../todos/014-launch-readiness.md),
-  [`docs/runbook.md`](../docs/runbook.md)
+  [`docs/runbook.md`](../docs/operations/runbook.md)
 
 ## Context that shapes the decision
 

@@ -32,7 +32,7 @@ import httpx
 from app.schemas.metadata import ALL_METADATA_FIELDS
 
 FIELD_NAMES = [f.field_name for f in ALL_METADATA_FIELDS]
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 USER_AGENT = "IndicBookMetadataExtractor-GT-PoC/0.1 (https://github.com/Agamya-Samuel/indic-book-metadata-extractor-v2)"
 PN_PARTS = 4  # catalog-0.json .. catalog-3.json
 

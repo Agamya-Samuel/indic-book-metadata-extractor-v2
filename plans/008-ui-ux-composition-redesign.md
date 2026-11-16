@@ -15,7 +15,7 @@
 ## 1. Goal
 
 Make the internal pages read as **one product**. The design token system
-([ARCHIVE LIGHT](frontend/src/app/globals.css)) is genuinely strong — OKLCH ramp,
+([ARCHIVE LIGHT](../frontend/src/app/globals.css)) is genuinely strong — OKLCH ramp,
 spacing rhythm, radii, shadows, motion, reduced-motion and forced-colors
 handling. What never happened is the **composition layer**: every page was built
 by hand on top of good atoms, so the atoms cohere and the molecules do not.
@@ -48,7 +48,7 @@ Route reality differs from the tree described in `plans/006`:
 - `/library` and the public catalog are **gone** (`84277d8`); book detail moved to
   `/books/[bookId]`; the admin catalog is `/admin/books`; bulk operations moved to
   `/admin/bulk`; `/pending-approval` was added. Nav is 4 links
-  ([app-navbar.tsx:12-27](frontend/src/components/shared/app-navbar.tsx#L12)).
+  ([app-navbar.tsx:12-27](../frontend/src/components/shared/app-navbar.tsx#L12)).
 - Every workflow stage page is **byte-count identical** to the 006-era audit, so
   those findings stand.
 - `frontend/src/app/dashboard/page.tsx` (766) and
@@ -65,12 +65,12 @@ visibly renders **two** "Your books" headings and **two** "Your jobs" headings.
 
 | Primitive | Adoption |
 |---|---|
-| [save-bar.tsx](frontend/src/components/shared/save-bar.tsx) | **0 usages.** Save is hand-rolled twice ([metadata-form.tsx:328](frontend/src/components/metadata/metadata-form.tsx#L328), [text-editor.tsx:139](frontend/src/components/ocr/text-editor.tsx#L139)) |
-| [data-table.tsx](frontend/src/components/shared/data-table.tsx) | 1 page ([admin/jobs](frontend/src/app/admin/jobs/page.tsx)). [admin/books](frontend/src/app/admin/books/page.tsx) and [admin/users](frontend/src/app/admin/users/page.tsx) hand-roll the same table |
-| [progress.tsx](frontend/src/components/shared/progress.tsx) | 3 hand-rolled copies: [admin/jobs](frontend/src/app/admin/jobs/page.tsx), [admin](frontend/src/app/admin/page.tsx), [dashboard](frontend/src/app/dashboard/page.tsx) |
-| `JobProgressCard` + `useJobProgress` | Adopted by 3 pages; [ocr-processing](frontend/src/app/books/[bookId]/ocr-processing/page.tsx) and [metadata-review](frontend/src/app/books/[bookId]/metadata-review/page.tsx) hand-roll spinner + % |
-| [stat-card.tsx](frontend/src/components/shared/stat-card.tsx) | dashboard only; [admin](frontend/src/app/admin/page.tsx) re-wraps it, `/admin/bulk` hand-rolls `StatsCard` |
-| `Banner` ([empty-state.tsx](frontend/src/components/shared/empty-state.tsx)) | 2 usages; ~7 files hand-roll the same alert |
+| [save-bar.tsx](../frontend/src/components/shared/save-bar.tsx) | **0 usages.** Save is hand-rolled twice ([metadata-form.tsx:328](../frontend/src/components/metadata/metadata-form.tsx#L328), [text-editor.tsx:139](../frontend/src/components/ocr/text-editor.tsx#L139)) |
+| [data-table.tsx](../frontend/src/components/shared/data-table.tsx) | 1 page ([admin/jobs](../frontend/src/app/admin/jobs/page.tsx)). [admin/books](../frontend/src/app/admin/books/page.tsx) and [admin/users](../frontend/src/app/admin/users/page.tsx) hand-roll the same table |
+| [progress.tsx](../frontend/src/components/shared/progress.tsx) | 3 hand-rolled copies: [admin/jobs](../frontend/src/app/admin/jobs/page.tsx), [admin](../frontend/src/app/admin/page.tsx), [dashboard](../frontend/src/app/dashboard/page.tsx) |
+| `JobProgressCard` + `useJobProgress` | Adopted by 3 pages; [ocr-processing](../frontend/src/app/books/[bookId]/ocr-processing/page.tsx) and [metadata-review](../frontend/src/app/books/[bookId]/metadata-review/page.tsx) hand-roll spinner + % |
+| [stat-card.tsx](../frontend/src/components/shared/stat-card.tsx) | dashboard only; [admin](../frontend/src/app/admin/page.tsx) re-wraps it, `/admin/bulk` hand-rolls `StatsCard` |
+| `Banner` ([empty-state.tsx](../frontend/src/components/shared/empty-state.tsx)) | 2 usages; ~7 files hand-roll the same alert |
 
 Net: ~8 distinct status presentations, 3 progress bars, 2 save surfaces, 3
 renderings of "a job".
@@ -78,8 +78,8 @@ renderings of "a job".
 ### 4.2 Chrome and heading hierarchy differ per page
 
 - No `<h1>`: `admin/users` (title is a Card `h2`); `ocr-review` hand-rolls one
-  ([l.188](frontend/src/app/books/[bookId]/ocr-review/page.tsx#L188));
-  `dashboard` hand-rolls the whole header ([l.507](frontend/src/app/dashboard/page.tsx#L507))
+  ([l.188](../frontend/src/app/books/[bookId]/ocr-review/page.tsx#L188));
+  `dashboard` hand-rolls the whole header ([l.507](../frontend/src/app/dashboard/page.tsx#L507))
   and duplicates "Your books"/"Your jobs" headings.
 - `admin/books` and `admin/jobs` use `PageHeader` **and** a Card titled "Filters"
   → the word renders twice.
@@ -90,9 +90,9 @@ renderings of "a job".
   is a book's only navigation, overflows below ~768px, and two of its seven steps
   are not user steps: `/ocr-processing` auto-redirects,
   `/extracting-pages` is not a step at all.
-- Each page invents its own next/prev story: [metadata-review](frontend/src/app/books/[bookId]/metadata-review/page.tsx)
-  (header actions **and** a footer), [llm-config](frontend/src/app/books/[bookId]/llm-config/page.tsx),
-  [ocr-review](frontend/src/app/books/[bookId]/ocr-review/page.tsx).
+- Each page invents its own next/prev story: [metadata-review](../frontend/src/app/books/[bookId]/metadata-review/page.tsx)
+  (header actions **and** a footer), [llm-config](../frontend/src/app/books/[bookId]/llm-config/page.tsx),
+  [ocr-review](../frontend/src/app/books/[bookId]/ocr-review/page.tsx).
 
 ### 4.4 The two money screens are cramped
 
@@ -103,14 +103,14 @@ renderings of "a job".
   *and* canvas `max-h-[600px]`; a very long settings column.
 - **Metadata review:** 49 full-width fields; evidence (`source_page_number`,
   `source_text_snippet`) surfaced only as a tooltip; a prominent click-to-copy
-  bounding-box viewer ([l.356-407](frontend/src/app/books/[bookId]/metadata-review/page.tsx#L356))
+  bounding-box viewer ([l.356-407](../frontend/src/app/books/[bookId]/metadata-review/page.tsx#L356))
   that is not bound to the field being edited.
 
 ### 4.5 One entity, three renderings
 
 A job is rendered as: the dashboard table, the `admin/jobs` `DataTable`, and the
-per-book card list ([jobs](frontend/src/app/books/[bookId]/jobs/page.tsx)).
-[book detail](frontend/src/app/books/[bookId]/page.tsx) adds three hand-rolled
+per-book card list ([jobs](../frontend/src/app/books/[bookId]/jobs/page.tsx)).
+[book detail](../frontend/src/app/books/[bookId]/page.tsx) adds three hand-rolled
 `-mx-5` list renderers plus four copies of the same chip pill and a local
 `ocrState` machine.
 
@@ -122,12 +122,12 @@ referenced by **nothing**. `SaveBar` is unused. Both are from the 006 push.
 ### 4.7 Minor but visible
 
 - Upload surfaces the same error inline **and** as a toast
-  ([upload:68](frontend/src/app/upload/page.tsx#L68)).
+  ([upload:68](../frontend/src/app/upload/page.tsx#L68)).
 - Auth pages mix `Button loading` with manual spinners; `/pending-approval` is
   fine (already `AuthCard`).
 - `/admin/bulk` wraps itself in a second full-page shell.
 - The job-type chip renders OCR and LLM **identically**
-  ([jobs:134-139](frontend/src/app/books/[bookId]/jobs/page.tsx#L134)).
+  ([jobs:134-139](../frontend/src/app/books/[bookId]/jobs/page.tsx#L134)).
 - Token discipline is otherwise good: **zero** raw Tailwind palette leaks.
 
 ## 5. Target architecture

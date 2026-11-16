@@ -8,27 +8,73 @@ Where things live and why. Paths are relative to the repository root.
 
 ```text
 .
-├── backend/                  FastAPI app, Celery tasks, migrations, tests, eval scripts
+├── backend/                  FastAPI app, Celery tasks, migrations, scripts
 ├── frontend/                 Next.js 16 App Router application
-├── docker/                   Dockerfiles, entrypoints, service config, helper scripts
-├── docs/                     ← this documentation (current truth)
-├── plans/                    Proposals and ADRs, written before work
-├── learnings/                Findings and measurements, written after work
-├── todos/                    Long-running task handoffs
+├── docker/                   Dockerfiles, entrypoints, service config
+├── docs/                     Technical documentation (current truth)
+├── datasets/                 Evaluation and test data (inputs)
+├── benchmarks/               Measured outputs and reports
+├── learnings/                Evidence written after work
+├── plans/                    Proposals written before work
+├── todos/                    Execution checklists
 ├── poc/                      Proof-of-concept artefacts
-├── probes/ ├── probing/      (if present) exploratory experiments
-├── fixtures/                 Test and evaluation data
-├── infra/                    Host/infrastructure notes
-├── reference/                External reference material (gitignored host notes)
-├── scripts/                  Repository-level scripts (deploy helpers)
+├── infra/                    Infrastructure notes (host details gitignored)
+├── scripts/                  Repository-level tooling (deployment)
+├── reference/                External reference, gitignored
 ├── docker-compose.yml                 Development stack
 ├── docker-compose.production.yml      Production stack (Dokploy)
 ├── docker-compose.staging.yml         Staging stack
 ├── Makefile                  Supported task entry point
+├── README.md                 Project overview and docs pointer
+├── CHANGELOG.md              Version history (currently stale)
 ├── DEPLOY.md                 Pointer to docs/operations/deployment.md
-├── AGENTS.md                 Agent workflow conventions
-└── README.md                 Project overview
+└── AGENTS.md                 Agent workflow conventions
 ```
+
+---
+
+## `docs/`
+
+```text
+docs/
+├── README.md                 Index and navigation
+├── architecture/             Topology, integrations, decisions index
+├── application/              Frontend, backend, auth, data model
+├── processing/               Pipeline, pages, preprocessing, OCR, extraction, jobs
+├── development/              Setup, configuration, structure, contributing
+├── operations/               Deployment, runbook, monitoring, backup, Wikibase
+├── testing/                  Strategy, commands, evaluation, results/
+├── reference/                API, metadata fields, glossary
+├── user-guide.md             End-user walkthrough
+├── known-limitations.md      Limits, gaps, platform notes
+└── history/                  Archived documents — past state, not current
+```
+
+`docs/history/` is the only place where documents describing a superseded state are allowed. See
+[its README](../history/README.md).
+
+---
+
+## `datasets/` and `benchmarks/`
+
+Data and results are separated from source code and from each other.
+
+```text
+datasets/                     inputs
+├── ground-truth/{hin,tel}/   Per-book expected metadata and Wikisource text
+├── samples/{eng,hin,tel,bilingual}/
+├── evaluation/{corpus,masks,fewshot}/, manifest.json
+└── README.md
+
+benchmarks/                   outputs
+├── reports/                  gt-eval, ocr-*, llm-config-*, pipeline profiles
+├── prompt-eval/              Prompt variant reports
+└── README.md
+```
+
+PDFs are gitignored in both sample and ground-truth directories; only the small JSON scaffolds are
+committed. Generated evaluation bundles are gitignored too. See
+[datasets/README.md](../../datasets/README.md).
 
 ---
 
@@ -50,16 +96,16 @@ backend/
 ├── tests/
 │   ├── unit/                 Pure and mocked tests
 │   ├── integration/          Database/task integration
-│   └── fixtures/             Samples and ground truth
-├── scripts/                  Evaluation, enrichment and E2E run scripts
-├── prompt_eval/              Prompt experiment bundles, masks, few-shot files
-├── reports/                  Generated benchmark and profile artefacts
+│   └── fixtures/             Only what the suite reads; datasets live at the root
+├── scripts/                  ~50 evaluation, enrichment and E2E modules
 ├── pyproject.toml            Dependencies + tool config (ruff, pytest)
 └── uv.lock                   Locked dependency graph
 ```
 
-Generated artefacts under `reports/` and `prompt_eval/` are evidence, not source. They are committed
-so results are reproducible, but they are not imported by the application.
+`backend/scripts/` is intentionally **not** reorganised. Modules are imported as
+`scripts.prompt_eval.*` and invoked as `python -m scripts.<name>` from `backend/`, and a unit test
+imports `scripts.evaluate_extraction`. Moving them would touch ~50 entry points for organisational
+tidiness only.
 
 ---
 
@@ -102,6 +148,18 @@ docker/
 
 ---
 
+## `scripts/` (repository level)
+
+```text
+scripts/
+└── deploy/dokploy-deploy.sh
+```
+
+Only repository-level tooling lives here. Application-adjacent tooling lives in
+`backend/scripts/`.
+
+---
+
 ## Records and conventions
 
 | Folder | Naming | Rule |
@@ -110,11 +168,10 @@ docker/
 | `learnings/` | `XXX-description.md` | Written **after** work; includes measurements |
 | `todos/` | `XXX-description.md` | Handoff notes for long-running work |
 | `poc/` | `XXX-poc-description.md` | Validated approaches only |
-| `fixtures/` | `XXX-fixtures-description.md` | Test/eval data and ground truth |
 
 Three-digit sequential numbering per folder. Numbers are allocated by date, not index — gaps and
-duplicates exist and are left alone because renumbering would break cross-references. Index in
-[decisions](../architecture/decisions.md).
+duplicate `011` entries exist and are left alone because renumbering would break cross-references.
+Index in [decisions](../architecture/decisions.md).
 
 ---
 
@@ -125,6 +182,8 @@ duplicates exist and are left alone because renumbering would break cross-refere
 | Current behaviour | `docs/` |
 | Why a decision was made | `plans/` |
 | What the measurement showed | `learnings/` |
+| Evaluation inputs | `datasets/` |
+| Benchmark outputs | `benchmarks/` |
 | Runtime configuration | `backend/app/core/config.py` |
 | API surface | `backend/app/api/` |
 | Field schema | `backend/app/schemas/metadata.py` |
@@ -138,8 +197,8 @@ duplicates exist and are left alone because renumbering would break cross-refere
 
 | Path | Why |
 | --- | --- |
-| `docs/*.md` (flat files predating this tree) | Superseded by `docs/architecture|application|processing|…`. Kept until migrated; see [migration note](../README.md#legacy-files) |
-| `docs/implementation_plan.md` | Historical plan, not current state |
+| `docs/history/*` | Archived; describes a past state |
+| `CHANGELOG.md` | Last entry is `[0.1.0] — 2026-05-29`; not maintained since |
 | `learnings/015` | Predates the `gemma4:e4b` switch |
 | `learnings/014` | References removed routes `/library` and `/bulk-operations` |
-| `backend/reports/*` | Generated evidence; not inputs |
+| `benchmarks/reports/*` | Generated evidence; not inputs |

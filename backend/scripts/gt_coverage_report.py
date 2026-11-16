@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate docs/ground-truth-field-coverage.md from the GT corpus."""
+"""Generate docs/testing/results/ground-truth-coverage.md from the GT corpus."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from app.schemas.metadata import ALL_METADATA_FIELDS, BATCH_FIELD_ORDER
 CANON = [f.field_name for f in ALL_METADATA_FIELDS]
 BATCH = {f.field_name: f.batch_group for f in ALL_METADATA_FIELDS}
 WD = {f.field_name: f.wikidata_property for f in ALL_METADATA_FIELDS}
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
-OUT = Path(__file__).resolve().parents[2] / "docs" / "ground-truth-field-coverage.md"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
+OUT = Path(__file__).resolve().parents[2] / "docs" / "testing" / "results" / "ground-truth-coverage.md"
 
 
 def present(v: object) -> bool:
@@ -48,7 +48,7 @@ def main() -> int:
     out = ["# Ground Truth vs. Metadata Fields (49-field conformance & coverage)\n"]
     out.append(
         "Comparison of the corpus in `datasets/ground-truth/` against "
-        "[`docs/metadata-fields.md`](metadata-fields.md) (source: `app/schemas/metadata.py`). "
+        "[`docs/reference/metadata-fields.md`](../../reference/metadata-fields.md) (source: `app/schemas/metadata.py`). "
         "Regenerate with `uv run python -m scripts.gt_coverage_report`.\n"
     )
     out.append("## Conformance\n")

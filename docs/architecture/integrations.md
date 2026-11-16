@@ -11,9 +11,9 @@ records, honestly, which of these are required and which are not.
 
 ## 1. Service groups
 
-The 15 services in [`docker-compose.production.yml`](../docker-compose.production.yml) fall into
+The 15 services in [`docker-compose.production.yml`](../../docker-compose.production.yml) fall into
 three groups. Classification and memory figures come from
-[`learnings/015`](../learnings/015-service-inventory-and-gating.md), measured on the reference host.
+[`learnings/015`](../../learnings/015-service-inventory-and-gating.md), measured on the reference host.
 
 | Group | Services | Idle memory | Required? |
 | --- | --- | --- | --- |

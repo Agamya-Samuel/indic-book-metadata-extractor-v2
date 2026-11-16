@@ -228,7 +228,7 @@ def main() -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth",
+        default=Path(__file__).resolve().parents[2] / "datasets" / "ground-truth",
     )
     parser.add_argument("--limit", type=int, default=5, help="Max books per category (default 5)")
     parser.add_argument("--download", action="store_true", help="Also download PDFs (default: metadata-only)")

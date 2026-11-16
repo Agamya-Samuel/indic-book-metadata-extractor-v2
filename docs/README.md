@@ -1,7 +1,7 @@
 # Technical Documentation
 
-This directory is the primary technical reference for the Indic Book Metadata Extractor. It documents
-the system as implemented on `main`, not an aspirational design.
+The primary technical reference for the Indic Book Metadata Extractor. It documents the system as
+implemented on `main`.
 
 ## Start here
 
@@ -15,21 +15,17 @@ the system as implemented on `main`, not an aspirational design.
 | Call the HTTP API | [API reference](reference/api.md) |
 | Deploy it | [Deployment](operations/deployment.md) |
 | Fix something at 2am | [Runbook](operations/runbook.md) |
+| Use the application | [User guide](user-guide.md) |
 
 ## Documentation map
 
 ```text
 docs/
-├── README.md                        ← you are here (index + inventory)
+├── README.md                        ← you are here
 ├── architecture/
 │   ├── system-architecture.md       topology, request path, data model, pipeline
 │   ├── integrations.md              external services, service groups, gating status
 │   └── decisions.md                 index of plans/ and learnings/
-├── development/
-│   ├── local-development.md         prerequisites, compose, seeding, day-to-day loop
-│   ├── configuration.md             every environment variable and its default
-│   ├── repository-structure.md      where code lives and why
-│   └── contributing.md              conventions, review process, docs maintenance
 ├── application/
 │   ├── frontend.md                  App Router structure, state, workflow rail
 │   ├── backend.md                   module layout, routers, services, tasks
@@ -39,85 +35,65 @@ docs/
 │   ├── pipeline-overview.md         upload → review, stage machine, job lifecycle
 │   ├── pdf-and-pages.md             rendering, page selection, storage layout
 │   ├── preprocessing.md             the OpenCV chain and per-page config
-│   ├── ocr.md                       engines, routing, post-processing, corrections
+│   ├── ocr.md                       engines, routing, post-processing, troubleshooting
+│   ├── ocr-training.md              fine-tuning the Telugu line model
 │   ├── extraction.md                hybrid tiers, batches, prompts, evidence
 │   └── jobs-and-queues.md           Celery topology, retries, cancel/supersede/reap
+├── development/
+│   ├── local-development.md         prerequisites, Docker, native setup, ports
+│   ├── configuration.md             every environment variable and its default
+│   ├── repository-structure.md      where code and data live
+│   └── contributing.md              conventions, review, docs maintenance
 ├── operations/
-│   ├── deployment.md                Docker Compose, Dokploy, domains, rollback
+│   ├── deployment.md                compose, Dokploy, domains, rollback
 │   ├── runbook.md                   symptom → diagnosis → action
-│   ├── monitoring.md                health checks, New Relic, Flower, metrics
-│   ├── backup-and-recovery.md       database and volume backups, restore drill
-│   └── wikibase-operations.md       Wikibase/QuickStatements (optional, off by default)
+│   ├── monitoring.md                health, New Relic, admin metrics, alerting
+│   ├── backup-and-recovery.md       dumps, restore drill, volume inventory
+│   ├── bulk-operations.md           OpenRefine + Wikibase bulk workflows
+│   ├── wikibase-operations.md       optional stack, extensions, known defects
+│   ├── wikidata-workflow.md         QID creation and property mapping
+│   └── ocr-postdeploy.md            post-deploy OCR tuning steps
 ├── testing/
 │   ├── strategy.md                  what is tested where and why
-│   ├── running-tests.md             commands, fixtures, CI jobs
-│   └── evaluation.md                OCR/LLM benchmarks and ground-truth corpora
-└── reference/
-    ├── api.md                       endpoint-by-endpoint reference
-    ├── metadata-fields.md           the 50-field schema and batch grouping
-    └── glossary.md                 project vocabulary
+│   ├── running-tests.md             commands, fixtures, CI
+│   ├── evaluation.md                OCR/LLM benchmarks and ground truth
+│   └── results/
+│       ├── llm-model-evaluation.md  model comparison results
+│       └── ground-truth-coverage.md corpus conformance and coverage
+├── reference/
+│   ├── api.md                       endpoint reference and body schemas
+│   ├── metadata-fields.md           the 49-field schema, batches, Wikidata mapping
+│   └── glossary.md                  project vocabulary
+├── user-guide.md                    end-user walkthrough
+├── known-limitations.md             limits, gaps, platform notes
+└── history/                         archived documents — past state, not current
 ```
 
-**Status:** `architecture/`, `application/` and `processing/` are written. The remaining directories
-are planned and will be filled in grouped passes (see [writing order](#writing-order)).
+Related top-level directories:
 
-## Documentation status
-
-| Group | Files | State |
-| --- | --- | --- |
-| Architecture | 3 | Written |
-| Application | 4 | Written |
-| Processing | 6 | Written |
-| Development | 4 | Written |
-| Operations | 5 | Written |
-| Testing | 3 | Written |
-| Reference | 3 | Written |
-
-All 28 planned documents are written.
-
-## Writing order
-
-Documentation is written architecture-first, then in dependency order, with a review checkpoint at
-each boundary:
-
-1. **Architecture** — topology and integrations establish vocabulary used everywhere else.
-2. **Application** — frontend, backend, auth, data model (depends on architecture).
-3. **Processing** — the pipeline, which depends on both of the above.
-4. **Reference** — API and field definitions, generated against the finished processing docs.
-5. **Development** — onboarding, which links to everything but defines nothing new.
-6. **Operations** — deployment and runbooks, which assume the pipeline is understood.
-7. **Testing** — strategy and evaluation, which references the processing internals.
-
-## Legacy files
-
-Before this tree existed, `docs/` held 25 flat files written at various points during development:
-`runbook.md`, `api-reference.md`, `developer-guide.md`, `local-development-guide.md`,
-`tech_stack.md`, `user-guide.md`, `known-issues.md`, `monitoring.md`, `ocr-setup.md`,
-`ocr-training.md`, `wikibase-reference.md`, `changelog.md`, and others.
-
-They are **superseded** by the organised tree above and should not be treated as current. They are
-kept for now because they contain detail that has not all been migrated (notably the user-facing
-guide and the OCR training notes).
-
-Migration is deliberately incomplete rather than half-done: the new documents describe current
-behaviour, and the old files are left untouched so nothing is lost. Removing or merging them is a
-separate task, tracked in [repository structure](development/repository-structure.md).
+| Directory | Contents |
+| --- | --- |
+| [`datasets/`](../datasets/README.md) | Ground truth, sample PDFs, frozen evaluation corpus |
+| [`benchmarks/`](../benchmarks/README.md) | Measured outputs: reports and prompt-eval results |
+| [`learnings/`](../learnings/) | Evidence written after work; indexed in [decisions](architecture/decisions.md) |
+| [`plans/`](../plans/) | Proposals written before work |
+| [`todos/`](../todos/) | Execution checklists for long-running work |
 
 ## Conventions
 
-- **Implemented vs planned vs known-issue** must be marked explicitly. A feature that does not exist
-  is not documented as if it does.
-- **No host-specific detail.** Production IPs, node names, panel ports and credentials never appear
-  in `docs/`. Operational specifics live in a gitignored `infra/local/`.
+- **Implemented vs planned vs known-issue** is marked explicitly. A feature that does not exist is not
+  documented as if it does.
+- **No host-specific detail.** Production IPs, node names, panel ports and credentials never appear in
+  `docs/`. Operational specifics live in a gitignored `infra/local/`.
 - **Diagrams** use Mermaid fenced code blocks so they render on GitHub.
-- **Code references** are relative paths from the repository root, e.g.
-  `backend/app/tasks/ocr_tasks.py`.
+- **Code references** are relative paths from the repository root.
 - **No duplication.** A fact has exactly one home; other documents link to it.
+- **Archived material** lives in [history/](history/README.md) and is never treated as current.
 
 ## Documentation maintenance
 
-There is no automated documentation gate. Keeping these documents accurate is a review
-responsibility, described in [contributing.md](development/contributing.md). The short version:
+There is no automated documentation gate. Keeping these documents accurate is a review responsibility,
+described in [contributing.md](development/contributing.md). The short version:
 
 | If you change… | Update |
 | --- | --- |
@@ -130,3 +106,5 @@ responsibility, described in [contributing.md](development/contributing.md). The
 | Compose services, ports, or volumes | `operations/deployment.md`, `architecture/integrations.md` |
 | A health check or metric | `operations/monitoring.md` |
 | A frontend route or workflow step | `application/frontend.md`, `processing/pipeline-overview.md` |
+| An environment variable | `development/configuration.md` |
+| A dataset, sample, or corpus path | `datasets/README.md` and the script that reads it |

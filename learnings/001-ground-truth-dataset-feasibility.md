@@ -16,7 +16,7 @@ The pipeline (PDF → page selection → preprocessing → Tesseract OCR → Qwe
 
 ### 1. The schema is 49 fields, not 52
 
-Canonical definition: [backend/app/schemas/metadata.py](../backend/app/schemas/metadata.py) (`FullMetadata`, L83–L133; `ALL_METADATA_FIELDS`, L282–L291). The extraction prompt ([prompts.py](../backend/app/services/prompts.py) L130–L143), DB (single JSONB `fields` column), review UI, and CSV export all derive from the same keys. **Every predefined field is `str | None` (default `None`); no enums or per-field validation.** `custom_fields` is an extra `dict | None` container, excluded from the field count. The "52" in [README.md](../README.md) L138 and [docs/indic_book_metadata_extractor.md](../docs/indic_book_metadata_extractor.md) L208–L212 is stale — that spec's own numbered table stops at row 49. **Action: reconcile the 52↔49 wording before publishing a dataset schema so GT and pipeline agree.**
+Canonical definition: [backend/app/schemas/metadata.py](../backend/app/schemas/metadata.py) (`FullMetadata`, L83–L133; `ALL_METADATA_FIELDS`, L282–L291). The extraction prompt ([prompts.py](../backend/app/services/prompts.py) L130–L143), DB (single JSONB `fields` column), review UI, and CSV export all derive from the same keys. **Every predefined field is `str | None` (default `None`); no enums or per-field validation.** `custom_fields` is an extra `dict | None` container, excluded from the field count. The "52" in [README.md](../README.md) L138 and [docs/indic_book_metadata_extractor.md](../docs/history/project-overview-original.md) L208–L212 is stale — that spec's own numbered table stops at row 49. **Action: reconcile the 52↔49 wording before publishing a dataset schema so GT and pipeline agree.**
 
 49 fields by batch (Wikidata property where mapped):
 
@@ -38,7 +38,7 @@ Canonical definition: [backend/app/schemas/metadata.py](../backend/app/schemas/m
 | Asset | What it is | Verdict |
 |---|---|---|
 | [reference/dataset/s1.md](../reference/dataset/s1.md) | **109-row Telugu work/edition table; columns map exactly to all 49 fields** (Wikidata P-IDs, Work vs Edition rows). `s2.md`/`s3.md` are smaller variants. | **High-value metadata seed + annotation template.** Almost certainly a Wikidata Telugu-book export. **No PDFs**, and titles (కాశ్మీర పట్టమహిషి, అహల్యాబాయి…) don't match the local PDFs. Many are modern/copyrighted → not usable as public PDFs. |
-| [backend/tests/fixtures/samples/tel/commons/](../backend/tests/fixtures/samples) (5 PDFs) + `hin/commons/` (5 PDFs) | **Real scanned Telugu/Hindi books.** Verified via `pdfinfo`/`pdftotext`: **image-only** (near-zero text layer), 20–294 pp. Telugu producers PyPDF2/SuriPDF; Hindi PFU ScanSnap. | **Ideal OCR inputs**, but **no `expected_metadata.json`** (only synthetic fixtures have one). **Provenance CONFIRMED (§5):** the 5 Telugu files are exact matches in [Category:PDF books in Telugu](https://commons.wikimedia.org/wiki/Category:PDF_books_in_Telugu); the Hindi files map to [Category:Hindi-language books](https://commons.wikimedia.org/wiki/Category:Hindi-language_books) (Tarun Bharat Sangh subcategory). Licenses are PD-India / CC BY-SA — ready to annotate. |
+| [backend/tests/fixtures/samples/tel/commons/](../datasets/samples) (5 PDFs) + `hin/commons/` (5 PDFs) | **Real scanned Telugu/Hindi books.** Verified via `pdfinfo`/`pdftotext`: **image-only** (near-zero text layer), 20–294 pp. Telugu producers PyPDF2/SuriPDF; Hindi PFU ScanSnap. | **Ideal OCR inputs**, but **no `expected_metadata.json`** (only synthetic fixtures have one). **Provenance CONFIRMED (§5):** the 5 Telugu files are exact matches in [Category:PDF books in Telugu](https://commons.wikimedia.org/wiki/Category:PDF_books_in_Telugu); the Hindi files map to [Category:Hindi-language books](https://commons.wikimedia.org/wiki/Category:Hindi-language_books) (Tarun Bharat Sangh subcategory). Licenses are PD-India / CC BY-SA — ready to annotate. |
 | `backend/tests/fixtures/samples/{tel,hin,eng}/{clean,degraded,modern}/` | Synthetic generated PDFs **with** `expected_metadata.json`. | Format template only; not real books. Existing GT shape: `{description, language, quality, total_pages, recommended_pages, expected_metadata:{field:value}, notes}`. |
 | `backend/storage/uploads/<uuid>/original.pdf` (26) | Real uploaded books (app data, gitignored). | **Excluded** from public set (copyright unknown). Internal-only if lawfully held. |
 | [reference/dataset/sarvam_api](../reference/dataset/sarvam_api) | **Plaintext Sarvam API key.** Gitignored; verified **never committed** (`git ls-files`/`git log --all` empty). | ⚠️ **Rotate + move to an env file.** Owner: user. |
@@ -141,7 +141,7 @@ Two stages, measured separately and end-to-end, with error attribution.
 
 ### Materialized (2026-11-13)
 
-The split above is now **materialized** for the 35-book corpus. [`backend/scripts/build_manifest.py`](../backend/scripts/build_manifest.py) derives `backend/tests/fixtures/ground_truth/manifest.jsonl` from the per-book envelopes and freezes the assignment in [`splits/gt-split-v1.0.json`](../backend/tests/fixtures/ground_truth/splits/gt-split-v1.0.json). It is deterministic (`--check` fails if the manifest would change), so re-running is a no-op.
+The split above is now **materialized** for the 35-book corpus. [`backend/scripts/build_manifest.py`](../backend/scripts/build_manifest.py) derives `backend/tests/fixtures/ground_truth/manifest.jsonl` from the per-book envelopes and freezes the assignment in [`splits/gt-split-v1.0.json`](../datasets/ground-truth/splits/gt-split-v1.0.json). It is deterministic (`--check` fails if the manifest would change), so re-running is a no-op.
 
 - **Rule:** `sha256(work_key)` within each language stratum; **work-groups are disjoint** (a book joins a group when its normalized title *extends* another's — volume/part markers included, regardless of script — so `...రత్నమాల` and `...రత్నమాల, ద్వితీయ సంపుటము` share a group). 34 groups over 35 books.
 - **Ratio:** dev 30% / test 70% per language → **tel dev 9 / test 21**, **hin dev 2 / test 3**.
@@ -188,7 +188,7 @@ The split above is now **materialized** for the 35-book corpus. [`backend/script
 - Project repository (seed assets + pipeline): https://github.com/Agamya-Samuel/indic-book-metadata-extractor-v2
 - Canonical schema: [backend/app/schemas/metadata.py](../backend/app/schemas/metadata.py)
 - Local metadata seed: [reference/dataset/s1.md](../reference/dataset/s1.md), `s2.md`, `s3.md`
-- Real scan inputs: [backend/tests/fixtures/samples/](../backend/tests/fixtures/samples) (`tel/commons`, `hin/commons`)
+- Real scan inputs: [backend/tests/fixtures/samples/](../datasets/samples) (`tel/commons`, `hin/commons`)
 - Prior consultations: [reference/chat1.md](../reference/chat1.md), [reference/chat2.md](../reference/chat2.md)
 - Wikidata WikiProject Books (te): https://wikidata.org/wiki/Wikidata:WikiProject_Books/te
 - Wikidata↔Wikisource integration: https://diff.wikimedia.org/2021/07/07/improving-wikidata-wikisource-integration/

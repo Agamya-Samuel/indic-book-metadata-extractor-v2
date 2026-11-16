@@ -3,7 +3,7 @@
 - **Date:** 2026-11-11
 - **Status:** **In progress** — resource/speed/JSON arm **measured**; accuracy arm **measured on 1 verified Telugu book (provisional)**; wider accuracy (more books/languages, noisy OCR) pending. Provisional winner **`gemma4:e4b` (`think:false`)**. Results: [learnings/005](../learnings/005-llm-model-evaluation.md).
 - **Depends on:** [plans/002-ground-truth-poc.md](002-ground-truth-poc.md) — supplies the 6-book corpus with `expected_metadata.json` (marked `unverified`) under `backend/tests/fixtures/ground_truth/`. **This plan consumes metadata GT, not OCR-text GT**, so it needs 002's metadata arm specifically — the inverse of 003. Soft dependency on [plans/003-ocr-engine-evaluation.md](003-ocr-engine-evaluation.md): the LLM's input is OCR text, so the winning engine changes the input distribution — evaluate on today's Tesseract output now, then re-validate after 003 lands.
-- **Relationship:** replaces the qualitative "switch to a higher-quality model" note in [docs/llm-extraction-zero-fields-investigation.md](../docs/llm-extraction-zero-fields-investigation.md) (line 331) and the untested Airavata→Qwen rationale in [`docker/Modelfile.qwen2.5`](../docker/Modelfile.qwen2.5) with a **measured** decision. Closes the "default LLM" line in [AGENTS.md](../AGENTS.md).
+- **Relationship:** replaces the qualitative "switch to a higher-quality model" note in [docs/llm-extraction-zero-fields-investigation.md](../docs/history/llm-extraction-zero-fields-investigation.md) (line 331) and the untested Airavata→Qwen rationale in [`docker/Modelfile.qwen2.5`](../docker/Modelfile.qwen2.5) with a **measured** decision. Closes the "default LLM" line in [AGENTS.md](../AGENTS.md).
 
 ## Results so far (measured 2026-11-11, test-node-2)
 
@@ -52,13 +52,13 @@ Select the LLM(s) for the 49-field metadata extraction step on an **evidence bas
 ### Current pipeline reality (verified in code, not assumed)
 
 - **49 fields** (50 incl. `custom_fields`) in [`FullMetadata`](../backend/app/schemas/metadata.py), extracted in **8 batches** (`core_identity`, `contributors`, `publication`, `content_classification`, `edition_series`, `relationships`, `ancillary_content`, `physical_extra`).
-- **5 fields bypass the LLM** — regex `{isbn, publication_date, pages}` ([`regex_extractors.py`](../backend/app/services/regex_extractors.py)) + dictionary `{publisher, language}` ([`dictionary_extractors.py`](../backend/app/services/dictionary_extractors.py)); LLM fills only gaps ([`hybrid.py`](../backend/app/services/hybrid.py)). So **~44 fields reach the model across ≤ 8 calls**.
+- **5 fields bypass the LLM** — regex `{isbn, publication_date, pages}` ([`regex_extractors.py`](../backend/app/services/extractors/regex_extractors.py)) + dictionary `{publisher, language}` ([`dictionary_extractors.py`](../backend/app/services/extractors/dictionary_extractors.py)); LLM fills only gaps ([`hybrid.py`](../backend/app/services/extractors/hybrid.py)). So **~44 fields reach the model across ≤ 8 calls**.
 - **Input is NOT the whole book.** Front-matter page windows per batch + last-3-pages colophon ([`batch_routing.py`](../backend/app/services/batch_routing.py)), hard-capped at **`MAX_OCR_CHARS = 2500`** ([`llm_service.py`](../backend/app/services/llm_service.py), line 58). `num_ctx=8192`, `MAX_PARALLEL_BATCHES=2`.
 - **Null rule + few-shot already exist.** The system prompt says "use your knowledge of the language to interpret corrupted words" and "if a field cannot be determined... return null", with `tel`/`hin`/`eng` few-shot examples ([`prompts.py`](../backend/app/services/prompts.py)). JSON is enforced via `instructor` (`Mode.MD_JSON`, `max_retries=2`) over Ollama's OpenAI-compatible `/v1`.
 - **Current runtime:** [`docker/Modelfile.qwen2.5`](../docker/Modelfile.qwen2.5) → `qwen2.5:7b`, temp 0.3, num_ctx 8192. Old Airavata Modelfile exists but is unused.
 - **Two confounders that must be fixed before any fair comparison:**
   1. Frontend sends `max_tokens=2048` ([`frontend/src/lib/api.ts`](../frontend/src/lib/api.ts)) while backend defaults to 512 — the output-reservation mismatch implicated in the historical "zero fields" bug.
-  2. [`backend/reports/baseline.json`](../backend/reports/baseline.json) is a **stub** (F1 = 1.0, predicted == expected). **No real accuracy number exists for any model.** The harness [`evaluate_extraction.py`](../backend/scripts/evaluate_extraction.py) exists but has only been run in `--stub` mode.
+  2. [`backend/reports/baseline.json`](../benchmarks/reports/baseline.json) is a **stub** (F1 = 1.0, predicted == expected). **No real accuracy number exists for any model.** The harness [`evaluate_extraction.py`](../backend/scripts/evaluate_extraction.py) exists but has only been run in `--stub` mode.
 
 > Implication: each call sees only ~2,500 chars of front matter, so a **256K context window is not required**. The need is strong Indic comprehension + reliable JSON at small inputs, fast on 4 cores → points at the **4B class**, not 7B+.
 
@@ -173,8 +173,8 @@ The evaluation needs **metadata** GT. 002's `expected_metadata.json` is marked *
 ## References
 
 - Dependencies: [plans/002-ground-truth-poc.md](002-ground-truth-poc.md) · [plans/003-ocr-engine-evaluation.md](003-ocr-engine-evaluation.md)
-- Pipeline: [`backend/app/schemas/metadata.py`](../backend/app/schemas/metadata.py) · [`backend/app/services/prompts.py`](../backend/app/services/prompts.py) · [`llm_service.py`](../backend/app/services/llm_service.py) · [`batch_routing.py`](../backend/app/services/batch_routing.py) · [`hybrid.py`](../backend/app/services/hybrid.py) · [`docker/Modelfile.qwen2.5`](../docker/Modelfile.qwen2.5)
-- Evaluation: [`backend/scripts/evaluate_extraction.py`](../backend/scripts/evaluate_extraction.py) · [`backend/reports/baseline.json`](../backend/reports/baseline.json) · [docs/known-limitations.md](../docs/known-limitations.md)
+- Pipeline: [`backend/app/schemas/metadata.py`](../backend/app/schemas/metadata.py) · [`backend/app/services/prompts.py`](../backend/app/services/prompts.py) · [`llm_service.py`](../backend/app/services/llm_service.py) · [`batch_routing.py`](../backend/app/services/batch_routing.py) · [`hybrid.py`](../backend/app/services/extractors/hybrid.py) · [`docker/Modelfile.qwen2.5`](../docker/Modelfile.qwen2.5)
+- Evaluation: [`backend/scripts/evaluate_extraction.py`](../backend/scripts/evaluate_extraction.py) · [`backend/reports/baseline.json`](../benchmarks/reports/baseline.json) · [docs/known-limitations.md](../docs/known-limitations.md)
 - Models: [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B) · [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) · [Dhīr](https://zenteiq.ai/dhir/) · [Hex-1](https://huggingface.co/budecosystem/hex-1) · [Gemma 4 model card](https://ai.google.dev/gemma/docs/core/model_card_4)
 - Structured output: https://sbeconis.com/lab/structured-output/ · https://arxiv.org/html/2609.23742v1 · https://ollama.com/blog/structured-outputs
 - CPU/resource: https://aihubhq.com/guides/run-llm-without-gpu/ · https://github.com/ggml-org/llama.cpp/issues/21385

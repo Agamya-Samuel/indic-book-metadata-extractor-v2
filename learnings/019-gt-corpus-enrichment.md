@@ -55,6 +55,6 @@ Newly populated by C (book counts): `subject` 35, `place_of_printing` 29, `print
 ## References
 
 - Scripts: [`node_gt_fill.py`](../backend/scripts/node_gt_fill.py) · [`merge_node_fill.py`](../backend/scripts/merge_node_fill.py) · [`node_fetch_pdfs.py`](../backend/scripts/node_fetch_pdfs.py) · [`enrich_ground_truth.py`](../backend/scripts/enrich_ground_truth.py) · [`fetch_commons_ground_truth.py`](../backend/scripts/fetch_commons_ground_truth.py) · [`build_manifest.py`](../backend/scripts/build_manifest.py)
-- Corpus: [`backend/tests/fixtures/ground_truth/`](../backend/tests/fixtures/ground_truth) (manifest + frozen split `splits/gt-split-v1.0.json`)
+- Corpus: [`backend/tests/fixtures/ground_truth/`](../datasets/ground-truth) (manifest + frozen split `splits/gt-split-v1.0.json`)
 - Node tracker: [infra/gcp-test-nodes.md](../infra/gcp-test-nodes.md)
 - Related: [001](001-ground-truth-dataset-feasibility.md) · [004](004-ocr-stage-cer.md) · [005](005-llm-model-evaluation.md) · [018](018-llm-config-validation.md)

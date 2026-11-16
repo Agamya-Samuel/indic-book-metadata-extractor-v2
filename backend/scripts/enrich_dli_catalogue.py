@@ -26,7 +26,7 @@ import httpx
 
 from scripts.enrich_catalogues import USER_AGENT, parse_dc
 
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 PARTS = ["dli_tel_1.html", "dli_tel_2.html", "dli_hin_1.html", "dli_hin_2.html", "dli_hin_3.html"]
 
 

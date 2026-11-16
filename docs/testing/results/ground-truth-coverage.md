@@ -1,6 +1,6 @@
 # Ground Truth vs. Metadata Fields (49-field conformance & coverage)
 
-Comparison of the corpus in `backend/tests/fixtures/ground_truth/` against [`docs/metadata-fields.md`](metadata-fields.md) (source: `app/schemas/metadata.py`). Regenerate with `uv run python -m scripts.gt_coverage_report`.
+Comparison of the corpus in `datasets/ground-truth/` against [`docs/reference/metadata-fields.md`](../../reference/metadata-fields.md) (source: `app/schemas/metadata.py`). Regenerate with `uv run python -m scripts.gt_coverage_report`.
 
 ## Conformance
 

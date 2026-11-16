@@ -30,7 +30,7 @@ import Levenshtein
 from app.services.ocr_service import run_ocr
 from app.services.preprocessing import run_pipeline
 
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 
 def norm(text: str) -> str:

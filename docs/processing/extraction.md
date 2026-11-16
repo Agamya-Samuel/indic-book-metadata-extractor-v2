@@ -167,7 +167,7 @@ A custom prompt from the LLM-config screen therefore always wins, and no experim
 into the app unless `DEFAULT_PROMPT_PROFILE` is changed deliberately.
 
 Few-shot examples are synthetic by default. The `real` source loads held-out ground-truth exemplars
-from `backend/prompt_eval/fewshot/`, falling back to no examples rather than failing.
+from `datasets/evaluation/fewshot/`, falling back to no examples rather than failing.
 
 ---
 

@@ -18,11 +18,11 @@ re-discovery.
 
 ## What exists
 
-- **OCR review** ([ocr-review/page.tsx:284](../frontend/src/app/books/%5BbookId%5D/ocr-review/page.tsx#L284)):
+- **OCR review** ([ocr-review/page.tsx:284](../frontend/src/app/books/[bookId]/ocr-review/page.tsx#L284)):
   workspace layout with a filmstrip, page canvas (60%) and word-level text editor
   (40%). OCR is fetched one page at a time (`getOcrResult`); the page index is
   component state, so the route cannot be deep-linked today.
-- **Metadata review** ([metadata-review/page.tsx:360](../frontend/src/app/books/%5BbookId%5D/metadata-review/page.tsx#L360)):
+- **Metadata review** ([metadata-review/page.tsx:360](../frontend/src/app/books/[bookId]/metadata-review/page.tsx#L360)):
   reading layout; a top evidence card bound to the focused field; then ~50 fields in
   8 collapsible batches with confidence dots; fixed SaveBar.
 - **Bulk OCR data is already one request away.** `GET /books/{id}/pages?include_ocr=true`

@@ -11,9 +11,9 @@
 
 | # | Documented (where) | Code reality | Impact | Owner |
 |---|---|---|---|---|
-| 1 | Route `LLMService` through Ollama's **native `/api/chat`** with `think:false` — [plans/012](012-llm-service-native-endpoint.md) | **Implemented (2026-11-15):** `_extract_batch_native` routes thinking models automatically; `gemma4:e4b` is the default, native endpoint is the compose default, and the model was pulled + verified on `oki`. Unit tests cover parse/retry/flag gating. **Not shipped:** Dokploy deploy | After the deploy, production extracts with gemma4; `phi4-mini` remains the rollback | Dev (+ user to deploy) |
-| 2 | **Repetition/loop guard** before shipping `phi4-mini` — [learnings/018](018-llm-config-validation.md) finding 5, [plans/012](012-llm-service-native-endpoint.md) risks | No repeated-n-gram detection in `llm_service.py` | `phi4-mini` looped to the token cap and returned **invalid JSON despite schema-constrained decoding** (measured, 018) | Dev |
-| 3 | `num_ctx` **4096** and one `max_tokens` value — [learnings/017](017-llm-configuration-research.md) §1, [018](018-llm-config-validation.md) | `docker/Modelfile.phi4-mini` says `num_ctx 8192` while the container env sets `CONTEXT_LENGTH=4096`; app default `max_tokens=256` vs `ExtractionRequest` default `512` | The documented decision is not reflected consistently; effective context is ambiguous | Dev |
+| 1 | Route `LLMService` through Ollama's **native `/api/chat`** with `think:false` — [plans/012](../plans/012-llm-service-native-endpoint.md) | **Implemented (2026-11-15):** `_extract_batch_native` routes thinking models automatically; `gemma4:e4b` is the default, native endpoint is the compose default, and the model was pulled + verified on `oki`. Unit tests cover parse/retry/flag gating. **Not shipped:** Dokploy deploy | After the deploy, production extracts with gemma4; `phi4-mini` remains the rollback | Dev (+ user to deploy) |
+| 2 | **Repetition/loop guard** before shipping `phi4-mini` — [learnings/018](../learnings/018-llm-config-validation.md) finding 5, [plans/012](../plans/012-llm-service-native-endpoint.md) risks | No repeated-n-gram detection in `llm_service.py` | `phi4-mini` looped to the token cap and returned **invalid JSON despite schema-constrained decoding** (measured, 018) | Dev |
+| 3 | `num_ctx` **4096** and one `max_tokens` value — [learnings/017](../learnings/017-llm-configuration-research.md) §1, [018](../learnings/018-llm-config-validation.md) | `docker/Modelfile.phi4-mini` says `num_ctx 8192` while the container env sets `CONTEXT_LENGTH=4096`; app default `max_tokens=256` vs `ExtractionRequest` default `512` | The documented decision is not reflected consistently; effective context is ambiguous | Dev |
 | 4 | **NER extractor** (`spaCy xx_ent_wiki_sm`) for person names, with `target_fields` plumbing ready — [known-limitations](../docs/known-limitations.md) §"What's not yet implemented" item 2 | No `spacy` / `ner_extractor` anywhere in `backend/` | `author`, `translator`, `editor` stay LLM-only → low recall (the #1 open accuracy gap) | Dev |
 | 5 | **Per-language prompt templates** (Telugu/Hindi/English variants) — known-limitations §LLM | One `SYSTEM_PROMPT_TEMPLATE` + one `EXTRACTION_PROMPT_TEMPLATE`; only the few-shot examples vary by language (`prompts.py`) | Partial: per-language examples exist, per-language *templates* do not | Dev |
 
@@ -25,8 +25,8 @@
 
 | # | Documented (where) | Code reality | Impact | Owner |
 |---|---|---|---|---|
-| 6 | **Telugu line-model engine** (`harsha-desaraju/telugu-ocr-model`, CER 0.16 vs 0.40) is the **chosen** engine — [learnings/020](020-ocr-engine-benchmark.md), [021](021-ocr-engine-operational-requirements.md), [todos/012](012-ocr-engine-integration-handoff.md), [known-issues](../docs/known-issues.md) | Exists only in `backend/scripts/ocr_bench/`; **not** wired into `app/services/ocr_service.py` | The single largest accuracy lever (halves Telugu CER) is unshipped; all LLM accuracy stays OCR-bound | Dev |
-| 7 | **`GET /api/admin/ocr-corrections`** endpoint to measure raw→corrected edit rate — [plans/003](003-ocr-engine-evaluation.md) §risks, [learnings/021](021-ocr-engine-operational-requirements.md) | No such route in `backend/app/api` | Cannot measure reviewer-effort (the chosen PoC gate) | Dev |
+| 6 | **Telugu line-model engine** (`harsha-desaraju/telugu-ocr-model`, CER 0.16 vs 0.40) is the **chosen** engine — [learnings/020](../learnings/020-ocr-engine-benchmark.md), [021](../learnings/021-ocr-engine-operational-requirements.md), [todos/012](012-ocr-engine-integration-handoff.md), [known-issues](../docs/known-limitations.md) | Exists only in `backend/scripts/ocr_bench/`; **not** wired into `app/services/ocr_service.py` | The single largest accuracy lever (halves Telugu CER) is unshipped; all LLM accuracy stays OCR-bound | Dev |
+| 7 | **`GET /api/admin/ocr-corrections`** endpoint to measure raw→corrected edit rate — [plans/003](../plans/003-ocr-engine-evaluation.md) §risks, [learnings/021](../learnings/021-ocr-engine-operational-requirements.md) | No such route in `backend/app/api` | Cannot measure reviewer-effort (the chosen PoC gate) | Dev |
 | 8 | **Page-rotation detection** (OSD `--psm 1` on page 1) — known-limitations §OCR "Mitigations NOT yet implemented" | No `rotate`/`osd` handling in `ocr_service.py` | Rotated title/colophon pages OCR as garbage | Dev |
 | 9 | **Script-aware preprocessing** (different denoise params per script) — same known-limitations list | Preprocessing exists but is not script-aware (no per-script branch found) | Low-confidence absence — re-verify before acting | Dev |
 
@@ -36,7 +36,7 @@
 
 | # | Documented (where) | Code reality | Impact | Owner |
 |---|---|---|---|---|
-| 10 | **pgvector semantic search** — schema exists, search "not yet implemented" — [README](../README.md#L199), [known-issues](../docs/known-issues.md), [changelog](../docs/changelog.md), [AGENTS.md](../AGENTS.md) | Only `backend/app/models/embedding.py` + the model import exist; **no service populates or queries** it (grep for `embedding` in `backend/app` returns only the model) | The 768-dim `embeddings` table is dead schema | Dev |
+| 10 | **pgvector semantic search** — schema exists, search "not yet implemented" — [README](../README.md#L199), [known-issues](../docs/known-limitations.md), [changelog](../CHANGELOG.md), [AGENTS.md](../AGENTS.md) | Only `backend/app/models/embedding.py` + the model import exist; **no service populates or queries** it (grep for `embedding` in `backend/app` returns only the model) | The 768-dim `embeddings` table is dead schema | Dev |
 
 ---
 
@@ -60,7 +60,7 @@ From [todos/014](014-launch-readiness.md) §"Remaining operator actions" (need t
 - Offsite backup destination + credentials.
 - Uptime/alerting monitor against `/api/health`.
 
-Owner: **user** (credentials). Also documented in [known-issues](../docs/known-issues.md) §Deployment.
+Owner: **user** (credentials). Also documented in [known-issues](../docs/known-limitations.md) §Deployment.
 
 ---
 
@@ -81,7 +81,7 @@ Do **not** build these — the documentation is out of date, the feature exists.
 
 ## 7. In progress (not a docs-only gap)
 
-[plans/013-production-hardening](013-production-hardening.md) — status "in progress (started 2026-11-14)": workflow-breaking defects, cancellation/retries, data isolation, mail path. Track it there rather than here.
+[plans/013-production-hardening](../plans/013-production-hardening.md) — status "in progress (started 2026-11-14)": workflow-breaking defects, cancellation/retries, data isolation, mail path. Track it there rather than here.
 
 ## 8. Low confidence — re-verify before acting
 

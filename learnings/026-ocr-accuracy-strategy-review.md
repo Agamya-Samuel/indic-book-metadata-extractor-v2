@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-16
 - **Study context:** An external strategy document proposed four pillars for improving Hindi and Telugu OCR on CPU-only infrastructure: (1) fine-tune Tesseract for Hindi, (2) adopt transformer/VLM OCR (Surya, Chitrapathak-2, EasyOCR, PaddleOCR, a custom Hindi CRNN), (3) add shirorekha-aware and adaptive preprocessing plus CPU parallelization, (4) add WFST/LLM post-processing and language detection. Before spending effort, each claim was checked against the code, the benchmark artifacts, and prior learnings. This is a desk review, not a measurement study.
-- **Artifacts:** [backend/scripts/ocr_bench/results.json](../backend/scripts/ocr_bench/results.json), [learnings/020](020-ocr-engine-benchmark.md), [learnings/021](021-ocr-engine-operational-requirements.md), [learnings/015](015-service-inventory-and-gating.md), [docs/ocr-training.md](../docs/ocr-training.md), [backend/scripts/train_tesseract_lstm.sh](../backend/scripts/train_tesseract_lstm.sh).
+- **Artifacts:** [backend/scripts/ocr_bench/results.json](../backend/scripts/ocr_bench/results.json), [learnings/020](020-ocr-engine-benchmark.md), [learnings/021](021-ocr-engine-operational-requirements.md), [learnings/015](015-service-inventory-and-gating.md), [docs/ocr-training.md](../docs/processing/ocr-training.md), [backend/scripts/train_tesseract_lstm.sh](../backend/scripts/train_tesseract_lstm.sh).
 
 ## Summary
 

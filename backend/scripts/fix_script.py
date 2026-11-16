@@ -23,7 +23,7 @@ from pathlib import Path
 
 import httpx
 
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 API = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "baidu/ernie-5.5-flash-preview:free"
 SCRIPT = {"tel": "Telugu", "hin": "Devanagari (Hindi)"}

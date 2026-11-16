@@ -39,7 +39,7 @@ FIELD_NAMES = [f.field_name for f in ALL_METADATA_FIELDS]
 USER_AGENT = (
     "IndicBookMetadataExtractor-GT-PoC/0.1 (https://github.com/Agamya-Samuel/indic-book-metadata-extractor-v2) httpx"
 )
-GT_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = Path(__file__).resolve().parents[2] / "datasets" / "ground-truth"
 
 # Wikisource Proofreadpage_index_template field labels -> schema fields.
 TE_LABELS = {

@@ -22,7 +22,7 @@ On this host a batch call is **~0.9–1.3 K prompt tokens and ~60–70 output to
 | App | context budget | `MAX_OCR_CHARS=2500` per batch, `MAX_PARALLEL_BATCHES=2` | llm_service.py L58–59 |
 | App | JSON contract | `instructor` `Mode.MD_JSON` (prompt + pydantic validate, 2 retries); **no** schema-constrained decoding | llm_service.py L72–79 |
 | Schema | fields | 49 optional string fields + `custom_fields` dict, 8 batches | [metadata.py](../backend/app/schemas/metadata.py) |
-| Hybrid | bypass LLM | `isbn`, `pages`, `publication_date` (regex) + `publisher`, `language` (dictionary) | [hybrid.py](../backend/app/services/hybrid.py) |
+| Hybrid | bypass LLM | `isbn`, `pages`, `publication_date` (regex) + `publisher`, `language` (dictionary) | [hybrid.py](../backend/app/services/extractors/hybrid.py) |
 
 **Config inconsistencies to resolve (they change what the model actually sees):**
 
@@ -86,7 +86,7 @@ Defaults below are from the Ollama [Modelfile reference](https://docs.ollama.com
 
 ### 3.1 Resource / speed / JSON validity
 
-test-node-2, 4 vCPU / 16 GB, `num_ctx=8192`, `num_predict=512`, temp 0, real Telugu `core_identity` prompt. From [005](../learnings/005-llm-model-evaluation.md) and [llm-model-sweep.jsonl](../backend/reports/llm-model-sweep.jsonl):
+test-node-2, 4 vCPU / 16 GB, `num_ctx=8192`, `num_predict=512`, temp 0, real Telugu `core_identity` prompt. From [005](../learnings/005-llm-model-evaluation.md) and [llm-model-sweep.jsonl](../benchmarks/reports/llm-model-sweep.jsonl):
 
 | Model | Resident GiB | Host peak used MiB | Prefill tok/s | Gen tok/s | Wall s | Prompt tokens | Eval tokens | JSON valid |
 |---|---|---|---|---|---|---|---|---|
@@ -98,7 +98,7 @@ test-node-2, 4 vCPU / 16 GB, `num_ctx=8192`, `num_predict=512`, temp 0, real Tel
 | qwen3.5:4b | 2.93 | 4829 | 16.25 | 4.47 | 181.5 | 983 | 512 | no (0 chars) |
 | qwen3:4b-instruct-2507 Q4_K_M | 2.97 | 4557 | 15.61 | 3.34 | 108.9 | 1313 | 61 | yes |
 
-From [llm-model-followup.jsonl](../backend/reports/llm-model-followup.jsonl): with `think:false`, gemma4:e4b produced valid JSON in **63 tokens / 94.8 s** and qwen3.5:4b in **70 tokens / 82.6 s**; without it, qwen3.5:4b at `num_predict=2048` spent **2048 tokens / 562 s** on **8686 thinking chars** and returned no answer. qwen2.5:7b repeated the same 61-token answer in **276–322 s** (prefill 5.0–5.7 tok/s under contention).
+From [llm-model-followup.jsonl](../benchmarks/reports/llm-model-followup.jsonl): with `think:false`, gemma4:e4b produced valid JSON in **63 tokens / 94.8 s** and qwen3.5:4b in **70 tokens / 82.6 s**; without it, qwen3.5:4b at `num_predict=2048` spent **2048 tokens / 562 s** on **8686 thinking chars** and returned no answer. qwen2.5:7b repeated the same 61-token answer in **276–322 s** (prefill 5.0–5.7 tok/s under contention).
 
 ### 3.2 Accuracy (verified subset)
 
@@ -247,6 +247,6 @@ Metrics for every run: per-field P/R/F1, exact and normalized match, JSON validi
 
 - Plans: [plans/004-llm-model-evaluation.md](../plans/004-llm-model-evaluation.md)
 - Prior learnings: [004](../learnings/004-ocr-stage-cer.md) · [005](../learnings/005-llm-model-evaluation.md) · [006](../learnings/006-first-real-accuracy.md) · [010](../learnings/010-llm-shortlist-benchmark.md) · [013](../learnings/013-verified-shortlist-and-ocr.md) · [015](../learnings/015-service-inventory-and-gating.md)
-- Measured reports: [llm-model-sweep.jsonl](../backend/reports/llm-model-sweep.jsonl) · [llm-model-followup.jsonl](../backend/reports/llm-model-followup.jsonl) · [pipeline-profile-oki.json](../backend/reports/pipeline-profile-oki.json)
+- Measured reports: [llm-model-sweep.jsonl](../benchmarks/reports/llm-model-sweep.jsonl) · [llm-model-followup.jsonl](../benchmarks/reports/llm-model-followup.jsonl) · [pipeline-profile-oki.json](../benchmarks/reports/pipeline-profile-oki.json)
 - Official docs: [Ollama Modelfile](https://docs.ollama.com/modelfile) · [Ollama FAQ](https://docs.ollama.com/faq) · [Structured outputs](https://ollama.com/blog/structured-outputs) · [Qwen2.5 blog](https://qwenlm.github.io/blog/qwen2.5/) · [Qwen2.5-7B-Instruct card](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) · [qwen2.5 tags](https://ollama.com/library/qwen2.5/tags)
 - Quantization/threads: [llama.cpp discussion 2094](https://github.com/ggml-org/llama.cpp/discussions/2094) · [llama.cpp auto-threads = physical cores](https://freenode.net/article/llama-cpp-auto-thread-count-now-prefers-physical-cores)

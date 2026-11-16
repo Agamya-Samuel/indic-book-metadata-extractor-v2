@@ -1,6 +1,6 @@
 # LLM Model Evaluation — Consolidated Report
 
-**Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../learnings/005-llm-model-evaluation.md), [010](../learnings/010-llm-shortlist-benchmark.md), [013](../learnings/013-verified-shortlist-and-ocr.md).** Last updated **2026-11-14**.
+**Scope:** every LLM tested for the 49-field metadata extraction step under the CPU-only / 16 GB / offline / open-source envelope. **Consolidates [learnings/005](../../../learnings/005-llm-model-evaluation.md), [010](../../../learnings/010-llm-shortlist-benchmark.md), [013](../../../learnings/013-verified-shortlist-and-ocr.md).** Last updated **2026-11-14**.
 
 > **Status (2026-11-14): `gemma4:e4b` (`think:false`) wins *both* languages** on the enriched corpus, **8 books each** — **Telugu 0.670 vs `phi4-mini` 0.564**; **Hindi 0.560 vs 0.367** (§9).
 >
@@ -57,9 +57,9 @@ All ≤4B models fit the **6 GiB** oki cap with headroom; 7B is snug.
 ## 5. Cross-cutting findings
 
 1. **Thinking trap (load-bearing).** `qwen3:8b`, `qwen3.5:9b`, and the **defaults** of `qwen3.5:4b` and `gemma4:e4b` return **0 content chars** (budget spent on the thinking channel). **Any thinking-capable model MUST run with `think:false`.** This applies to Qwen3 finetunes (`hex-1`) too. Implication: an `invalid-JSON`/`empty` verdict for a Qwen3-familiy model may just be a missing `think:false`, not a bad model.
-2. **Recall is the limiter, not the model.** Across every run: precision ≈ 1.0 with very low recall — the models emit few fields, and it tracks **OCR quality** (Telugu CER ≈ 0.45, [004](../learnings/004-ocr-stage-cer.md)). Swapping models cannot exceed the OCR ceiling.
+2. **Recall is the limiter, not the model.** Across every run: precision ≈ 1.0 with very low recall — the models emit few fields, and it tracks **OCR quality** (Telugu CER ≈ 0.45, [004](../../../learnings/004-ocr-stage-cer.md)). Swapping models cannot exceed the OCR ceiling.
 3. **Language-dependent results.** gemma4:e4b leads **Telugu**; phi4-mini leads **Hindi**. No single model has been tested on **both** languages with verified GT.
-4. **Two now-fixed extraction bugs** ([013](../learnings/013-verified-shortlist-and-ocr.md)) confounded earlier numbers: schema-class echo (`title="CoreIdentityBatch"`) and over-nulling.
+4. **Two now-fixed extraction bugs** ([013](../../../learnings/013-verified-shortlist-and-ocr.md)) confounded earlier numbers: schema-class echo (`title="CoreIdentityBatch"`) and over-nulling.
 
 ## 6. Cross-language head-to-head (executed 2026-11-12)
 
@@ -80,9 +80,9 @@ gemma4:e4b needed a larger output budget to run end-to-end (truncated at 1024; *
 
 **Evidence (updated 2026-11-14, 8 books/language):** `gemma4:e4b` (`think:false`) is the best extractor in **both** languages — **Telugu 0.670 vs phi4-mini 0.564**, **Hindi 0.560 vs 0.367** (§9).
 
-**Hard constraint:** gemma4 only works on Ollama's **native `/api/chat`** endpoint. The OpenAI-compatible path that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty content** there (§5/§9, [learnings/022](../learnings/022-gt-source-expansion.md) finding 6). Switching production to gemma4 therefore requires a **production code change** (§7 options below), not just a Modelfile/model-name swap.
+**Hard constraint:** gemma4 only works on Ollama's **native `/api/chat`** endpoint. The OpenAI-compatible path that `LLMService` calls **drops `think:false`**, so gemma4 returns **empty content** there (§5/§9, [learnings/022](../../../learnings/022-gt-source-expansion.md) finding 6). Switching production to gemma4 therefore requires a **production code change** (§7 options below), not just a Modelfile/model-name swap.
 
-- **A — switch to `gemma4:e4b` (adopted):** `LLMService` routes thinking models through the native `/api/chat` automatically; `gemma4:e4b` is the default and `OLLAMA_PRELOAD_MODEL=gemma4:e4b` ([plans/012](../plans/012-llm-service-native-endpoint.md)). Gemma was pulled and the native `think:false` call verified on `oki` on 2026-11-15; the Dokploy deploy is the remaining step.
+- **A — switch to `gemma4:e4b` (adopted):** `LLMService` routes thinking models through the native `/api/chat` automatically; `gemma4:e4b` is the default and `OLLAMA_PRELOAD_MODEL=gemma4:e4b` ([plans/012](../../../plans/012-llm-service-native-endpoint.md)). Gemma was pulled and the native `think:false` call verified on `oki` on 2026-11-15; the Dokploy deploy is the remaining step.
 - **B — rollback stays `phi4-mini`** (PR `964d5af`): it works on the existing `/v1` path and is **not discarded**. It is the fallback if the gemma4 deploy regresses.
 
 **Not discarded:** `phi4-mini` is retained as the rollback model on the `/v1` path. The production call path is now the native `/api/chat` for gemma4.
@@ -91,7 +91,7 @@ gemma4:e4b needed a larger output budget to run end-to-end (truncated at 1024; *
 
 **Caveat:** the Hindi head-to-head is **4 books**; expand to ≥8–10 verified books (and Telugu) before flipping production to gemma4.
 
-Re-run the [evaluate_extraction.py](../backend/scripts/evaluate_extraction.py) harness `--ground-truth` (add `--native` for gemma4) after fixing OCR and the extraction bugs, so model deltas aren't swamped by recall loss.
+Re-run the [evaluate_extraction.py](../../../backend/scripts/evaluate_extraction.py) harness `--ground-truth` (add `--native` for gemma4) after fixing OCR and the extraction bugs, so model deltas aren't swamped by recall loss.
 
 ## 8. Reproduce
 
@@ -101,13 +101,13 @@ Re-run the [evaluate_extraction.py](../backend/scripts/evaluate_extraction.py) h
 uv run python -m scripts.evaluate_extraction --ground-truth --limit 2 --pages 6 --model <model>
 ```
 
-Reports: `backend/reports/gt-bench-*.json`, `backend/reports/gt-verified-*.json`, `backend/reports/ocr-tessdata-best.json`.
+Reports: `benchmarks/reports/gt-bench-*.json`, `benchmarks/reports/gt-verified-*.json`, `benchmarks/reports/ocr-tessdata-best.json`.
 
 ## References
 
-- [learnings/005 — LLM Model Evaluation](../learnings/005-llm-model-evaluation.md) · [plans/004](../plans/004-llm-model-evaluation.md)
-- [learnings/010 — Shortlist Benchmark](../learnings/010-llm-shortlist-benchmark.md) · [learnings/013 — Verified Shortlist & OCR](../learnings/013-verified-shortlist-and-ocr.md)
-- [learnings/004 — OCR CER](../learnings/004-ocr-stage-cer.md) · [infra/gcp-test-nodes.md](../infra/gcp-test-nodes.md)
+- [learnings/005 — LLM Model Evaluation](../../../learnings/005-llm-model-evaluation.md) · [plans/004](../../../plans/004-llm-model-evaluation.md)
+- [learnings/010 — Shortlist Benchmark](../../../learnings/010-llm-shortlist-benchmark.md) · [learnings/013 — Verified Shortlist & OCR](../../../learnings/013-verified-shortlist-and-ocr.md)
+- [learnings/004 — OCR CER](../../../learnings/004-ocr-stage-cer.md) · [infra/gcp-test-nodes.md](../../../infra/gcp-test-nodes.md)
 
 ## 9. Enriched-corpus re-evaluation (2026-11-14)
 
@@ -118,6 +118,6 @@ Expanded head-to-head — **8 books per language**, end-to-end harness (`evaluat
 | `phi4-mini` (OpenAI path) | 0.639 / 0.505 / **0.564** | 0.370 / 0.364 / **0.367** |
 | **`gemma4:e4b` (`--native`, `think:false`)** | 0.707 / 0.637 / **0.670** | 0.455 / 0.727 / **0.560** |
 
-**Decision-grade result: `gemma4:e4b` wins *both* languages** — Telugu **0.670 vs 0.564**, Hindi **0.560 vs 0.367**. `gemma4`'s edge is mostly recall (Telugu R 0.64 vs 0.51; Hindi R 0.73 vs 0.36). This also overturns the earlier "phi4-mini leads Hindi" claim, which was an artifact of the think trap (gemma4 previously returned empty). Reports: `backend/reports/gt-eval-{phi4,gemma4}-{tel,hin}-8book.json`.
+**Decision-grade result: `gemma4:e4b` wins *both* languages** — Telugu **0.670 vs 0.564**, Hindi **0.560 vs 0.367**. `gemma4`'s edge is mostly recall (Telugu R 0.64 vs 0.51; Hindi R 0.73 vs 0.36). This also overturns the earlier "phi4-mini leads Hindi" claim, which was an artifact of the think trap (gemma4 previously returned empty). Reports: `benchmarks/reports/gt-eval-{phi4,gemma4}-{tel,hin}-8book.json`.
 
-**Harness caveat:** `evaluate_extraction` calls `LLMService`, i.e. Ollama's **OpenAI-compatible** endpoint, where `think:false` is dropped — a thinking model (`gemma4`) then returns empty content and scores 0. Added an opt-in **`--native`** flag ([`scripts/native_extract.py`](../backend/scripts/native_extract.py)) that calls `/api/chat` with `think:false`; the production extraction path is unchanged. (See [learnings/022](../learnings/022-gt-source-expansion.md) finding 6.)
+**Harness caveat:** `evaluate_extraction` calls `LLMService`, i.e. Ollama's **OpenAI-compatible** endpoint, where `think:false` is dropped — a thinking model (`gemma4`) then returns empty content and scores 0. Added an opt-in **`--native`** flag ([`scripts/native_extract.py`](../../../backend/scripts/native_extract.py)) that calls `/api/chat` with `think:false`; the production extraction path is unchanged. (See [learnings/022](../../../learnings/022-gt-source-expansion.md) finding 6.)

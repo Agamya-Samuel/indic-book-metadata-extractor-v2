@@ -112,7 +112,7 @@ OCR and extraction quality are measured, not asserted:
   unroutable and un-in-scan fields.
 
 Numbers fluctuate with model and preprocessing changes; a regression test would encode one measurement
-as truth. Instead, results are recorded in `learnings/` and `backend/reports/`. See
+as truth. Instead, results are recorded in `learnings/` and `benchmarks/reports/`. See
 [evaluation](evaluation.md).
 
 ---
@@ -121,10 +121,10 @@ as truth. Instead, results are recorded in `learnings/` and `backend/reports/`. 
 
 | Location | Contents |
 | --- | --- |
-| `backend/tests/fixtures/samples/` | Small generated PDFs |
-| `backend/tests/fixtures/ground_truth/` | Expected metadata for fixtures |
+| `datasets/samples/` | Small generated PDFs |
+| `datasets/ground-truth/` | Expected metadata for fixtures |
 | `backend/scripts/generate_sample_pdf.py` | Regenerates synthetic samples |
-| `backend/reports/` | Benchmark output, not inputs |
+| `benchmarks/reports/` | Benchmark output, not inputs |
 
 Fixtures are small and synthetic on purpose: real books are large and licensing-sensitive. Real
 quality work uses the external ground-truth corpus, not fixtures.

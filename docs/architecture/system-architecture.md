@@ -23,7 +23,7 @@ an HTTP request. The browser follows progress over Server-Sent Events.
 ## 2. Runtime topology
 
 All production services are defined in
-[`docker-compose.production.yml`](../docker-compose.production.yml) (15 services) and are reachable
+[`docker-compose.production.yml`](../../docker-compose.production.yml) (15 services) and are reachable
 only through the edge proxy. Only the frontend and backend are published to a domain — everything
 else is on the internal network.
 
@@ -104,7 +104,7 @@ logical, not physical. See [jobs-and-queues](../processing/jobs-and-queues.md).
 
 ## 3. Request path
 
-The FastAPI application is assembled in [`backend/app/main.py`](../backend/app/main.py). Middleware
+The FastAPI application is assembled in [`backend/app/main.py`](../../backend/app/main.py). Middleware
 is added in this order, which means it executes in the reverse order (last added is outermost):
 
 ```text
@@ -124,7 +124,7 @@ hops are attacker-controlled.
 
 ### Router composition
 
-Routers are mounted under `/api` in [`backend/app/api/router.py`](../backend/app/api/router.py).
+Routers are mounted under `/api` in [`backend/app/api/router.py`](../../backend/app/api/router.py).
 The ordering is load-bearing:
 
 | Mount | Prefix | Auth |
@@ -192,7 +192,7 @@ erDiagram
 | `system_settings` | Runtime toggles | maintenance mode and related flags |
 | `embeddings` | Reserved for semantic search | `embedding vector(768)`, `source_text` |
 
-Migrations are Alembic, 20 revisions, under [`backend/alembic/versions/`](../backend/alembic/versions/).
+Migrations are Alembic, 20 revisions, under [`backend/alembic/versions/`](../../backend/alembic/versions).
 The `vector` extension is created by a migration before the embeddings table.
 
 ### Two parallel state machines
@@ -294,7 +294,7 @@ queued → running → completed
                  ↘ cancelled
 ```
 
-Reliability properties, all configured in [`backend/app/tasks/celery_app.py`](../backend/app/tasks/celery_app.py):
+Reliability properties, all configured in [`backend/app/tasks/celery_app.py`](../../backend/app/tasks/celery_app.py):
 
 | Property | Value | Why |
 | --- | --- | --- |
@@ -306,13 +306,13 @@ Reliability properties, all configured in [`backend/app/tasks/celery_app.py`](..
 
 Three independent guards prevent a stuck book:
 
-1. **`single_book_task`** ([`pipeline_lock.py`](../backend/app/tasks/pipeline_lock.py)) — a **single
+1. **`single_book_task`** ([`pipeline_lock.py`](../../backend/app/tasks/pipeline_lock.py)) — a **single
    global** Redis lock (`pipeline:single-book`, 300 s TTL, refreshed as work progresses) so only one
    book is processed at a time. On a 4 vCPU / no-swap host, two concurrent books oversubscribe the
    CPU and make both slower. The lock fails **open** when Redis is unavailable.
-2. **Supersede checks** ([`cancellation.py`](../backend/app/tasks/cancellation.py)) — a task that lost
+2. **Supersede checks** ([`cancellation.py`](../../backend/app/tasks/cancellation.py)) — a task that lost
    its book to a newer run stops writing results instead of clobbering them.
-3. **Job reaper** ([`job_reaper.py`](../backend/app/services/job_reaper.py)) — a backend loop every 300s
+3. **Job reaper** ([`job_reaper.py`](../../backend/app/services/job_reaper.py)) — a backend loop every 300s
    fails any `running` job with no recent `last_progress_at` (default threshold 90 minutes), so a lost
    worker cannot leave a book permanently `ocr_running`.
 

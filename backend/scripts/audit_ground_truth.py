@@ -21,7 +21,7 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
-GT_ROOT = BACKEND / "tests" / "fixtures" / "ground_truth"
+GT_ROOT = BACKEND.parent / "datasets" / "ground-truth"
 
 # Fields whose values are expected to be findable in the front-matter text.
 CHECKABLE = [

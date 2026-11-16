@@ -31,7 +31,7 @@ and [022](../learnings/022-gt-source-expansion.md); the harness `--native` path
 
 | Risk | Mitigation |
 |---|---|
-| Loss of schema-constrained decoding → invalid JSON | tolerant parse + retry + fallback (phi4-mini already needs a loop guard — [learnings/017](017-llm-configuration-research.md)) |
+| Loss of schema-constrained decoding → invalid JSON | tolerant parse + retry + fallback (phi4-mini already needs a loop guard — [learnings/017](../learnings/017-llm-configuration-research.md)) |
 | Production regression | flag defaults **off**; switch on only after a staging/verification run; revert = unset env |
 | Two code paths to maintain | keep the OpenAI path for non-thinking models; native path only when the flag is set (or when the model is in the thinking set) |
 | Silent empty output (the current bug!) | native path checks for empty `content` and records `empty_response`, as today |
