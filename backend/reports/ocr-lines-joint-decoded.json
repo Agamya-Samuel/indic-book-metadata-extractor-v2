@@ -1,0 +1,43 @@
+{
+  "engine": "telugu-ocr-model",
+  "decode": "joint",
+  "pages": 3,
+  "mean_cer": 0.2254,
+  "median_cer": 0.1106,
+  "median_wer": 0.5976,
+  "total_sec": 84.26,
+  "sec_per_page": 28.087,
+  "peak_rss_mb": 788.4,
+  "rows": [
+    {
+      "id": "10031upanishhats033596mbp__p5",
+      "cer": 0.1106,
+      "wer": 0.5976,
+      "sec": 26.288,
+      "lines": 19,
+      "ref_chars": 687,
+      "pred_chars": 666,
+      "pred": "పీ ది క. తండ్రి మా తండ్రి గారు నా పిద్యా బుద్ధి కౌశలపరిశ్రమముల విషయమై శార్వరి సంవ త్సరమున ( 1839 సంవత్సరము కొనను) నన్ను శలకత్తా కుఁబంపిరి. అక్కడ నేను కీలక సంవత్స రము తుది మాసముల వరకు (1849 సంవ త్స రారంభమున కొద్ది మాసముల వరకు) నుం టిని. అపుడు నాయుపాధ్యాయులలో నొక రై యుండిన శీ) యుక్త బాబు రామచంద) మి త్రిగారి సత్సహవాసము వల్లను, మహనీయు లైన శ్రీరాజా రామమోహన రాయల వారిచే వికృతి (1830) సంవత్సరమున స్థాపింపఁబడి, మహషి౯యని యెన్నిక కెక్కిన దేవేంద్ర నాధ ఠాకురుఁ గారి చేత నుద్ధరింపఁ బడిన మాజములోని వారిచే శ్రుతి స్మృతులలో నుం డిసంగ్రహింపఁ బడిన గ్రంథములను చదువుట వ ల్లను, నాకుఁగలిగిన తత్త్వచింతయు, నేనుమరల విశాఖపట్టణము వచ్చిన విమ్మటను నాకుటుం బము వారికి అనాదిగా మత గ్రంథోపదేశక సం"
+    },
+    {
+      "id": "10879telugukaavy034400mbp__p5",
+      "cer": 0.5414,
+      "wer": 1.5833,
+      "sec": 27.737,
+      "lines": 32,
+      "ref_chars": 314,
+      "pred_chars": 391,
+      "pred": "శ్రీమదిన సుభద్రయ్యమ్మగారిచే రచియిఁ పఁబడిన 4 తెలుఁగు కావ్యములు. . . . . . . వారి మేనల్లుళ్లయిన . . గజపతిరాయనింగారు సి. ఐ. ఇ. . వారివల్ల ఎడిట్ చేయఁబడి . . శ్రీపరవస్తు శ్రీనివాసభట్టనాధాచార్యు లయ్యవారలుఁగారిచే విశాఖపట్టణమున భిపము . . ఆ ర - ద ము దా గౌ లం - అచ్చువేయింపబడి ప్రకటింపబడియె. 163. Heytered favoraght) . generate 6/2 6/2 6/2 6/2 6/2 6/2 6/2 I'm nterl Alyudura Press, I amographatm, 1893"
+    },
+    {
+      "id": "19280101_AngleyaVaidyaRahasyamu_Telugu_PDF__p2",
+      "cer": 0.0241,
+      "wer": 0.0758,
+      "sec": 29.999,
+      "lines": 17,
+      "ref_chars": 498,
+      "pred_chars": 510,
+      "pred": "Digitized in 2006 by Thrinaina Informatics Ltd, Secunderabad, A.P., India. (http://www.thrinaina.com) From the original owned by Sundarayya Vignana Kendram and its partner Institutions as part of the British Library Endangered Archives Programmes Programm supported by thee Lisbet Rausing Charitable Fund Except for individual research purpose any reproduction should be made with written permission from the Sundarayya Vignana Kendram, 1-8-1/B/25/A, Bagh Lingampally, Hyderabad - 500 044 Andhra Pradesh, India"
+    }
+  ]
+}

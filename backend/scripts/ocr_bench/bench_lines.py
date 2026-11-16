@@ -52,25 +52,73 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=None)
     ap.add_argument("--decode", default="ctc")
+    ap.add_argument("--bundle", default=str(B))
+    ap.add_argument("--split-wide", action="store_true", help="Split crops wider than the model's 2048px limit")
     a = ap.parse_args()
+    bundle = Path(a.bundle)
     model = AutoModel.from_pretrained("harsha-desaraju/telugu-ocr-model", trust_remote_code=True).eval()
     tok = AutoTokenizer.from_pretrained("harsha-desaraju/telugu-ocr-model", trust_remote_code=True)
     rows = [
-        json.loads(line) for line in (B / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()
+        json.loads(line)
+        for line in (bundle / "manifest.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
     res = []
     t0 = time.time()
     for m in rows:
-        img = Image.open(B / m["image"]).convert("RGB")
+        img = Image.open(bundle / m["image"]).convert("RGB")
         s = time.time()
         boxes = line_boxes(img)
         crops = [img.crop(tuple(b)) for b in boxes if b[2] > b[0] and b[3] > b[1]]
-        texts = model.transcribe(crops, tok, decode=a.decode)
+        if a.split_wide:
+            # A crop wider than 2048px once scaled to height 64 makes
+            # transcribe() return "" (model.card). Split it at ~92% of the
+            # limit with a small overlap, transcribe the pieces, rejoin.
+            pieces: list[Image.Image] = []
+            owners: list[int] = []
+            for line_idx, crop in enumerate(crops):
+                width, height = crop.size
+                max_width = int(height * model.config.max_image_width / model.config.image_height)
+                if width <= max_width or max_width < 32:
+                    pieces.append(crop)
+                    owners.append(line_idx)
+                    continue
+                step = max(32, int(max_width * 0.92))
+                overlap = 16
+                x = 0
+                while x < width:
+                    pieces.append(crop.crop((x, 0, min(width, x + step), height)))
+                    owners.append(line_idx)
+                    if x + step >= width:
+                        break
+                    x += step - overlap
+            piece_texts = model.transcribe(pieces, tok, decode=a.decode)
+            grouped: list[list[str]] = [[] for _ in crops]
+            for owner, text in zip(owners, piece_texts):
+                if text and text.strip():
+                    grouped[owner].append(text.strip())
+            texts = [norm(" ".join(parts)) for parts in grouped]
+        else:
+            texts = model.transcribe(crops, tok, decode=a.decode)
         pred = norm(" ".join(texts))
         dt = time.time() - s
         ref = norm(m["ref"])
         c, w = round(cer(pred, ref), 4), round(wer(pred, ref), 4)
-        res.append({"id": m["id"], "cer": c, "wer": w, "sec": round(dt, 3), "lines": len(crops)})
+        non_empty = sum(1 for text in texts if str(text).strip())
+        res.append(
+            {
+                "id": m["id"],
+                "cer": c,
+                "wer": w,
+                "sec": round(dt, 3),
+                "lines": len(crops),
+                "word_count": non_empty,
+                "empty_lines": len(crops) - non_empty,
+                "ref_chars": len(ref),
+                "pred_chars": len(pred),
+                "pred": pred,
+            }
+        )
         print(f"{m['id'][:36]:36s} cer={c:.3f} wer={w:.3f} lines={len(crops)} {dt:.2f}s")
     cs = sorted(x["cer"] for x in res)
     ws = sorted(x["wer"] for x in res)

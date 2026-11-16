@@ -97,7 +97,17 @@ for m in rows:
     dt = time.time() - s
     p, r = norm(pred), norm(m["ref"])
     c, w = round(cer(p, r), 4), round(wer(p, r), 4)
-    res.append({"id": m["id"], "cer": c, "wer": w, "sec": round(dt, 3)})
+    res.append(
+        {
+            "id": m["id"],
+            "cer": c,
+            "wer": w,
+            "sec": round(dt, 3),
+            "ref_chars": len(r),
+            "pred_chars": len(p),
+            "pred": p,
+        }
+    )
     print(f"{m['id'][:36]:36s} cer={c:.3f} wer={w:.3f} {dt:.2f}s")
 
 cs = sorted(x["cer"] for x in res)

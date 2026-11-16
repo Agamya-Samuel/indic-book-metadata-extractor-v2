@@ -1,0 +1,65 @@
+[
+  {
+    "font": "Gurajada-Regular",
+    "lines": 25,
+    "cer": 0.2117,
+    "wer": 0.2117,
+    "line_mean_cer": 0.2152,
+    "empty_lines": 0,
+    "sec": 0.9
+  },
+  {
+    "font": "Mallanna-Regular",
+    "lines": 26,
+    "cer": 0.2173,
+    "wer": 0.2173,
+    "line_mean_cer": 0.2185,
+    "empty_lines": 0,
+    "sec": 1.0
+  },
+  {
+    "font": "Mandali-Regular",
+    "lines": 27,
+    "cer": 0.1901,
+    "wer": 0.1901,
+    "line_mean_cer": 0.1917,
+    "empty_lines": 0,
+    "sec": 0.9
+  },
+  {
+    "font": "NotoSansTelugu-Regular",
+    "lines": 28,
+    "cer": 0.0839,
+    "wer": 0.0839,
+    "line_mean_cer": 0.0858,
+    "empty_lines": 0,
+    "sec": 1.3
+  },
+  {
+    "font": "NotoSerifTelugu-Regular",
+    "lines": 27,
+    "cer": 0.0927,
+    "wer": 0.0927,
+    "line_mean_cer": 0.0924,
+    "empty_lines": 0,
+    "sec": 1.2
+  },
+  {
+    "font": "Ramabhadra-Regular",
+    "lines": 26,
+    "cer": 0.1677,
+    "wer": 0.1677,
+    "line_mean_cer": 0.1692,
+    "empty_lines": 0,
+    "sec": 1.0
+  },
+  {
+    "font": "TenaliRamakrishna-Regular",
+    "lines": 22,
+    "cer": 0.1462,
+    "wer": 0.1462,
+    "line_mean_cer": 0.1459,
+    "empty_lines": 0,
+    "sec": 1.2
+  }
+]
