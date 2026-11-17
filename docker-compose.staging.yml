@@ -244,6 +244,28 @@ services:
       - backend
 
   # ─────────────────────────────────────────────────────────────────────────────
+  # Public entrypoint: nginx proxies / to Next and /api to FastAPI
+  # ─────────────────────────────────────────────────────────────────────────────
+  proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx/indic.conf:/etc/nginx/conf.d/default.conf:ro
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────────────────────────────────────
   # Celery Flower (task monitor)
   # ─────────────────────────────────────────────────────────────────────────────
   flower:
