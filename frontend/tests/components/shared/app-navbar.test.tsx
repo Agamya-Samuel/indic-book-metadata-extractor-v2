@@ -85,7 +85,7 @@ describe("AppNavbar account menu", () => {
     render(<AppNavbar />, { wrapper: createWrapper() });
 
     await user.click(screen.getByLabelText("Account menu"));
-    await user.click(screen.getByRole("link", { name: "Dashboard" }));
+    await user.click(screen.getByRole("link", { name: "Library" }));
 
     await waitFor(() => expect(menu().open).toBe(false));
   });

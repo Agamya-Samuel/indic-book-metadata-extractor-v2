@@ -479,7 +479,7 @@ export default function BookDetailPage() {
                   clipRule="evenodd"
                 />
               </svg>
-              Dashboard
+              Library
             </LinkButton>
           }
           eyebrow={language ? `Books · ${language}` : "Books"}

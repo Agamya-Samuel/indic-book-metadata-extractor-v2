@@ -85,7 +85,7 @@ function workflowLabel(status: string): string {
 }
 
 export default function DashboardPage() {
-  useDocumentTitle("Dashboard");
+  useDocumentTitle("Library");
 
   const qc = useQueryClient();
 
@@ -244,8 +244,8 @@ export default function DashboardPage() {
   return (
     <PageContainer>
       <PageHeader
-        eyebrow="Dashboard"
-        title="Your workspace"
+        eyebrow="Library"
+        title="Your library"
         description={
           busy === undefined
             ? "Loading your books and jobs..."

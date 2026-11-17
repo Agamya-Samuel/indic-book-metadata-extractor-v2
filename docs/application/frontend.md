@@ -80,7 +80,7 @@ All routes are filesystem routes under `frontend/src/app/`.
 
 | Path | Purpose |
 | --- | --- |
-| `/dashboard` | Book list, job history |
+| `/dashboard` | Your library — book list and job history |
 | `/upload` | PDF upload |
 | `/notifications` | Notification centre |
 | `/books/{bookId}` | Book detail / workflow hub |

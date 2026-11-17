@@ -126,7 +126,7 @@ access**. Cookie-based sessions with two roles:
   in but only reaches an "awaiting approval" holding screen; a rejected account
   sees a "registration not approved" screen (with the reason, if any). Set
   `REGISTRATION_REQUIRES_APPROVAL=false` to re-enable open registration.
-- **Users** see a personal dashboard (`/dashboard`) with their books, jobs, and
+- **Users** see a personal library (`/dashboard`) with their books, jobs, and
   queue position, and can only reach books they uploaded. Any other book URL,
   thumbnail, page, or metadata request returns 404.
 - **Admins** additionally see the **Books** page (`/admin/books`), which lists all

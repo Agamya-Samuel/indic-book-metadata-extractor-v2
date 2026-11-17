@@ -14,8 +14,8 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 const navLinks = [
   {
     href: "/dashboard",
-    label: "Dashboard",
-    shortLabel: "Home",
+    label: "Library",
+    shortLabel: "Library",
     scope: "auth",
   },
   { href: "/upload", label: "Upload", shortLabel: "Upload", scope: "auth" },
@@ -255,7 +255,7 @@ export default function AppNavbar() {
                       focusRing,
                     )}
                   >
-                    Dashboard
+                    Library
                   </Link>
                 )}
                 <button

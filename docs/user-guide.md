@@ -59,9 +59,9 @@ administrator may have reset your password or deactivated your account.
 | Manage users (create, roles, deactivate, reset password, delete) | — | — | ✅ |
 | Bulk operations (OpenRefine / Wikibase export) | — | — | ✅ |
 
-### Your dashboard
+### Your library
 
-**Dashboard** in the navbar shows everything you own:
+**Library** in the navbar shows everything you own:
 
 - **Your books** — total, complete, and awaiting review counts; each book row
   has an **Actions** menu (open, jump to the current step, re-run OCR,
@@ -218,7 +218,7 @@ task with live progress.
 
 There is no shared public catalog. What you can see depends on your role:
 
-- **Owners** see their books on the **Dashboard** (`/dashboard`).
+- **Owners** see their books on the **Library** (`/dashboard`).
 - **Admins** see every book across all users on the **Books** page
   (`/admin/books`).
 
@@ -243,9 +243,9 @@ There is no shared public catalog. What you can see depends on your role:
 
 ---
 
-## Job Queue Dashboard
+## Job Queue
 
-Your own jobs are on the **Dashboard** page (queue position, cancel). The
+Your own jobs are on the **Library** page (queue position, cancel). The
 admin **Jobs** page shows all background jobs (OCR, LLM, page extraction) with:
 - **Status badges**: Queued (blue), Running (yellow), Completed (green), Failed (red)
 - **Progress tracking**: 0–100% progress for active jobs
@@ -288,7 +288,7 @@ one is not configured, the app keeps working and only the email is skipped.
 Once a book has reviewed metadata (status **awaiting review** or **complete**), you can export it.
 
 - **Book detail** — open the book and click **Export metadata**.
-- **Dashboard** — tick the books you want and click **Export selected**. Books without saved
+- **Library** — tick the books you want and click **Export selected**. Books without saved
   metadata are skipped.
 - **Admin → Books** — select rows and use **Export selected**. Admins can export any user's books.
 - **Admin → Bulk Operations** — export every book matching the language/status filters.
