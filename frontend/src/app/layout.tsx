@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Serif } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -7,6 +7,14 @@ import AppNavbar from "@/components/shared/app-navbar";
 import { RouteGuard } from "@/components/auth/route-guard";
 import MaintenanceGate from "@/components/auth/maintenance-gate";
 import { themeInitScript } from "@/components/shared/theme-provider";
+import {
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_LOCALE,
+  SITE_NAME,
+  SITE_SHORT_NAME,
+  SITE_URL,
+} from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,23 +40,60 @@ const notoSerif = Noto_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: SITE_URL,
   title: {
-    default: "Indic Book Metadata Extractor",
+    default: SITE_NAME,
     template: "%s · Indic Books",
   },
-  description:
-    "OCR-powered metadata extraction from Indic language books",
-  applicationName: "Indic Books",
-  authors: [{ name: "OKI" }],
-  keywords: [
-    "OCR",
-    "Indic",
-    "Wikibase",
-    "OpenRefine",
-    "bibliography",
-    "digital humanities",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [
+    { name: "Open Knowledge Initiatives (OKI), IIIT Hyderabad" },
   ],
-  robots: { index: true, follow: true },
+  creator: "Open Knowledge Initiatives (OKI), IIIT Hyderabad",
+  publisher: "Open Knowledge Initiatives (OKI), IIIT Hyderabad",
+  keywords: SITE_KEYWORDS,
+  category: "digital humanities",
+  openGraph: {
+    type: "website",
+    locale: SITE_LOCALE,
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  formatDetection: { email: false, address: false, telephone: false },
+  appleWebApp: {
+    capable: true,
+    title: SITE_SHORT_NAME,
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1c2a" },
+  ],
 };
 
 /**
@@ -106,10 +151,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} h-full antialiased`}
     >
       <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
         <Script
           id="theme-init"
           strategy="beforeInteractive"

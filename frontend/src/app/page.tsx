@@ -1,5 +1,10 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import { LinkButton } from "@/components/shared/button";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function Home() {
   return (

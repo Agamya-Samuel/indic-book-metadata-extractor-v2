@@ -98,7 +98,7 @@ All routes are filesystem routes under `frontend/src/app/`.
 ### Admin
 
 `/admin` (`ADMIN_PATHS = ["/admin"]`), with `/admin/users`, `/admin/books`, `/admin/jobs`,
-`/admin/bulk`, `/admin/system`, `/admin/design`.
+`/admin/bulk`, `/admin/system`.
 
 **Removed routes:** `/library` and `/bulk-operations` no longer exist. Bulk operations moved under
 `/admin/bulk`. Older documents and learnings may still reference them.
@@ -206,7 +206,21 @@ per-IP quota.
 
 ---
 
-## 9. Accessibility and UX conventions
+## 9. Metadata and discoverability
+
+- `src/lib/site.ts` is the single source for the site name, description, keywords and canonical
+  origin. The origin resolves from `NEXT_PUBLIC_SITE_URL`, then `FRONTEND_URL`, then
+  `http://localhost:3000`.
+- The root layout exports `metadata` (title template, OpenGraph, Twitter card, robots, authors,
+  Apple web-app hints) and `viewport` (theme colours, `viewport-fit=cover`).
+- File conventions add the rest: `app/icon.svg` / `app/favicon.ico` (icons),
+  `app/opengraph-image.tsx` and `app/twitter-image.tsx` (1200×630 social card), `app/manifest.ts`
+  (web app manifest), `app/robots.ts` (disallows authenticated routes) and `app/sitemap.ts`.
+- Per-route titles still come from `useDocumentTitle`; the root template appends "· Indic Books".
+
+---
+
+## 10. Accessibility and UX conventions
 
 - Keyboard-first: skip link, `focus-ring.ts` for consistent focus treatment, `use-document-title.ts`
   for per-route titles.
@@ -217,7 +231,7 @@ per-IP quota.
 
 ---
 
-## 10. Known limitations
+## 11. Known limitations
 
 1. **No runtime feature flags.** `NEXT_PUBLIC_OPENREFINE_URL` / `NEXT_PUBLIC_WIKIBASE_URL` are baked
    in at build time, so optional integrations cannot be hidden without a rebuild.
