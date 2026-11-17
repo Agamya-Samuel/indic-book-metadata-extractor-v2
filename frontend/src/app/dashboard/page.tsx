@@ -32,7 +32,8 @@ import ConfirmDialog from "@/components/admin/confirm-dialog";
 import Pagination from "@/components/shared/pagination";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
-import { LinkButton } from "@/components/shared/button";
+import { Button, LinkButton } from "@/components/shared/button";
+import ExportDialog from "@/components/export/export-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { getErrorMessage } from "@/lib/error-handler";
@@ -92,6 +93,8 @@ export default function DashboardPage() {
   const [typeFilter, setTypeFilter] = React.useState("");
   const [bookPage, setBookPage] = React.useState(1);
   const [jobPage, setJobPage] = React.useState(1);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [exportOpen, setExportOpen] = React.useState(false);
   const [confirmAction, setConfirmAction] = React.useState<
     | { type: "delete"; book: BookSearchResult }
     | { type: "reset"; book: BookSearchResult }
@@ -205,6 +208,33 @@ export default function DashboardPage() {
 
   const books = booksData?.items ?? [];
   const jobs = jobsData?.items ?? [];
+
+  const allChecked = books.length > 0 && books.every((book) => selected.has(book.id));
+  const someChecked = books.some((book) => selected.has(book.id));
+  const eligibleSelectedIds = books
+    .filter((book) => selected.has(book.id) && isExportable(book))
+    .map((book) => book.id);
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allChecked) {
+        books.forEach((book) => next.delete(book.id));
+      } else {
+        books.forEach((book) => next.add(book.id));
+      }
+      return next;
+    });
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const summaryJobs = summary?.jobs;
   const activeJobs = (summaryJobs?.queued ?? 0) + (summaryJobs?.running ?? 0);
@@ -333,9 +363,38 @@ export default function DashboardPage() {
           />
         ) : (
           <Stack gap={4}>
+            {selected.size > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--accent)]/30 bg-[var(--accent-soft)] px-3 py-2 text-[length:var(--text-sm)]">
+                <span className="font-medium text-[var(--accent-soft-text)]">
+                  {selected.size} selected
+                </span>
+                <div className="ml-auto flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExportOpen(true)}
+                    disabled={eligibleSelectedIds.length === 0}
+                  >
+                    Export selected
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelected(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
             <BookTable
               books={books}
               busy={pending}
+              selected={selected}
+              allChecked={allChecked}
+              someChecked={someChecked}
+              onToggleAll={toggleAll}
+              onToggleOne={toggleOne}
               onReset={(book) => setConfirmAction({ type: "reset", book })}
               onDelete={(book) => setConfirmAction({ type: "delete", book })}
               onRerunOcr={(book) => rerunOcrOne.mutate(book.id)}
@@ -344,7 +403,10 @@ export default function DashboardPage() {
             <Pagination
               page={bookPage}
               totalPages={booksData?.total_pages ?? 0}
-              onPageChange={setBookPage}
+              onPageChange={(page) => {
+                setBookPage(page);
+                setSelected(new Set());
+              }}
             />
           </Stack>
         )}
@@ -482,6 +544,13 @@ export default function DashboardPage() {
         variant="warning"
         loading={resetOne.isPending}
       />
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        scope={{ bookIds: eligibleSelectedIds }}
+        bookCount={eligibleSelectedIds.length}
+        description={`Export ${eligibleSelectedIds.length} selected book${eligibleSelectedIds.length === 1 ? "" : "s"} with reviewed metadata.`}
+      />
     </PageContainer>
   );
 }
@@ -489,6 +558,14 @@ export default function DashboardPage() {
 function bookTitle(book: BookSearchResult): string {
   return (
     book.title || book.filename.replace(/\.pdf$/i, "")
+  );
+}
+
+function isExportable(book: BookSearchResult): boolean {
+  return (
+    Boolean(book.metadata_fields) ||
+    book.status === "awaiting_review" ||
+    book.status === "complete"
   );
 }
 
@@ -514,6 +591,11 @@ function queueLabel(job: DashboardJobRow): React.ReactNode {
 function BookTable({
   books,
   busy,
+  selected,
+  allChecked,
+  someChecked,
+  onToggleAll,
+  onToggleOne,
   onReset,
   onDelete,
   onRerunOcr,
@@ -521,12 +603,42 @@ function BookTable({
 }: {
   books: BookSearchResult[];
   busy: boolean;
+  selected: Set<string>;
+  allChecked: boolean;
+  someChecked: boolean;
+  onToggleAll: () => void;
+  onToggleOne: (id: string) => void;
   onReset: (book: BookSearchResult) => void;
   onDelete: (book: BookSearchResult) => void;
   onRerunOcr: (book: BookSearchResult) => void;
   onRerunExtraction: (book: BookSearchResult) => void;
 }) {
   const columns: DataTableColumn<BookSearchResult>[] = [
+    {
+      key: "select",
+      header: (
+        <input
+          type="checkbox"
+          aria-label="Select all on this page"
+          checked={allChecked}
+          ref={(el) => {
+            if (el) el.indeterminate = !allChecked && someChecked;
+          }}
+          onChange={onToggleAll}
+          className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
+        />
+      ),
+      className: "w-10",
+      cell: (book) => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${bookTitle(book)}`}
+          checked={selected.has(book.id)}
+          onChange={() => onToggleOne(book.id)}
+          className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
+        />
+      ),
+    },
     {
       key: "book",
       header: "Book",

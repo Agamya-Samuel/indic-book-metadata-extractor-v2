@@ -25,6 +25,7 @@ import {
 import ConfirmDialog from "@/components/admin/confirm-dialog";
 import OwnerFilter, { type OwnerSelection } from "@/components/admin/owner-filter";
 import Pagination from "@/components/shared/pagination";
+import ExportDialog from "@/components/export/export-dialog";
 import { PageContainer, Card, PageHeader, Stack } from "@/components/shared/card";
 import { Field, Input, Select } from "@/components/shared/input";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -96,6 +97,7 @@ export default function AdminBooksPage() {
   const [owner, setOwner] = React.useState<OwnerSelection | null>(null);
   const [page, setPage] = React.useState(1);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [exportOpen, setExportOpen] = React.useState(false);
   const [confirmAction, setConfirmAction] = React.useState<null | {
     type: "reset" | "delete";
     book: BookSearchResult;
@@ -518,6 +520,13 @@ export default function AdminBooksPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setExportOpen(true)}
+                >
+                  Export selected
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => bulkReset.mutate(Array.from(selected))}
                   disabled={bulkReset.isPending}
                   loading={bulkReset.isPending}
@@ -638,6 +647,13 @@ export default function AdminBooksPage() {
         }
         confirmLabel="Reset"
         variant="warning"
+      />
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        scope={{ bookIds: Array.from(selected) }}
+        bookCount={selected.size}
+        description="Export the selected books' reviewed metadata. Books without saved metadata are skipped."
       />
     </PageContainer>
   );

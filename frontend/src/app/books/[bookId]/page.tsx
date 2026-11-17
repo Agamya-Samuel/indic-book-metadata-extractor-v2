@@ -30,6 +30,7 @@ import BookLanguageControl from "@/components/book/language-control";
 import WorkflowShell from "@/components/shared/workflow-shell";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import Pagination from "@/components/shared/pagination";
+import ExportDialog from "@/components/export/export-dialog";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -158,6 +159,7 @@ export default function BookDetailPage() {
   const [pagesPageSize, setPagesPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [jobsPage, setJobsPage] = useState(1);
   const [runsPage, setRunsPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { data: detail, isLoading } = useQuery({
     queryKey: ["book-detail", bookId],
@@ -522,6 +524,15 @@ export default function BookDetailPage() {
                   Edit Metadata
                 </LinkButton>
               )}
+              {Object.keys(metadataFields).length > 0 && (
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setExportOpen(true)}
+                >
+                  Export metadata
+                </Button>
+              )}
             </div>
           }
         />
@@ -824,6 +835,13 @@ export default function BookDetailPage() {
             </Card>
           )}
         </Stack>
+        <ExportDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          scope={{ bookIds: [bookId] }}
+          bookCount={1}
+          description="Download this book's reviewed metadata."
+        />
       </PageContainer>
     </WorkflowShell>
   );

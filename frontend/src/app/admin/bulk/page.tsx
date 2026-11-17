@@ -5,14 +5,16 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getBulkStats,
-  bulkExport,
+  exportMetadata,
   bulkImport,
   bulkExportWikibase,
   getFilterOptions,
   type BulkStatsResponse,
   type BulkImportResult,
+  type ExportFormat,
 } from "@/lib/api";
 import { getLanguageName } from "@/lib/utils";
+import { downloadBlob, filenameFromDisposition } from "@/lib/download";
 import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card";
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
@@ -20,10 +22,21 @@ import { StepNumber } from "@/components/shared/step-number";
 import { Skeleton } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
+const EXPORT_EXTENSIONS: Record<ExportFormat, string> = {
+  csv: "csv",
+  xlsx: "xlsx",
+  json: "json",
+  jsonl: "jsonl",
+  wikibase: "wikibase.json",
+  openrefine: "csv",
+};
+
 export default function BulkOperationsPage() {
   useDocumentTitle("Bulk operations");
   const [exportLanguage, setExportLanguage] = useState<string>("");
   const [exportStatus, setExportStatus] = useState<string>("");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
+  const [includeDetails, setIncludeDetails] = useState(false);
   const [importMode, setImportMode] = useState<"merge" | "overwrite">("merge");
   const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
   const [wikibaseLanguage, setWikibaseLanguage] = useState<string>("");
@@ -43,24 +56,26 @@ export default function BulkOperationsPage() {
     staleTime: 2 * 60 * 1000,
   });
 
+  const supportsDetails = exportFormat !== "wikibase" && exportFormat !== "openrefine";
+
   // Export mutation
   const exportMutation = useMutation({
     mutationFn: async () => {
-      const blob = await bulkExport({
+      return await exportMetadata({
+        format: exportFormat,
+        include_details: supportsDetails ? includeDetails : false,
         language: exportLanguage || undefined,
         status: exportStatus || undefined,
       });
-      return blob;
     },
-    onSuccess: (blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `metadata_export_${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+    onSuccess: ({ blob, filename }) => {
+      downloadBlob(
+        blob,
+        filenameFromDisposition(
+          filename,
+          `indic-books_${exportFormat}.${EXPORT_EXTENSIONS[exportFormat]}`,
+        ),
+      );
       toast.success("Metadata exported successfully");
     },
     onError: (error: Error) => {
@@ -209,12 +224,29 @@ export default function BulkOperationsPage() {
                 title={
                   <span className="flex items-center gap-2">
                     <StepNumber step={1} />
-                    <span>Export to CSV</span>
+                    <span>Export metadata</span>
                   </span>
                 }
-                description="Download all book metadata as CSV for cleaning in OpenRefine."
+                description="Download all book metadata in the format your next tool needs."
               >
               <Stack gap={3}>
+                <Field label="Format">
+                  <Select
+                    value={exportFormat}
+                    onChange={(e) =>
+                      setExportFormat(e.target.value as ExportFormat)
+                    }
+                    aria-label="Export format"
+                  >
+                    <option value="csv">CSV</option>
+                    <option value="xlsx">Excel (XLSX)</option>
+                    <option value="json">JSON</option>
+                    <option value="jsonl">JSONL</option>
+                    <option value="wikibase">Wikibase JSON</option>
+                    <option value="openrefine">OpenRefine CSV</option>
+                  </Select>
+                </Field>
+
                 <Field label="Language">
                   <Select
                     value={exportLanguage}
@@ -245,12 +277,24 @@ export default function BulkOperationsPage() {
                   </Select>
                 </Field>
 
+                {supportsDetails && (
+                  <label className="flex min-h-10 cursor-pointer items-center gap-2 text-[length:var(--text-sm)] text-[var(--text)]">
+                    <input
+                      type="checkbox"
+                      checked={includeDetails}
+                      onChange={(e) => setIncludeDetails(e.target.checked)}
+                      className="size-4 rounded border-[var(--border)] accent-[var(--accent)]"
+                    />
+                    Include book details
+                  </label>
+                )}
+
                 <Button
                   onClick={() => exportMutation.mutate()}
                   loading={exportMutation.isPending}
                   className="w-full"
                 >
-                  {exportMutation.isPending ? "Exporting..." : "Download CSV"}
+                  {exportMutation.isPending ? "Exporting..." : "Download metadata"}
                 </Button>
               </Stack>
             </Card>
@@ -364,7 +408,7 @@ export default function BulkOperationsPage() {
           <Card title="Workflow Guide" description="The recommended bulk-cleaning flow.">
             <ol className="text-[length:var(--text-sm)] text-[var(--text-muted)] space-y-2 list-decimal list-inside">
               <li>
-                <strong className="text-[var(--text)]">Export</strong> — Download metadata as CSV with filters applied.
+                <strong className="text-[var(--text)]">Export</strong> — Download metadata as CSV, XLSX, JSON, JSONL, Wikibase JSON, or OpenRefine CSV with filters applied.
               </li>
               <li>
                 <strong className="text-[var(--text)]">Open in OpenRefine</strong> — Import the CSV into{" "}

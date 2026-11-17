@@ -815,11 +815,6 @@ export interface BulkStatsResponse {
   statuses: Record<string, number>;
 }
 
-export interface BulkExportParams {
-  language?: string;
-  status?: string;
-}
-
 export interface BulkImportResult {
   total_rows: number;
   books_updated: number;
@@ -830,18 +825,6 @@ export interface BulkImportResult {
 
 export const getBulkStats = async (): Promise<BulkStatsResponse> => {
   const response = await api.get<BulkStatsResponse>("/bulk/stats");
-  return response.data;
-};
-
-export const bulkExport = async (params?: BulkExportParams): Promise<Blob> => {
-  const searchParams = new URLSearchParams();
-  if (params?.language) searchParams.set("language", params.language);
-  if (params?.status) searchParams.set("status", params.status);
-
-  const qs = searchParams.toString();
-  const response = await api.post(`/bulk/export${qs ? `?${qs}` : ""}`, null, {
-    responseType: "blob",
-  });
   return response.data;
 };
 
@@ -879,6 +862,62 @@ export const bulkExportWikibase = async (params?: {
     }
   );
   return response.data;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metadata export (owner-scoped; admins may export across books)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ExportFormat =
+  | "csv"
+  | "xlsx"
+  | "json"
+  | "jsonl"
+  | "wikibase"
+  | "openrefine";
+
+export interface ExportParams {
+  format: ExportFormat;
+  include_details?: boolean;
+  book_ids?: string[];
+  language?: string;
+  status?: string;
+  owner_id?: string;
+}
+
+export interface ExportDownload {
+  blob: Blob;
+  /** Raw Content-Disposition header, if the browser exposes it. */
+  filename: string | null;
+}
+
+export const exportMetadata = async (
+  params: ExportParams
+): Promise<ExportDownload> => {
+  const response = await api.post("/export", params, {
+    responseType: "blob",
+  });
+  return {
+    blob: response.data,
+    filename: response.headers["content-disposition"] ?? null,
+  };
+};
+
+export const exportBook = async (
+  bookId: string,
+  params: Pick<ExportParams, "format" | "include_details">
+): Promise<ExportDownload> => {
+  const searchParams = new URLSearchParams({ format: params.format });
+  if (params.include_details) searchParams.set("include_details", "true");
+
+  const response = await api.get(
+    `/books/${bookId}/export?${searchParams.toString()}`,
+    { responseType: "blob" }
+  );
+  return {
+    blob: response.data,
+    filename: response.headers["content-disposition"] ?? null,
+  };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
