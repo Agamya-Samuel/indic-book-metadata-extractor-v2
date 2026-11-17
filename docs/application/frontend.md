@@ -210,8 +210,8 @@ per-IP quota.
 ## 9. Metadata and discoverability
 
 - `src/lib/site.ts` is the single source for the site name, description, keywords and canonical
-  origin. The origin resolves from `NEXT_PUBLIC_SITE_URL`, then `FRONTEND_URL`, then
-  `http://localhost:3000`.
+  origin. The origin resolves from `NEXT_PUBLIC_SITE_URL`, then `FRONTEND_URL`; one of them is
+  required, and a missing value fails the production build instead of falling back to localhost.
 - The root layout exports `metadata` (title template, OpenGraph, Twitter card, robots, authors,
   Apple web-app hints) and `viewport` (theme colours, `viewport-fit=cover`). Public routes render
   during session loading so their content, including the home H1, is present in the server HTML.
