@@ -71,6 +71,7 @@ Strongly recommended:
 | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `/api` (relative — keeps one origin) |
 | `CORS_ORIGINS` | `https://<your-domain>` |
+| `BACKEND_INTERNAL_URL` | `http://backend:8000` — used by the Next `/api` rewrite when a host routes only to the frontend |
 | `FLOWER_BASIC_AUTH` | `admin:<password>` |
 | `COOKIE_SECURE` | `true` |
 | `SMTP_*` | Required for verification and reset email |

@@ -61,6 +61,7 @@ flowchart TB
     TR -->|"one public host"| PX
     PX -->|"/"| FE
     PX -->|"/api"| BE
+    FE -.->|"fallback /api rewrite"| BE
 
     BE --> PG
     BE --> RD

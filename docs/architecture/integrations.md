@@ -199,6 +199,10 @@ None of these affect the core pipeline.
 Both frontend and backend must be served from one origin. Splitting them would break cookie-based
 sessions and CSRF, and would force `CORS_ORIGINS` to carry credentials across origins.
 
+The nginx proxy is the normal public entrypoint. If a hostname is routed only to the frontend (for
+example during a cutover), Next rewrites `/api/:path*` to `BACKEND_INTERNAL_URL` so the API still
+works without exposing a second route.
+
 Hostnames, IPs and panel ports are deliberately **not** recorded here. They live in a gitignored
 `infra/local/` because this repository is public.
 
