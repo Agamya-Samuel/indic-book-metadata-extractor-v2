@@ -14,6 +14,11 @@ interface CollapsibleSectionProps {
   className?: string;
   /** Render a description or right-aligned meta next to the title. */
   meta?: React.ReactNode;
+  /**
+   * Drop the card shell so the section can sit inside a titled Card with
+   * hairline dividers instead of nesting a second bordered box.
+   */
+  bare?: boolean;
 }
 
 export default function CollapsibleSection({
@@ -24,6 +29,7 @@ export default function CollapsibleSection({
   children,
   className,
   meta,
+  bare = false,
 }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const open = forceOpen || isOpen;
@@ -32,9 +38,8 @@ export default function CollapsibleSection({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[var(--radius)]",
-        "border border-[var(--border)]",
-        "bg-[var(--surface)]",
+        !bare && "overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)]",
+        bare && "border-b border-[var(--border)] last:border-b-0",
         className,
       )}
     >
@@ -44,8 +49,10 @@ export default function CollapsibleSection({
         aria-expanded={open}
         aria-controls={panelId}
         className={cn(
-          "group flex w-full items-center justify-between gap-3 px-4 py-3 text-left",
-          "hover:bg-[var(--surface-sunken)]",
+          "group flex w-full items-center justify-between gap-3 py-3 text-left",
+          bare
+            ? "px-0 hover:text-[var(--accent-text)]"
+            : "px-4 hover:bg-[var(--surface-sunken)]",
           focusRingInset,
           "transition-colors duration-[var(--duration-fast)]",
         )}
@@ -102,7 +109,7 @@ export default function CollapsibleSection({
             open ? "opacity-100" : "opacity-0",
           )}
         >
-          <div className="px-4 py-3">{children}</div>
+          <div className={bare ? "py-3" : "px-4 py-3"}>{children}</div>
         </div>
       </div>
     </section>

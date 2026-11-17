@@ -4,6 +4,14 @@ import { cn } from "@/lib/utils";
 
 type BadgeStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 type StageStatus = "initiated" | "processing" | "completed" | "failed" | "cancelled";
+type BookStatus =
+  | "uploaded"
+  | "pages_selected"
+  | "ocr_running"
+  | "ocr_complete"
+  | "llm_running"
+  | "awaiting_review"
+  | "complete";
 
 interface StatusBadgeProps {
   status: string;
@@ -98,6 +106,60 @@ const stageStatusConfig: Record<StageStatus, Config> = {
   },
 };
 
+const bookStatusConfig: Record<BookStatus, Config> = {
+  uploaded: {
+    bg: "bg-[var(--neutral-100)] dark:bg-[var(--neutral-800)]",
+    text: "text-[var(--text-muted)]",
+    ring: "ring-[var(--border)]",
+    dot: "bg-[var(--text-muted)]",
+    label: "Uploaded",
+  },
+  pages_selected: {
+    bg: "bg-[var(--neutral-100)] dark:bg-[var(--neutral-800)]",
+    text: "text-[var(--text-muted)]",
+    ring: "ring-[var(--border)]",
+    dot: "bg-[var(--text-muted)]",
+    label: "Pages selected",
+  },
+  ocr_running: {
+    bg: "bg-[var(--info-50)] dark:bg-[var(--info-900)]/20",
+    text: "text-[var(--info-700)] dark:text-[var(--info-100)]",
+    ring: "ring-[var(--info-500)]/30",
+    dot: "bg-[var(--info-500)]",
+    label: "OCR running",
+    pulse: true,
+  },
+  ocr_complete: {
+    bg: "bg-[var(--neutral-100)] dark:bg-[var(--neutral-800)]",
+    text: "text-[var(--text-muted)]",
+    ring: "ring-[var(--border)]",
+    dot: "bg-[var(--text-muted)]",
+    label: "OCR complete",
+  },
+  llm_running: {
+    bg: "bg-[var(--info-50)] dark:bg-[var(--info-900)]/20",
+    text: "text-[var(--info-700)] dark:text-[var(--info-100)]",
+    ring: "ring-[var(--info-500)]/30",
+    dot: "bg-[var(--info-500)]",
+    label: "Extracting metadata",
+    pulse: true,
+  },
+  awaiting_review: {
+    bg: "bg-[var(--warning-50)] dark:bg-[var(--warning-900)]/20",
+    text: "text-[var(--warning-700)] dark:text-[var(--warning-100)]",
+    ring: "ring-[var(--warning-500)]/30",
+    dot: "bg-[var(--warning-600)]",
+    label: "Awaiting review",
+  },
+  complete: {
+    bg: "bg-[var(--success-50)] dark:bg-[var(--success-900)]/20",
+    text: "text-[var(--success-700)] dark:text-[var(--success-100)]",
+    ring: "ring-[var(--success-500)]/30",
+    dot: "bg-[var(--success-600)]",
+    label: "Complete",
+  },
+};
+
 const fallback: Config = {
   bg: "bg-[var(--neutral-100)] dark:bg-[var(--neutral-800)]",
   text: "text-[var(--text-muted)]",
@@ -109,7 +171,9 @@ const fallback: Config = {
 export default function StatusBadge({ status, stageStatus, className }: StatusBadgeProps) {
   const config = stageStatus
     ? stageStatusConfig[stageStatus as StageStatus] ?? { ...fallback, label: stageStatus }
-    : statusConfig[status as BadgeStatus] ?? { ...fallback, label: status };
+    : bookStatusConfig[status as BookStatus]
+      ?? statusConfig[status as BadgeStatus]
+      ?? { ...fallback, label: status };
 
   return (
     <span

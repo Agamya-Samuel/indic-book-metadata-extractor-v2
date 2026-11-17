@@ -53,11 +53,11 @@ const STAGE_CTA: Record<string, { ctaLabel: string; href: string | ((bookId: str
     showProgress: true,
   },
   human_review: {
-    ctaLabel: "Review metadata",
+    ctaLabel: "Open metadata review",
     href: (bookId: string) => `/books/${bookId}/metadata-review`,
-    headline: "Review metadata",
+    headline: "Ready for review",
     description: "Review and correct the extracted metadata before finalizing.",
-    variant: "info",
+    variant: "warning",
     showProgress: false,
   },
   completion: {

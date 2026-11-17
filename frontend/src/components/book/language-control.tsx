@@ -64,16 +64,18 @@ export default function BookLanguageControl({
           </option>
         ))}
       </Select>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleChange}
-        loading={mutation.isPending}
-        disabled={mutation.isPending || value === language}
-      >
-        Set language
-      </Button>
+      {(value !== language || mutation.isPending) && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleChange}
+          loading={mutation.isPending}
+          disabled={mutation.isPending || value === language}
+        >
+          Set language
+        </Button>
+      )}
     </div>
   );
 }

@@ -37,6 +37,16 @@ describe("StatusBadge", () => {
     expect(badge?.className).toContain("bg-[var(--warning-50)]");
   });
 
+  it("renders book lifecycle statuses", () => {
+    const awaiting = render(<StatusBadge status="awaiting_review" />);
+    expect(awaiting.container.textContent).toContain("Awaiting review");
+    expect(awaiting.container.querySelector("span")?.className).toContain("bg-[var(--warning-50)]");
+
+    const complete = render(<StatusBadge status="complete" />);
+    expect(complete.container.textContent).toContain("Complete");
+    expect(complete.container.querySelector("span")?.className).toContain("bg-[var(--success-50)]");
+  });
+
   it("renders unknown status with fallback", () => {
     const { container } = render(<StatusBadge status="custom_status" />);
     expect(container.textContent).toContain("custom_status");

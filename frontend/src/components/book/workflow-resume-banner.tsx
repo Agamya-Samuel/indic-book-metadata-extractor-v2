@@ -11,7 +11,6 @@ import {
 } from "@/lib/api";
 import { getResumeTarget, type ResumeTarget } from "@/lib/workflow-resume";
 import { getErrorMessage } from "@/lib/error-handler";
-import StatusBadge from "@/components/shared/status-badge";
 import { Button, LinkButton } from "@/components/shared/button";
 import { cn } from "@/lib/utils";
 
@@ -127,27 +126,14 @@ export default function WorkflowResumeBanner({ detail }: Props) {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2
-              className={cn(
-                "text-[length:var(--text-md)] font-semibold",
-                variantHeadline[target.variant],
-              )}
-            >
-              {target.headline}
-            </h2>
-            <StatusBadge
-              status={
-                detail.status === "ocr_running" || detail.status === "llm_running"
-                  ? "running"
-                  : detail.status === "complete"
-                    ? "completed"
-                    : detail.status === "ocr_complete"
-                      ? "completed"
-                      : "queued"
-              }
-            />
-          </div>
+          <h2
+            className={cn(
+              "text-[length:var(--text-md)] font-semibold",
+              variantHeadline[target.variant],
+            )}
+          >
+            {target.headline}
+          </h2>
           <p className="mt-1 text-[length:var(--text-sm)] text-[var(--text)]">
             {target.description}
           </p>

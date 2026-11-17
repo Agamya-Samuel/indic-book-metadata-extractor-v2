@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   getBookDetail,
   getPageImageUrl,
-  getBookCurrentStages,
   getBookPages,
   getBookJobs,
   getAllBookJobs,
@@ -168,27 +167,6 @@ export default function BookDetailPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: stages } = useQuery({
-    queryKey: ["book", bookId, "stages", "current"],
-    queryFn: () => getBookCurrentStages(bookId),
-    enabled: !!bookId,
-    staleTime: 5 * 1000,
-  });
-
-  // `get_current_stages` returns rows ordered by stage_name, so items[0] is
-  // `completion` — often a cancelled older attempt. The badge should reflect
-  // the most recently updated stage instead.
-  const latestStageStatus = useMemo(() => {
-    const items = stages?.items;
-    if (!items?.length) return undefined;
-    return items.reduce((latest, stage) =>
-      (stage.updated_at ?? stage.created_at ?? "") >
-      (latest.updated_at ?? latest.created_at ?? "")
-        ? stage
-        : latest,
-    ).status;
-  }, [stages]);
-
   const { data: pagesData, isLoading: pagesLoading } = useQuery({
     queryKey: ["book", bookId, "pages", pagesPage, pagesPageSize],
     queryFn: () =>
@@ -259,6 +237,7 @@ export default function BookDetailPage() {
   const nonEmptyFieldCount = Object.values(metadataFields).filter(
     (v) => v != null && v !== ""
   ).length;
+  const metadataLowConfidence = book.low_confidence_count ?? 0;
 
   // Derived per-section state — surfaces the relative health of each area
   // at a glance in the card title, so the four cards stop looking identical.
@@ -486,7 +465,7 @@ export default function BookDetailPage() {
           title={book.title || metadataFields.label || book.filename}
           description={
             <span className="flex flex-wrap items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-muted)]">
-              <StatusBadge status={book.status} stageStatus={latestStageStatus as "initiated" | "processing" | "completed" | "failed" | "cancelled" | undefined} />
+              <StatusBadge status={book.status} />
               {book.total_pages && (
                 <>
                   <span aria-hidden="true">&bull;</span>
@@ -506,15 +485,6 @@ export default function BookDetailPage() {
           actions={
             <div className="flex items-center gap-2">
               <BookLanguageControl bookId={bookId} language={book.language} />
-              {book.status === "awaiting_review" && (
-                <LinkButton
-                  href={`/books/${bookId}/metadata-review`}
-                  variant="primary"
-                  size="md"
-                >
-                  Review now
-                </LinkButton>
-              )}
               {book.status === "complete" && (
                 <LinkButton
                   href={`/books/${bookId}/metadata-review`}
@@ -539,50 +509,6 @@ export default function BookDetailPage() {
 
         <WorkflowResumeBanner detail={detail.book} />
 
-        {book.status === "awaiting_review" && (
-          <Card>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-              <div
-                aria-hidden="true"
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--warning-50)] text-[var(--warning-700)] dark:bg-[var(--warning-900)]/20 dark:text-[var(--warning-100)]"
-              >
-                <svg
-                  className="size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.75}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1 space-y-2">
-                <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text)]">
-                  Review needed
-                </h2>
-                <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
-                  {book.low_confidence_count && book.low_confidence_count > 0
-                    ? `${book.low_confidence_count} metadata field${book.low_confidence_count === 1 ? "" : "s"} below the confidence threshold. Open the metadata review to inspect and correct them.`
-                    : "The auto-chain has finished. Open the metadata review to confirm the extracted values before exporting."}
-                </p>
-                <div>
-                  <LinkButton
-                    href={`/books/${bookId}/metadata-review`}
-                    variant="primary"
-                    size="sm"
-                  >
-                    Open metadata review
-                  </LinkButton>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
-
         <Stack gap={6}>
           {Object.keys(metadataFields).length > 0 && (
             <Card
@@ -591,16 +517,25 @@ export default function BookDetailPage() {
                   <span>Metadata</span>
                   <Chip
                     dot
-                    tone="success"
-                    title={`${nonEmptyFieldCount} fields with values`}
+                    tone={metadataLowConfidence > 0 ? "warning" : "neutral"}
+                    title={`${nonEmptyFieldCount} of ${Object.keys(metadataFields).length} fields filled${
+                      metadataLowConfidence > 0
+                        ? `, ${metadataLowConfidence} below the confidence threshold`
+                        : ""
+                    }`}
                   >
                     {nonEmptyFieldCount} of {Object.keys(metadataFields).length}
+                    {metadataLowConfidence > 0 && (
+                      <span className="ml-0.5 font-medium">
+                        · {metadataLowConfidence} low conf
+                      </span>
+                    )}
                   </Chip>
                 </span>
               }
-              description="Fields extracted from the book, grouped by category."
+              description="Fields saved for this book, grouped by category."
             >
-              <Stack gap={3}>
+              <div>
                 {Object.entries(FIELD_GROUPS).map(([groupName, fieldNames]) => {
                   const groupFields = fieldNames.filter(
                     (fn) =>
@@ -614,19 +549,23 @@ export default function BookDetailPage() {
                       title={groupName}
                       count={groupFields.length}
                       defaultOpen={true}
+                      bare
                     >
-                      <div className="space-y-2">
+                      <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
                         {groupFields.map((fn) => (
-                          <div key={fn} className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[length:var(--text-sm)]">
-                            <span className="text-[var(--text-muted)] sm:min-w-[200px]">
+                          <div
+                            key={fn}
+                            className="grid grid-cols-1 gap-1 text-[length:var(--text-sm)] sm:grid-cols-[minmax(6rem,10rem)_1fr] sm:gap-3"
+                          >
+                            <dt className="min-w-0 break-words text-[var(--text-muted)]">
                               {FIELD_DISPLAY_NAMES[fn] || fn}
-                            </span>
-                            <span className="text-[var(--text)]">
+                            </dt>
+                            <dd className="min-w-0 break-words text-[var(--text)]">
                               {String(metadataFields[fn])}
-                            </span>
+                            </dd>
                           </div>
                         ))}
-                      </div>
+                      </dl>
                     </CollapsibleSection>
                   );
                 })}
@@ -634,25 +573,29 @@ export default function BookDetailPage() {
                   typeof metadataFields.custom_fields === "object" &&
                   Object.keys(metadataFields.custom_fields).length > 0 && (
                     <CollapsibleSection
-                      title="Custom Fields"
+                      title="Custom fields"
                       count={Object.keys(metadataFields.custom_fields).length}
                       defaultOpen={true}
+                      bare
                     >
-                      <div className="space-y-2">
+                      <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
                         {Object.entries(metadataFields.custom_fields).map(
                           ([k, v]) => (
-                            <div key={k} className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-[length:var(--text-sm)]">
-                              <span className="text-[var(--text-muted)] sm:min-w-[200px]">
-                                {k}
-                              </span>
-                              <span className="text-[var(--text)]">{String(v)}</span>
+                            <div
+                              key={k}
+                              className="grid grid-cols-1 gap-1 text-[length:var(--text-sm)] sm:grid-cols-[minmax(6rem,10rem)_1fr] sm:gap-3"
+                            >
+                              <dt className="min-w-0 break-words text-[var(--text-muted)]">{k}</dt>
+                              <dd className="min-w-0 break-words text-[var(--text)]">
+                                {String(v)}
+                              </dd>
                             </div>
                           )
                         )}
-                      </div>
+                      </dl>
                     </CollapsibleSection>
                   )}
-              </Stack>
+              </div>
             </Card>
           )}
 
