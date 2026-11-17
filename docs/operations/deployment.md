@@ -81,14 +81,17 @@ Everything else has a working default. See [configuration](../development/config
 
 | Service | Path | Port | Exposed? |
 | --- | --- | --- | --- |
-| `frontend` | `/` | 3000 | **yes** |
-| `backend` | `/api` | 8000 | **yes** |
+| `proxy` | `/` | 80 | **yes — the only public route** |
+| `frontend` | — | 3000 | no |
+| `backend` | — | 8000 | no |
 | `wikibase` | `/` | 80 | optional |
 | `openrefine` | `/` | 3333 | optional, operator tool |
 | everything else | — | — | internal only |
 
-- Leave **Strip Path** off for the backend so `/api/...` arrives unchanged.
-- Enable HTTPS for each.
+- Map the app hostname to `proxy:80` only. The proxy forwards `/` to `frontend:3000` and `/api/` to
+  `backend:8000`, so the session cookie stays same-origin.
+- Leave **Strip Path** off so `/api/...` arrives unchanged.
+- Enable HTTPS on the proxy route.
 - One environment must never reuse another environment's hostname: Traefik routes by host and
   Let's Encrypt refuses duplicate certificates.
 

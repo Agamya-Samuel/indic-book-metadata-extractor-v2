@@ -23,9 +23,9 @@ an HTTP request. The browser follows progress over Server-Sent Events.
 ## 2. Runtime topology
 
 All production services are defined in
-[`docker-compose.production.yml`](../../docker-compose.production.yml) (15 services) and are reachable
-only through the edge proxy. Only the frontend and backend are published to a domain — everything
-else is on the internal network.
+[`docker-compose.production.yml`](../../docker-compose.production.yml) (16 services) and are reachable
+only through the edge proxy. Only the `proxy` service is published to a domain; it routes `/` to the
+frontend and `/api` to the backend. Everything else is on the internal network.
 
 ```mermaid
 flowchart TB
@@ -34,7 +34,8 @@ flowchart TB
         TR["Traefik (Dokploy)"]
     end
 
-    subgraph app["Application (published)"]
+    subgraph app["Application (internal)"]
+        PX["proxy<br/>nginx :80"]
         FE["frontend<br/>Next.js 16 :3000"]
         BE["backend<br/>FastAPI :8000"]
     end
@@ -57,9 +58,9 @@ flowchart TB
     end
 
     CF --> TR
-    TR -->|"/"| FE
-    TR -->|"/api"| BE
-    FE -->|"same-origin /api"| BE
+    TR -->|"one public host"| PX
+    PX -->|"/"| FE
+    PX -->|"/api"| BE
 
     BE --> PG
     BE --> RD
@@ -86,7 +87,8 @@ core pipeline depends on it, and it is not gated behind Compose profiles yet.
 
 | Service | Image | Responsibility | State |
 | --- | --- | --- | --- |
-| `frontend` | `Dockerfile.frontend` | Next.js App Router UI; proxies `/api` calls to the backend by same-origin | stateless |
+| `proxy` | `nginx:1.27-alpine` | The only public entrypoint; routes `/` to the frontend and `/api/` to the backend on one origin | stateless |
+| `frontend` | `Dockerfile.frontend` | Next.js App Router UI; the browser calls same-origin `/api`, which the proxy forwards | stateless |
 | `backend` | `Dockerfile.backend` | HTTP API, auth, rate limiting, SSE hub, job reaper, maintenance state | stateless |
 | `worker` | `Dockerfile.backend` (with `OCR_LINE=true`) | All Celery tasks: page rendering, preprocessing, OCR, LLM extraction | stateless |
 | `postgres` | `pgvector/pgvector:pg16` | System of record for everything except files | `pgdata` |

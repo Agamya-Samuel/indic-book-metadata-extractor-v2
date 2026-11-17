@@ -192,7 +192,8 @@ None of these affect the core pipeline.
 | Component | Responsibility | Notes |
 | --- | --- | --- |
 | Cloudflare | DNS and TLS termination | Sets `CF-Connecting-IP`, which the rate limiter trusts first |
-| Traefik (Dokploy) | Reverse proxy, path routing | Routes `/` → frontend and `/api` → backend on the **same** host so the session cookie is same-origin |
+| Traefik (Dokploy) | TLS and one public hostname | Routes the app host to `proxy:80`; no frontend or backend route is public |
+| `proxy` (nginx) | Single public entrypoint | `/` → frontend, `/api/` → backend on the **same** origin; SSE unbuffered, 256 MB body limit |
 | Dokploy | Compose orchestration, environment injection, domains | Reads `docker-compose.production.yml`; environment tab is written into the project `.env` |
 
 Both frontend and backend must be served from one origin. Splitting them would break cookie-based
