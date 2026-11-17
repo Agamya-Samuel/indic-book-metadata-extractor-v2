@@ -212,10 +212,14 @@ per-IP quota.
   origin. The origin resolves from `NEXT_PUBLIC_SITE_URL`, then `FRONTEND_URL`, then
   `http://localhost:3000`.
 - The root layout exports `metadata` (title template, OpenGraph, Twitter card, robots, authors,
-  Apple web-app hints) and `viewport` (theme colours, `viewport-fit=cover`).
+  Apple web-app hints) and `viewport` (theme colours, `viewport-fit=cover`). Public routes render
+  during session loading so their content, including the home H1, is present in the server HTML.
 - File conventions add the rest: `app/icon.svg` / `app/favicon.ico` (icons),
-  `app/opengraph-image.tsx` and `app/twitter-image.tsx` (1200×630 social card), `app/manifest.ts`
-  (web app manifest), `app/robots.ts` (disallows authenticated routes) and `app/sitemap.ts`.
+  `app/apple-icon.png` (iOS home screen), `app/opengraph-image.tsx` and `app/twitter-image.tsx`
+  (1200×630 social card), `app/manifest.ts` (web app manifest), `app/robots.ts` (disallows
+  authenticated routes) and `app/sitemap.ts`.
+- The home page emits JSON-LD (`Organization`, `WebSite`, `WebApplication`) and its canonical
+  `og:url`; `og:url` is the only OpenGraph field the page overrides.
 - Per-route titles still come from `useDocumentTitle`; the root template appends "· Indic Books".
 
 ---

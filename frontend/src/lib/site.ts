@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 export const SITE_NAME = "Indic Book Metadata Extractor";
 export const SITE_TITLE =
   "Indic Book Metadata Extractor — OCR for Indic Scripts";
@@ -37,3 +39,13 @@ function resolveSiteUrl(): URL {
 }
 
 export const SITE_URL = resolveSiteUrl();
+
+type OpenGraph = NonNullable<Metadata["openGraph"]>;
+
+export const SITE_OPEN_GRAPH: OpenGraph = {
+  type: "website",
+  locale: SITE_LOCALE,
+  siteName: SITE_NAME,
+  title: SITE_TITLE,
+  description: SITE_SOCIAL_DESCRIPTION,
+};

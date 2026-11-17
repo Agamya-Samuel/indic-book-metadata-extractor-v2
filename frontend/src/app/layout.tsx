@@ -10,8 +10,8 @@ import { themeInitScript } from "@/components/shared/theme-provider";
 import {
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
-  SITE_LOCALE,
   SITE_NAME,
+  SITE_OPEN_GRAPH,
   SITE_SHORT_NAME,
   SITE_SOCIAL_DESCRIPTION,
   SITE_TITLE,
@@ -56,13 +56,7 @@ export const metadata: Metadata = {
   publisher: "Open Knowledge Initiatives (OKI), IIIT Hyderabad",
   keywords: SITE_KEYWORDS,
   category: "digital humanities",
-  openGraph: {
-    type: "website",
-    locale: SITE_LOCALE,
-    siteName: SITE_NAME,
-    title: SITE_TITLE,
-    description: SITE_SOCIAL_DESCRIPTION,
-  },
+  openGraph: SITE_OPEN_GRAPH,
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,

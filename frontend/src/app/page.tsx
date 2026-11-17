@@ -1,14 +1,53 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 import { LinkButton } from "@/components/shared/button";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_OPEN_GRAPH, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
+  openGraph: { ...SITE_OPEN_GRAPH, url: "/" },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL.origin}/#organization`,
+      name: "Open Knowledge Initiatives (OKI), IIIT Hyderabad",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL.origin}/#website`,
+      url: SITE_URL.origin,
+      name: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      inLanguage: "en-IN",
+      publisher: { "@id": `${SITE_URL.origin}/#organization` },
+    },
+    {
+      "@type": "WebApplication",
+      name: SITE_NAME,
+      url: SITE_URL.origin,
+      description: SITE_DESCRIPTION,
+      applicationCategory: "ResearchApplication",
+      operatingSystem: "Web",
+      inLanguage: "en-IN",
+      isAccessibleForFree: true,
+      publisher: { "@id": `${SITE_URL.origin}/#organization` },
+    },
+  ],
 };
 
 export default function Home() {
   return (
     <div className="relative isolate flex min-h-[calc(100dvh-var(--nav-height))] items-center justify-center overflow-hidden px-4 py-8 sm:py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <div
         aria-hidden="true"
         className="paper-grid absolute inset-0 -z-10 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
