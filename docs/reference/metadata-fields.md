@@ -190,34 +190,48 @@ The UI surfaces a "review needed" hint below `LOW_CONFIDENCE_THRESHOLD` (default
 
 ## Wikidata mapping
 
-22 of the 49 fields map to a Wikidata property; 27 do not. The mapping is `FIELD_WIKIDATA` in
-`backend/app/schemas/metadata.py` and is what `POST /api/bulk/export-wikibase` uses to build
-QuickStatements.
+34 of the 49 fields map to a Wikidata property; 15 have no equivalent. The mapping is `FIELD_WIKIDATA`
+in `backend/app/schemas/metadata.py` and is what `POST /api/bulk/export-wikibase` uses to build
+QuickStatements. The property catalogue created by `wikibase-init` is
+[`docker/wikibase/properties.json`](../../docker/wikibase/properties.json).
 
 | Field | P-ID | Field | P-ID |
 | --- | --- | --- | --- |
 | `author` | P50 | `volume` | P478 |
 | `translator` | P655 | `edition_number` | P393 |
 | `editor` | P98 | `publication_date` | P577 |
-| `inception` | P571 | `publisher` | P123 |
-| `form_of_creative_work` | P7937 | `place_of_publication` | P291 |
-| `genre` | P136 | `printer` | P872 |
-| `subject` | P921 | `place_of_printing` | P2919 |
-| `original_language` | P364 | `language` | P407 |
-| `edition_or_translation_of` | P629 | `cover_artist` | P736 |
-| `based_on` | P144 | `pages` | P1104 |
-| `inspired_by` | P941 | `sponsor` | P859 |
+| `compiler` | P98 | `publisher` | P123 |
+| `inception` | P571 | `place_of_publication` | P291 |
+| `form_of_creative_work` | P7937 | `printer` | P872 |
+| `genre` | P136 | `distributors` | P750 |
+| `subject` | P921 | `sponsor` | P859 |
+| `awards` | P166 | `pages` | P1104 |
+| `original_language` | P407 | `dedication` | P825 |
+| `language` | P407 | `part_of_series` | P179 |
+| `edition_or_translation_of` | P629 | `serial_number_in_series` | P1545 |
+| `based_on` | P144 | `part_of_the_set` | P361 |
+| `inspired_by` | P941 | `isbn` | P212 |
+| `cover_artist` | P736 | `title` | P1476 |
+| `illustrators` | P110 | `subtitle` | P1680 |
+| `first_published_in` | P1433 | `forewords` | P2679 |
 
-**Unmapped (27):** `label`, `description_work`, `description_edition`, `compiler`,
+Notes:
+
+- `compiler` shares P98 with `editor`; Wikidata treats "compiled by" as an alias of editor.
+- `original_language` and `language` both use P407. P364 is deprecated for written works.
+- `isbn` routes to P212 for 13-digit values and P957 for 10-digit values.
+- `title` and `subtitle` are monolingual text; exports use the book's language tag (`te`, `hi`, `en`).
+- `pages` is a quantity; time fields use Wikidata time precision.
+
+**Unmapped (15):** `label`, `description_work`, `description_edition`, `place_of_printing`,
 `cover_page_designer`, `typesetting_by`, `typing_by`, `book_designer`, `publisher_telugu`,
-`distributors`, `context`, `awards`, `part_of_series`, `serial_number_in_series`, `part_of_the_set`,
-`first_published_in`, `dedication`, `dedication_verbatim`, `forewords`, `abbreviations`,
-`authors_in_compilation`, `opinions_messages`, `scribes`, `isbn`, `title`, `subtitle`, `illustrators`.
+`dedication_verbatim`, `context`, `abbreviations`, `authors_in_compilation`, `opinions_messages`,
+`scribes`. These are either entity labels/descriptions rather than claims, or roles and free text with
+no dedicated Wikidata property.
 
-Local property IDs can differ from Wikidata's. A `property-mapping.json` is meant to translate between
-them, but the file is never loaded because the writer and reader use different volumes — see
-[integrations](../architecture/integrations.md#known-broken-wiring). Until that is fixed, exports use
-the Wikidata P-IDs above.
+Local property IDs differ from Wikidata's because Wikibase assigns them sequentially (`P1`, `P2`, …).
+`create-properties.sh` writes `property-mapping.json`, and the backend resolves Wikidata P-IDs to the
+local IDs when generating exports.
 
 ## Related
 

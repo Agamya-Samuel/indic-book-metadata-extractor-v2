@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl jq && \
 # Copy property creation script and definitions
 COPY create-properties.sh /create-properties.sh
 COPY properties.json /properties.json
+COPY items.json /items.json
 RUN chmod +x /create-properties.sh
 
 # Fetch gadget source files from wikidata.org at build time

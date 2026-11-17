@@ -49,6 +49,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Route convergence: the `/api/library/*` API is retired — the admin catalog is now `GET /api/admin/books` (+ `GET /api/admin/filters`) and book detail is `GET /api/books/{book_id}/detail`; dashboard/job routes are grouped under `/api/dashboard` (job cancellation is now `POST /api/dashboard/jobs/{job_id}/cancel`); the bulk-operations page moved from `/bulk-operations` to `/admin/bulk`
 - The separate `/library` catalog page is removed (superseded by the admin-only `/admin/books`); book detail moved from `/library/{id}` to `/books/{id}`
 
+### Fixed
+- **Wikibase property catalogue:** removed the invalid P2919 mapping (`place_of_printing` now has no property), switched `original_language` from deprecated P364 to P407, and added 13 missing properties (P110, P166, P179, P212, P361, P750, P825, P1433, P1476, P1545, P1680, P2679, P957). The export mapping now covers 34 of 49 fields
+- **`wikibase-init` is incremental:** it merges new entities into an existing mapping instead of exiting early, creates the book and language items, and writes `property-mapping.json` to the backend storage volume so exports resolve local P-IDs
+- **Wikibase datatypes:** `title`/`subtitle` export as monolingual text, `pages` as a quantity, dates as QuickStatements time values, and 10-digit ISBNs route to P957
+
 ### Removed
 - Ten archived documents after their content was verified to exist in the current tree: `api-reference`, `local-development-guide`, `monitoring`, `ocr-setup`, `runbook`, `developer-guide`, `metadata-fields`, `wikibase-reference`, `known-issues`, and a duplicate project overview
 - `frontend/README.md` — unmodified `create-next-app` boilerplate

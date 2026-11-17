@@ -15,7 +15,13 @@
     "wikidata_id": "P98",
     "label": "editor",
     "datatype": "wikibase-item",
-    "description": "person who checks and corrects a text"
+    "description": "person who checks and corrects a work; also used for a compiler of a collected work"
+  },
+  {
+    "wikidata_id": "P110",
+    "label": "illustrator",
+    "datatype": "wikibase-item",
+    "description": "person drawing the pictures or taking the photographs in a book or similar work"
   },
   {
     "wikidata_id": "P123",
@@ -36,16 +42,34 @@
     "description": "the work this work is based on"
   },
   {
+    "wikidata_id": "P166",
+    "label": "award received",
+    "datatype": "wikibase-item",
+    "description": "award or recognition received by the work"
+  },
+  {
+    "wikidata_id": "P179",
+    "label": "part of the series",
+    "datatype": "wikibase-item",
+    "description": "series of creative works which contains the subject"
+  },
+  {
+    "wikidata_id": "P212",
+    "label": "ISBN-13",
+    "datatype": "external-id",
+    "description": "13-digit International Standard Book Number"
+  },
+  {
     "wikidata_id": "P291",
     "label": "place of publication",
     "datatype": "wikibase-item",
     "description": "geographical place of publication of the edition"
   },
   {
-    "wikidata_id": "P364",
-    "label": "original language",
+    "wikidata_id": "P361",
+    "label": "part of",
     "datatype": "wikibase-item",
-    "description": "language in which a work was originally created"
+    "description": "item that this work is part of, other than a series"
   },
   {
     "wikidata_id": "P393",
@@ -55,9 +79,9 @@
   },
   {
     "wikidata_id": "P407",
-    "label": "language",
+    "label": "language of work or name",
     "datatype": "wikibase-item",
-    "description": "language associated with this work or name"
+    "description": "language associated with this work"
   },
   {
     "wikidata_id": "P478",
@@ -91,15 +115,21 @@
   },
   {
     "wikidata_id": "P736",
-    "label": "cover artist",
+    "label": "cover art by",
     "datatype": "wikibase-item",
     "description": "artist responsible for the cover artwork"
   },
   {
-    "wikidata_id": "P7937",
-    "label": "form of creative work",
+    "wikidata_id": "P750",
+    "label": "distributed by",
     "datatype": "wikibase-item",
-    "description": "form of a creative work"
+    "description": "distributor of a creative work"
+  },
+  {
+    "wikidata_id": "P825",
+    "label": "dedicated to",
+    "datatype": "wikibase-item",
+    "description": "person or organization to whom the subject was dedicated"
   },
   {
     "wikidata_id": "P859",
@@ -109,13 +139,13 @@
   },
   {
     "wikidata_id": "P872",
-    "label": "printer",
+    "label": "printed by",
     "datatype": "wikibase-item",
     "description": "person or organization that printed the work"
   },
   {
     "wikidata_id": "P921",
-    "label": "subject",
+    "label": "main subject",
     "datatype": "wikibase-item",
     "description": "primary topic of a work"
   },
@@ -126,15 +156,51 @@
     "description": "work that inspired this creative work"
   },
   {
+    "wikidata_id": "P957",
+    "label": "ISBN-10",
+    "datatype": "external-id",
+    "description": "10-digit International Standard Book Number"
+  },
+  {
     "wikidata_id": "P1104",
     "label": "number of pages",
     "datatype": "quantity",
     "description": "number of pages of a book or publication"
   },
   {
-    "wikidata_id": "P2919",
-    "label": "place of printing",
+    "wikidata_id": "P1433",
+    "label": "published in",
     "datatype": "wikibase-item",
-    "description": "place where the work was printed"
+    "description": "larger work, such as a periodical or collection, that this work was published in"
+  },
+  {
+    "wikidata_id": "P1476",
+    "label": "title",
+    "datatype": "monolingualtext",
+    "description": "published name of a work"
+  },
+  {
+    "wikidata_id": "P1545",
+    "label": "series ordinal",
+    "datatype": "string",
+    "description": "position of this work within its series"
+  },
+  {
+    "wikidata_id": "P1680",
+    "label": "subtitle",
+    "datatype": "monolingualtext",
+    "description": "subtitle of this particular edition"
+  },
+  {
+    "wikidata_id": "P2679",
+    "label": "author of foreword",
+    "datatype": "wikibase-item",
+    "description": "person who wrote the foreword or introduction of the book"
+  },
+  {
+    "wikidata_id": "P7937",
+    "label": "form of creative work",
+    "datatype": "wikibase-item",
+    "description": "form of a creative work"
   }
 ]

@@ -20,29 +20,29 @@ Comparison of the corpus in `datasets/ground-truth/` against [`docs/reference/me
 | 1 | `author` | core_identity | P50 | 36 | 32 | 68 | unmapped:44, openrouter_transliteration:24 |
 | 2 | `description_edition` | core_identity | — | 4 | 6 | 10 | node_llm_extraction:10 |
 | 3 | `description_work` | core_identity | — | 30 | 33 | 63 | unmapped:63 |
-| 4 | `isbn` | core_identity | — | 2 | 0 | 2 | node_llm_extraction:2 |
+| 4 | `isbn` | core_identity | P212 | 2 | 0 | 2 | node_llm_extraction:2 |
 | 5 | `label` | core_identity | — | 36 | 27 | 63 | unmapped:24, derived:20, wikisource_index:12, openrouter_transliteration:4, internet_archive:3 |
 | 6 | `language` | core_identity | P407 | 36 | 35 | 71 | unmapped:71 |
-| 7 | `original_language` | core_identity | P364 | 36 | 35 | 71 | unmapped:71 |
-| 8 | `subtitle` | core_identity | — | 12 | 8 | 20 | node_llm_extraction:20 |
-| 9 | `title` | core_identity | — | 36 | 27 | 63 | unmapped:44, wikisource_index:12, openrouter_transliteration:4, internet_archive:3 |
+| 7 | `original_language` | core_identity | P407 | 36 | 35 | 71 | unmapped:71 |
+| 8 | `subtitle` | core_identity | P1680 | 12 | 8 | 20 | node_llm_extraction:20 |
+| 9 | `title` | core_identity | P1476 | 36 | 27 | 63 | unmapped:44, wikisource_index:12, openrouter_transliteration:4, internet_archive:3 |
 | 10 | `book_designer` | contributors | — | 0 | 0 | 0 | — |
-| 11 | `compiler` | contributors | — | 0 | 3 | 3 | node_llm_extraction:3 |
+| 11 | `compiler` | contributors | P98 | 0 | 3 | 3 | node_llm_extraction:3 |
 | 12 | `cover_artist` | contributors | P736 | 0 | 0 | 0 | — |
 | 13 | `cover_page_designer` | contributors | — | 0 | 0 | 0 | — |
 | 14 | `editor` | contributors | P98 | 2 | 1 | 3 | unmapped:2, node_llm_extraction:1 |
 | 15 | `translator` | contributors | P655 | 1 | 3 | 4 | node_llm_extraction:4 |
 | 16 | `typesetting_by` | contributors | — | 1 | 0 | 1 | node_llm_extraction:1 |
 | 17 | `typing_by` | contributors | — | 0 | 0 | 0 | — |
-| 18 | `distributors` | publication | — | 5 | 1 | 6 | node_llm_extraction:6 |
-| 19 | `place_of_printing` | publication | P2919 | 23 | 10 | 33 | node_llm_extraction:33 |
+| 18 | `distributors` | publication | P750 | 5 | 1 | 6 | node_llm_extraction:6 |
+| 19 | `place_of_printing` | publication | — | 23 | 10 | 33 | node_llm_extraction:33 |
 | 20 | `place_of_publication` | publication | P291 | 19 | 0 | 19 | unmapped:13, wikisource_index:6 |
 | 21 | `printer` | publication | P872 | 20 | 11 | 31 | node_llm_extraction:31 |
 | 22 | `publication_date` | publication | P577 | 36 | 12 | 48 | unmapped:17, internet_archive:16, wikisource_index:15 |
 | 23 | `publisher` | publication | P123 | 21 | 12 | 33 | internet_archive:19, unmapped:12, wikisource_index:2 |
 | 24 | `publisher_telugu` | publication | — | 11 | 0 | 11 | node_llm_extraction:11 |
 | 25 | `sponsor` | publication | P859 | 3 | 2 | 5 | node_llm_extraction:3, internet_archive:2 |
-| 26 | `awards` | content_classification | — | 0 | 0 | 0 | — |
+| 26 | `awards` | content_classification | P166 | 0 | 0 | 0 | — |
 | 27 | `context` | content_classification | — | 1 | 1 | 2 | node_llm_extraction:2 |
 | 28 | `form_of_creative_work` | content_classification | P7937 | 29 | 0 | 29 | unmapped:21, wikisource_index:8 |
 | 29 | `genre` | content_classification | P136 | 18 | 10 | 28 | node_llm_extraction:17, commons_category:11 |
@@ -50,21 +50,21 @@ Comparison of the corpus in `datasets/ground-truth/` against [`docs/reference/me
 | 31 | `subject` | content_classification | P921 | 26 | 22 | 48 | internet_archive:29, node_llm_extraction:19 |
 | 32 | `edition_number` | edition_series | P393 | 2 | 6 | 8 | node_llm_extraction:8 |
 | 33 | `edition_or_translation_of` | edition_series | P629 | 1 | 2 | 3 | node_llm_extraction:3 |
-| 34 | `part_of_series` | edition_series | — | 4 | 1 | 5 | node_llm_extraction:5 |
-| 35 | `part_of_the_set` | edition_series | — | 0 | 0 | 0 | — |
-| 36 | `serial_number_in_series` | edition_series | — | 3 | 1 | 4 | node_llm_extraction:4 |
+| 34 | `part_of_series` | edition_series | P179 | 4 | 1 | 5 | node_llm_extraction:5 |
+| 35 | `part_of_the_set` | edition_series | P361 | 0 | 0 | 0 | — |
+| 36 | `serial_number_in_series` | edition_series | P1545 | 3 | 1 | 4 | node_llm_extraction:4 |
 | 37 | `volume` | edition_series | P478 | 1 | 2 | 3 | node_llm_extraction:2, unmapped:1 |
 | 38 | `based_on` | relationships | P144 | 0 | 2 | 2 | node_llm_extraction:2 |
-| 39 | `first_published_in` | relationships | — | 0 | 0 | 0 | — |
+| 39 | `first_published_in` | relationships | P1433 | 0 | 0 | 0 | — |
 | 40 | `inspired_by` | relationships | P941 | 0 | 1 | 1 | node_llm_extraction:1 |
 | 41 | `abbreviations` | ancillary_content | — | 0 | 0 | 0 | — |
 | 42 | `authors_in_compilation` | ancillary_content | — | 12 | 9 | 21 | node_llm_extraction:21 |
-| 43 | `dedication` | ancillary_content | — | 2 | 2 | 4 | node_llm_extraction:4 |
+| 43 | `dedication` | ancillary_content | P825 | 2 | 2 | 4 | node_llm_extraction:4 |
 | 44 | `dedication_verbatim` | ancillary_content | — | 2 | 2 | 4 | node_llm_extraction:4 |
-| 45 | `forewords` | ancillary_content | — | 3 | 2 | 5 | node_llm_extraction:5 |
+| 45 | `forewords` | ancillary_content | P2679 | 3 | 2 | 5 | node_llm_extraction:5 |
 | 46 | `opinions_messages` | ancillary_content | — | 0 | 1 | 1 | node_llm_extraction:1 |
 | 47 | `scribes` | ancillary_content | — | 0 | 0 | 0 | — |
-| 48 | `illustrators` | physical_extra | — | 0 | 0 | 0 | — |
+| 48 | `illustrators` | physical_extra | P110 | 0 | 0 | 0 | — |
 | 49 | `pages` | physical_extra | P1104 | 16 | 11 | 27 | internet_archive:27 |
 
 ## Per-book

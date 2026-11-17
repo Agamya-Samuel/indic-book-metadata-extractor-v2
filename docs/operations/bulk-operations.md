@@ -263,26 +263,40 @@ The export maps fields to these Wikidata-compatible properties:
 | author | P50 | author |
 | translator | P655 | translator |
 | editor | P98 | editor |
+| compiler | P98 | editor (compiled by) |
+| cover_artist | P736 | cover art by |
+| illustrators | P110 | illustrator |
 | genre | P136 | genre |
-| subject | P921 | subject |
+| subject | P921 | main subject |
+| awards | P166 | award received |
 | publication_date | P577 | publication date |
 | publisher | P123 | publisher |
 | place_of_publication | P291 | place of publication |
-| language | P407 | language |
+| printer | P872 | printed by |
+| distributors | P750 | distributed by |
+| sponsor | P859 | sponsor |
+| language | P407 | language of work or name |
+| original_language | P407 | language of work or name |
 | inception | P571 | inception |
 | form_of_creative_work | P7937 | form of creative work |
-| edition_or_translation_of | P629 | edition of |
+| edition_or_translation_of | P629 | edition or translation of |
 | based_on | P144 | based on |
 | inspired_by | P941 | inspired by |
+| first_published_in | P1433 | published in |
 | volume | P478 | volume |
 | edition_number | P393 | edition number |
-| printer | P872 | printer |
-| place_of_printing | P2919 | place of printing |
-| cover_artist | P736 | cover artist |
-| pages | P1104 | pages |
-| sponsor | P859 | sponsor |
+| part_of_series | P179 | part of the series |
+| serial_number_in_series | P1545 | series ordinal |
+| part_of_the_set | P361 | part of |
+| pages | P1104 | number of pages |
+| dedication | P825 | dedicated to |
+| forewords | P2679 | author of foreword |
+| isbn | P212 | ISBN-13 |
+| title | P1476 | title |
+| subtitle | P1680 | subtitle |
 
-Fields without Wikidata mappings (e.g., `title`, `isbn`, `dedication`, custom roles) are included as labels or skipped.
+Fields without a Wikidata property (labels, descriptions, `place_of_printing`, free-text and design
+roles, customs) are skipped by the claim builder. `title` still becomes the item label.
 
 ---
 
