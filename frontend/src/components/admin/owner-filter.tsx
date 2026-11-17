@@ -91,7 +91,7 @@ export default function OwnerFilter({
 
   return (
     <div className="w-56 relative" ref={containerRef}>
-      <Field label="Owner" htmlFor={id} hint="Filter by uploader">
+      <Field label="Owner" htmlFor={id}>
         <Input
           id={id}
           type="text"
