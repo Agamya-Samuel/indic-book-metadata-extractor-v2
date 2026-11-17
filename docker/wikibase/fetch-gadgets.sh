@@ -25,8 +25,11 @@ for PAGE in "${GADGET_PAGES[@]}"; do
     echo -n "  Fetching ${PAGE}... "
 
     ENCODED_PAGE=$(echo "$PAGE" | sed 's/ /_/g')
-    RESULT=$(curl -s --max-time 30 \
-        "${WIKIDATA_API}?action=query&titles=${ENCODED_PAGE}&prop=revisions&rvprop=content&format=json&rvslots=main")
+    # Network failure must not abort the image build: fall through to the
+    # FAILED branch and keep going. Gadgets are installed manually later.
+    RESULT=$(curl -s --retry 3 --retry-delay 2 --retry-connrefused \
+        --connect-timeout 10 --max-time 30 \
+        "${WIKIDATA_API}?action=query&titles=${ENCODED_PAGE}&prop=revisions&rvprop=content&format=json&rvslots=main") || RESULT=""
 
     CONTENT=$(echo "$RESULT" | jq -r '.query.pages | to_entries[0].value.revisions[0].slots.main["*"] // empty')
 
