@@ -157,8 +157,7 @@ Frontend needs the matching `NEXT_PUBLIC_NEW_RELIC_*` values at **build** time.
 | `PROPERTY_MAPPING_PATH` | `/app/storage/property-mapping.json` |
 
 `wikibase-init` writes this file to both `/config/property-mapping.json` and the mounted backend
-storage volume, so the backend loads it on startup. Restart the backend after re-running the init
-container.
+storage volume, and the backend reads it on every export request.
 
 ---
 

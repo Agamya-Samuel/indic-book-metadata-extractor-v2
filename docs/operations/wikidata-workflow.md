@@ -126,16 +126,17 @@ docker compose run --rm wikibase-init
 
 ---
 
-## Step 2: Reload the Backend
+## Step 2: Verify the Mapping
 
-`wikibase-init` writes the mapping to the backend storage volume directly, so no copy is needed. The
-backend reads it at startup:
+`wikibase-init` writes the mapping to the backend storage volume directly, so no copy or restart is
+needed. The backend reads it on every export request:
 
 ```bash
-docker compose restart backend
+docker compose logs wikibase-init | tail -5
 ```
 
-**Verify:** Check backend logs for "Loaded property mapping from /app/storage/property-mapping.json"
+**Verify:** the log ends with `Done. N entity mappings available`, and the first export logs
+"Loaded property mapping from /app/storage/property-mapping.json".
 
 ---
 

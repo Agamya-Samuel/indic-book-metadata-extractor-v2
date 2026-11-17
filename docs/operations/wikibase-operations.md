@@ -90,8 +90,8 @@ are missing, and merges the result. `wikibase-init` mounts the backend's storage
 `/app/storage` (`./backend/storage` in development, `storage_data` in production), so the script writes
 the mapping to both `/config/property-mapping.json` and `/app/storage/property-mapping.json`.
 
-`_load_property_mapping()` therefore finds `PROPERTY_MAPPING_PATH` and exports use local property IDs.
-Restart the backend after `make wikibase-init` so it reloads the file.
+`load_property_mapping()` therefore finds `PROPERTY_MAPPING_PATH`. It is called on every export
+request, so no backend restart is needed after `make wikibase-init`.
 
 ### 5.2 `openrefine_service.py` is dead code
 
