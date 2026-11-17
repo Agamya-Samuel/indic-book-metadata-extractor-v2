@@ -172,7 +172,9 @@ class TestBulkExportCompatibility:
 
     async def test_import_prefixed_headers_and_custom_columns(self, admin_client, make_book):
         book = await make_book()
-        body = (f"book_id,book_title,author,custom:notes\n{book['id']},Restored title,కవి,పరిశీలన\n").encode()
+        body = (
+            f"book_id,book_title,title,author,custom:notes\n{book['id']},Restored title,Muslims,కవి,పరిశీలన\n"
+        ).encode()
 
         response = await admin_client.post(
             "/api/bulk/import",
@@ -185,7 +187,39 @@ class TestBulkExportCompatibility:
 
         metadata = (await admin_client.get(f"/api/books/{book['id']}/metadata")).json()
         fields = metadata["fields"]
+        assert fields["title"] == "Muslims"
         assert fields["author"] == "కవి"
         assert fields["custom_fields"] == {"notes": "పరిశీలన"}
         assert "book_title" not in fields
         assert "custom:notes" not in fields
+
+    async def test_prefixed_export_keeps_metadata_title_separate(self, admin_client, make_book):
+        book = await make_book()
+        body = f"book_id,book_title,title,author\n{book['id']},,Metadata only,కవి\n".encode()
+
+        response = await admin_client.post(
+            "/api/bulk/import",
+            files={"file": ("books.csv", io.BytesIO(body), "text/csv")},
+        )
+        assert response.status_code == 200
+
+        detail = (await admin_client.get(f"/api/books/{book['id']}")).json()
+        assert detail["title"] is None
+        metadata = (await admin_client.get(f"/api/books/{book['id']}/metadata")).json()
+        assert metadata["fields"]["title"] == "Metadata only"
+
+    async def test_legacy_header_still_sets_book_title(self, admin_client, make_book):
+        book = await make_book()
+        body = f"book_id,title,author\n{book['id']},Legacy title,కవి\n".encode()
+
+        response = await admin_client.post(
+            "/api/bulk/import",
+            files={"file": ("books.csv", io.BytesIO(body), "text/csv")},
+        )
+        assert response.status_code == 200
+
+        detail = (await admin_client.get(f"/api/books/{book['id']}")).json()
+        assert detail["title"] == "Legacy title"
+        metadata = (await admin_client.get(f"/api/books/{book['id']}/metadata")).json()
+        assert metadata["fields"]["author"] == "కవి"
+        assert "title" not in metadata["fields"]

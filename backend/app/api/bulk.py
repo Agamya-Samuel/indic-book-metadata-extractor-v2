@@ -117,21 +117,23 @@ async def bulk_import(
     fields_changed = 0
     errors: list[str] = []
 
-    # Metadata field names (everything except book-level and provenance columns)
+    # Metadata field names (everything except book-level and provenance columns).
+    # Current exports prefix book columns (book_title, ...), so `title` and
+    # `language` in those files are metadata fields. Legacy exports used bare
+    # `title`/`language`, which must keep their old book-level meaning.
+    fieldnames = set(reader.fieldnames or [])
     book_level_cols = {
         "book_id",
-        "book_title",
-        "book_language",
-        "source_filename",
         "status",
         "total_pages",
         "uploaded_at",
         "reviewed_at",
-        # Legacy headers emitted by earlier CSV exports.
-        "title",
-        "language",
         "filename",
     }
+    if "book_title" in fieldnames:
+        book_level_cols |= {"book_title", "book_language", "source_filename"}
+    else:
+        book_level_cols |= {"title", "language"}
     meta_field_names = [c for c in (reader.fieldnames or []) if c not in book_level_cols]
 
     for row_num, row in enumerate(reader, start=2):
@@ -164,7 +166,10 @@ async def bulk_import(
         # metadata fields. The book language is not changed on import: it drives
         # OCR routing and requires a re-run.
         changed = False
-        title_value = (row.get("book_title") or row.get("title") or "").strip()
+        if "book_title" in fieldnames:
+            title_value = (row.get("book_title") or "").strip()
+        else:
+            title_value = (row.get("title") or "").strip()
         if title_value and book.title != title_value:
             book.title = title_value
             changed = True
