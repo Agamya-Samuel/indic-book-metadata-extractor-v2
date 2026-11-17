@@ -18,7 +18,7 @@ def _has_metadata_condition(has_metadata: bool):
     Applied to both the page query and the count query so `total` matches the
     filtered result instead of the unfiltered table.
     """
-    exists = select(BookMetadata.id).where(BookMetadata.book_id == Book.id)
+    exists = select(BookMetadata.id).where(BookMetadata.book_id == Book.id).correlate(Book)
     return exists.exists() if has_metadata else ~exists.exists()
 
 

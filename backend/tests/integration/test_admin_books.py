@@ -42,6 +42,29 @@ class TestAdminListBooks:
         assert data["total"] == 1
         assert data["items"][0]["language"] == "tel"
 
+    async def test_list_books_filter_has_metadata(self, admin_client, make_book, db_session):
+        with_metadata = await make_book(status="awaiting_review")
+        without_metadata = await make_book(status="awaiting_review")
+        db_session.add(
+            BookMetadata(
+                book_id=uuid.UUID(with_metadata["id"]),
+                fields={"label": "Has metadata"},
+            )
+        )
+        await db_session.commit()
+
+        found = await admin_client.get("/api/admin/books?has_metadata=true")
+        assert found.status_code == 200
+        found_data = found.json()
+        assert found_data["total"] == 1
+        assert found_data["items"][0]["id"] == with_metadata["id"]
+
+        missing = await admin_client.get("/api/admin/books?has_metadata=false")
+        assert missing.status_code == 200
+        missing_data = missing.json()
+        assert missing_data["total"] == 1
+        assert missing_data["items"][0]["id"] == without_metadata["id"]
+
     async def test_list_books_pagination(self, admin_client, make_book):
         for i in range(5):
             await make_book(status="awaiting_review")
