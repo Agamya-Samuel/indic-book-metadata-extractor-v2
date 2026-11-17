@@ -80,7 +80,9 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     router,
   ]);
 
-  if (loading) return <FullPageSpinner />;
+  // Public routes render while the session resolves so their content is
+  // present in the server-rendered HTML; protected routes wait for auth.
+  if (loading && !publicPath) return <FullPageSpinner />;
   if (!user && !publicPath) return <FullPageSpinner />;
   if (user && !isApproved && !pendingPath) return <FullPageSpinner />;
   if (user && isApproved && pendingPath) return <FullPageSpinner />;

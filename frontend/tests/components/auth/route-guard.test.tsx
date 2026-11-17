@@ -53,6 +53,22 @@ describe("RouteGuard", () => {
     pathname = "/dashboard";
   });
 
+  it("renders public pages while the session is still loading", () => {
+    pathname = "/";
+    mockUseAuth.mockReturnValue(authValue({ loading: true }));
+    renderGuard();
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.getByText("protected content")).toBeDefined();
+  });
+
+  it("holds protected pages while the session is still loading", () => {
+    pathname = "/dashboard";
+    mockUseAuth.mockReturnValue(authValue({ loading: true }));
+    renderGuard();
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.queryByText("protected content")).toBeNull();
+  });
+
   it("redirects anonymous users to login with a next param", () => {
     mockUseAuth.mockReturnValue(authValue({}));
     renderGuard();
