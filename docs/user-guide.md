@@ -283,12 +283,39 @@ one is not configured, the app keeps working and only the email is skipped.
 
 ---
 
+## Exporting Metadata
+
+Once a book has reviewed metadata (status **awaiting review** or **complete**), you can export it.
+
+- **Book detail** — open the book and click **Export metadata**.
+- **Dashboard** — tick the books you want and click **Export selected**. Books without saved
+  metadata are skipped.
+- **Admin → Books** — select rows and use **Export selected**. Admins can export any user's books.
+- **Admin → Bulk Operations** — export every book matching the language/status filters.
+
+Formats:
+
+| Format | Use it for |
+| --- | --- |
+| CSV | Spreadsheets and bulk processing; UTF-8 with BOM, so Excel shows Telugu/Hindi correctly |
+| Excel (XLSX) | Human review; readable headers, frozen header row, column filters |
+| JSON | Integrations and scripts |
+| JSONL | Datasets and evaluation, one record per line |
+| Wikibase JSON | Entity claims for import into Wikibase |
+| OpenRefine CSV | Cleaning and reconciliation; machine headers, no BOM, re-imports cleanly |
+
+Tick **Include book details** to add title, language, source filename, status, page count, and the
+upload/review dates. The 49 metadata fields are always exported, including empty ones, and `book_id`
+is always the first column so a re-import updates the right book.
+
+---
+
 ## Bulk Operations (OpenRefine & Wikibase)
 
 After processing many books, you can use **Bulk Operations** to clean metadata across the entire collection and export it to Wikibase.
 
 1. Click **Bulk Operations** in the top navbar
-2. **Export** — Download all metadata as a CSV file (filter by language/status if needed)
+2. **Export** — Download metadata in your chosen format (filter by language/status if needed)
 3. **Open in OpenRefine** — Import the CSV into OpenRefine at `http://localhost:3333` for bulk cleaning (clustering publisher names, fixing typos, standardizing values)
 4. **Import** — Upload the cleaned CSV back to update all metadata records
 5. **Wikibase Export** — Generate QuickStatements TSV for uploading to Wikibase

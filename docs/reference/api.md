@@ -104,6 +104,46 @@ Mounted **before** the books router so these static paths are not captured by `/
 
 ---
 
+## Export — `/api/export`
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/books/{book_id}/export?format=&include_details=` | Export one book (owner or admin) |
+| POST | `/export` | Export selected books, or a filtered slice of the caller's library |
+
+Formats: `csv`, `xlsx`, `json`, `jsonl`, `wikibase`, `openrefine`.
+
+```json
+POST /api/export
+{ "format": "xlsx", "include_details": false,
+  "book_ids": ["…"],                 // omit to use the filters
+  "language": "tel", "status": "complete",
+  "owner_id": "…"                    // administrators only
+}
+```
+
+- **Scope:** non-admins export only their own books; a foreign `book_id` returns **404**. Admins may
+  pass `owner_id` or export the whole library. `owner_id` supplied by a non-admin returns 404.
+- **Eligibility:** only books with a saved metadata record are exported. Empty fields are preserved
+  as empty cells/keys; the 49 canonical columns are always emitted.
+- **Identity:** `book_id` is always the first column/key.
+- **Details:** `include_details=true` adds `book_title`, `book_language`, `source_filename`
+  (basename only), `status`, `total_pages`, `uploaded_at`, `reviewed_at` to CSV/XLSX and a `book`
+  object to JSON/JSONL. Wikibase and OpenRefine ignore the flag.
+- **Encoding:** CSV is UTF-8 **with BOM**; OpenRefine CSV is UTF-8 without BOM. JSON/JSONL use
+  `ensure_ascii=False`, so Telugu and Hindi survive byte-for-byte.
+- **Custom fields:** `custom:<name>` columns in CSV/XLSX; a `custom_fields` object in JSON/JSONL;
+  a non-standard `custom_fields` sibling in Wikibase JSON.
+- **Wikibase JSON:** entity-shaped items with `labels`, optional `descriptions`, and `claims` keyed by
+  local P-IDs from `property-mapping.json`. `P31 → Q571`, language → `Q809`/`Q1568`/`Q1860`, and
+  parseable years in `publication_date`/`inception` become `time` datavalues.
+- **Limits:** at most 1000 explicit `book_ids` and 5000 rows per request (**413** above that).
+- **Safety:** values starting with `=`, `+`, `-`, `@`, tab, or CR are prefixed in CSV/XLSX to prevent
+  spreadsheet formula injection. JSON is not altered. Every response sets
+  `Cache-Control: no-store`.
+
+---
+
 ## Pages — `/api/pages`
 
 | Method | Path | Purpose |
@@ -183,7 +223,7 @@ Requires `role == admin` **and** an approved account.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/stats` | Export candidate counts |
-| POST | `/export` | Export metadata as OpenRefine-ready data |
+| POST | `/export` | Admin-scoped export, any of the six formats |
 | POST | `/import` | Import edited rows |
 | POST | `/export-wikibase` | Generate a QuickStatements TSV **locally** |
 
@@ -440,8 +480,14 @@ POST /api/bulk/import?mode=merge    (multipart, `file` = CSV with a book_id colu
         "fields_changed": 1523, "errors": ["Row 45: invalid book_id 'not-a-uuid'"] }
 ```
 
-`POST /api/bulk/export?language=&status=` returns `text/csv` with one row per book, first column
-`book_id`. `mode=overwrite` replaces all fields; default `merge` updates only the provided ones.
+`POST /api/bulk/export?language=&status=&format=` returns a download for every eligible book in
+the admin scope; it delegates to the same serializer as `/api/export`. The OpenRefine-compatible
+profile is `/api/bulk/export?format=openrefine`. `mode=overwrite` replaces all fields; default
+`merge` updates only the provided ones.
+
+The CSV import accepts both the current headers (`book_title`, `book_language`, `source_filename`)
+and the legacy (`title`, `language`, `filename`). `custom:<name>` columns are merged into
+`fields.custom_fields` instead of becoming top-level field keys.
 
 `POST /api/bulk/export-wikibase?language=` returns `text/tab-separated-values` (QuickStatements),
 generated locally:

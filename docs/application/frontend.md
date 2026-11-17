@@ -203,6 +203,7 @@ per-IP quota.
 | `components/notifications/notification-bell.tsx` | Unread count and popover |
 | `components/admin/*` | Queue management, system metrics, maintenance card, confirm dialog |
 | `components/shared/data-table.tsx`, `pagination.tsx` | Consistent list behaviour |
+| `components/export/export-dialog.tsx` | Format picker and download flow shared by book detail, dashboard, and admin |
 
 ---
 
@@ -224,7 +225,24 @@ per-IP quota.
 
 ---
 
-## 10. Accessibility and UX conventions
+## 10. Metadata export
+
+- `components/export/export-dialog.tsx` is the shared native `<dialog>` flow. It offers CSV, XLSX,
+  JSON, JSONL, Wikibase JSON, and OpenRefine CSV, plus an optional **Include book details** toggle
+  for the formats that accept it.
+- Book detail shows **Export metadata** once a metadata record exists. The dashboard and admin books
+  pages add row checkboxes; **Export selected** opens the same dialog with the selected ids. The
+  dashboard filters out rows without metadata before sending the request.
+- `/admin/bulk` keeps its language/status filters and now exposes every format from the export card.
+- `lib/api.ts` exposes `exportMetadata` (POST `/api/export`) and `exportBook`
+  (GET `/api/books/{id}/export`); `lib/download.ts` parses `Content-Disposition` and triggers the
+  blob download.
+- Non-admins are owner-scoped by the API; admins may export across owners. The dialog never receives
+  or displays owner identity.
+
+---
+
+## 11. Accessibility and UX conventions
 
 - Keyboard-first: skip link, `focus-ring.ts` for consistent focus treatment, `use-document-title.ts`
   for per-route titles.
@@ -235,7 +253,7 @@ per-IP quota.
 
 ---
 
-## 11. Known limitations
+## 12. Known limitations
 
 1. **No runtime feature flags.** `NEXT_PUBLIC_OPENREFINE_URL` / `NEXT_PUBLIC_WIKIBASE_URL` are baked
    in at build time, so optional integrations cannot be hidden without a rebuild.
