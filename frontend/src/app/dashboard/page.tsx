@@ -240,6 +240,9 @@ export default function DashboardPage() {
   const activeJobs = (summaryJobs?.queued ?? 0) + (summaryJobs?.running ?? 0);
   const busy = summaryJobs ? activeJobs > 0 : undefined;
   const bookCount = summary?.books.total;
+  // One page-level upload action at a time: the header CTA when the library
+  // has books, otherwise the empty-state CTA.
+  const showHeaderUpload = (bookCount ?? booksData?.total ?? 0) > 0;
 
   return (
     <PageContainer>
@@ -255,7 +258,11 @@ export default function DashboardPage() {
                 ? `${bookCount} book${bookCount !== 1 ? "s" : ""} in your library. Everything is up to date.`
                 : "Upload a book to get started."
         }
-        actions={<LinkButton href="/upload">Upload book</LinkButton>}
+        actions={
+          showHeaderUpload ? (
+            <LinkButton href="/upload">Upload book</LinkButton>
+          ) : undefined
+        }
       />
 
       {/* ── Summary ──────────────────────────────────────────────────────── */}
@@ -345,7 +352,6 @@ export default function DashboardPage() {
             ? `${booksData.total} book${booksData.total !== 1 ? "s" : ""}`
             : "Loading…"
         }
-        headerAction={<LinkButton href="/upload" size="sm">Upload book</LinkButton>}
       >
         {booksLoading ? (
           <div className="space-y-2">
