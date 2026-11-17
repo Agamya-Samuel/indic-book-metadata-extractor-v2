@@ -21,21 +21,19 @@ export const SITE_KEYWORDS = [
   "library science",
 ];
 
-const FALLBACK_SITE_URL = "http://localhost:3000";
-
 function resolveSiteUrl(): URL {
-  for (const candidate of [
-    process.env.NEXT_PUBLIC_SITE_URL,
-    process.env.FRONTEND_URL,
-  ]) {
-    if (!candidate) continue;
-    try {
-      return new URL(candidate);
-    } catch {
-      continue;
-    }
+  const configured =
+    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.FRONTEND_URL;
+  if (!configured) {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL (or FRONTEND_URL) must be set to the public app origin",
+    );
   }
-  return new URL(FALLBACK_SITE_URL);
+  try {
+    return new URL(configured);
+  } catch {
+    throw new Error(`Invalid app origin in NEXT_PUBLIC_SITE_URL: ${configured}`);
+  }
 }
 
 export const SITE_URL = resolveSiteUrl();

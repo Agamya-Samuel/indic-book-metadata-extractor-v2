@@ -137,6 +137,7 @@ export default function BulkOperationsPage() {
   );
 
   const languages = filterOptions?.languages ?? ["tel", "hin", "eng"];
+  const openRefineUrl = process.env.NEXT_PUBLIC_OPENREFINE_URL;
   const statuses = filterOptions?.statuses ?? [
     "uploaded",
     "pages_selected",
@@ -157,9 +158,9 @@ export default function BulkOperationsPage() {
         <Stack gap={6}>
           {/* External service links */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {process.env.NEXT_PUBLIC_OPENREFINE_URL && (
+            {openRefineUrl && (
               <a
-                href={process.env.NEXT_PUBLIC_OPENREFINE_URL}
+                href={openRefineUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 hover:border-[var(--success-500)] transition-colors group"
@@ -413,14 +414,18 @@ export default function BulkOperationsPage() {
               </li>
               <li>
                 <strong className="text-[var(--text)]">Open in OpenRefine</strong> — Import the CSV into{" "}
-                <a
-                  href={process.env.NEXT_PUBLIC_OPENREFINE_URL || "http://localhost:3333"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[var(--accent-text)] hover:underline"
-                >
-                  OpenRefine
-                </a>.
+                {openRefineUrl ? (
+                  <a
+                    href={openRefineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--accent-text)] hover:underline"
+                  >
+                    OpenRefine
+                  </a>
+                ) : (
+                  <span>OpenRefine</span>
+                )}.
               </li>
               <li>
                 <strong className="text-[var(--text)]">Clean & standardize</strong> — Use clustering to fix publisher names, author spellings, place names, etc.
