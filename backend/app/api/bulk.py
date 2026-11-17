@@ -1,20 +1,17 @@
-"""Bulk operations: export/import metadata CSV, Wikibase QuickStatements export."""
+"""Bulk operations: metadata export/import and Wikibase QuickStatements."""
 
 import csv
 import io
-import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.api.deps import require_admin
 from app.models.book import Book
@@ -23,38 +20,13 @@ from app.schemas.bulk import (
     BulkImportResult,
     BulkStatsResponse,
 )
-from app.schemas.metadata import FIELD_WIKIDATA, FullMetadata
+from app.schemas.export import ExportFormat
+from app.schemas.metadata import FIELD_WIKIDATA
+from app.services import export_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(dependencies=[Depends(require_admin)])
-
-# Ordered list of metadata columns for CSV export (book_id first, then all fields)
-METADATA_COLUMNS = ["book_id", "title", "language", "filename"] + [
-    f for f in FullMetadata.model_fields if f != "custom_fields"
-]
-
-
-def _load_property_mapping() -> dict[str, str]:
-    """Load Wikibase property mapping (Wikidata P-ID → local P-ID).
-
-    Falls back to hardcoded FIELD_WIKIDATA values if mapping file not found.
-    """
-    mapping_path = Path(settings.property_mapping_path)
-    if mapping_path.exists():
-        try:
-            with open(mapping_path) as f:
-                mapping = json.load(f)
-            logger.info("Loaded property mapping from %s (%d entries)", mapping_path, len(mapping))
-            return mapping
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning("Failed to load property mapping from %s: %s", mapping_path, e)
-
-    logger.info("No property mapping file found, using hardcoded Wikidata P-IDs")
-    return {}
-
-
-PROPERTY_MAPPING: dict[str, str] = {}
 
 
 @router.get("/stats", response_model=BulkStatsResponse)
@@ -84,55 +56,30 @@ async def get_bulk_stats(
 async def bulk_export(
     language: str | None = Query(default=None),
     status: str | None = Query(default=None),
-    format: str = Query(default="csv"),
+    format: ExportFormat = Query(default="csv"),
     db: AsyncSession = Depends(get_db),
-):
-    """Export all book metadata as CSV.
-
-    Returns a CSV file with one row per book. The first column is `book_id`
-    (UUID) which is used for matching during re-import.
-    """
-    # Build query: join Book + BookMetadata
-    query = select(Book, BookMetadata).outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
-
-    if language:
-        query = query.where(Book.language == language)
-    if status:
-        query = query.where(Book.status == status)
-
-    query = query.order_by(Book.created_at.desc())
-
-    result = await db.execute(query)
-    rows = result.all()
+) -> Response:
+    """Export every eligible book's metadata as a download (admin scope)."""
+    try:
+        rows = await export_service.collect_rows(db, language=language, status=status)
+    except export_service.ExportTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
 
     if not rows:
         raise HTTPException(status_code=404, detail="No books found matching filters")
 
-    # Build CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(METADATA_COLUMNS)
-
-    for book, metadata in rows:
-        fields = metadata.fields if metadata and metadata.fields else {}
-        row = [
-            str(book.id),
-            book.title or "",
-            book.language or "",
-            book.filename or "",
-        ]
-        for col in METADATA_COLUMNS[4:]:  # skip book_id, title, language, filename
-            row.append(fields.get(col, "") or "")
-        writer.writerow(row)
-
-    output.seek(0)
+    body, media_type, extension = export_service.render(rows, format)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    filename = f"metadata_export_{timestamp}.csv"
+    scope = "all-books" if len(rows) > 1 else f"book-{str(rows[0].book_id)[:8]}"
+    filename = f"metadata_export_{scope}_{timestamp}.{extension}"
 
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
     )
 
 
@@ -170,8 +117,21 @@ async def bulk_import(
     fields_changed = 0
     errors: list[str] = []
 
-    # Metadata field names (everything except book_id and book-level fields)
-    book_level_cols = {"book_id", "title", "language", "filename"}
+    # Metadata field names (everything except book-level and provenance columns)
+    book_level_cols = {
+        "book_id",
+        "book_title",
+        "book_language",
+        "source_filename",
+        "status",
+        "total_pages",
+        "uploaded_at",
+        "reviewed_at",
+        # Legacy headers emitted by earlier CSV exports.
+        "title",
+        "language",
+        "filename",
+    }
     meta_field_names = [c for c in (reader.fieldnames or []) if c not in book_level_cols]
 
     for row_num, row in enumerate(reader, start=2):
@@ -199,43 +159,66 @@ async def bulk_import(
             books_not_found += 1
             continue
 
-        # `title` is a book-level column in the export, so a re-import must
-        # restore it on the book rather than drop it from the metadata fields.
+        # `book_title` (or the legacy `title`) is a book-level column, so a
+        # re-import must restore it on the book rather than drop it from the
+        # metadata fields. The book language is not changed on import: it drives
+        # OCR routing and requires a re-run.
         changed = False
-        title_value = (row.get("title") or "").strip()
+        title_value = (row.get("book_title") or row.get("title") or "").strip()
         if title_value and book.title != title_value:
             book.title = title_value
             changed = True
 
-        # Collect new metadata values from CSV
+        # Collect new metadata values from CSV.
         new_fields = {}
+        new_custom: dict[str, str] = {}
         for col in meta_field_names:
-            value = row.get(col, "").strip()
-            if value:
+            value = (row.get(col) or "").strip()
+            if not value:
+                continue
+            if col.startswith("custom:"):
+                name = col[len("custom:") :].strip()
+                if name:
+                    new_custom[name] = value
+            else:
                 new_fields[col] = value
 
-        if not new_fields and not changed:
+        if not new_fields and not new_custom and not changed:
             continue
 
-        if new_fields:
+        if new_fields or new_custom:
             # Get or create metadata record
             meta_result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id))
             metadata = meta_result.scalar_one_or_none()
 
             if metadata is None:
-                metadata = BookMetadata(book_id=book_id, fields=new_fields)
+                fields = dict(new_fields)
+                if new_custom:
+                    fields["custom_fields"] = new_custom
+                metadata = BookMetadata(book_id=book_id, fields=fields)
                 db.add(metadata)
-                fields_changed += len(new_fields)
+                fields_changed += len(new_fields) + len(new_custom)
             elif mode == "overwrite":
-                metadata.fields = new_fields
+                fields = dict(new_fields)
+                if new_custom:
+                    fields["custom_fields"] = new_custom
+                metadata.fields = fields
                 flag_modified(metadata, "fields")
-                fields_changed += len(new_fields)
+                fields_changed += len(new_fields) + len(new_custom)
             else:  # merge
-                existing = metadata.fields or {}
+                existing = dict(metadata.fields or {})
                 for k, v in new_fields.items():
                     if existing.get(k) != v:
                         existing[k] = v
                         fields_changed += 1
+                if new_custom:
+                    existing_custom = existing.get("custom_fields")
+                    merged_custom = dict(existing_custom) if isinstance(existing_custom, dict) else {}
+                    for k, v in new_custom.items():
+                        if merged_custom.get(k) != v:
+                            merged_custom[k] = v
+                            fields_changed += 1
+                    existing["custom_fields"] = merged_custom
                 metadata.fields = existing
                 flag_modified(metadata, "fields")
             changed = True
@@ -265,7 +248,7 @@ async def bulk_export_wikibase(
     resolved to local Wikibase P-IDs via property-mapping.json if available.
     Returns a .tsv file compatible with QuickStatements.
     """
-    prop_map = _load_property_mapping()
+    prop_map = export_service.load_property_mapping()
 
     query = select(Book, BookMetadata).outerjoin(BookMetadata, Book.id == BookMetadata.book_id)
 
@@ -303,9 +286,16 @@ async def bulk_export_wikibase(
                 continue
 
             # Resolve local property ID from mapping
+            wikidata_prop = export_service.wikibase_property_id(
+                field_name, value, wikidata_prop
+            )
             local_prop = prop_map.get(wikidata_prop, wikidata_prop)
-            escaped = _escape_qs(value)
-            lines.append(f'LAST\t{local_prop}\t"{escaped}"')
+            rendered = export_service.wikibase_tsv_value(
+                field_name, value, book.language or ""
+            )
+            if rendered is None:
+                continue
+            lines.append(f"LAST\t{local_prop}\t{rendered}")
 
         # instance of = book
         lines.append(f"LAST\t{p31_id}\t{q571_id}")

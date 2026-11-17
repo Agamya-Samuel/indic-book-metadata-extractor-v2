@@ -6,6 +6,7 @@ from app.api.books import router as books_router
 from app.api.bulk import router as bulk_router
 from app.api.dashboard import router as dashboard_router
 from app.api.deps import require_approved_user
+from app.api.export import router as export_router
 from app.api.extraction import router as extraction_router
 from app.api.health import router as health_router
 from app.api.media import router as media_router
@@ -53,6 +54,7 @@ api_router.include_router(
     tags=["metadata"],
     dependencies=[Depends(require_approved_user)],
 )
+api_router.include_router(export_router, tags=["export"])
 api_router.include_router(
     jobs_router,
     prefix="/jobs",
