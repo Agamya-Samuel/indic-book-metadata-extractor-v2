@@ -13,6 +13,8 @@ import {
   SITE_LOCALE,
   SITE_NAME,
   SITE_SHORT_NAME,
+  SITE_SOCIAL_DESCRIPTION,
+  SITE_TITLE,
   SITE_URL,
 } from "@/lib/site";
 
@@ -42,7 +44,7 @@ const notoSerif = Noto_Serif({
 export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: {
-    default: SITE_NAME,
+    default: SITE_TITLE,
     template: "%s · Indic Books",
   },
   description: SITE_DESCRIPTION,
@@ -58,13 +60,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: SITE_LOCALE,
     siteName: SITE_NAME,
-    title: SITE_NAME,
-    description: SITE_DESCRIPTION,
+    title: SITE_TITLE,
+    description: SITE_SOCIAL_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_NAME,
-    description: SITE_DESCRIPTION,
+    title: SITE_TITLE,
+    description: SITE_SOCIAL_DESCRIPTION,
   },
   robots: {
     index: true,

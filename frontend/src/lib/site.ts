@@ -1,7 +1,11 @@
 export const SITE_NAME = "Indic Book Metadata Extractor";
+export const SITE_TITLE =
+  "Indic Book Metadata Extractor — OCR for Indic Scripts";
 export const SITE_SHORT_NAME = "Indic Books";
 export const SITE_DESCRIPTION =
-  "OCR, local LLM extraction, and metadata review for Indic-script books. Upload scanned pages, curate bibliographic fields, and export records to Wikibase or OpenRefine.";
+  "Turn scanned Indic-script books into structured records with OCR and a local LLM. Review the extracted metadata, then export to Wikibase or OpenRefine.";
+export const SITE_SOCIAL_DESCRIPTION =
+  "OCR and local LLM metadata extraction for Indic-script books. Review and export to Wikibase or OpenRefine.";
 export const SITE_LOCALE = "en_IN";
 export const SITE_KEYWORDS = [
   "OCR",
