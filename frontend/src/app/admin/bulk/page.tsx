@@ -19,6 +19,7 @@ import { PageContainer, PageHeader, Card, Stack } from "@/components/shared/card
 import { Field, Select } from "@/components/shared/input";
 import { Button } from "@/components/shared/button";
 import { StepNumber } from "@/components/shared/step-number";
+import StatCard from "@/components/shared/stat-card";
 import { Skeleton } from "@/components/shared/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -468,33 +469,36 @@ function StatsCard({
   }
 
   return (
-    <Card title="Catalog Summary" description="Snapshot of book counts and language distribution.">
-      <div className="flex flex-wrap gap-6 text-[length:var(--text-sm)]">
-        <div>
-          <span className="text-[length:var(--text-2xl)] font-bold text-[var(--text)]">
-            {stats.total_books}
-          </span>
-          <span className="ml-1 text-[var(--text-muted)]">
-            total books
-          </span>
-        </div>
-        <div>
-          <span className="text-[length:var(--text-2xl)] font-bold text-[var(--text)]">
-            {stats.books_with_metadata}
-          </span>
-          <span className="ml-1 text-[var(--text-muted)]">
-            with metadata
-          </span>
-        </div>
+    <Card
+      title="Catalog Summary"
+      description="Snapshot of book counts and language distribution."
+      flush
+      className="overflow-hidden"
+    >
+      <div className="grid grid-cols-2 gap-px bg-[var(--border)] sm:grid-cols-4">
+        <StatCard
+          label="Total books"
+          value={stats.total_books}
+          tone="info"
+          flush
+          className="bg-[var(--surface)]"
+        />
+        <StatCard
+          label="With metadata"
+          value={stats.books_with_metadata}
+          tone="success"
+          flush
+          className="bg-[var(--surface)]"
+        />
         {Object.entries(stats.languages).map(([lang, count]) => (
-          <div key={lang}>
-            <span className="text-[length:var(--text-lg)] font-semibold text-[var(--text)]">
-              {count}
-            </span>
-            <span className="ml-1 text-[var(--text-muted)]">
-              {getLanguageName(lang)}
-            </span>
-          </div>
+          <StatCard
+            key={lang}
+            label={getLanguageName(lang)}
+            value={count}
+            tone="neutral"
+            flush
+            className="bg-[var(--surface)]"
+          />
         ))}
       </div>
     </Card>
