@@ -99,6 +99,12 @@ services:
     restart: unless-stopped
     expose:
       - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     environment:
       APP_NAME: ${APP_NAME:-Indic Book Metadata Extractor (staging)}
       DEBUG: "true"
@@ -264,7 +270,7 @@ services:
       frontend:
         condition: service_started
       backend:
-        condition: service_started
+        condition: service_healthy
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Celery Flower (task monitor)
