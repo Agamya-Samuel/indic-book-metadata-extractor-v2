@@ -9,10 +9,10 @@
 
 ## Context that shapes the decision
 
-1. **No domain is assigned to the Dokploy installation yet**, and
-   `indic-book-metadata-extractor.agamya.us.kg` is temporary. Both change later.
+1. **The app origin is `https://openbookmap.oki-india.org`.** The origin IP
+   remains reachable directly until the network policy is tightened.
 2. **The origin IP is deliberately left open** (`https://<origin-ip>/`
-   answers directly) until the real domain is assigned. Accepted for now.
+   answers directly) until the network policy is tightened. Accepted for now.
    Consequences while it holds: Cloudflare-based rules are throwaway, and the
    header-derived client IP in the rate limiter is spoofable by a direct caller.
 3. Therefore the only brute-force control that works today is **app-level**.

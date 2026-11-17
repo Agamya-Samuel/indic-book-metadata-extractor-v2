@@ -135,8 +135,8 @@ jobs:
         working-directory: frontend
     env:
       NEXT_TELEMETRY_DISABLED: '1'
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
-      NEXT_PUBLIC_OPENREFINE_URL: http://localhost:3333
+      NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_SITE_URL: https://openbookmap.oki-india.org
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

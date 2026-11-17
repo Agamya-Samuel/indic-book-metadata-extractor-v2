@@ -5,7 +5,8 @@ from reference/oki-qa-accounts (override with E2E_ACCOUNTS) and uploads a local
 PDF (override with E2E_PDF), exercising auth, RBAC, the full pipeline, admin
 flows and cleanup. It creates one book and one user, then deletes both.
 
-  E2E_BASE_URL, E2E_PDF, E2E_ACCOUNTS, E2E_REPORT are optional overrides.
+  E2E_BASE_URL is required. E2E_PDF, E2E_ACCOUNTS and E2E_REPORT are optional
+  overrides.
 """
 
 from __future__ import annotations
@@ -18,7 +19,9 @@ from pathlib import Path
 
 import httpx
 
-BASE = os.environ.get("E2E_BASE_URL", "https://indic-book-metadata-extractor.agamya.us.kg")
+BASE = os.environ.get("E2E_BASE_URL")
+if not BASE:
+    raise SystemExit("E2E_BASE_URL is required (for example https://openbookmap.oki-india.org)")
 PDF = Path(
     os.environ.get(
         "E2E_PDF",
