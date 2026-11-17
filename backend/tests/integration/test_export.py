@@ -45,7 +45,7 @@ class TestSingleBookExport:
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/csv")
-        assert "attachment; filename=\"indic-books_book-" in response.headers["content-disposition"]
+        assert 'attachment; filename="indic-books_book-' in response.headers["content-disposition"]
         assert response.headers["cache-control"] == "no-store"
         assert response.content.startswith(b"\xef\xbb\xbf")
         text = response.content.decode("utf-8-sig")
@@ -71,9 +71,7 @@ class TestSingleBookExport:
         book = await make_book(status="complete")
         await _with_metadata(client, book["id"])
 
-        response = await client.get(
-            f"/api/books/{book['id']}/export?format=csv&include_details=true"
-        )
+        response = await client.get(f"/api/books/{book['id']}/export?format=csv&include_details=true")
         header = response.content.decode("utf-8-sig").splitlines()[0].split(",")
         assert header[:3] == ["book_id", "book_title", "book_language"]
         assert "source_filename" in header
@@ -107,9 +105,7 @@ class TestMultiBookExport:
         )
         assert response.status_code == 404
 
-    async def test_admin_exports_all_books(
-        self, admin_client, client, make_book, sample_pdf, test_storage
-    ):
+    async def test_admin_exports_all_books(self, admin_client, client, make_book, sample_pdf, test_storage):
         regular = await make_book(status="complete")
         await _with_metadata(client, regular["id"])
 
@@ -176,10 +172,7 @@ class TestBulkExportCompatibility:
 
     async def test_import_prefixed_headers_and_custom_columns(self, admin_client, make_book):
         book = await make_book()
-        body = (
-            "book_id,book_title,author,custom:notes\n"
-            f"{book['id']},Restored title,కవి,పరిశీలన\n"
-        ).encode()
+        body = (f"book_id,book_title,author,custom:notes\n{book['id']},Restored title,కవి,పరిశీలన\n").encode()
 
         response = await admin_client.post(
             "/api/bulk/import",

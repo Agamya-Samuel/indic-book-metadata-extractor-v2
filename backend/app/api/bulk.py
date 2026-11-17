@@ -286,13 +286,9 @@ async def bulk_export_wikibase(
                 continue
 
             # Resolve local property ID from mapping
-            wikidata_prop = export_service.wikibase_property_id(
-                field_name, value, wikidata_prop
-            )
+            wikidata_prop = export_service.wikibase_property_id(field_name, value, wikidata_prop)
             local_prop = prop_map.get(wikidata_prop, wikidata_prop)
-            rendered = export_service.wikibase_tsv_value(
-                field_name, value, book.language or ""
-            )
+            rendered = export_service.wikibase_tsv_value(field_name, value, book.language or "")
             if rendered is None:
                 continue
             lines.append(f"LAST\t{local_prop}\t{rendered}")

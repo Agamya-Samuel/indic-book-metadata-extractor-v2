@@ -133,11 +133,7 @@ def _text(value: object) -> str:
 def _row_from(book: Book, metadata: BookMetadata) -> ExportRow:
     raw = metadata.fields or {}
     custom = raw.get("custom_fields")
-    custom_fields = (
-        {str(key): _text(value) for key, value in custom.items()}
-        if isinstance(custom, dict)
-        else {}
-    )
+    custom_fields = {str(key): _text(value) for key, value in custom.items()} if isinstance(custom, dict) else {}
     return ExportRow(
         book_id=book.id,
         title=book.title,
@@ -310,10 +306,7 @@ def _render_json(rows: list[ExportRow], include_details: bool) -> bytes:
 
 
 def _render_jsonl(rows: list[ExportRow], include_details: bool) -> bytes:
-    lines = [
-        json.dumps(_row_payload(row, include_details), ensure_ascii=False, separators=(",", ":"))
-        for row in rows
-    ]
+    lines = [json.dumps(_row_payload(row, include_details), ensure_ascii=False, separators=(",", ":")) for row in rows]
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
@@ -414,7 +407,7 @@ def wikibase_tsv_value(field_name: str, value: str, language: str) -> str | None
         time_value = _time_datavalue(value)
         if time_value is None:
             return None
-        return f'{time_value["value"]["time"]}/{time_value["value"]["precision"]}'
+        return f"{time_value['value']['time']}/{time_value['value']['precision']}"
     if field_name in WIKIBASE_MONOLINGUAL_FIELDS:
         return f'{LANGUAGE_TAGS.get(language, "en")}:"{escaped}"'
     if field_name in WIKIBASE_QUANTITY_FIELDS:
@@ -456,9 +449,7 @@ def _wikibase_item(row: ExportRow, property_mapping: dict[str, str]) -> dict:
 
     instance_of = property_mapping.get("P31", "P31")
     book_item = property_mapping.get("Q571", "Q571")
-    claims.setdefault(instance_of, []).append(
-        _statement(instance_of, _entity_datavalue(book_item))
-    )
+    claims.setdefault(instance_of, []).append(_statement(instance_of, _entity_datavalue(book_item)))
 
     language = row.fields.get("language") or row.language
     language_qid = LANGUAGE_QIDS.get(language)

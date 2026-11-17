@@ -220,19 +220,14 @@ class TestWikibase:
         thirteen_item = json.loads(svc.render([thirteen], "wikibase")[0].decode("utf-8"))[0]
 
         assert ten_item["claims"]["P957"][0]["mainsnak"]["datavalue"]["value"] == "0-306-40615-2"
-        assert thirteen_item["claims"]["P212"][0]["mainsnak"]["datavalue"]["value"] == (
-            "978-3-16-148410-0"
-        )
+        assert thirteen_item["claims"]["P212"][0]["mainsnak"]["datavalue"]["value"] == ("978-3-16-148410-0")
 
 
 class TestWikibaseTsvValue:
     def test_uses_property_datatype(self):
         assert svc.wikibase_tsv_value("title", "పుస్తకం", "tel") == 'te:"పుస్తకం"'
         assert svc.wikibase_tsv_value("pages", "242 p.", "tel") == "242"
-        assert (
-            svc.wikibase_tsv_value("publication_date", "1998", "tel")
-            == "+1998-00-00T00:00:00Z/9"
-        )
+        assert svc.wikibase_tsv_value("publication_date", "1998", "tel") == "+1998-00-00T00:00:00Z/9"
         assert svc.wikibase_tsv_value("author", 'A "B"', "tel") == '"A \\"B\\""'
         assert svc.wikibase_tsv_value("pages", "no number", "tel") is None
 
