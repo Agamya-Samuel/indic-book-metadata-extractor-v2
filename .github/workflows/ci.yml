@@ -137,6 +137,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_SITE_URL: https://openbookmap.oki-india.org
+      BACKEND_INTERNAL_URL: http://backend:8000
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

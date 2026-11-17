@@ -29,9 +29,23 @@ const STATIC_ASSET_PATTERN =
   "_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|"
   + "opengraph-image|twitter-image|manifest.webmanifest|robots.txt|sitemap.xml";
 
+// Internal compose address used when the browser calls same-origin /api and
+// no edge route forwards it to the backend (e.g. a single frontend domain).
+const backendInternalUrl = process.env.BACKEND_INTERNAL_URL?.replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+
+  async rewrites() {
+    if (!backendInternalUrl) return [];
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendInternalUrl}/api/:path*`,
+      },
+    ];
+  },
 
   async headers() {
     return [
