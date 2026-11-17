@@ -361,6 +361,7 @@ services:
       MW_WG_SERVER: "${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}"
     volumes:
       - wikibase_config:/config
+      - storage_data:/app/storage
     depends_on:
       wikibase:
         condition: service_healthy

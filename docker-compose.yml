@@ -321,6 +321,7 @@ services:
       MW_WG_SERVER: "http://localhost:8181"
     volumes:
       - wikibase_config:/config
+      - ./backend/storage:/app/storage
     depends_on:
       wikibase:
         condition: service_healthy

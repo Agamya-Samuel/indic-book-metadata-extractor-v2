@@ -175,11 +175,9 @@ QuickStatements/OpenRefine URLs.
 
 These are real defects, documented rather than glossed over:
 
-1. **Property mapping never loads.** `docker/wikibase/create-properties.sh` writes
-   `/config/property-mapping.json` into the `wikibase_config` volume, while the backend reads
-   `PROPERTY_MAPPING_PATH` (default `/app/storage/property-mapping.json`) from `storage_data`. Because
-   these are different volumes, `_load_property_mapping()` always falls back to hardcoded Wikidata
-   P-IDs.
+1. **Property mapping (fixed).** `docker/wikibase/create-properties.sh` now writes the mapping to
+   `/config/property-mapping.json` and to `/app/storage/property-mapping.json`; `wikibase-init` mounts
+   the backend storage volume, so `_load_property_mapping()` finds it and exports use local P-IDs.
 2. **`openrefine_service.py` is dead code.** Nothing imports it (verified: no importers in
    `backend/app`).
 3. **The UI cannot be feature-flagged at runtime.** OpenRefine/Wikibase URLs are compiled into the
@@ -230,7 +228,7 @@ ground truth. None of them run in production.
 | SMTP email delivery | Implemented, disabled by default locally |
 | New Relic APM (backend, worker, browser) | Implemented, opt-in |
 | QuickStatements TSV export | Implemented, local generation only |
-| Wikibase property mapping | **Broken** (volume mismatch) |
+| Wikibase property mapping | Implemented (written by `wikibase-init`) |
 | OpenRefine backend integration | **Not implemented** (dead module) |
 | Compose-profile gating | **Recommended, not implemented** |
 | Runtime UI feature flags | **Not implemented** (build-time env only) |

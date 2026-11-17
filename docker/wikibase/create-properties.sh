@@ -4,8 +4,10 @@ set -e
 MW_ADMIN_NAME="${MW_ADMIN_NAME:-admin}"
 MW_ADMIN_PASS="${MW_ADMIN_PASS:-admin}"
 MW_WG_SERVER="${MW_WG_SERVER:-http://localhost:8181}"
-PROPERTIES_FILE="/properties.json"
-MAPPING_FILE="/config/property-mapping.json"
+PROPERTIES_FILE="${PROPERTIES_FILE:-/properties.json}"
+ITEMS_FILE="${ITEMS_FILE:-/items.json}"
+MAPPING_FILE="${MAPPING_FILE:-/config/property-mapping.json}"
+BACKEND_MAPPING_FILE="${BACKEND_MAPPING_FILE:-/app/storage/property-mapping.json}"
 MW_API="${MW_WG_SERVER}/w/api.php"
 
 echo "[create-properties] Waiting for Wikibase API to become available..."
@@ -41,96 +43,106 @@ fi
 
 echo "[create-properties] Login successful."
 
-# Check if mapping file already exists (idempotent)
+# Merge into an existing mapping so a growing catalogue adds new entities
+# without recreating the ones already on the instance.
+MAPPING="{}"
 if [ -f "$MAPPING_FILE" ]; then
-    echo "[create-properties] Mapping file already exists at ${MAPPING_FILE}. Checking..."
-    EXISTING_COUNT=$(jq 'length' "$MAPPING_FILE" 2>/dev/null || echo "0")
-    if [ "$EXISTING_COUNT" -gt 0 ]; then
-        echo "[create-properties] Found ${EXISTING_COUNT} existing mappings. Skipping creation."
-        exit 0
+    EXISTING=$(jq -c '.' "$MAPPING_FILE" 2>/dev/null || echo "{}")
+    if [ "$(echo "$EXISTING" | jq 'length')" -gt 0 ]; then
+        MAPPING="$EXISTING"
+        echo "[create-properties] Loaded $(echo "$MAPPING" | jq 'length') existing mappings."
     fi
 fi
 
-echo "[create-properties] Creating properties from ${PROPERTIES_FILE}..."
-MAPPING="{"
+# ensure_entity <property|item> <wikidata_id> <label> <description> [datatype]
+ensure_entity() {
+    local kind="$1"
+    local wikidata_id="$2"
+    local label="$3"
+    local description="$4"
+    local datatype="$5"
 
-PROP_COUNT=$(jq 'length' "$PROPERTIES_FILE")
-for i in $(seq 0 $((PROP_COUNT - 1))); do
-    WIKIDATA_ID=$(jq -r ".[$i].wikidata_id" "$PROPERTIES_FILE")
-    LABEL=$(jq -r ".[$i].label" "$PROPERTIES_FILE")
-    DATATYPE=$(jq -r ".[$i].datatype" "$PROPERTIES_FILE")
-    DESCRIPTION=$(jq -r ".[$i].description" "$PROPERTIES_FILE")
+    local mapped
+    mapped=$(echo "$MAPPING" | jq -r --arg k "$wikidata_id" '.[$k] // empty')
+    if [ -n "$mapped" ]; then
+        echo "  ${wikidata_id} (${label}) already mapped to ${mapped}"
+        return
+    fi
 
-    echo -n "  Creating ${WIKIDATA_ID} (${LABEL})... "
+    echo -n "  Creating ${wikidata_id} (${label})... "
 
-    # Check if property with this label already exists
-    SEARCH_RESULT=$(curl -s -c /tmp/wb_cookies -b /tmp/wb_cookies \
-        "${MW_API}?action=wbsearchentities&search=$(echo "$LABEL" | sed 's/ /+/g')&language=en&type=property&format=json")
-    EXISTING_ID=$(echo "$SEARCH_RESULT" | jq -r '.search[0].id // empty')
+    local encoded_label
+    encoded_label=$(printf '%s' "$label" | jq -sRr @uri)
+    local search_result
+    search_result=$(curl -s -c /tmp/wb_cookies -b /tmp/wb_cookies \
+        "${MW_API}?action=wbsearchentities&search=${encoded_label}&language=en&type=${kind}&format=json")
 
-    if [ -n "$EXISTING_ID" ]; then
-        echo "already exists as ${EXISTING_ID}"
-        LOCAL_ID="$EXISTING_ID"
+    local local_id
+    local_id=$(echo "$search_result" | jq -r --arg l "$label" \
+        '(.search // [])[] | select(.label == $l) | .id' | head -n 1)
+
+    if [ -n "$local_id" ]; then
+        echo "already exists as ${local_id}"
     else
-        # Create property via wbcreateclaim API
-        ENTITY_DATA="{\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"${LABEL}\"}},\"descriptions\":{\"en\":{\"language\":\"en\",\"value\":\"${DESCRIPTION}\"}},\"datatype\":\"${DATATYPE}\"}"
+        local entity_data
+        if [ "$kind" = "property" ]; then
+            entity_data=$(jq -n --arg l "$label" --arg d "$description" --arg t "$datatype" \
+                '{labels:{en:{language:"en",value:$l}},descriptions:{en:{language:"en",value:$d}},datatype:$t}')
+        else
+            entity_data=$(jq -n --arg l "$label" --arg d "$description" \
+                '{labels:{en:{language:"en",value:$l}},descriptions:{en:{language:"en",value:$d}}}')
+        fi
 
-        RESULT=$(curl -s -c /tmp/wb_cookies -b /tmp/wb_cookies \
+        local result
+        result=$(curl -s -c /tmp/wb_cookies -b /tmp/wb_cookies \
             --data-urlencode "action=wbeditentity" \
-            --data-urlencode "new=property" \
-            --data-urlencode "data=${ENTITY_DATA}" \
+            --data-urlencode "new=${kind}" \
+            --data-urlencode "data=${entity_data}" \
             --data-urlencode "token=${CSRF_TOKEN}" \
             --data-urlencode "format=json" \
             "${MW_API}")
 
-        LOCAL_ID=$(echo "$RESULT" | jq -r '.entity.id // empty')
-        if [ -n "$LOCAL_ID" ]; then
-            echo "created as ${LOCAL_ID}"
-        else
-            ERROR_INFO=$(echo "$RESULT" | jq -r '.error.info // "unknown error"')
-            echo "FAILED: ${ERROR_INFO}"
-            continue
+        local_id=$(echo "$result" | jq -r '.entity.id // empty')
+        if [ -z "$local_id" ]; then
+            echo "FAILED: $(echo "$result" | jq -r '.error.info // "unknown error"')"
+            return
         fi
+        echo "created as ${local_id}"
     fi
 
-    # Build mapping
-    if [ "$i" -gt 0 ]; then
-        MAPPING="${MAPPING},"
-    fi
-    MAPPING="${MAPPING}\"${WIKIDATA_ID}\":\"${LOCAL_ID}\""
+    MAPPING=$(echo "$MAPPING" | jq --arg k "$wikidata_id" --arg v "$local_id" '. + {($k): $v}')
+}
+
+echo "[create-properties] Ensuring properties from ${PROPERTIES_FILE}..."
+PROP_COUNT=$(jq 'length' "$PROPERTIES_FILE")
+for i in $(seq 0 $((PROP_COUNT - 1))); do
+    ROW=$(jq -c ".[$i]" "$PROPERTIES_FILE")
+    ensure_entity "property" \
+        "$(echo "$ROW" | jq -r '.wikidata_id')" \
+        "$(echo "$ROW" | jq -r '.label')" \
+        "$(echo "$ROW" | jq -r '.description')" \
+        "$(echo "$ROW" | jq -r '.datatype')"
 done
 
-# Also create Q571 (book) item
-echo -n "  Creating Q571 (book) item... "
-SEARCH_RESULT=$(curl -s -c /tmp/wb_cookies -b /tmp/wb_cookies \
-    "${MW_API}?action=wbsearchentities&search=book&language=en&type=item&format=json")
-BOOK_QID=$(echo "$SEARCH_RESULT" | jq -r '.search[0].id // empty')
+echo "[create-properties] Ensuring items from ${ITEMS_FILE}..."
+ITEM_COUNT=$(jq 'length' "$ITEMS_FILE")
+for i in $(seq 0 $((ITEM_COUNT - 1))); do
+    ROW=$(jq -c ".[$i]" "$ITEMS_FILE")
+    ensure_entity "item" \
+        "$(echo "$ROW" | jq -r '.wikidata_id')" \
+        "$(echo "$ROW" | jq -r '.label')" \
+        "$(echo "$ROW" | jq -r '.description')"
+done
 
-if [ -n "$BOOK_QID" ]; then
-    echo "already exists as ${BOOK_QID}"
-else
-    ENTITY_DATA='{"labels":{"en":{"language":"en","value":"book"}},"descriptions":{"en":{"language":"en","value":"written work published as a physical or digital book"}}}'
-    RESULT=$(curl -s -c /tmp/wb_cookies -b /tmp/wb_cookies \
-        --data-urlencode "action=wbeditentity" \
-        --data-urlencode "new=item" \
-        --data-urlencode "data=${ENTITY_DATA}" \
-        --data-urlencode "token=${CSRF_TOKEN}" \
-        --data-urlencode "format=json" \
-        "${MW_API}")
-    BOOK_QID=$(echo "$RESULT" | jq -r '.entity.id // empty')
-    if [ -n "$BOOK_QID" ]; then
-        echo "created as ${BOOK_QID}"
-    else
-        echo "FAILED"
-    fi
-fi
-
-if [ -n "$BOOK_QID" ]; then
-    MAPPING="${MAPPING},\"Q571\":\"${BOOK_QID}\""
-fi
-
-MAPPING="${MAPPING}}"
-
+mkdir -p "$(dirname "$MAPPING_FILE")"
 echo "$MAPPING" | jq '.' > "$MAPPING_FILE"
 echo "[create-properties] Property mapping written to ${MAPPING_FILE}"
-echo "[create-properties] Done. Created $(echo "$MAPPING" | jq 'length') entity mappings."
+
+# The backend reads PROPERTY_MAPPING_PATH from its own storage volume. Write
+# there too when the init container has it mounted.
+if [ -d "$(dirname "$BACKEND_MAPPING_FILE")" ]; then
+    echo "$MAPPING" | jq '.' > "$BACKEND_MAPPING_FILE"
+    echo "[create-properties] Property mapping written to ${BACKEND_MAPPING_FILE}"
+fi
+
+echo "[create-properties] Done. $(echo "$MAPPING" | jq 'length') entity mappings available."

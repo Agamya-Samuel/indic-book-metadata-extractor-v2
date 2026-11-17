@@ -33,7 +33,7 @@ dominating.
 | Capability | Behaviour |
 | --- | --- |
 | QuickStatements export | `POST /api/bulk/export-wikibase` generates a TSV **locally** and never contacts Wikibase |
-| Property mapping | Read from a JSON file; **currently broken** (see §5) |
+| Property mapping | Read from `property-mapping.json`, written by `wikibase-init` (see §5.1) |
 | OpenRefine | A link-out only; `openrefine_service.py` is dead code |
 | Health checks | `/health` does not check any Wikibase service |
 
@@ -81,18 +81,17 @@ missing. Because it is idempotent, restarting after a deliberate stop is safe.
 
 ## 5. Known defects
 
-These are real and documented rather than worked around:
+Items 5.2 and 5.3 remain open; 5.1 records a defect that has been fixed.
 
-### 5.1 Property mapping never loads
+### 5.1 Property mapping (fixed)
 
-- `docker/wikibase/create-properties.sh` writes `MAPPING_FILE="/config/property-mapping.json"` into the
-  `wikibase_config` volume.
-- The backend reads `PROPERTY_MAPPING_PATH`, default `/app/storage/property-mapping.json`, from
-  `storage_data`.
+`create-properties.sh` is incremental: it loads any existing mapping, creates only the entities that
+are missing, and merges the result. `wikibase-init` mounts the backend's storage volume at
+`/app/storage` (`./backend/storage` in development, `storage_data` in production), so the script writes
+the mapping to both `/config/property-mapping.json` and `/app/storage/property-mapping.json`.
 
-Different volumes, so the file is never found and `_load_property_mapping()` always falls back to
-hardcoded Wikidata P-IDs. Until the paths agree, local property IDs must match Wikidata's by
-construction.
+`_load_property_mapping()` therefore finds `PROPERTY_MAPPING_PATH` and exports use local property IDs.
+Restart the backend after `make wikibase-init` so it reloads the file.
 
 ### 5.2 `openrefine_service.py` is dead code
 
@@ -190,6 +189,6 @@ Extensions deliberately **not** installed are the ones that require Wikimedia-wi
 | `wikibase` unhealthy | MySQL or Elasticsearch not ready | Check those logs; `start_period` is 120 s |
 | Properties missing | `wikibase-init` never ran or failed | `make wikibase-init` |
 | QuickStatements rejects the TSV | Property IDs do not exist | Verify property mapping on the instance |
-| Export contains Wikidata P-IDs | The broken mapping fallback | Expected — see §5.1 |
+| Export contains Wikidata P-IDs | Mapping file missing or unreadable | Run `make wikibase-init`, then restart the backend |
 | OpenRefine link 404s | `NEXT_PUBLIC_OPENREFINE_URL` unset at build | Rebuild the frontend |
 | Everything slow after starting the stack | ~2.5 GiB extra plus CPU | Stop the optional services |

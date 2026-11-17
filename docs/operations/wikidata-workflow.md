@@ -70,25 +70,54 @@ On first boot, the `wikibase-init` container automatically:
 
 1. Waits for Wikibase API to become healthy
 2. Logs in as admin
-3. Creates 22 properties matching Wikidata definitions:
+3. Creates the 34 properties in `docker/wikibase/properties.json` that have a Wikidata equivalent:
 
 | Wikidata ID | Label | Datatype | Local ID (example) |
 |-------------|-------|----------|---------------------|
 | P31 | instance of | wikibase-item | P1 |
 | P50 | author | wikibase-item | P2 |
 | P98 | editor | wikibase-item | P3 |
-| P123 | publisher | wikibase-item | P4 |
-| P136 | genre | wikibase-item | P5 |
-| P291 | place of publication | wikibase-item | P6 |
-| P407 | language | wikibase-item | P7 |
-| P571 | inception | time | P8 |
-| P577 | publication date | time | P9 |
-| ... | ... | ... | ... |
+| P110 | illustrator | wikibase-item | P4 |
+| P123 | publisher | wikibase-item | P5 |
+| P136 | genre | wikibase-item | P6 |
+| P144 | based on | wikibase-item | P7 |
+| P166 | award received | wikibase-item | P8 |
+| P179 | part of the series | wikibase-item | P9 |
+| P212 | ISBN-13 | external-id | P10 |
+| P291 | place of publication | wikibase-item | P11 |
+| P361 | part of | wikibase-item | P12 |
+| P393 | edition number | string | P13 |
+| P407 | language of work or name | wikibase-item | P14 |
+| P478 | volume | string | P15 |
+| P571 | inception | time | P16 |
+| P577 | publication date | time | P17 |
+| P629 | edition or translation of | wikibase-item | P18 |
+| P655 | translator | wikibase-item | P19 |
+| P736 | cover art by | wikibase-item | P20 |
+| P750 | distributed by | wikibase-item | P21 |
+| P825 | dedicated to | wikibase-item | P22 |
+| P859 | sponsor | wikibase-item | P23 |
+| P872 | printed by | wikibase-item | P24 |
+| P921 | main subject | wikibase-item | P25 |
+| P941 | inspired by | wikibase-item | P26 |
+| P957 | ISBN-10 | external-id | P27 |
+| P1104 | number of pages | quantity | P28 |
+| P1433 | published in | wikibase-item | P29 |
+| P1476 | title | monolingualtext | P30 |
+| P1545 | series ordinal | string | P31 |
+| P1680 | subtitle | monolingualtext | P32 |
+| P2679 | author of foreword | wikibase-item | P33 |
+| P7937 | form of creative work | wikibase-item | P34 |
 
-4. Creates Q571 (book) item
-5. Writes `property-mapping.json` to `/config/`
+4. Creates the items in `docker/wikibase/items.json`: Q571 (book), Q809 (Telugu), Q1568 (Hindi),
+   Q1860 (English)
+5. Writes `property-mapping.json` to `/config/` and, because the backend storage volume is mounted,
+   to `/app/storage/`
 
 **Verify:** Visit http://localhost:8181/wiki/Special:Properties — all properties should be listed.
+
+The script is incremental: it skips entities already present in the mapping, so adding a property to
+`properties.json` and re-running creates only the new one.
 
 **Re-run if needed:**
 ```bash
@@ -97,12 +126,12 @@ docker compose run --rm wikibase-init
 
 ---
 
-## Step 2: Copy Property Mapping to Backend
+## Step 2: Reload the Backend
 
-After the init container completes, copy the mapping file so the backend can use it for QuickStatements exports:
+`wikibase-init` writes the mapping to the backend storage volume directly, so no copy is needed. The
+backend reads it at startup:
 
 ```bash
-docker compose cp wikibase-init:/config/property-mapping.json ./backend/storage/property-mapping.json
 docker compose restart backend
 ```
 
@@ -221,7 +250,7 @@ The export automatically uses local property IDs from the mapping file.
 ## Troubleshooting
 
 ### QuickStatements says "Property not found"
-- The property mapping may not be copied to the backend. Run Step 2 again.
+- The property mapping may be missing or stale. Run `make wikibase-init`, then restart the backend.
 - Check that properties exist: http://localhost:8181/wiki/Special:Properties
 
 ### OAuth login fails on QuickStatements

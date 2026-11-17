@@ -156,9 +156,9 @@ Frontend needs the matching `NEXT_PUBLIC_NEW_RELIC_*` values at **build** time.
 | --- | --- |
 | `PROPERTY_MAPPING_PATH` | `/app/storage/property-mapping.json` |
 
-**Known issue:** `docker/wikibase/create-properties.sh` writes to `/config/property-mapping.json` in a
-different volume, so this file is never found and the code falls back to hardcoded Wikidata P-IDs. See
-[integrations](../architecture/integrations.md#known-broken-wiring).
+`wikibase-init` writes this file to both `/config/property-mapping.json` and the mounted backend
+storage volume, so the backend loads it on startup. Restart the backend after re-running the init
+container.
 
 ---
 
