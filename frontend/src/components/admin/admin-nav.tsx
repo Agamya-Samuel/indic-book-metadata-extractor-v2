@@ -13,7 +13,6 @@ const LINKS = [
   { href: "/admin/system", label: "System" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/bulk", label: "Bulk operations" },
-  { href: "/admin/design", label: "Design" },
 ];
 
 export function AdminNavLinks({ onNavigate }: { onNavigate?: () => void }) {
