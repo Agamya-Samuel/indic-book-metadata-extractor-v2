@@ -1,4 +1,4 @@
-# Indic Book Metadata Extractor — Agent Instructions
+# Open Book Map — Agent Instructions
 
 ## Current Phase: Documented and Stable
 

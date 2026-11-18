@@ -7,7 +7,7 @@ DEFAULT_LLM_MODEL = "gemma4:e4b"
 
 class Settings(BaseSettings):
     # Application
-    app_name: str = "Indic Book Metadata Extractor"
+    app_name: str = "Open Book Map"
     debug: bool = False
 
     # CORS (comma-separated origins)
@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     # New Relic
     new_relic_enabled: bool = False
     new_relic_license_key: str = ""
-    new_relic_app_name: str = "Indic Book Metadata Extractor"
+    new_relic_app_name: str = "Open Book Map"
     new_relic_environment: str = "production"
     new_relic_distributed_tracing_enabled: bool = True
     new_relic_log: str = "error"

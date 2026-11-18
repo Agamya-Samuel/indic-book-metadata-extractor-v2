@@ -1,6 +1,6 @@
 # Technical Documentation
 
-The primary technical reference for the Indic Book Metadata Extractor. It documents the system as
+The primary technical reference for the Open Book Map. It documents the system as
 implemented on `main`.
 
 ## Start here

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "Indic Book Metadata Extractor";
+export const SITE_NAME = "Open Book Map";
 export const SITE_TITLE =
-  "Indic Book Metadata Extractor — OCR for Indic Scripts";
-export const SITE_SHORT_NAME = "Indic Books";
+  "Open Book Map — OCR and metadata for Indic books";
+export const SITE_SHORT_NAME = "OpenBookMap";
 export const SITE_DESCRIPTION =
-  "Turn scanned Indic-script books into structured records with OCR and a local LLM. Review the extracted metadata, then export to Wikibase or OpenRefine.";
+  "Open Book Map turns scanned Indic-script books into structured records with OCR and a local LLM. Review the metadata, then export to Wikibase or OpenRefine.";
 export const SITE_SOCIAL_DESCRIPTION =
-  "OCR and local LLM metadata extraction for Indic-script books. Review and export to Wikibase or OpenRefine.";
+  "Open Book Map: OCR and local LLM metadata extraction for Indic books, with review and export to Wikibase or OpenRefine.";
 export const SITE_LOCALE = "en_IN";
 export const SITE_KEYWORDS = [
   "OCR",

@@ -32,7 +32,7 @@ or `complete`.
 | # | Title | Status |
 | --- | --- | --- |
 | 002 | [Ground-Truth Dataset from Wikimedia Commons](../../plans/002-ground-truth-poc.md) | Plan → awaiting approval |
-| 003 | [OCR Engine Selection for Indic Books](../../plans/003-ocr-engine-evaluation.md) | Decided 2026-11-13 — engines locked |
+| 003 | [OCR Engine Selection for Open Book Map](../../plans/003-ocr-engine-evaluation.md) | Decided 2026-11-13 — engines locked |
 | 004 | [LLM Selection for Indic Metadata Extraction (49 fields)](../../plans/004-llm-model-evaluation.md) | In progress — accuracy arm partial |
 | 005 | [Authentication and Role-Based Access Control](../../plans/005-auth-rbac.md) | Implemented |
 | 006 | [UI/UX Overhaul: Book Workflow + Admin Operations](../../plans/006-ui-ux-workflow-admin.md) | Approved |

@@ -80,7 +80,7 @@ async def service_descriptor(request: Request) -> JSONResponse:
     return _json(
         {
             "versions": ["1.0"],
-            "name": "IndicBooks Wikibase reconciliation",
+            "name": "Open Book Map Wikibase reconciliation",
             "view": {"url": base + "/{{lang}}/view?id={{id}}"},
             "preview": {"url": base + "/{{lang}}/preview?id={{id}}"},
         }
@@ -103,7 +103,7 @@ async def wikibase_manifest(request: Request) -> JSONResponse:
         {
             "version": "2.0",
             "mediawiki": {
-                "name": "IndicBooks",
+                "name": "Open Book Map",
                 "root": f"{public}/wiki/",
                 "main_page": f"{public}/wiki/Main_Page",
                 "api": f"{public}/w/api.php",

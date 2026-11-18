@@ -1,4 +1,4 @@
-"""Celery tasks for the Indic Book Metadata Extractor.
+"""Celery tasks for the Open Book Map.
 
 Re-exports the live tasks and the Celery app for tests and external
 scripts so callers don't need the dotted module path.

@@ -1,4 +1,4 @@
-# Known Limitations — Indic Book Metadata Extractor
+# Known Limitations — Open Book Map
 
 This document records honest, current limitations of the extraction pipeline.
 It exists so the team can prioritize the next sprint and so the OKI

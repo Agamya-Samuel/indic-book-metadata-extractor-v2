@@ -44,7 +44,7 @@ This document explains how to use the Bulk Operations page to clean metadata in 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  Indic Book Metadata Extractor                                      │
+│  Open Book Map                                      │
 │                                                                     │
 │  Pipeline (per book):                                               │
 │    Upload → Pages → Preprocess → OCR → LLM → Review → Library       │

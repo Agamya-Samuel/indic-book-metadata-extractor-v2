@@ -72,21 +72,21 @@ async def send_verification_email(user: User, token: str) -> bool:
     link = _frontend_link("/verify-email", token)
     text = (
         f"Hello {user.display_name},\n\n"
-        "Confirm your email address to activate your Indic Books account:\n\n"
+        "Confirm your email address to activate your Open Book Map account:\n\n"
         f"{link}\n\n"
         f"This link expires in {settings.email_verification_expire_hours} hours. "
         "If you did not create this account, you can ignore this message.\n"
     )
     html = (
         f"<p>Hello {user.display_name},</p>"
-        "<p>Confirm your email address to activate your Indic Books account:</p>"
+        "<p>Confirm your email address to activate your Open Book Map account:</p>"
         f'<p><a href="{link}">Verify email</a></p>'
         f"<p>This link expires in {settings.email_verification_expire_hours} hours. "
         "If you did not create this account, you can ignore this message.</p>"
     )
     return await send_email(
         to=user.email,
-        subject="Verify your Indic Books email",
+        subject="Verify your Open Book Map email",
         text_body=text,
         html_body=html,
     )
@@ -96,21 +96,21 @@ async def send_password_reset_email(user: User, token: str) -> bool:
     link = _frontend_link("/reset-password", token)
     text = (
         f"Hello {user.display_name},\n\n"
-        "Use this link to reset your Indic Books password:\n\n"
+        "Use this link to reset your Open Book Map password:\n\n"
         f"{link}\n\n"
         f"This link expires in {settings.password_reset_expire_minutes} minutes. "
         "If you did not request a reset, you can ignore this message.\n"
     )
     html = (
         f"<p>Hello {user.display_name},</p>"
-        "<p>Use this link to reset your Indic Books password:</p>"
+        "<p>Use this link to reset your Open Book Map password:</p>"
         f'<p><a href="{link}">Reset password</a></p>'
         f"<p>This link expires in {settings.password_reset_expire_minutes} minutes. "
         "If you did not request a reset, you can ignore this message.</p>"
     )
     return await send_email(
         to=user.email,
-        subject="Reset your Indic Books password",
+        subject="Reset your Open Book Map password",
         text_body=text,
         html_body=html,
     )

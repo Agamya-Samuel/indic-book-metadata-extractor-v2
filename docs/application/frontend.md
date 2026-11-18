@@ -221,7 +221,7 @@ per-IP quota.
   authenticated routes) and `app/sitemap.ts`.
 - The home page emits JSON-LD (`Organization`, `WebSite`, `WebApplication`) and its canonical
   `og:url`; `og:url` is the only OpenGraph field the page overrides.
-- Per-route titles still come from `useDocumentTitle`; the root template appends "· Indic Books".
+- Per-route titles still come from `useDocumentTitle`; the root template appends "· Open Book Map".
 
 ---
 

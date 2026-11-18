@@ -20,7 +20,7 @@ export function AuthCard({
             href="/"
             className="text-[length:var(--text-xs)] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)] hover:text-[var(--text)]"
           >
-            Indic Books
+            Open Book Map
           </Link>
         </div>
         <Card title={title} description={description}>

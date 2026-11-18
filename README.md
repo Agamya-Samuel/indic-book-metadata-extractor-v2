@@ -1,4 +1,4 @@
-# Indic Book Metadata Extractor
+# Open Book Map
 
 A full-stack web application for OCR-powered metadata extraction from scanned Indic language book PDFs. Upload a PDF, run Tesseract OCR, extract 49 bibliographic fields using a locally-hosted LLM, and review/edit everything through a guided 7-step workflow.
 

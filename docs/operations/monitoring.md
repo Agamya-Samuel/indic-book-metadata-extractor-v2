@@ -139,7 +139,7 @@ New Relic is disabled by default locally. To test the integration without pollut
 ```bash
 NEW_RELIC_ENABLED=true
 NEW_RELIC_ENVIRONMENT=local
-NEW_RELIC_APP_NAME=Indic Book Metadata Extractor (Local)
+NEW_RELIC_APP_NAME=Open Book Map (Local)
 NRIA_DISPLAY_NAME=local-dev-machine
 ```
 

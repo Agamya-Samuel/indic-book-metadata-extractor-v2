@@ -40,7 +40,7 @@ function MaintenanceScreen({
         </span>
         <span className="flex flex-col leading-tight">
           <span className="text-[length:var(--text-sm)] font-semibold tracking-tight text-[var(--text)]">
-            Indic Books
+            Open Book Map
           </span>
           <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Maintained by OKI

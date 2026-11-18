@@ -1,6 +1,6 @@
 # System Architecture
 
-This document describes how the Indic Book Metadata Extractor is put together: what runs, how a
+This document describes how the Open Book Map is put together: what runs, how a
 request travels through it, what is stored, and how a book moves from upload to reviewed metadata.
 
 It reflects the code on `main`. Where behaviour is limited or missing, it says so and links to

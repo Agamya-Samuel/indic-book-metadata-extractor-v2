@@ -91,7 +91,7 @@ export default function AppNavbar() {
             "group flex shrink-0 items-center gap-2.5 rounded-[var(--radius-sm)]",
             focusRing,
           )}
-          aria-label="Indic Book Metadata Extractor (beta) — home"
+          aria-label="Open Book Map (beta) — home"
         >
           <span aria-hidden="true" className="brand-mark">
             ಇ
@@ -101,7 +101,7 @@ export default function AppNavbar() {
               squeeze the nav on a phone. */}
           <span className="hidden flex-col leading-tight min-w-0 sm:flex">
             <span className="text-[length:var(--text-sm)] font-semibold tracking-tight text-[var(--text)] truncate">
-              Indic Books
+              Open Book Map
             </span>
             {/* The product subline only fits from sm+; on narrow phones the
                 wordmark alone identifies the product, and the aria-label on

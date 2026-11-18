@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document describes the complete workflow for creating Wikibase items (QIDs) and properties (PIDs) from the Indic Book Metadata Extractor, and the end-to-end pipeline from scanned book PDF to structured linked data.
+This document describes the complete workflow for creating Wikibase items (QIDs) and properties (PIDs) from the Open Book Map, and the end-to-end pipeline from scanned book PDF to structured linked data.
 
 ### Key Concepts
 
@@ -25,7 +25,7 @@ This document describes the complete workflow for creating Wikibase items (QIDs)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Indic Book Metadata Extractor                              │
+│  Open Book Map                              │
 │                                                             │
 │  Pipeline (per book):                                       │
 │    Upload → Pages → Preprocess → OCR → LLM → Review → Lib  │
@@ -239,7 +239,7 @@ The export automatically uses local property IDs from the mapping file.
 2. SELECT PAGES   Choose front/back pages for processing
 3. PREPROCESS     Tune image settings (grayscale, contrast, deskew)
 4. OCR REVIEW     Side-by-side view, correct OCR errors
-5. LLM EXTRACT    Run LLM extraction (52 metadata fields)
+5. LLM EXTRACT    Run LLM extraction (49 metadata fields)
 6. METADATA REVIEW  Review and edit extracted fields
 7. LIBRARY        Book saved with complete metadata
 

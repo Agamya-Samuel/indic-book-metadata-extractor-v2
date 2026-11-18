@@ -271,7 +271,7 @@ async def lifespan(app: FastAPI):
 # /docs, /redoc and /openapi.json make the whole API surface enumerable, so
 # they stay off outside debug builds.
 app = FastAPI(
-    title="Indic Book Metadata Extractor",
+    title="Open Book Map",
     version="0.1.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.debug else None,

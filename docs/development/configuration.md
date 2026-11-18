@@ -25,7 +25,7 @@ These abort the deploy at Compose interpolation if unset:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `APP_NAME` | `Indic Book Metadata Extractor` | Display name |
+| `APP_NAME` | `Open Book Map` | Display name |
 | `DEBUG` | `false` | Enables `/docs`, `/redoc`, `/openapi.json`; relaxes JWT length check |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated; `*` logs a warning |
 | `MAX_UPLOAD_SIZE_MB` | `200` | Enforced by middleware before spooling |
@@ -138,7 +138,7 @@ Production sets `OCR_TEL_ENGINE=line_model` for the worker and points
 | --- | --- |
 | `NEW_RELIC_ENABLED` | `false` |
 | `NEW_RELIC_LICENSE_KEY` | `""` |
-| `NEW_RELIC_APP_NAME` | `Indic Book Metadata Extractor` |
+| `NEW_RELIC_APP_NAME` | `Open Book Map` |
 | `NEW_RELIC_ENVIRONMENT` | `production` |
 | `NEW_RELIC_DISTRIBUTED_TRACING_ENABLED` | `true` |
 | `NEW_RELIC_LOG` | `error` |

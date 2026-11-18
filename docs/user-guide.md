@@ -1,8 +1,8 @@
-# User Guide — Indic Book Metadata Extractor
+# User Guide — Open Book Map
 
 ## Introduction
 
-Indic Book Metadata Extractor is a web application that helps you extract structured bibliographic metadata from scanned PDFs of books in Telugu and Hindi. The application reads text from scanned pages with Tesseract (Hindi/English) or a Telugu-specific line model (Telugu), then uses a locally-hosted AI model (`gemma4:e4b` by default) to extract 52 metadata fields.
+Open Book Map is a web application that helps you extract structured bibliographic metadata from scanned PDFs of books in Telugu and Hindi. The application reads text from scanned pages with Tesseract (Hindi/English) or a Telugu-specific line model (Telugu), then uses a locally-hosted AI model (`gemma4:e4b` by default) to extract 49 metadata fields.
 
 > **Beta.** OCR and metadata quality depend heavily on the scan, so expect to
 > correct text in the OCR review step. Processing runs on CPU: roughly 10–20
@@ -193,7 +193,7 @@ task with live progress.
 
 ## Step 6: Metadata Review
 
-1. After LLM extraction completes, review all 52 metadata fields:
+1. After LLM extraction completes, review all 49 metadata fields:
    - Fields are grouped by category (Core Identity, Contributors, Publication, etc.)
    - Pre-filled values come from the LLM extraction
    - Low-confidence or empty fields are highlighted

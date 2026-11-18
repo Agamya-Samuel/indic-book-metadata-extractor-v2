@@ -1,4 +1,4 @@
-# Changelog — Indic Book Metadata Extractor
+# Changelog — Open Book Map
 
 All notable changes to this project will be documented in this file.
 

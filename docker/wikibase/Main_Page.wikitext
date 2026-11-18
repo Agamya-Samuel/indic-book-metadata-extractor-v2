@@ -1,4 +1,4 @@
-'''IndicBooks''' is the structured-data catalogue for books digitised with the Indic Book Metadata Extractor. Each reviewed book is published as a Wikibase item with statements for author, publisher, language, ISBN and 40+ other fields.
+'''Open Book Map''' is the structured-data catalogue for books digitised with Open Book Map. Each reviewed book is published as a Wikibase item with statements for author, publisher, language, ISBN and 40+ other fields.
 
 == Browse the catalogue ==
 * [{{fullurl:Special:AllPages|namespace=120}} All items]
@@ -8,7 +8,7 @@
 * [[Special:Search|Search]]
 
 == How the data is produced ==
-# Upload and OCR the book in the Indic Book Metadata Extractor.
+# Upload and OCR the book in Open Book Map.
 # Review the extracted metadata.
 # Export as OpenRefine CSV, then clean and reconcile in OpenRefine.
 # Publish with the Wikibase extension or the backend publish endpoint.

@@ -79,7 +79,7 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Open Book Map}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
       - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
@@ -128,7 +128,7 @@ services:
       - OCR_THREAD_WORKERS=${OCR_THREAD_WORKERS:-4}
       - OCR_RENDER_DPI=${OCR_RENDER_DPI:-300}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Open Book Map Worker}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
       - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
@@ -164,7 +164,7 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - STORAGE_PATH=/app/storage
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker LLM}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Open Book Map Worker LLM}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_CONFIG_FILE=/app/newrelic.ini
       - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
@@ -200,7 +200,7 @@ services:
         - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
         - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
         - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
-        - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+        - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Open Book Map}
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -208,7 +208,7 @@ services:
       - NEXT_PUBLIC_OPENREFINE_URL=${NEXT_PUBLIC_OPENREFINE_URL:-http://localhost:3333}
       - NEW_RELIC_ENABLED=${NEW_RELIC_ENABLED:-false}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-Open Book Map}
     depends_on:
       - backend
 

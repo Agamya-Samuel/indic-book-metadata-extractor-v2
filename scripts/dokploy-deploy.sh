@@ -87,7 +87,7 @@ check_config() {
 
 cmd_help() {
     cat <<EOF
-Dokploy Deploy Script — Indic Book Metadata Extractor
+Dokploy Deploy Script — Open Book Map
 
 Usage:
   ./scripts/dokploy-deploy.sh [OPTIONS]
@@ -126,7 +126,7 @@ cmd_env_setup() {
 
 ┌─ OPTIONAL (defaults work) ───────────────────────────────────────────────────┐
 
-  APP_NAME              = Indic Book Metadata Extractor
+  APP_NAME              = Open Book Map
   DEBUG                 = false
   CORS_ORIGINS          = https://YOUR_DOMAIN
   MAX_UPLOAD_SIZE_MB    = 200

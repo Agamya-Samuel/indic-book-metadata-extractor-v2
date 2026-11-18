@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   metadataBase: SITE_URL,
   title: {
     default: SITE_TITLE,
-    template: "%s · Indic Books",
+    template: "%s · Open Book Map",
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
