@@ -29,8 +29,8 @@ from app.models.book import Book
 from app.models.metadata import BookMetadata
 from app.schemas.metadata import (
     ALL_METADATA_FIELDS,
+    FIELD_CONTRACT,
     FIELD_DISPLAY_NAMES,
-    FIELD_WIKIDATA,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,6 +99,8 @@ WIKIBASE_TIME_FIELDS = frozenset({"publication_date", "inception"})
 WIKIBASE_MONOLINGUAL_FIELDS = frozenset({"title", "subtitle"})
 WIKIBASE_QUANTITY_FIELDS = frozenset({"pages"})
 WIKIBASE_GREGORIAN = "http://www.wikidata.org/entity/Q1985727"
+# Wikibase rejects string/monolingual values longer than this.
+MAX_STRING_LENGTH = 400
 
 _YEAR_RE = re.compile(r"^\s*(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?")
 _COUNT_RE = re.compile(r"\d+")
@@ -182,8 +184,14 @@ async def collect_rows(
     return [_row_from(book, metadata) for book, metadata in pairs]
 
 
-def _safe_cell(value: str) -> str:
-    if value and value.startswith(FORMULA_PREFIXES):
+def _safe_cell(value: str, *, escape_formulas: bool = True) -> str:
+    """Neutralise spreadsheet formula injection for Excel/CSV downloads.
+
+    OpenRefine reads the file as data, not as a spreadsheet, so the leading
+    apostrophe would become part of the value. Only escape for formats that a
+    spreadsheet application will open.
+    """
+    if escape_formulas and value and value.startswith(FORMULA_PREFIXES):
         return "'" + value
     return value
 
@@ -252,7 +260,7 @@ def _render_csv(
     writer = csv.writer(output)
     writer.writerow(columns)
     for row in rows:
-        writer.writerow([_safe_cell(_value(row, column)) for column in columns])
+        writer.writerow([_safe_cell(_value(row, column), escape_formulas=not openrefine) for column in columns])
     text = output.getvalue()
     return text.encode("utf-8-sig") if bom else text.encode("utf-8")
 
@@ -400,49 +408,90 @@ def wikibase_property_id(field_name: str, value: str, wikidata_prop: str) -> str
     return wikidata_prop
 
 
+def _split_values(value: str) -> list[str]:
+    """Split a multi-value cell; commas stay inside names and titles."""
+    parts = [value]
+    for sep in (";", "|", "\n"):
+        next_parts: list[str] = []
+        for part in parts:
+            next_parts.extend(part.split(sep))
+        parts = next_parts
+    return [p.strip() for p in parts if p and p.strip()]
+
+
+def _spec(field_name: str) -> dict:
+    return FIELD_CONTRACT.get(field_name) or {}
+
+
+def _language_for(spec: dict, book_language: str) -> str:
+    tag = spec.get("language_tag")
+    if tag in (None, "auto"):
+        return LANGUAGE_TAGS.get(book_language, "en")
+    return tag
+
+
 def wikibase_tsv_value(field_name: str, value: str, language: str) -> str | None:
-    """Render a value for QuickStatements using the property's datatype."""
+    """Render a value for QuickStatements using the contract datatype.
+
+    Entity-valued fields need reconciliation first, so they return ``None``
+    here; use the OpenRefine Wikibase schema or the publish endpoint instead.
+    """
+    spec = _spec(field_name)
+    parser = spec.get("parser")
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    if field_name in WIKIBASE_TIME_FIELDS:
+    if parser == "time":
         time_value = _time_datavalue(value)
         if time_value is None:
             return None
         return f"{time_value['value']['time']}/{time_value['value']['precision']}"
-    if field_name in WIKIBASE_MONOLINGUAL_FIELDS:
-        return f'{LANGUAGE_TAGS.get(language, "en")}:"{escaped}"'
-    if field_name in WIKIBASE_QUANTITY_FIELDS:
+    if parser == "monolingual":
+        return f'{_language_for(spec, language)}:"{escaped}"'
+    if parser == "quantity":
         quantity = _quantity_datavalue(value)
         if quantity is None:
             return None
         return quantity["value"]["amount"].lstrip("+")
+    if parser == "entity":
+        return None
     return f'"{escaped}"'
 
 
 def _field_datavalue(field_name: str, value: str, language: str) -> dict:
-    if field_name in WIKIBASE_TIME_FIELDS:
-        time_value = _time_datavalue(value)
-        if time_value is not None:
-            return time_value
-    if field_name in WIKIBASE_MONOLINGUAL_FIELDS:
-        return _monolingual_datavalue(value, LANGUAGE_TAGS.get(language, "mul"))
-    if field_name in WIKIBASE_QUANTITY_FIELDS:
-        quantity = _quantity_datavalue(value)
-        if quantity is not None:
-            return quantity
-    return _string_datavalue(value)
+    spec = _spec(field_name)
+    parser = spec.get("parser")
+    if parser == "time":
+        return _time_datavalue(value) or _string_datavalue(value)
+    if parser == "monolingual":
+        return _monolingual_datavalue(value[:MAX_STRING_LENGTH], _language_for(spec, language))
+    if parser == "quantity":
+        return _quantity_datavalue(value) or _string_datavalue(value)
+    return _string_datavalue(value[:MAX_STRING_LENGTH])
 
 
 def _wikibase_item(row: ExportRow, property_mapping: dict[str, str]) -> dict:
     claims: dict[str, list[dict]] = {}
+    unresolved: list[dict] = []
 
-    for field_name, wikidata_prop in FIELD_WIKIDATA.items():
-        if wikidata_prop is None:
+    for field_name, spec in FIELD_CONTRACT.items():
+        prop_key = spec.get("local_property")
+        if not prop_key:
             continue
-        value = row.fields.get(field_name, "").strip()
+        value = (row.fields.get(field_name) or "").strip()
         if not value:
             continue
-        prop = wikibase_property_id(field_name, value, wikidata_prop)
-        local_prop = property_mapping.get(prop, prop)
+
+        if field_name == "isbn":
+            prop_key = wikibase_property_id("isbn", value, "P212")
+        local_prop = property_mapping.get(prop_key, prop_key)
+
+        if spec.get("parser") == "entity":
+            for token in _split_values(value):
+                if re.fullmatch(r"Q\d+", token):
+                    claims.setdefault(local_prop, []).append(_statement(local_prop, _entity_datavalue(token)))
+                else:
+                    unresolved.append({"field": field_name, "value": token})
+            continue
+
         claims.setdefault(local_prop, []).append(
             _statement(local_prop, _field_datavalue(field_name, value, row.language))
         )
@@ -451,24 +500,42 @@ def _wikibase_item(row: ExportRow, property_mapping: dict[str, str]) -> dict:
     book_item = property_mapping.get("Q571", "Q571")
     claims.setdefault(instance_of, []).append(_statement(instance_of, _entity_datavalue(book_item)))
 
-    language = row.fields.get("language") or row.language
-    language_qid = LANGUAGE_QIDS.get(language)
+    language_qid = LANGUAGE_QIDS.get(row.language)
     if language_qid:
         language_prop = property_mapping.get("P407", "P407")
         claims.setdefault(language_prop, []).append(
             _statement(language_prop, _entity_datavalue(property_mapping.get(language_qid, language_qid)))
         )
 
+    # language and original_language share P407; collapse identical statements.
+    for prop in list(claims):
+        seen: set[str] = set()
+        unique: list[dict] = []
+        for statement in claims[prop]:
+            key = json.dumps(statement["mainsnak"]["datavalue"], sort_keys=True, ensure_ascii=False)
+            if key not in seen:
+                seen.add(key)
+                unique.append(statement)
+        claims[prop] = unique
+
+    lang = LANGUAGE_TAGS.get(row.language, "en")
     label = row.fields.get("label") or row.title or Path(row.filename).name
+    labels = {lang: {"language": lang, "value": label}}
+    if lang != "en" and label.isascii():
+        labels["en"] = {"language": "en", "value": label}
+
     item: dict = {
         "type": "item",
-        "labels": {"en": {"language": "en", "value": label}},
+        "labels": labels,
         "claims": claims,
     }
 
-    description = row.fields.get("description_work") or row.fields.get("description_edition")
-    if description:
-        item["descriptions"] = {"en": {"language": "en", "value": description}}
+    description = (row.fields.get("description_work") or row.fields.get("description_edition") or "").strip()
+    if description and description != label:
+        item["descriptions"] = {lang: {"language": lang, "value": description[:150]}}
+
+    if unresolved:
+        item["unresolved"] = unresolved
 
     if row.custom_fields:
         item["custom_fields"] = dict(row.custom_fields)

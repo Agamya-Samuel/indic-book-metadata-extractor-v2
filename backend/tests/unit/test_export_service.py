@@ -90,6 +90,33 @@ class TestOpenRefine:
         assert "secret/path" not in body.decode("utf-8")
         assert "book.pdf" in body.decode("utf-8")
 
+    def test_exports_all_49_contract_fields(self):
+        header = _decode_csv(svc.render([_row()], "openrefine")[0])[0]
+        assert len(svc.CANONICAL_FIELDS) == 49
+        assert header[4:] == svc.CANONICAL_FIELDS
+
+    def test_formula_values_are_not_escaped(self):
+        row = _row()
+        row.fields["label"] = "=SUM(A1:A2)"
+        body, _, _ = svc.render([row], "openrefine")
+        text = body.decode("utf-8")
+        assert "=SUM(A1:A2)" in text
+        assert "'=SUM" not in text
+
+    def test_preserves_hindi_and_telugu(self):
+        row = _row()
+        row.fields["title"] = "अगस्त क्रान्ति का इतिहास"
+        row.fields["publisher"] = "తెలుగు అకాడమి"
+        text = svc.render([row], "openrefine")[0].decode("utf-8")
+        assert "अगस्त क्रान्ति का इतिहास" in text
+        assert "తెలుగు అకాడమి" in text
+
+    def test_empty_fields_stay_empty(self):
+        row = _row(fields={name: "" for name in svc.CANONICAL_FIELDS})
+        rows = _decode_csv(svc.render([row], "openrefine")[0])
+        assert len(rows[1]) == 4 + 49
+        assert rows[1][4:] == [""] * 49
+
 
 class TestXlsx:
     def test_headers_freeze_and_filter(self):
@@ -157,6 +184,7 @@ class TestJsonl:
 class TestWikibase:
     def test_entity_claims(self):
         row = _row()
+        row.fields["author"] = "Q123"
         row.fields["publication_date"] = "1998"
         row.fields["description_work"] = "A work"
         row.custom_fields = {"notes": "extra"}
@@ -165,9 +193,9 @@ class TestWikibase:
         item = payload[0]
 
         assert item["type"] == "item"
-        assert item["labels"]["en"]["value"] == "పుస్తకం"
-        assert item["descriptions"]["en"]["value"] == "A work"
-        assert item["claims"]["P50"][0]["mainsnak"]["datavalue"]["value"] == "రచయిత"
+        assert item["labels"]["te"]["value"] == "పుస్తకం"
+        assert item["descriptions"]["te"]["value"] == "A work"
+        assert item["claims"]["P50"][0]["mainsnak"]["datavalue"]["value"]["id"] == "Q123"
 
         instance = item["claims"]["P31"][0]["mainsnak"]["datavalue"]
         assert instance["type"] == "wikibase-entityid"
@@ -182,6 +210,13 @@ class TestWikibase:
         assert language["value"]["id"] == "Q809"
 
         assert item["custom_fields"] == {"notes": "extra"}
+
+    def test_unresolved_entity_values_are_reported_not_emitted(self):
+        row = _row()
+        row.fields["author"] = "రచయిత"
+        item = json.loads(svc.render([row], "wikibase")[0].decode("utf-8"))[0]
+        assert "P50" not in item["claims"]
+        assert item["unresolved"] == [{"field": "author", "value": "రచయిత"}]
 
     def test_empty_fields_are_skipped(self):
         row = _row(
@@ -228,7 +263,9 @@ class TestWikibaseTsvValue:
         assert svc.wikibase_tsv_value("title", "పుస్తకం", "tel") == 'te:"పుస్తకం"'
         assert svc.wikibase_tsv_value("pages", "242 p.", "tel") == "242"
         assert svc.wikibase_tsv_value("publication_date", "1998", "tel") == "+1998-00-00T00:00:00Z/9"
-        assert svc.wikibase_tsv_value("author", 'A "B"', "tel") == '"A \\"B\\""'
+        # Entity values need reconciliation first; QuickStatements cannot take
+        # a literal for a wikibase-item property.
+        assert svc.wikibase_tsv_value("author", 'A "B"', "tel") is None
         assert svc.wikibase_tsv_value("pages", "no number", "tel") is None
 
 
@@ -236,8 +273,15 @@ class TestWikidataMapping:
     def test_uses_valid_wikidata_properties(self):
         from app.schemas.metadata import FIELD_WIKIDATA
 
-        assert FIELD_WIKIDATA["place_of_printing"] is None
+        assert FIELD_WIKIDATA["place_of_printing"] == "LOCAL-PLACE-OF-PRINTING"
         assert FIELD_WIKIDATA["original_language"] == "P407"
         assert FIELD_WIKIDATA["isbn"] == "P212"
         assert FIELD_WIKIDATA["title"] == "P1476"
         assert FIELD_WIKIDATA["distributors"] == "P750"
+
+    def test_every_field_is_in_the_contract(self):
+        from app.schemas.metadata import ALL_METADATA_FIELDS, FIELD_WIKIDATA
+
+        assert len(FIELD_WIKIDATA) == 49
+        assert len(ALL_METADATA_FIELDS) == 49
+        assert set(FIELD_WIKIDATA) == {f.field_name for f in ALL_METADATA_FIELDS}
