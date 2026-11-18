@@ -192,3 +192,30 @@ Extensions deliberately **not** installed are the ones that require Wikimedia-wi
 | Export contains Wikidata P-IDs | Mapping file missing or unreadable | Run `make wikibase-init`, then restart the backend |
 | OpenRefine link 404s | `NEXT_PUBLIC_OPENREFINE_URL` unset at build | Rebuild the frontend |
 | Everything slow after starting the stack | ~2.5 GiB extra plus CPU | Stop the optional services |
+
+---
+
+## 11. Branding (OKI logo)
+
+`$wgLogos` is overridden in `docker/wikibase/config/90-extensions.php` to use three files in the
+`wikibase_data` volume at `/var/www/html/images/indico/`:
+
+| File | Used as | Source |
+| --- | --- | --- |
+| `logo.png` | `1x`, `1.5x`, `2x` (full lockup) | `docker/wikibase/images/logo.png` |
+| `icon.png` | `icon` (square emblem) | `docker/wikibase/images/icon.png` |
+| `wordmark.png` | `wordmark` (text beside the icon) | `docker/wikibase/images/wordmark.png` |
+
+MediaWiki 1.45 requires the `wordmark` entry to be an array with `src`, `width` and `height`;
+a plain string raises a `TypeError` in `SkinModule::getRelativeSizedLogo()` and every page
+returns HTTP 500.
+
+If the volume is recreated, restore the files and reload the web server:
+
+```bash
+C=<wikibase-container>
+docker cp docker/wikibase/images/logo.png     $C:/var/www/html/images/indico/logo.png
+docker cp docker/wikibase/images/icon.png     $C:/var/www/html/images/indico/icon.png
+docker cp docker/wikibase/images/wordmark.png $C:/var/www/html/images/indico/wordmark.png
+docker exec $C apache2ctl graceful
+```

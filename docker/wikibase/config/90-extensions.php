@@ -24,6 +24,22 @@ if (getenv('MW_WG_SERVER')) {
     $wgCanonicalServer = $wgServer;
 }
 
+# --- Branding ---
+# Files live in the images volume so they survive container recreation.
+# icon.png is the emblem, wordmark.png the text beside it, logo.png the full lockup.
+$wgLogos = [
+    '1x' => "$wgServer/images/indico/logo.png",
+    '1.5x' => "$wgServer/images/indico/logo.png",
+    '2x' => "$wgServer/images/indico/logo.png",
+    'icon' => "$wgServer/images/indico/icon.png",
+    // MediaWiki 1.45 requires width/height for a scalable wordmark.
+    'wordmark' => [
+        'src' => "$wgServer/images/indico/wordmark.png",
+        'width' => 160,
+        'height' => 93,
+    ],
+];
+
 # --- Extension Configuration ---
 
 # PropertySuggester: minimum probability threshold for suggestions
