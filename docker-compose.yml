@@ -92,6 +92,8 @@ services:
       - WIKIBASE_API_URL=http://wikibase/w/api.php
       - WIKIBASE_PUBLIC_URL=http://${WIKIBASE_HOST:-localhost:8181}
       - QUICKSTATEMENTS_PUBLIC_URL=http://localhost:9191
+      - WIKIBASE_BOT_USERNAME=${WIKIBASE_BOT_USERNAME:-}
+      - WIKIBASE_BOT_PASSWORD=${WIKIBASE_BOT_PASSWORD:-}
     volumes:
       - ./backend/storage:/app/storage
       - ./backend/app:/app/app

@@ -146,6 +146,8 @@ services:
       WIKIBASE_API_URL: http://wikibase/w/api.php
       WIKIBASE_PUBLIC_URL: ${WIKIBASE_SCHEME:-http}://${WIKIBASE_HOST}
       QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-}
+      WIKIBASE_BOT_USERNAME: ${WIKIBASE_BOT_USERNAME:-}
+      WIKIBASE_BOT_PASSWORD: ${WIKIBASE_BOT_PASSWORD:-}
     volumes:
       - storage_data:/app/storage
       # Run the code baked into the image — never bind-mount the source out of
