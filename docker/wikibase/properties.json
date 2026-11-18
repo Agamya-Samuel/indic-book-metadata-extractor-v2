@@ -202,5 +202,89 @@
     "label": "form of creative work",
     "datatype": "wikibase-item",
     "description": "form of a creative work"
+  },
+  {
+    "wikidata_id": "LOCAL-DESCRIPTION-WORK",
+    "label": "description (work)",
+    "datatype": "monolingualtext",
+    "description": "summary or description of the work"
+  },
+  {
+    "wikidata_id": "LOCAL-DESCRIPTION-EDITION",
+    "label": "description (edition)",
+    "datatype": "monolingualtext",
+    "description": "summary or description of this edition"
+  },
+  {
+    "wikidata_id": "LOCAL-COVER-PAGE-DESIGNER",
+    "label": "cover page designer",
+    "datatype": "wikibase-item",
+    "description": "designer of the cover page"
+  },
+  {
+    "wikidata_id": "LOCAL-TYPESETTING-BY",
+    "label": "typesetting by",
+    "datatype": "wikibase-item",
+    "description": "person or team who typeset the book"
+  },
+  {
+    "wikidata_id": "LOCAL-TYPING-BY",
+    "label": "typing by",
+    "datatype": "wikibase-item",
+    "description": "person who typed the manuscript"
+  },
+  {
+    "wikidata_id": "LOCAL-BOOK-DESIGNER",
+    "label": "book designer",
+    "datatype": "wikibase-item",
+    "description": "designer of the book layout"
+  },
+  {
+    "wikidata_id": "LOCAL-PUBLISHER-TELUGU",
+    "label": "publisher (Telugu)",
+    "datatype": "monolingualtext",
+    "description": "publisher name as printed in Telugu"
+  },
+  {
+    "wikidata_id": "LOCAL-PLACE-OF-PRINTING",
+    "label": "place of printing",
+    "datatype": "wikibase-item",
+    "description": "place where the book was printed"
+  },
+  {
+    "wikidata_id": "LOCAL-CONTEXT",
+    "label": "context",
+    "datatype": "monolingualtext",
+    "description": "context in which the work was produced"
+  },
+  {
+    "wikidata_id": "LOCAL-DEDICATION-VERBATIM",
+    "label": "dedication (verbatim)",
+    "datatype": "monolingualtext",
+    "description": "verbatim dedication text"
+  },
+  {
+    "wikidata_id": "LOCAL-ABBREVIATIONS",
+    "label": "abbreviations",
+    "datatype": "monolingualtext",
+    "description": "abbreviations used in the book"
+  },
+  {
+    "wikidata_id": "LOCAL-AUTHORS-IN-COMPILATION",
+    "label": "authors in compilation",
+    "datatype": "wikibase-item",
+    "description": "authors whose works are compiled in this book"
+  },
+  {
+    "wikidata_id": "LOCAL-OPINIONS-MESSAGES",
+    "label": "opinions / messages",
+    "datatype": "monolingualtext",
+    "description": "opinions and messages included in the book"
+  },
+  {
+    "wikidata_id": "LOCAL-SCRIBES",
+    "label": "scribes",
+    "datatype": "wikibase-item",
+    "description": "people who copied the manuscript"
   }
 ]

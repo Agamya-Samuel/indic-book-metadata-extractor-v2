@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.config import DEFAULT_LLM_MODEL
+
+CONTRACT_PATH = Path(__file__).with_name("metadata_contract.json")
+with CONTRACT_PATH.open(encoding="utf-8") as _contract_file:
+    METADATA_CONTRACT: dict = json.load(_contract_file)
+
+CONTRACT_VERSION: int = METADATA_CONTRACT["version"]
+FIELD_CONTRACT: dict[str, dict] = METADATA_CONTRACT["fields"]
+EXPECTED_FIELD_COUNT = 49
 
 
 class CoreIdentityBatch(BaseModel):
@@ -157,57 +167,24 @@ BATCH_FIELD_ORDER = [
     "physical_extra",
 ]
 
-FIELD_WIKIDATA = {
-    "label": None,
-    "author": "P50",
-    "description_work": None,
-    "description_edition": None,
-    "translator": "P655",
-    "editor": "P98",
-    "compiler": "P98",
-    "inception": "P571",
-    "form_of_creative_work": "P7937",
-    "genre": "P136",
-    "subject": "P921",
-    "original_language": "P407",
-    "edition_or_translation_of": "P629",
-    "based_on": "P144",
-    "inspired_by": "P941",
-    "volume": "P478",
-    "edition_number": "P393",
-    "publication_date": "P577",
-    "publisher": "P123",
-    "place_of_publication": "P291",
-    "printer": "P872",
-    "place_of_printing": None,
-    "language": "P407",
-    "cover_artist": "P736",
-    "cover_page_designer": None,
-    "typesetting_by": None,
-    "typing_by": None,
-    "book_designer": None,
-    "distributors": "P750",
-    "pages": "P1104",
-    "dedication": "P825",
-    "dedication_verbatim": None,
-    "part_of_series": "P179",
-    "serial_number_in_series": "P1545",
-    "part_of_the_set": "P361",
-    "illustrators": "P110",
-    "isbn": "P212",
-    "title": "P1476",
-    "subtitle": "P1680",
-    "awards": "P166",
-    "context": None,
-    "publisher_telugu": None,
-    "sponsor": "P859",
-    "first_published_in": "P1433",
-    "forewords": "P2679",
-    "abbreviations": None,
-    "authors_in_compilation": None,
-    "opinions_messages": None,
-    "scribes": None,
+# The contract is the single source of truth for which property carries a
+# field. Nulls are labels and item descriptions rather than statements.
+FIELD_WIKIDATA: dict[str, str | None] = {
+    field_name: spec["local_property"] for field_name, spec in FIELD_CONTRACT.items()
 }
+
+_CONTRACT_FIELDS = set(FIELD_CONTRACT)
+_MODEL_FIELDS = set(FullMetadata.model_fields) - {"custom_fields"}
+if _CONTRACT_FIELDS != _MODEL_FIELDS:
+    raise RuntimeError(
+        "metadata_contract.json is out of sync with FullMetadata: "
+        f"missing={sorted(_MODEL_FIELDS - _CONTRACT_FIELDS)} "
+        f"unknown={sorted(_CONTRACT_FIELDS - _MODEL_FIELDS)}"
+    )
+if len(FIELD_CONTRACT) != EXPECTED_FIELD_COUNT:
+    raise RuntimeError(
+        f"metadata_contract.json defines {len(FIELD_CONTRACT)} fields, expected {EXPECTED_FIELD_COUNT}"
+    )
 
 FIELD_DISPLAY_NAMES = {
     "label": "Label (Work and Edition)",

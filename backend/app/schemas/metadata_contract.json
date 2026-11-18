@@ -1,0 +1,397 @@
+{
+  "version": 1,
+  "fields": {
+    "label": {
+      "local_property": null,
+      "datatype": "string",
+      "cardinality": "one",
+      "language_tag": "auto",
+      "required": true,
+      "parser": "label"
+    },
+    "author": {
+      "local_property": "P50",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "description_work": {
+      "local_property": "LOCAL-DESCRIPTION-WORK",
+      "datatype": "monolingualtext",
+      "cardinality": "one",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "description_edition": {
+      "local_property": "LOCAL-DESCRIPTION-EDITION",
+      "datatype": "monolingualtext",
+      "cardinality": "one",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "original_language": {
+      "local_property": "P407",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "language": {
+      "local_property": "P407",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "isbn": {
+      "local_property": "P212",
+      "datatype": "external-id",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "isbn"
+    },
+    "title": {
+      "local_property": "P1476",
+      "datatype": "monolingualtext",
+      "cardinality": "many",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "subtitle": {
+      "local_property": "P1680",
+      "datatype": "monolingualtext",
+      "cardinality": "many",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "translator": {
+      "local_property": "P655",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "editor": {
+      "local_property": "P98",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "compiler": {
+      "local_property": "P98",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "cover_artist": {
+      "local_property": "P736",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "cover_page_designer": {
+      "local_property": "LOCAL-COVER-PAGE-DESIGNER",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "typesetting_by": {
+      "local_property": "LOCAL-TYPESETTING-BY",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "typing_by": {
+      "local_property": "LOCAL-TYPING-BY",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "book_designer": {
+      "local_property": "LOCAL-BOOK-DESIGNER",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "publication_date": {
+      "local_property": "P577",
+      "datatype": "time",
+      "cardinality": "one",
+      "language_tag": null,
+      "required": false,
+      "parser": "time"
+    },
+    "publisher": {
+      "local_property": "P123",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "publisher_telugu": {
+      "local_property": "LOCAL-PUBLISHER-TELUGU",
+      "datatype": "monolingualtext",
+      "cardinality": "one",
+      "language_tag": "te",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "place_of_publication": {
+      "local_property": "P291",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "printer": {
+      "local_property": "P872",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "place_of_printing": {
+      "local_property": "LOCAL-PLACE-OF-PRINTING",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "distributors": {
+      "local_property": "P750",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "sponsor": {
+      "local_property": "P859",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "form_of_creative_work": {
+      "local_property": "P7937",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "genre": {
+      "local_property": "P136",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "subject": {
+      "local_property": "P921",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "inception": {
+      "local_property": "P571",
+      "datatype": "time",
+      "cardinality": "one",
+      "language_tag": null,
+      "required": false,
+      "parser": "time"
+    },
+    "context": {
+      "local_property": "LOCAL-CONTEXT",
+      "datatype": "monolingualtext",
+      "cardinality": "one",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "awards": {
+      "local_property": "P166",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "volume": {
+      "local_property": "P478",
+      "datatype": "string",
+      "cardinality": "one",
+      "language_tag": null,
+      "required": false,
+      "parser": "string"
+    },
+    "edition_number": {
+      "local_property": "P393",
+      "datatype": "string",
+      "cardinality": "one",
+      "language_tag": null,
+      "required": false,
+      "parser": "string"
+    },
+    "edition_or_translation_of": {
+      "local_property": "P629",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "part_of_series": {
+      "local_property": "P179",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "serial_number_in_series": {
+      "local_property": "P1545",
+      "datatype": "string",
+      "cardinality": "one",
+      "language_tag": null,
+      "required": false,
+      "parser": "string"
+    },
+    "part_of_the_set": {
+      "local_property": "P361",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "based_on": {
+      "local_property": "P144",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "inspired_by": {
+      "local_property": "P941",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "first_published_in": {
+      "local_property": "P1433",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "dedication": {
+      "local_property": "P825",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "dedication_verbatim": {
+      "local_property": "LOCAL-DEDICATION-VERBATIM",
+      "datatype": "monolingualtext",
+      "cardinality": "one",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "forewords": {
+      "local_property": "P2679",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "abbreviations": {
+      "local_property": "LOCAL-ABBREVIATIONS",
+      "datatype": "monolingualtext",
+      "cardinality": "one",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "authors_in_compilation": {
+      "local_property": "LOCAL-AUTHORS-IN-COMPILATION",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "opinions_messages": {
+      "local_property": "LOCAL-OPINIONS-MESSAGES",
+      "datatype": "monolingualtext",
+      "cardinality": "many",
+      "language_tag": "auto",
+      "required": false,
+      "parser": "monolingual"
+    },
+    "scribes": {
+      "local_property": "LOCAL-SCRIBES",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    },
+    "pages": {
+      "local_property": "P1104",
+      "datatype": "quantity",
+      "cardinality": "one",
+      "language_tag": null,
+      "required": false,
+      "parser": "quantity"
+    },
+    "illustrators": {
+      "local_property": "P110",
+      "datatype": "wikibase-item",
+      "cardinality": "many",
+      "language_tag": null,
+      "required": false,
+      "parser": "entity"
+    }
+  }
+}
