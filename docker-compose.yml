@@ -87,6 +87,11 @@ services:
       - NEW_RELIC_LOG=${NEW_RELIC_LOG:-error}
       - NEW_RELIC_MONITOR_MODE=${NEW_RELIC_MONITOR_MODE:-true}
       - NEW_RELIC_DEVELOPER_MODE=${NEW_RELIC_DEVELOPER_MODE:-false}
+      # Wikibase is reached over the compose network; canonical URLs and
+      # QuickStatements links use the public origin.
+      - WIKIBASE_API_URL=http://wikibase/w/api.php
+      - WIKIBASE_PUBLIC_URL=http://${WIKIBASE_HOST:-localhost:8181}
+      - QUICKSTATEMENTS_PUBLIC_URL=http://localhost:9191
     volumes:
       - ./backend/storage:/app/storage
       - ./backend/app:/app/app
@@ -325,6 +330,7 @@ services:
       MW_ADMIN_NAME: admin
       MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
       MW_WG_SERVER: "http://localhost:8181"
+      MW_API_INTERNAL: http://wikibase/w/api.php
     volumes:
       - wikibase_config:/config
       - ./backend/storage:/app/storage

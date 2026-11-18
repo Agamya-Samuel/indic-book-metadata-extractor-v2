@@ -141,6 +141,11 @@ services:
       NEW_RELIC_CONFIG_FILE: /app/newrelic.ini
       NEW_RELIC_MONITOR_MODE: ${NEW_RELIC_MONITOR_MODE:-true}
       NEW_RELIC_DEVELOPER_MODE: ${NEW_RELIC_DEVELOPER_MODE:-false}
+      # Wikibase is reached over the compose network; canonical URLs and
+      # QuickStatements links use the public origin.
+      WIKIBASE_API_URL: http://wikibase/w/api.php
+      WIKIBASE_PUBLIC_URL: ${WIKIBASE_SCHEME:-http}://${WIKIBASE_HOST}
+      QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-}
     volumes:
       - storage_data:/app/storage
       # Run the code baked into the image — never bind-mount the source out of
@@ -388,8 +393,14 @@ services:
       MW_ADMIN_NAME: admin
       MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
       MW_WG_SERVER: "${WIKIBASE_SCHEME:-http}://${WIKIBASE_HOST}"
+      # Never probe the public origin from inside the compose network: DNS and
+      # TLS are not available there, which left the Wikibase empty on deploy.
+      MW_API_INTERNAL: http://wikibase/w/api.php
     volumes:
       - wikibase_config:/config
+      # The backend reads PROPERTY_MAPPING_PATH from this volume, so the init
+      # container must write the mapping here as well as to /config.
+      - storage_data:/app/storage
     depends_on:
       wikibase:
         condition: service_healthy
