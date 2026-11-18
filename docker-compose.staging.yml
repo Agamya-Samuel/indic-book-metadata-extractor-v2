@@ -415,6 +415,8 @@ services:
     environment:
       QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-http://localhost}
       WIKIBASE_PUBLIC_URL: ${WIKIBASE_PUBLIC_URL:-${WIKIBASE_SCHEME:-http}://${WIKIBASE_HOST}}
+      OAUTH_CONSUMER_KEY: ${QS_OAUTH_CONSUMER_KEY:-}
+      OAUTH_CONSUMER_SECRET: ${QS_OAUTH_CONSUMER_SECRET:-}
     volumes:
       - quickstatements_data:/quickstatements/data
     depends_on:

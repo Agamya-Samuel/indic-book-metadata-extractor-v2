@@ -413,10 +413,11 @@ services:
     environment:
       QUICKSTATEMENTS_PUBLIC_URL: ${QUICKSTATEMENTS_PUBLIC_URL:-https://localhost}
       WIKIBASE_PUBLIC_URL: ${WIKIBASE_PUBLIC_URL:-${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}}
+      # The image renders config.json and oauth.ini from these at startup.
+      OAUTH_CONSUMER_KEY: ${QS_OAUTH_CONSUMER_KEY:-}
+      OAUTH_CONSUMER_SECRET: ${QS_OAUTH_CONSUMER_SECRET:-}
     volumes:
       - quickstatements_data:/quickstatements/data
-      # toolBase must match QUICKSTATEMENTS_PUBLIC_URL; edit both together.
-      - ./docker/quickstatements/config.json:/var/www/html/quickstatements/public_html/config.json
     depends_on:
       wikibase:
         condition: service_healthy
