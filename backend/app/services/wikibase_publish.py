@@ -74,7 +74,9 @@ def language_tag(book_language: str) -> str:
 
 def _labels(text: str, lang: str) -> dict[str, dict[str, str]]:
     labels = {lang: {"language": lang, "value": text}}
-    if lang != "en" and text.isascii():
+    if lang != "en":
+        # Mirror the label so the default English UI does not show
+        # "No label defined" for an Indic-language item.
         labels["en"] = {"language": "en", "value": text}
     return labels
 

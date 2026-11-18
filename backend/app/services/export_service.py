@@ -521,7 +521,7 @@ def _wikibase_item(row: ExportRow, property_mapping: dict[str, str]) -> dict:
     lang = LANGUAGE_TAGS.get(row.language, "en")
     label = row.fields.get("label") or row.title or Path(row.filename).name
     labels = {lang: {"language": lang, "value": label}}
-    if lang != "en" and label.isascii():
+    if lang != "en":
         labels["en"] = {"language": "en", "value": label}
 
     item: dict = {
