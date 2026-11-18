@@ -308,19 +308,42 @@ Tick **Include book details** to add title, language, source filename, status, p
 upload/review dates. The 49 metadata fields are always exported, including empty ones, and `book_id`
 is always the first column so a re-import updates the right book.
 
+In **Wikibase JSON**, item-valued fields (author, publisher, genre, …) become claims only when the
+value is already a QID; anything still unresolved is listed under `unresolved` so you can reconcile
+it in OpenRefine first.
+
 ---
 
 ## Bulk Operations (OpenRefine & Wikibase)
 
-After processing many books, you can use **Bulk Operations** to clean metadata across the entire collection and export it to Wikibase.
+Bulk Operations cleans metadata across many books and publishes it to the project's Wikibase. The
+pipeline is: **export → clean in OpenRefine → reconcile → upload to Wikibase → verify**.
 
-1. Click **Bulk Operations** in the top navbar
-2. **Export** — Download metadata in your chosen format (filter by language/status if needed)
-3. **Open in OpenRefine** — Import the CSV into OpenRefine at `http://localhost:3333` for bulk cleaning (clustering publisher names, fixing typos, standardizing values)
-4. **Import** — Upload the cleaned CSV back to update all metadata records
-5. **Wikibase Export** — Generate QuickStatements TSV for uploading to Wikibase
+1. **Export** — choose **OpenRefine CSV**. It has stable machine headers, keeps Hindi and Telugu
+   as-is, leaves empty fields empty, and always includes `book_id` so a re-import updates the
+   right book.
+2. **Open in OpenRefine** — import the file into the OpenRefine instance for this project.
+3. **Add the Wikibase instance** — in OpenRefine, *Wikibase → Manage Wikibase instances → Add
+   Wikibase instance*, using the manifest URL from the deployment
+   (`https://<app-host>/api/reconcile/manifest.json`).
+4. **Sign in** — *Wikibase → Log in to Wikibase…* with the bot account created at
+   *Special:BotPasswords* (grants *Create, edit, and move pages* and *Edit existing pages*).
+5. **Reconcile** — for author, publisher, genre, subject, language and the other item-valued
+   columns, choose *Reconcile → Start reconciling*. Existing values link to their item; missing
+   values can be created as new items.
+6. **Edit the schema** — *Wikibase → Edit Wikibase schema*, one statement per column, using the
+   datatype for that field (title/subtitle/descriptions are monolingual text in the book's
+   language; dates are time; pages is a quantity; ISBN is an external identifier).
+7. **Upload edits** — *Wikibase → Upload edits to Wikibase* with a descriptive summary.
+8. **Verify** — open the created item in Wikibase and check the label language (`hi` or `te`) and
+   the statements.
 
-For detailed instructions, see the [Bulk Operations Guide](operations/bulk-operations.md).
+Admins can also publish without OpenRefine: **Admin → Bulk Operations → publish** accepts a
+`dry_run` that validates every field without writing. Publishing is idempotent — a book keeps
+the same Wikibase item on later runs.
+
+For the technical procedure (reconciliation service, contract, troubleshooting), see the
+[Export pipeline](operations/export-pipeline.md).
 
 ---
 

@@ -14,6 +14,7 @@ implemented on `main`.
 | Understand the pipeline | [Processing pipeline](processing/pipeline-overview.md) |
 | Call the HTTP API | [API reference](reference/api.md) |
 | Deploy it | [Deployment](operations/deployment.md) |
+| Publish metadata to OpenRefine/Wikibase | [Export pipeline](operations/export-pipeline.md) |
 | Fix something at 2am | [Runbook](operations/runbook.md) |
 | Use the application | [User guide](user-guide.md) |
 
@@ -46,6 +47,7 @@ docs/
 │   └── contributing.md              conventions, review, docs maintenance
 ├── operations/
 │   ├── deployment.md                compose, Dokploy, domains, rollback
+│   ├── export-pipeline.md           application → OpenRefine → Wikibase, verified
 │   ├── runbook.md                   symptom → diagnosis → action
 │   ├── monitoring.md                health, New Relic, admin metrics, alerting
 │   ├── backup-and-recovery.md       dumps, restore drill, volume inventory

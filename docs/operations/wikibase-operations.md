@@ -1,8 +1,8 @@
 # Wikibase and QuickStatements Operations
 
-> **Status: optional and not enabled by default in practice.** These services currently start with the
-> compose stack, but nothing in the core pipeline depends on them. Stopping them loses no processing
-> capability — only the ability to push reviewed metadata to a Wikibase instance.
+> **Status: active.** The Wikibase catalogue (48 properties + 4 seed items) is initialised by
+> `wikibase-init`, and reviewed metadata can be reconciled and published to it. The verified
+> procedure is [export-pipeline.md](export-pipeline.md). QuickStatements remains optional.
 >
 > Compose-profile gating is **recommended but not implemented**. See
 > [integrations](../architecture/integrations.md).

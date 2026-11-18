@@ -1,5 +1,10 @@
 # Bulk Operations — OpenRefine & Wikibase Integration
 
+> **Implemented and verified 2026-11-18.** The end-to-end procedure, the 49-field contract, the
+> reconciliation service, and the automated publish endpoint are documented in
+> [export-pipeline.md](export-pipeline.md). `backend/app/services/openrefine_service.py` is
+> dead code (no call sites) and is not part of the pipeline.
+
 ## Overview
 
 After processing thousands of books through the extraction pipeline, librarians need to:
