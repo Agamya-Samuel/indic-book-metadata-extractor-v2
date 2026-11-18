@@ -16,6 +16,14 @@ wfLoadExtension('WikibaseEdtf');
 # Gadgets extension (may already be loaded by MW core; wfLoadExtension is idempotent)
 wfLoadExtension('Gadgets');
 
+# --- Canonical origin ---
+# The bundled image bakes $wgServer at install time, so a redeploy on a new
+# domain keeps redirecting to the old host. Honour the runtime value instead.
+if (getenv('MW_WG_SERVER')) {
+    $wgServer = getenv('MW_WG_SERVER');
+    $wgCanonicalServer = $wgServer;
+}
+
 # --- Extension Configuration ---
 
 # PropertySuggester: minimum probability threshold for suggestions
