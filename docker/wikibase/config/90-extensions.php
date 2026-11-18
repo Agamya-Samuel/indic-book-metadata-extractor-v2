@@ -24,6 +24,20 @@ if (getenv('MW_WG_SERVER')) {
     $wgCanonicalServer = $wgServer;
 }
 
+# --- Statement indexing (WikibaseCirrusSearch) ---
+# haswbstatement: only works for properties listed here. Without this,
+# statement_keywords is empty in Elasticsearch and every haswbstatement
+# query returns 0 hits. Local property ids: P2 = instance of, P3 = author,
+# P6 = publisher, P15 = language, P31 = title.
+$wgWBRepoSettings['searchIndexProperties'] = [ 'P2', 'P3', 'P6', 'P15', 'P31' ];
+$wgWBRepoSettings['searchIndexTypes'] = [
+    'string',
+    'external-id',
+    'url',
+    'wikibase-item',
+    'wikibase-property',
+];
+
 # --- Branding ---
 # Files live in the images volume so they survive container recreation.
 # icon.png is the emblem, wordmark.png the text beside it, logo.png the full lockup.

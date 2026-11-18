@@ -224,3 +224,40 @@ WIKIBASE_API_URL=http://wikibase/w/api.php \
 WIKIBASE_BOT_USERNAME=admin WIKIBASE_BOT_PASSWORD=... \
 python backend/scripts/seed_wikibase_mainpage.py
 ```
+
+---
+
+## 12. Querying the catalogue
+
+The standard Wikibase way to list books is CirrusSearch's `haswbstatement:` keyword:
+
+| Query | URL |
+| --- | --- |
+| All books (instance of = book) | `/wiki/Special:Search?search=haswbstatement:P2=Q1&ns120=1` |
+| By author | `haswbstatement:P3=Q<author>` |
+| By publisher | `haswbstatement:P6=Q<publisher>` |
+| By language | `haswbstatement:P15=Q<language>` |
+| By title text | `haswbstatement:P31="<title>"` |
+| API | `/w/api.php?action=query&list=search&srsearch=haswbstatement:P2=Q1&srnamespace=120` |
+
+Statement search only covers properties listed in
+`$wgWBRepoSettings['searchIndexProperties']` (currently P2 instance of, P3 author, P6 publisher,
+P15 language, P31 title, set in `90-extensions.php`). After changing that list, recreate the
+index mapping and reindex:
+
+```bash
+docker exec <wikibase-container> sh -c \
+  "cd /var/www/html && php extensions/CirrusSearch/maintenance/UpdateSearchIndexConfig.php && \
+   php extensions/CirrusSearch/maintenance/ForceSearchIndex.php"
+```
+
+Without that configuration `statement_keywords` stays empty in Elasticsearch and every
+`haswbstatement:` query returns 0 hits.
+
+To list **all** items without a statement filter:
+
+* `/wiki/Special:AllPages?namespace=120`
+* `/w/api.php?action=query&generator=allpages&gapnamespace=120&prop=entityterms&wbetterms=label&gaplimit=500`
+  (items plus their labels in one request)
+
+A SPARQL endpoint is **not** deployed; add a query service if you need joins and aggregates.

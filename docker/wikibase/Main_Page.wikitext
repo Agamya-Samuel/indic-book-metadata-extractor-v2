@@ -2,6 +2,7 @@
 
 == Browse the catalogue ==
 * [[Special:AllPages?namespace=120|All items]]
+* [[Special:Search?search=haswbstatement%3AP2%3DQ1&ns120=1|All books]] — every item with instance of (P2) = [[Q1]] (CirrusSearch; extend with `haswbstatement:P3=…` for authors, `P6=…` for publishers)
 * [[Special:AllPages?namespace=122|All properties]]
 * [[Special:RecentChanges|Recent changes]]
 * [[Special:Search|Search]]
