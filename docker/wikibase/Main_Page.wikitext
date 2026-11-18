@@ -1,21 +1,11 @@
 '''IndicBooks''' is the structured-data catalogue for books digitised with the Indic Book Metadata Extractor. Each reviewed book is published as a Wikibase item with statements for author, publisher, language, ISBN and 40+ other fields.
 
 == Browse the catalogue ==
-* [[Special:AllPages?namespace=120|All items]]
-* [[Special:Search?search=haswbstatement%3AP2%3DQ1&ns120=1|All books]] — every item with instance of (P2) = [[Q1]] (CirrusSearch; extend with `haswbstatement:P3=…` for authors, `P6=…` for publishers)
-* [[Special:AllPages?namespace=122|All properties]]
+* [{{fullurl:Special:AllPages|namespace=120}} All items]
+* [{{fullurl:Special:Search|search=haswbstatement:P2=Q1&ns120=1}} All books] — every item with instance of (P2) = Q1; extend with `haswbstatement:P3=…` for authors or `P6=…` for publishers
+* [{{fullurl:Special:AllPages|namespace=122}} All properties]
 * [[Special:RecentChanges|Recent changes]]
 * [[Special:Search|Search]]
-
-== Books published so far ==
-* [[Item:Q87]] — अगस्त क्रान्ति का इतिहास (Hindi)
-* [[Item:Q100]] — భరత న్తంతరయ సంగరమం (Telugu)
-* [[Item:Q112]] — TIP Series No. 219 (Telugu)
-* [[Item:Q115]] — अगस्त क्रान्ति का इतिहास (Hindi)
-* [[Item:Q121]] — 28 మెcules (Telugu)
-* [[Item:Q129]] — समकाल की आवाज वीरेंदर भाटिया चयनित कविताएँ (Hindi)
-
-The list above is a snapshot; new books appear in [[Special:AllPages?namespace=120|All items]].
 
 == How the data is produced ==
 # Upload and OCR the book in the Indic Book Metadata Extractor.
