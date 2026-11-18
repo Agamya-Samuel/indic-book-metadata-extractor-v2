@@ -159,6 +159,18 @@ Frontend needs the matching `NEXT_PUBLIC_NEW_RELIC_*` values at **build** time.
 `wikibase-init` writes this file to both `/config/property-mapping.json` and the mounted backend
 storage volume, and the backend reads it on every export request.
 
+### Wikibase endpoints
+
+| Variable | Default | Used by |
+| --- | --- | --- |
+| `WIKIBASE_API_URL` | `http://wikibase/w/api.php` | Backend: internal API calls (compose network) |
+| `WIKIBASE_PUBLIC_URL` | *(empty)* | Backend: canonical RDF IRIs and the OpenRefine manifest |
+| `WIKIBASE_BOT_USERNAME` | *(empty)* | Backend: automated publishing |
+| `WIKIBASE_BOT_PASSWORD` | *(empty)* | Backend: bot password from `Special:BotPasswords` |
+
+The bot account needs *Create, edit, and move pages* and *Edit existing pages*. With these unset,
+`POST /api/wikibase/publish` refuses to run; the rest of the app is unaffected.
+
 ---
 
 ## Compose-only variables
@@ -171,7 +183,9 @@ Read by `docker-compose*.yml`, never by the app:
 | `NEXT_PUBLIC_API_URL` | Frontend API base, default `/api` |
 | `NEXT_PUBLIC_OPENREFINE_URL`, `NEXT_PUBLIC_WIKIBASE_URL` | Baked into the client bundle at build time |
 | `FLOWER_BASIC_AUTH` | Required for Flower |
-| `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `WIKIBASE_ADMIN_PASS`, `WIKIBASE_HOST`, `WIKIBASE_SCHEME`, `QUICKSTATEMENTS_PUBLIC_URL` | Optional Wikibase stack |
+| `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `WIKIBASE_ADMIN_PASS` | Wikibase database/admin credentials |
+| `WIKIBASE_HOST`, `WIKIBASE_SCHEME` | Public Wikibase origin (canonical `$wgServer`) |
+| `QUICKSTATEMENTS_PUBLIC_URL` | QuickStatements origin; empty until it gets a public hostname |
 | `BACKUP_PATH`, `BACKUP_KEEP` | `backup-db.sh` output directory and retention (default 7) |
 
 ---

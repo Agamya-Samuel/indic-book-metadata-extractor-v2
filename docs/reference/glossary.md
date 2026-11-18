@@ -100,8 +100,10 @@ snippet.
 
 **Core-adjacent** — `backup`. Tiny, and the only automated database backup.
 
-**Non-essential service** — optional: wikibase, wikibase-jobrunner, wikibase-init, quickstatements,
-mysql, elasticsearch, openrefine, flower.
+**Export service** — optional for digitisation but required to publish: wikibase,
+wikibase-jobrunner, wikibase-init, quickstatements, mysql, elasticsearch, openrefine.
+
+**Monitoring service** — `flower`; optional task dashboard.
 
 **Compose profile** — Compose's native mechanism for conditionally including services. Verified to
 work here, **not yet applied** to the production compose file.

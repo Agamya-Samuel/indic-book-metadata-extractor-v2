@@ -218,7 +218,7 @@ Several mechanisms make retries and re-deliveries safe:
 
 - **Workers send email.** They need the same `SMTP_*` and `FRONTEND_URL` as the backend, because job
   notifications originate in the task.
-- **Flower is internal.** `expose: 5555`, protected by `FLOWER_BASIC_AUTH`, non-essential.
+- **Flower is internal.** `expose: 5555`, protected by `FLOWER_BASIC_AUTH`; optional monitoring.
 - **`result_expires` is one hour.** Do not build monitoring on Celery results; poll `jobs`.
 - **No result backend dependency.** If Redis db 1 is lost, tasks still run; only historical results
   disappear.

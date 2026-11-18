@@ -402,9 +402,10 @@ Documented here because they shape what the documentation can honestly promise:
    serialise even across different books.
 3. **Language coverage is narrow.** Telugu and Hindi are supported and evaluated; other Indic scripts
    are not.
-4. **No authentication on the optional stack.** Wikibase/Traefik exposure is an operational concern
-   tracked in [integrations.md](integrations.md).
+4. **QuickStatements is unauthenticated and unrouted.** It has no public hostname and its OAuth
+   consumer still points at `https://localhost/api.php`; Wikibase itself is public and protected by
+   MediaWiki accounts, bot passwords and OAuth. See [integrations.md](integrations.md).
 5. **Semantic search is not implemented.** The `embeddings` table and pgvector extension exist, but
    nothing writes embeddings or queries them.
-6. **Optional services are not gated.** They always start with the compose stack and idle at roughly
-   2.5 GiB.
+6. **Export services are not gated.** They always start with the compose stack and idle at roughly
+   2.5 GiB, even on digitisation-only deployments.

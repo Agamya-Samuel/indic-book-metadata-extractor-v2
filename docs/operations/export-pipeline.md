@@ -125,7 +125,20 @@ original script in `title`, `author`, `publisher`, `pages` and `scribes`
 | Edits append instead of replace | this Wikibase uses `clear`, not `clearclaims` | `edit_item` sends `clear` |
 | OpenRefine cannot reach Wikibase | DNS missing or `WIKIBASE_PUBLIC_URL` wrong | add the DNS record and set the public origin |
 
-## 7. Deployment order
+## 7. QuickStatements (optional, not wired)
+
+QuickStatements is deployed but **cannot be used yet**:
+
+* no public hostname or traefik router;
+* `toolBase` is `https://localhost/`;
+* the OAuth consumer `QuickStatements` has callback `https://localhost/api.php`.
+
+To enable it: add a public hostname, set `QUICKSTATEMENTS_PUBLIC_URL` and `toolBase`, then
+re-register the OAuth consumer with callback `https://<qs-host>/api.php` and update
+`/quickstatements/data/oauth.ini`. Until then, publish with OpenRefine's Wikibase extension or
+`POST /api/wikibase/publish`.
+
+## 8. Deployment order
 
 The publish endpoint records the item id in `books.wikibase_item_id` (migration `020`). The
 column must exist **before** the new backend image starts, otherwise every query that selects a
@@ -136,7 +149,7 @@ docker compose exec backend alembic upgrade head   # adds books.wikibase_item_id
 # then rebuild/redeploy the backend image
 ```
 
-## 8. Contract maintenance
+## 9. Contract maintenance
 
 * `backend/app/schemas/metadata.py` loads `metadata_contract.json` at import time and fails
   fast if the field set drifts from `FullMetadata`.

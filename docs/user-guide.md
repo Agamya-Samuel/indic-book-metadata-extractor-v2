@@ -16,7 +16,7 @@ Indic Book Metadata Extractor is a web application that helps you extract struct
 ## Getting Started
 
 1. Ensure the application is running (see the [README](../README.md) for setup instructions)
-2. Open **http://localhost:3000** in your browser
+2. Open **https://<your-domain>** in your browser (locally: `http://localhost:3000`)
 3. You'll see the home page with **Start an upload** and a link to log in
 
 Uploading a book and everything else in the workflow requires a signed-in,
@@ -40,7 +40,7 @@ verification** on the login page.
 ### Signing in and out
 
 - **Log in** with your email address and password from the navbar or
-  `http://localhost:3000/login`
+  `https://<your-domain>/login`
 - **Forgot password?** — request a reset link on the login page; the link
   expires after one hour and can be used once
 - **Log out** from the user menu (display name) in the navbar

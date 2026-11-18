@@ -1,9 +1,15 @@
 # Bulk Operations — OpenRefine & Wikibase Integration
 
-> **Implemented and verified 2026-11-18.** The end-to-end procedure, the 49-field contract, the
-> reconciliation service, and the automated publish endpoint are documented in
-> [export-pipeline.md](export-pipeline.md). `backend/app/services/openrefine_service.py` is
-> dead code (no call sites) and is not part of the pipeline.
+> **Read this first.** The verified end-to-end procedure — including the 49-field contract,
+> reconciliation, the manifest and the publish endpoint — is in
+> [export-pipeline.md](export-pipeline.md). This document keeps the OpenRefine
+> cleaning and re-import details.
+>
+> **QuickStatements is not wired yet**: it has no public hostname, and its OAuth consumer
+> callback is `https://localhost/api.php`. The steps further down that use it are aspirational;
+> publish with OpenRefine's Wikibase extension or `POST /api/wikibase/publish` instead.
+>
+> `backend/app/services/openrefine_service.py` is dead code (no call sites).
 
 ## Overview
 
@@ -82,9 +88,9 @@ Verify OpenRefine and Wikibase are running:
 docker compose ps openrefine wikibase
 ```
 
-Access:
-- **OpenRefine**: http://localhost:3333
-- **Wikibase**: http://localhost:8181
+Access (production hostnames; local values are `localhost:3333` and `localhost:8181`):
+- **OpenRefine**: `https://indic-book-metadata-extractor-openrefine.nexio.uk`
+- **Wikibase**: `https://indic-book-metadata-extractor-wikibase.nexio.uk`
 
 ---
 
@@ -92,7 +98,7 @@ Access:
 
 ### Step 1: Export Metadata from the System
 
-1. Open the application at **http://localhost:3000**
+1. Open the application (production: `https://indic-book-metadata-extractor.nexio.uk`)
 2. Navigate to **Bulk Operations** (link in the top navbar)
 3. In the **Export to CSV** card:
    - Optionally filter by **Language** (e.g., Telugu only)
@@ -101,7 +107,7 @@ Access:
 4. A CSV file is downloaded with:
    - One row per book
    - First column: `book_id` (UUID — used for re-import matching)
-   - Remaining columns: all 52 metadata fields + `title`, `language`, `filename`
+   - Remaining columns: all 49 metadata fields plus `title`, `language`, `filename`
 
 **CSV columns** (in order):
 ```
@@ -122,7 +128,7 @@ authors_in_compilation, opinions_messages, scribes
 
 ### Step 2: Open in OpenRefine
 
-1. Open **http://localhost:3333** in your browser
+1. Open OpenRefine (`https://indic-book-metadata-extractor-openrefine.nexio.uk`) in your browser
 2. Click **Open** (top left) → **Import Project** or drag the CSV onto the page
 3. Alternatively: click **Create Project** → **This Computer** → select the exported CSV
 4. Configure import settings:
@@ -247,15 +253,13 @@ The file contains one `CREATE` block per book, with:
 
 **Option A: Via QuickStatements Tool (recommended)**
 
-1. Open **http://localhost:9191** (QuickStatements running in Docker)
-2. Log in with your Wikibase credentials (admin/admin by default)
-3. Paste the TSV content or upload the file
-4. Review the preview — verify items look correct
-5. Click **Run** to create the items
+1. **Not available yet** — QuickStatements has no public URL and its OAuth consumer points at
+   `https://localhost/api.php`. Once it is routed, open it, log in with the Wikibase bot account,
+   paste the TSV, review and run.
 
 **Option B: Directly via Wikibase API**
 
-1. Open your Wikibase at http://localhost:8181
+1. Open your Wikibase at `https://indic-book-metadata-extractor-wikibase.nexio.uk`
 2. Use the API to batch-create items programmatically
 3. See the [Wikibase API documentation](https://www.mediawiki.org/wiki/Wikibase/API)
 

@@ -52,7 +52,7 @@ docs/
 │   ├── monitoring.md                health, New Relic, admin metrics, alerting
 │   ├── backup-and-recovery.md       dumps, restore drill, volume inventory
 │   ├── bulk-operations.md           OpenRefine + Wikibase bulk workflows
-│   ├── wikibase-operations.md       optional stack, extensions, known defects
+│   ├── wikibase-operations.md       export stack, branding, querying, known defects
 │   ├── wikidata-workflow.md         QID creation and property mapping
 │   └── ocr-postdeploy.md            post-deploy OCR tuning steps
 ├── testing/

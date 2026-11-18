@@ -52,7 +52,7 @@ make wikibase-update     # update the image
 make install-gadgets     # install the in-wiki editing gadgets
 ```
 
-To stop the optional stack without deleting data, stop the services — do **not** remove volumes.
+To stop the export stack without deleting data, stop the services — do **not** remove volumes.
 
 ```bash
 docker compose stop wikibase wikibase-jobrunner quickstatements mysql elasticsearch openrefine flower

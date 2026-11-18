@@ -4,8 +4,9 @@ This document covers everything the application talks to that is not itself the 
 databases, brokers, inference, email, APM, the optional Wikibase stack, and the edge proxy. It also
 records, honestly, which of these are required and which are not.
 
-> **Rule of thumb:** if a service is listed as *non-essential* here, the core pipeline still works
-> when it is stopped. If it is *core*, stopping it breaks upload, processing, or review.
+> **Rule of thumb:** if a service is listed as *export-only* here, upload, processing and review
+> still work when it is stopped, but exporting and publishing do not. If it is *core*, stopping it
+> breaks upload, processing, or review.
 
 ---
 
@@ -19,10 +20,12 @@ three groups. Classification and memory figures come from
 | --- | --- | --- | --- |
 | **Core** | `postgres`, `redis`, `ollama`, `backend`, `worker`, `frontend` | ~1,184 MiB | Yes — pipeline cannot run |
 | **Core-adjacent** | `backup` | ~12 MiB | Yes — the only automated backup of `pgdata` |
-| **Non-essential** | `wikibase`, `wikibase-jobrunner`, `wikibase-init`, `quickstatements`, `mysql`, `elasticsearch`, `openrefine`, `flower` | ~2,522 MiB | No — nothing in the pipeline depends on them |
+| **Export** | `wikibase`, `wikibase-jobrunner`, `wikibase-init`, `quickstatements`, `mysql`, `elasticsearch`, `openrefine` | ~2,510 MiB | Only for export/publish — the extraction pipeline runs without them |
+| **Monitoring** | `flower` | ~12 MiB | No — optional task dashboard |
 
-Non-essential services therefore idle at roughly **16% of the reference host's RAM**. `openrefine`
-(~1,084 MiB) and `elasticsearch` (~900 MiB) account for 79% of that.
+Export services therefore idle at roughly **16% of the reference host's RAM** on a
+digitisation-only deployment. `openrefine` (~1,084 MiB) and `elasticsearch` (~900 MiB) account
+for 79% of that, which is why the compose-profile gating below still matters.
 
 ```mermaid
 flowchart LR
@@ -34,17 +37,18 @@ flowchart LR
         WK --> OL[ollama]
         BAK[backup] --> PG
     end
-    subgraph optional["Optional — no core dependency"]
+    subgraph optional["Export-only — no dependency from processing"]
         FL[flower] --> RD
         WB[wikibase] --> MY[(mysql)]
         WB --> ES[(elasticsearch)]
         QS[quickstatements] --> WB
-        OR[openrefine] -. "no backend wiring" .-> WB
+        OR[openrefine] -. "manifest + reconciliation" .-> BE
+    OR --> WB
     end
 ```
 
-`depends_on` only ever points inward (optional → core), never the reverse. That is what makes the
-optional group safe to stop.
+`depends_on` only ever points inward (export → core), never the reverse. That is what makes the
+export group safe to stop on a digitisation-only deployment.
 
 **Tesseract is not a service.** It is installed into the backend/worker image and spawned as a
 subprocess per page, so there is no OCR daemon to start, stop, or monitor.
@@ -53,7 +57,8 @@ subprocess per page, so there is no OCR daemon to start, stop, or monitor.
 
 ## 2. Gating status — recommended, not implemented
 
-Stopping the optional group by hand is safe. Doing it *by configuration* is not implemented yet.
+Stopping the export group by hand is safe: extraction and review continue, only export and publish
+stop. Doing it *by configuration* is not implemented yet.
 
 | Mechanism | State |
 | --- | --- |
@@ -64,8 +69,9 @@ Stopping the optional group by hand is safe. Doing it *by configuration* is not 
 
 To gate in production you would add `profiles: [wikibase]` / `[openrefine]` / `[monitoring]` to the
 relevant services and set `COMPOSE_PROFILES` in the environment tab. **Do not run `docker compose
-down -v`** — the optional services hold named volumes, and `wikibase-init` re-creates properties on
-next start, so the correct rollback is to leave volumes alone.
+down -v`** — the export services hold named volumes (including the
+branding files in `wikibase_data`), and `wikibase-init` re-creates properties on next start, so the
+correct rollback is to leave volumes alone.
 
 ---
 
@@ -145,15 +151,15 @@ Four distinct jobs, which is why it is core rather than optional:
 
 - **Purpose:** Celery task monitor
 - **Access:** internal network only, `expose: 5555`, protected by `FLOWER_BASIC_AUTH`
-- **Group:** non-essential
+- **Group:** monitoring (optional)
 
 ---
 
-## 5. Optional integrations — Wikibase stack
+## 5. Export stack — Wikibase, OpenRefine, QuickStatements
 
-These are documented as **optional and not enabled by default in practice**, even though they
-currently start with the compose stack. Their purpose is to take a reviewed metadata record and
-publish it as structured data.
+These implement the export/publish stage. They are optional for digitisation (upload → OCR →
+review) but required to publish metadata. See
+[`operations/export-pipeline.md`](../operations/export-pipeline.md) for the verified procedure.
 
 | Service | Role |
 | --- | --- |
@@ -165,25 +171,27 @@ publish it as structured data.
 | `elasticsearch` | Wikibase search backend |
 | `openrefine` | Bulk data cleaning GUI |
 
-### What the application actually does with them
+### How the application uses them
 
-"Export to Wikibase" is **local**: `/api/bulk/export-wikibase` generates a QuickStatements TSV in the
-backend and never contacts Wikibase over the network. The UI then links out to the hosted
-QuickStatements/OpenRefine URLs.
+* **OpenRefine** — the browser UI for cleaning and reconciliation. The backend serves a Wikibase
+  manifest v2 at `/api/reconcile/manifest.json` and a Reconciliation Service at
+  `/api/reconcile/{lang}/api`, so no SPARQL endpoint or extra container is needed.
+* **Wikibase** — the target store. `POST /api/wikibase/publish` creates or updates items through the
+  MediaWiki API, and `books.wikibase_item_id` makes it idempotent.
+* **QuickStatements** — optional. `/api/bulk/export-wikibase` generates a batch; OpenRefine can
+  upload directly without it.
 
-### Known broken wiring
+### Known gaps
 
-These are real defects, documented rather than glossed over:
-
-1. **Property mapping (fixed).** `docker/wikibase/create-properties.sh` now writes the mapping to
-   `/config/property-mapping.json` and to `/app/storage/property-mapping.json`; `wikibase-init` mounts
-   the backend storage volume, so `_load_property_mapping()` finds it and exports use local P-IDs.
+1. **QuickStatements is not publicly routed.** Its OAuth consumer callback is
+   `https://localhost/api.php` and `toolBase` is `https://localhost/`, so it cannot be used from a
+   browser yet. See `export-pipeline.md` §3.
 2. **`openrefine_service.py` is dead code.** Nothing imports it (verified: no importers in
    `backend/app`).
 3. **The UI cannot be feature-flagged at runtime.** OpenRefine/Wikibase URLs are compiled into the
    client bundle, so a runtime flag will not hide the links.
 
-None of these affect the core pipeline.
+None of these affect extraction or review.
 
 ---
 
@@ -232,9 +240,11 @@ ground truth. None of them run in production.
 | Ollama extraction (`/api/chat`) | Implemented |
 | SMTP email delivery | Implemented, disabled by default locally |
 | New Relic APM (backend, worker, browser) | Implemented, opt-in |
-| QuickStatements TSV export | Implemented, local generation only |
+| QuickStatements TSV export | Implemented (batch generation); QuickStatements itself not wired |
+| Wikibase publishing (`POST /api/wikibase/publish`) | Implemented, idempotent |
+| Wikibase statement search (`haswbstatement:`) | Implemented (P2, P3, P6, P15, P31 indexed) |
 | Wikibase property mapping | Implemented (written by `wikibase-init`) |
-| OpenRefine backend integration | **Not implemented** (dead module) |
+| OpenRefine integration | Implemented: manifest v2 + Reconciliation Service; UI workflow documented |
 | Compose-profile gating | **Recommended, not implemented** |
 | Runtime UI feature flags | **Not implemented** (build-time env only) |
 | Semantic search over `embeddings` | **Not implemented** (schema only) |

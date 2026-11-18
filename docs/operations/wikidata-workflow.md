@@ -1,5 +1,11 @@
 # Wikidata Workflow — QID Creation and Linked Data Pipeline
 
+> **Superseded (2026-11-18).** This describes the original manual workflow. The supported
+> procedure is [`export-pipeline.md`](export-pipeline.md); operational details are in
+> [`wikibase-operations.md`](wikibase-operations.md). Prefer OpenRefine's Wikibase extension or
+> `POST /api/wikibase/publish` over creating items by hand and pasting QuickStatements batches.
+> Ports below are local-development values; production uses the public hostnames.
+
 ## Overview
 
 This document describes the complete workflow for creating Wikibase items (QIDs) and properties (PIDs) from the Indic Book Metadata Extractor, and the end-to-end pipeline from scanned book PDF to structured linked data.

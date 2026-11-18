@@ -26,7 +26,8 @@ Cloudflare (DNS, TLS)
      postgres        redis           ollama        worker
      (pgvector)      (broker)        (gemma4)      (celery)
 
-  internal only: flower, backup, wikibase*, quickstatements, mysql, elasticsearch, openrefine
+  public: frontend (app), openrefine, wikibase, quickstatements (if enabled)
+  internal only: flower, backup, mysql, elasticsearch, ollama, prometheus
 ```
 
 **The frontend and backend must share one host.** The session cookie is host-only and `SameSite=Lax`;
@@ -85,12 +86,16 @@ Everything else has a working default. See [configuration](../development/config
 | `proxy` | `/` | 80 | **yes — the only public route** |
 | `frontend` | — | 3000 | no |
 | `backend` | — | 8000 | no |
-| `wikibase` | `/` | 80 | optional |
-| `openrefine` | `/` | 3333 | optional, operator tool |
+| `wikibase` | `/` | 80 | **yes — required for export** |
+| `openrefine` | `/` | 3333 | **yes — operator UI** |
+| `quickstatements` | `/` | 80 | if enabled |
 | everything else | — | — | internal only |
 
-- Map the app hostname to `proxy:80` only. The proxy forwards `/` to `frontend:3000` and `/api/` to
+- Map the app hostname to `proxy:80`. The proxy forwards `/` to `frontend:3000` and `/api/` to
   `backend:8000`, so the session cookie stays same-origin.
+- OpenRefine and Wikibase get their **own** hostnames: OpenRefine runs in the browser, and
+  Wikibase must be reachable from it (CORS, OAuth, manifest). The backend's
+  `/api/reconcile/...` endpoints stay on the app hostname.
 - Leave **Strip Path** off so `/api/...` arrives unchanged.
 - Enable HTTPS on the proxy route.
 - One environment must never reuse another environment's hostname: Traefik routes by host and
@@ -156,7 +161,7 @@ a 9 GB container cap. Postgres, Redis, backend, frontend, and the Celery worker 
 The reference host is 4 vCPU / 16 GB with **no swap**, which is why the pipeline processes one book at
 a time and Ollama is capped at one loaded model and one parallel request.
 
-The optional stack adds ~2.5 GiB of idle memory and can be stopped without affecting the pipeline —
+The export stack adds ~2.5 GiB of idle memory and can be stopped without affecting extraction —
 see [integrations](../architecture/integrations.md).
 
 ---
@@ -232,8 +237,9 @@ exercised routinely; restoring a dump is the reliable path.
 
 ## 8. Security notes
 
-- Only `frontend` and `backend` should have public domains. Everything else stays on the internal
-  network.
+- Public hostnames: the app (`frontend` + `backend` behind `proxy`), `openrefine`, `wikibase`, and
+  `quickstatements` if it is enabled. Everything else (databases, search, inference, metrics, backup)
+  stays internal.
 - `COOKIE_SECURE=true` in any HTTPS deployment.
 - `FLOWER_BASIC_AUTH` is mandatory if Flower is reachable at all.
 - Dokploy's own panel and Traefik's API are published by Dokploy on the host. If you restrict them,
@@ -252,6 +258,6 @@ exercised routinely; restoring a dump is the reliable path.
 | Frontend calls the wrong API host | `NEXT_PUBLIC_API_URL` is baked at build time | Change it and **rebuild** |
 | Every mutation returns 403 CSRF | Frontend and API on different origins | Serve both on one host with `/api` path |
 | Worker idle, jobs queued | Redis or Ollama unhealthy | Check `make status`, worker logs |
-| OOM kills | Model residency plus optional stack | Host Ollama separately or stop optional services |
+| OOM kills | Model residency plus export stack | Host Ollama separately or stop the export services |
 | Stale jobs accumulate | Worker died mid-task | Reaper clears them after `STALE_JOB_MINUTES` (90); or cancel manually |
 | Deploy aborts immediately | A `:?` variable is missing | Check the interpolation error in the deploy log |
