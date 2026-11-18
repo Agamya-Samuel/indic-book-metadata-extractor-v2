@@ -213,7 +213,7 @@ and should be prioritized for the next sprint:
 | First run is slow | Ollama pulls `gemma4:e4b` (~6.6 GB) on first start. The health check allows 120 s |
 | SSE falls back to polling | If the stream drops or is silent for ~25 s, the UI switches to HTTP polling and says so. Progress can lag by one polling interval |
 | Signed media URLs expire | Page images use six-hour signed URLs so they keep loading after the access cookie expires; after that the URL must be reissued |
-| Optional stack costs memory | Wikibase, OpenRefine, Elasticsearch, MySQL and Flower idle at ~2.5 GiB and are not gated by Compose profiles yet |
+| Export stack costs memory | Wikibase, OpenRefine, Elasticsearch, MySQL and Flower idle at ~2.5 GiB and are not gated by Compose profiles yet |
 
 ## How to use this document
 

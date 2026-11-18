@@ -66,7 +66,7 @@ This document describes the complete workflow for creating Wikibase items (QIDs)
    docker compose logs wikibase-init
    ```
 
-4. QuickStatements accessible at http://localhost:9191
+4. QuickStatements accessible at `https://<qs-host>`
 
 ---
 
@@ -193,7 +193,7 @@ This installs 8 gadgets:
 ### Via QuickStatements (Batch)
 
 1. Prepare a TSV file (see Step 6 for format)
-2. Go to http://localhost:9191
+2. Go to https://<qs-host>
 3. Log in with Wikibase credentials
 4. Paste TSV content or upload file
 5. Run — items are created in bulk
@@ -224,7 +224,7 @@ Where:
 1. Go to http://localhost:3000/admin/bulk
 2. Filter by language/status if needed
 3. Click **Download QuickStatements**
-4. Open http://localhost:9191
+4. Open https://<qs-host>
 5. Paste the TSV content
 6. Click **Run**
 
@@ -263,7 +263,7 @@ The export automatically uses local property IDs from the mapping file.
 ### OAuth login fails on QuickStatements
 - OAuth credentials may not have been auto-generated. Register manually:
   1. Go to http://localhost:8181/wiki/Special:OAuthConsumerRegistration/propose
-  2. Set callback URL to `http://localhost:9191/api.php`
+  2. Set callback URL to `https://<qs-host>/api.php`
   3. Grant: `createeditmovepage`, `editpage`, `highvolume`
   4. Approve the consumer
   5. Set `OAUTH_CONSUMER_KEY` and `OAUTH_CONSUMER_SECRET` in QS environment

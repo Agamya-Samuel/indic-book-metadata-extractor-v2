@@ -81,14 +81,16 @@ Everything else has a working default. See [configuration](../development/config
 
 ### 2.3 Configure domains
 
+See also [domain-changes.md](domain-changes.md) for the full list of hostnames and the move procedure.
+
 | Service | Path | Port | Exposed? |
 | --- | --- | --- | --- |
-| `proxy` | `/` | 80 | **yes — the only public route** |
+| `proxy` | `/` | 80 | **yes — app + API** |
 | `frontend` | — | 3000 | no |
 | `backend` | — | 8000 | no |
 | `wikibase` | `/` | 80 | **yes — required for export** |
 | `openrefine` | `/` | 3333 | **yes — operator UI** |
-| `quickstatements` | `/` | 80 | if enabled |
+| `quickstatements` | `/` | 80 | **yes — optional tool** |
 | everything else | — | — | internal only |
 
 - Map the app hostname to `proxy:80`. The proxy forwards `/` to `frontend:3000` and `/api/` to
@@ -175,7 +177,7 @@ see [integrations](../architecture/integrations.md).
 | `ollama_data` | Model weights |
 | `storage_data` | Uploaded PDFs, rendered pages, processed images, thumbnails, fine-tuned OCR model |
 | `backup_data` | `pg_dump` archives, last 7 retained |
-| `wikibase_config`, `wikibase_data`, `quickstatements_data`, `mysql_data`, `elasticsearch_data`, `openrefine_data` | Optional stack |
+| `wikibase_config`, `wikibase_data`, `quickstatements_data`, `mysql_data`, `elasticsearch_data`, `openrefine_data` | Export stack |
 
 **Never run `docker compose down -v`** against an environment you want to keep. Stopping and starting
 is safe; removing volumes is not.

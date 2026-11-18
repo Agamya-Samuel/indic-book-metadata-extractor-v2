@@ -402,9 +402,10 @@ Documented here because they shape what the documentation can honestly promise:
    serialise even across different books.
 3. **Language coverage is narrow.** Telugu and Hindi are supported and evaluated; other Indic scripts
    are not.
-4. **QuickStatements is unauthenticated and unrouted.** It has no public hostname and its OAuth
-   consumer still points at `https://localhost/api.php`; Wikibase itself is public and protected by
-   MediaWiki accounts, bot passwords and OAuth. See [integrations.md](integrations.md).
+4. **QuickStatements has no OAuth consumer for its public host.** It is routed and its config is
+   env-driven, but the consumer callback is still `https://localhost/api.php`, so login fails.
+   Wikibase itself is public and protected by MediaWiki accounts, bot passwords and OAuth. See
+   [integrations.md](integrations.md).
 5. **Semantic search is not implemented.** The `embeddings` table and pgvector extension exist, but
    nothing writes embeddings or queries them.
 6. **Export services are not gated.** They always start with the compose stack and idle at roughly

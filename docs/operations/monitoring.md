@@ -47,7 +47,7 @@ Container healthchecks (Compose) and application health answer different questio
 | `postgres` healthcheck | `pg_isready` | `backend` and `worker` will not start |
 | `redis` healthcheck | `redis-cli ping` | Same |
 | `ollama` healthcheck | `ollama list` | Same; `start_period` is 120 s because of model load |
-| `wikibase` healthcheck | `/w/api.php` returns 200 | Optional stack only |
+| `wikibase` healthcheck | `/w/api.php` returns 200 | Export stack only |
 | `/health` | Live dependency reachability | Monitoring/alerting signal |
 
 Because `depends_on: condition: service_healthy` gates startup, a stuck Ollama download blocks the

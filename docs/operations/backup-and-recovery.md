@@ -104,7 +104,7 @@ starting it performs the migration — but do that deliberately, not accidentall
 | `backup_data` | Database dumps | No |
 | `redis_data` | Queue state (AOF) | Effectively yes; queued work is lost |
 | `ollama_data` | Model weights | Yes — pull again |
-| `mysql_data`, `elasticsearch_data`, `wikibase_config`, `wikibase_data`, `quickstatements_data`, `openrefine_data` | Optional stack | Yes, but data is lost |
+| `mysql_data`, `elasticsearch_data`, `wikibase_config`, `wikibase_data`, `quickstatements_data`, `openrefine_data` | Export stack | Yes, but data is lost |
 
 So the **irreplaceable** set is: `pgdata`, `storage_data/uploads`, `storage_data/models`, and
 `backup_data`.

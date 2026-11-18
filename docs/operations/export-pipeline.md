@@ -125,18 +125,29 @@ original script in `title`, `author`, `publisher`, `pages` and `scribes`
 | Edits append instead of replace | this Wikibase uses `clear`, not `clearclaims` | `edit_item` sends `clear` |
 | OpenRefine cannot reach Wikibase | DNS missing or `WIKIBASE_PUBLIC_URL` wrong | add the DNS record and set the public origin |
 
-## 7. QuickStatements (optional, not wired)
+## 7. QuickStatements (optional)
 
-QuickStatements is deployed but **cannot be used yet**:
+QuickStatements is publicly routed at
+`https://indic-book-metadata-extractor-quickstatements.nexio.uk`, and its `config.json` and
+`oauth.ini` are rendered from the environment at startup (`QUICKSTATEMENTS_PUBLIC_URL`,
+`WIKIBASE_PUBLIC_URL`, `OAUTH_CONSUMER_KEY`, `OAUTH_CONSUMER_SECRET`).
 
-* no public hostname or traefik router;
-* `toolBase` is `https://localhost/`;
-* the OAuth consumer `QuickStatements` has callback `https://localhost/api.php`.
+It stays unusable until the OAuth consumer is registered:
 
-To enable it: add a public hostname, set `QUICKSTATEMENTS_PUBLIC_URL` and `toolBase`, then
-re-register the OAuth consumer with callback `https://<qs-host>/api.php` and update
-`/quickstatements/data/oauth.ini`. Until then, publish with OpenRefine's Wikibase extension or
-`POST /api/wikibase/publish`.
+1. Create the Wikibase bot account `QuickStatementsBot`.
+2. As that bot, open `<wikibase>/wiki/Special:OAuthConsumerRegistration` and register an
+   **owner-only** consumer:
+   * callback `https://<qs-host>/api.php`
+   * grant **Create, edit, and move pages**
+3. Set `WIKIBASE_QS_BOT_PASSWORD`, `QS_OAUTH_CONSUMER_KEY` and `QS_OAUTH_CONSUMER_SECRET` in the
+   Dokploy environment (and `.env.production`).
+4. Redeploy — the entrypoint writes `/quickstatements/data/oauth.ini` from them.
+
+Then open QuickStatements, sign in with the bot, and either paste the batch from
+`POST /api/bulk/export-wikibase` or open the URL-import form (`#/v1=<url-encoded batch>`).
+
+QuickStatements remains optional: OpenRefine's Wikibase extension and
+`POST /api/wikibase/publish` publish without it.
 
 ## 8. Deployment order
 

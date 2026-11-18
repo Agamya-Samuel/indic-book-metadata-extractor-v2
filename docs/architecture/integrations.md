@@ -183,9 +183,10 @@ review) but required to publish metadata. See
 
 ### Known gaps
 
-1. **QuickStatements is not publicly routed.** Its OAuth consumer callback is
-   `https://localhost/api.php` and `toolBase` is `https://localhost/`, so it cannot be used from a
-   browser yet. See `export-pipeline.md` §3.
+1. **QuickStatements is routed but not authorised.** Its config (`toolBase`, `server`, `api`) is
+   rendered from `QUICKSTATEMENTS_PUBLIC_URL` and `WIKIBASE_PUBLIC_URL`, so only the OAuth consumer
+   still needs re-registering: its callback is `https://localhost/api.php`. See
+   `export-pipeline.md` §7.
 2. **`openrefine_service.py` is dead code.** Nothing imports it (verified: no importers in
    `backend/app`).
 3. **The UI cannot be feature-flagged at runtime.** OpenRefine/Wikibase URLs are compiled into the
@@ -240,7 +241,7 @@ ground truth. None of them run in production.
 | Ollama extraction (`/api/chat`) | Implemented |
 | SMTP email delivery | Implemented, disabled by default locally |
 | New Relic APM (backend, worker, browser) | Implemented, opt-in |
-| QuickStatements TSV export | Implemented (batch generation); QuickStatements itself not wired |
+| QuickStatements | Routed and env-configured; OAuth consumer pending |
 | Wikibase publishing (`POST /api/wikibase/publish`) | Implemented, idempotent |
 | Wikibase statement search (`haswbstatement:`) | Implemented (P2, P3, P6, P15, P31 indexed) |
 | Wikibase property mapping | Implemented (written by `wikibase-init`) |

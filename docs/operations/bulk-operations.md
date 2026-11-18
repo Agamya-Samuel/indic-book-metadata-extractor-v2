@@ -5,9 +5,10 @@
 > [export-pipeline.md](export-pipeline.md). This document keeps the OpenRefine
 > cleaning and re-import details.
 >
-> **QuickStatements is not wired yet**: it has no public hostname, and its OAuth consumer
-> callback is `https://localhost/api.php`. The steps further down that use it are aspirational;
-> publish with OpenRefine's Wikibase extension or `POST /api/wikibase/publish` instead.
+> **QuickStatements is routed but not authorised yet**: its OAuth consumer still points at
+> `https://localhost/api.php`. Once the consumer is re-registered (see
+> [export-pipeline.md](export-pipeline.md) §7) the steps below work; until then publish with
+> OpenRefine's Wikibase extension or `POST /api/wikibase/publish`.
 >
 > `backend/app/services/openrefine_service.py` is dead code (no call sites).
 
