@@ -14,12 +14,19 @@ from app.api.jobs import router as jobs_router
 from app.api.metadata import router as metadata_router
 from app.api.notifications import router as notifications_router
 from app.api.pages import router as pages_router
+from app.api.reconcile import router as reconcile_router
 from app.api.sse import router as sse_router
 from app.api.stages import router as stages_router
+from app.api.wikibase import router as wikibase_router
 
 api_router = APIRouter()
 # Liveness must stay unauthenticated so an external monitor can poll it.
 api_router.include_router(health_router, tags=["health"])
+# Public, read-only Reconciliation Service API + Wikibase manifest consumed by
+# OpenRefine. It wraps wbsearchentities and never writes.
+api_router.include_router(reconcile_router, prefix="/reconcile", tags=["reconcile"])
+# Admin publishing to Wikibase.
+api_router.include_router(wikibase_router, prefix="/wikibase", tags=["wikibase"])
 # Media GETs accept a session or a signed token, so they cannot sit behind the
 # approved-session dependency. They still enforce ownership or a resource-scoped
 # token inside each handler.

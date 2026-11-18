@@ -34,3 +34,28 @@ class ExportRequest(BaseModel):
         if len(book_ids) > MAX_BOOK_IDS:
             raise ValueError(f"At most {MAX_BOOK_IDS} books can be exported at once")
         return book_ids
+
+
+class PublishRequest(BaseModel):
+    """Books to publish to Wikibase. Omit ``book_ids`` to publish every complete book."""
+
+    book_ids: list[UUID] | None = Field(
+        default=None,
+        description="Explicit books to publish. Omit to publish every complete book.",
+    )
+    language: str | None = None
+    dry_run: bool = Field(
+        default=False,
+        description="Build claims and report warnings without writing to Wikibase.",
+    )
+
+    @field_validator("book_ids")
+    @classmethod
+    def _validate_publish_book_ids(cls, book_ids: list[UUID] | None) -> list[UUID] | None:
+        if book_ids is None:
+            return None
+        if not book_ids:
+            raise ValueError("book_ids cannot be empty")
+        if len(book_ids) > MAX_BOOK_IDS:
+            raise ValueError(f"At most {MAX_BOOK_IDS} books can be published at once")
+        return book_ids

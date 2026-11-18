@@ -125,6 +125,18 @@ class Settings(BaseSettings):
     # Wikibase property mapping (JSON file mapping Wikidata P-IDs to local P-IDs)
     property_mapping_path: str = "/app/storage/property-mapping.json"
 
+    # Wikibase endpoints. API calls from the backend use the compose network
+    # address; the public URL is used for canonical RDF IRIs, OAuth callbacks
+    # and QuickStatements links.
+    wikibase_api_url: str = "http://wikibase/w/api.php"
+    wikibase_public_url: str = ""
+    quickstatements_public_url: str = ""
+    # Bot password used by the automated publish endpoint. Create it at
+    # <wikibase>/wiki/Special:BotPasswords with "Edit existing pages" and
+    # "Create, edit, and move pages".
+    wikibase_bot_username: str = ""
+    wikibase_bot_password: str = ""
+
     # Threshold below which a metadata field is considered "low confidence" and
     # surfaces a "Review needed" hint in the UI. Set below the LLM baseline
     # (0.6) so only genuinely low-confidence fields surface the badge.

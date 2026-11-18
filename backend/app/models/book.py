@@ -26,6 +26,8 @@ class Book(UUIDMixin, TimestampMixin, Base):
     language: Mapped[str] = mapped_column(String(10), default="tel")
     status: Mapped[str] = mapped_column(String(30), default=BookStatus.UPLOADED)
     total_pages: Mapped[int | None] = mapped_column(Integer)
+    # Wikibase item created by the export pipeline; makes publishing idempotent.
+    wikibase_item_id: Mapped[str | None] = mapped_column(String(20))
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
 
     owner = relationship("User", back_populates="books")
