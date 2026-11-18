@@ -210,12 +210,17 @@ MediaWiki 1.45 requires the `wordmark` entry to be an array with `src`, `width` 
 a plain string raises a `TypeError` in `SkinModule::getRelativeSizedLogo()` and every page
 returns HTTP 500.
 
-If the volume is recreated, restore the files and reload the web server:
+If the volume is recreated, reinstall the files and reload the web server:
 
 ```bash
-C=<wikibase-container>
-docker cp docker/wikibase/images/logo.png     $C:/var/www/html/images/indico/logo.png
-docker cp docker/wikibase/images/icon.png     $C:/var/www/html/images/indico/icon.png
-docker cp docker/wikibase/images/wordmark.png $C:/var/www/html/images/indico/wordmark.png
-docker exec $C apache2ctl graceful
+./docker/wikibase/seed-branding.sh <wikibase-container>
+```
+
+The Main Page is wiki content stored in `docker/wikibase/Main_Page.wikitext`. Apply it after a
+fresh install (or to restore the catalogue links):
+
+```bash
+WIKIBASE_API_URL=http://wikibase/w/api.php \
+WIKIBASE_BOT_USERNAME=admin WIKIBASE_BOT_PASSWORD=... \
+python backend/scripts/seed_wikibase_mainpage.py
 ```
