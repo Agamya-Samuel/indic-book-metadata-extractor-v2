@@ -203,12 +203,15 @@ Extensions deliberately **not** installed are the ones that require Wikimedia-wi
 | File | Used as | Source |
 | --- | --- | --- |
 | `logo.png` | `1x`, `1.5x`, `2x` (full lockup) | `docker/wikibase/images/logo.png` |
-| `icon.png` | `icon` (square emblem) | `docker/wikibase/images/icon.png` |
-| `wordmark.png` | `wordmark` (text beside the icon) | `docker/wikibase/images/wordmark.png` |
+| `icon.png` | `icon` (square emblem, left of the title) | `docker/wikibase/images/icon.png` |
 
-MediaWiki 1.45 requires the `wordmark` entry to be an array with `src`, `width` and `height`;
-a plain string raises a `TypeError` in `SkinModule::getRelativeSizedLogo()` and every page
-returns HTTP 500.
+There is deliberately **no** `wordmark` entry: Vector 2022 then renders `$wgSitename` as the
+text next to the icon. A wordmark image would repeat the emblem, because the artwork already
+contains it. `$wgSitename` is set to `Open Book Map Wikibase`.
+
+MediaWiki 1.45 requires the `wordmark` entry, if present, to be an array with `src`, `width`
+and `height`; a plain string raises a `TypeError` in `SkinModule::getRelativeSizedLogo()` and
+every page returns HTTP 500.
 
 If the volume is recreated, reinstall the files and reload the web server:
 

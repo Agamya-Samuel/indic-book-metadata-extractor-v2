@@ -40,18 +40,14 @@ $wgWBRepoSettings['searchIndexTypes'] = [
 
 # --- Branding ---
 # Files live in the images volume so they survive container recreation.
-# icon.png is the emblem, wordmark.png the text beside it, logo.png the full lockup.
+# icon.png is the emblem shown at the left of the header. There is no wordmark
+# image: Vector 2022 falls back to $wgSitename as the text beside the icon.
+$wgSitename = 'Open Book Map Wikibase';
 $wgLogos = [
     '1x' => "$wgServer/images/indico/logo.png",
     '1.5x' => "$wgServer/images/indico/logo.png",
     '2x' => "$wgServer/images/indico/logo.png",
     'icon' => "$wgServer/images/indico/icon.png",
-    // MediaWiki 1.45 requires width/height for a scalable wordmark.
-    'wordmark' => [
-        'src' => "$wgServer/images/indico/wordmark.png",
-        'width' => 160,
-        'height' => 93,
-    ],
 ];
 
 # --- Extension Configuration ---

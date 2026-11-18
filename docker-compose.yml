@@ -290,7 +290,7 @@ services:
       MW_ADMIN_PASS: ${WIKIBASE_ADMIN_PASS}
       MW_ADMIN_EMAIL: admin@localhost
       MW_WG_SERVER: "http://localhost:8181"
-      MW_WG_SITENAME: IndicBooks
+      MW_WG_SITENAME: Open Book Map Wikibase
       MW_WG_LANGUAGE_CODE: en
       WIKIBASE_PUBLIC_HOST: ${WIKIBASE_HOST:-localhost:8181}
       ELASTICSEARCH_HOST: elasticsearch

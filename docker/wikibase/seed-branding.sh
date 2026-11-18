@@ -11,7 +11,7 @@ CONTAINER="${1:?usage: seed-branding.sh <wikibase-container>}"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 docker exec "$CONTAINER" mkdir -p /var/www/html/images/indico
-for name in logo icon wordmark; do
+for name in logo icon; do
     docker cp "$DIR/images/$name.png" "$CONTAINER:/var/www/html/images/indico/$name.png"
 done
 
