@@ -362,7 +362,9 @@ async def publish_book(
         report.warnings.append("dry run: no changes written")
         return report
 
-    data: dict[str, Any] = {"claims": claims}
+    # `clear` replaces the entity's statements, so the labels and descriptions
+    # must be included on every update or they are lost.
+    data: dict[str, Any] = {"labels": labels, "claims": claims}
     if descriptions:
         data["descriptions"] = descriptions
 

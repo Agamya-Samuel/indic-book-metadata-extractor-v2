@@ -150,3 +150,5 @@ def test_publish_book_creates_then_updates():
     assert report2.created is False
     assert len(client.edited) == 1
     assert client.edited[0][0] == report.item_id
+    # `clear` replaces the entity, so the labels must be resent on update.
+    assert client.edited[0][1]["labels"]["te"]["value"] == "పుస్తకం"
