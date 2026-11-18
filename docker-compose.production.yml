@@ -1,5 +1,5 @@
 # =============================================================================
-# Production Standalone Compose — Indic Book Metadata Extractor
+# Production Standalone Compose — Open Book Map
 # =============================================================================
 # Full self-contained compose file for the PRODUCTION environment on Dokploy.
 #
@@ -106,7 +106,7 @@ services:
       retries: 5
       start_period: 30s
     environment:
-      APP_NAME: ${APP_NAME:-Indic Book Metadata Extractor}
+      APP_NAME: ${APP_NAME:-Open Book Map}
       DEBUG: "false"
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-200}
@@ -134,7 +134,7 @@ services:
       SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Open Book Map}
       NEW_RELIC_ENVIRONMENT: production
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
       NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
@@ -208,7 +208,7 @@ services:
       SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor Worker}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Open Book Map Worker}
       NEW_RELIC_ENVIRONMENT: production
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: ${NEW_RELIC_DISTRIBUTED_TRACING_ENABLED:-true}
       NEW_RELIC_LOG: ${NEW_RELIC_LOG:-error}
@@ -245,7 +245,7 @@ services:
         BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
         NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
         NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
-        NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+        NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Open Book Map}
     restart: unless-stopped
     expose:
       - "3000"
@@ -253,7 +253,7 @@ services:
       NEXT_PUBLIC_OPENREFINE_URL: ${NEXT_PUBLIC_OPENREFINE_URL:-}
       NEW_RELIC_ENABLED: ${NEW_RELIC_ENABLED:-false}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
-      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Indic Book Metadata Extractor}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-Open Book Map}
     depends_on:
       - backend
 
@@ -415,6 +415,8 @@ services:
       WIKIBASE_PUBLIC_URL: ${WIKIBASE_PUBLIC_URL:-${WIKIBASE_SCHEME:-https}://${WIKIBASE_HOST}}
     volumes:
       - quickstatements_data:/quickstatements/data
+      # toolBase must match QUICKSTATEMENTS_PUBLIC_URL; edit both together.
+      - ./docker/quickstatements/config.json:/var/www/html/quickstatements/public_html/config.json
     depends_on:
       wikibase:
         condition: service_healthy
