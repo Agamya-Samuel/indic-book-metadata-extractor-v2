@@ -40,6 +40,12 @@ const jsonLd = {
 };
 
 export default function Home() {
+  const services = [
+    { href: process.env.NEXT_PUBLIC_WIKIBASE_URL, title: "Wikibase", desc: "Browse the published catalogue" },
+    { href: process.env.NEXT_PUBLIC_OPENREFINE_URL, title: "OpenRefine", desc: "Clean and reconcile metadata" },
+    { href: process.env.NEXT_PUBLIC_QUICKSTATEMENTS_URL, title: "QuickStatements", desc: "Batch-edit items" },
+  ].filter((s): s is { href: string; title: string; desc: string } => Boolean(s.href));
+
   return (
     <div className="relative isolate flex min-h-[calc(100dvh-var(--nav-height))] items-center justify-center overflow-hidden px-4 py-8 sm:py-10">
       <script
@@ -117,6 +123,37 @@ export default function Home() {
             </div>
           ))}
         </dl>
+
+        {services.length > 0 && (
+          <section className="mt-14 animate-fade-in" aria-labelledby="services-heading">
+            <h2
+              id="services-heading"
+              className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]"
+            >
+              Open data services
+            </h2>
+            <ul className="mt-4 grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
+              {services.map((service) => (
+                <li key={service.title}>
+                  <a
+                    href={service.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-full flex-col gap-1 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition-colors hover:border-[var(--accent-soft-text)]"
+                  >
+                    <span className="text-[length:var(--text-sm)] font-medium text-[var(--text)]">
+                      {service.title}{" "}
+                      <span aria-hidden="true" className="text-[var(--accent-text)]">↗</span>
+                    </span>
+                    <span className="text-[length:var(--text-xs)] text-[var(--text-muted)]">
+                      {service.desc}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Honest expectations: Telugu is the accuracy ceiling today, and the
             review step is part of the product, not an optional extra. */}
