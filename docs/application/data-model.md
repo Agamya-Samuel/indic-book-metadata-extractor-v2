@@ -60,7 +60,7 @@ erDiagram
 | `email_verified_at` | timestamptz | null ⇒ API rejects the session |
 | `last_login_at` | timestamptz | |
 | `token_version` | integer | default `0`; bump invalidates all access tokens |
-| `email_notifications_enabled` | boolean | default `true`; in-app delivery is never gated by this |
+| `email_notifications_enabled` | boolean | default `false` (email alerts are opt-in); in-app delivery is never gated by this |
 | `created_at`, `updated_at` | timestamptz | |
 
 ### `refresh_tokens`
@@ -79,10 +79,11 @@ erDiagram
 | Column | Type | Notes |
 | --- | --- | --- |
 | `user_id` | UUID | FK `users.id` `ON DELETE CASCADE`, indexed |
-| `purpose` | varchar(20) | `verify_email` \| `reset_password` |
+| `purpose` | varchar(20) | `verify_email` \| `reset_password` \| `verify_new_email` |
 | `token_hash` | varchar(64) | unique |
 | `expires_at` | timestamptz | 24 h verify, 60 min reset |
 | `used_at` | timestamptz | single-use enforcement |
+| `pending_email` | varchar(320) | target address for `verify_new_email` (change-email flow) |
 
 ### `books`
 
@@ -237,6 +238,28 @@ Singleton row (`id` pinned to `1`).
 The backend caches this in memory and reconciles every 10 s, so the middleware does not hit the
 database per request.
 
+### `smtp_settings`
+
+Singleton row (`id` pinned to `1`) holding admin-configured runtime SMTP settings. When a host is
+set, this overrides the `SMTP_*` environment variables; otherwise the environment is the fallback.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `enabled` | boolean | default `false` |
+| `host` | varchar(255) | null ⇒ fall back to env |
+| `port` | integer | default `587` |
+| `username` | varchar(255) | |
+| `password_encrypted` | text | Fernet ciphertext; never returned by the API |
+| `from_email` | varchar(320) | |
+| `from_name` | varchar(255) | |
+| `use_tls` | boolean | implicit TLS (SMTPS) |
+| `use_starttls` | boolean | STARTTLS |
+| `updated_by_id` | UUID | FK `users.id` `ON DELETE SET NULL` |
+| `updated_at` | timestamptz | |
+
+The password is encrypted at rest with a key derived from `ENCRYPTION_SECRET` (falling back to
+`JWT_SECRET_KEY`). The admin API exposes only `password_set`, never the secret.
+
 ### `embeddings`
 
 **Reserved — nothing writes to it yet.**
@@ -258,7 +281,7 @@ Stored as `varchar`, defined in Python and (for stages) enforced by check constr
 | --- | --- |
 | `UserRole` | `user`, `admin` |
 | `AccountStatus` | `pending`, `approved`, `rejected` |
-| `EmailTokenPurpose` | `verify_email`, `reset_password` |
+| `EmailTokenPurpose` | `verify_email`, `reset_password`, `verify_new_email` |
 | `BookStatus` | `uploaded`, `pages_selected`, `ocr_running`, `ocr_complete`, `llm_running`, `awaiting_review`, `complete` |
 | `JobType` | `page_extraction`, `ocr`, `llm`, `preprocessing` |
 | `JobStatus` | `queued`, `running`, `completed`, `failed`, `cancelled` |

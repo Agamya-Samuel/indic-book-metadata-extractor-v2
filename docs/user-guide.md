@@ -352,10 +352,19 @@ For the technical procedure (reconciliation service, contract, troubleshooting),
 ### Verification email never arrives
 - Registration works without SMTP, but then the link is only written to the
   **backend log**: `make logs-backend` and look for "SMTP disabled"
-- For real delivery set `SMTP_ENABLED=true` plus `SMTP_HOST`, `SMTP_PORT`,
+- Admins can configure SMTP at runtime from **Admin → System → Email (SMTP)**:
+  set the host, port, username, password and sender, then **Test configuration**
+  before saving. These settings override the `SMTP_*` environment variables.
+- Alternatively set `SMTP_ENABLED=true` plus `SMTP_HOST`, `SMTP_PORT`,
   `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` in `.env` and restart
 - Verification links expire after 24 hours — request a new one from the login
   page (**Resend verification**)
+
+### Managing your account
+- Open **Account settings** (account menu) to update your display name, change
+  your email (a confirmation link is sent to the new address; the old one stays
+  active until you confirm), change your password, and toggle email alerts
+- Email notifications are **off by default**; in-app notifications are always on
 
 ### Cannot log in
 - The account must be **verified** and **active** — a deactivated account

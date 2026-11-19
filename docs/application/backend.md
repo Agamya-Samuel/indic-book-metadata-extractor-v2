@@ -39,7 +39,7 @@ backend/app/
 │   ├── llm_service.py  prompts.py  prompt_profiles.py  extraction_validator.py
 │   ├── extractors/         regex_registry, dictionary_registry, hybrid orchestrator
 │   ├── stage_manager.py  page_selection.py  batch_routing.py
-│   ├── auth_service.py  notification_service.py  email_service.py
+│   ├── auth_service.py  notification_service.py  email_service.py  smtp_service.py
 │   ├── job_reaper.py  maintenance_service.py  admin_service.py  dashboard_service.py
 │   ├── search_service.py  pagination.py  metrics.py  sse_service.py
 └── tasks/                  Celery
@@ -107,6 +107,15 @@ optional `.env`. `_validate_security_settings()` refuses to start in non-debug m
 `JWT_SECRET_KEY` is shorter than 32 characters, and warns when `CORS_ORIGINS` contains `*`.
 
 Every variable and default is documented in [configuration](../development/configuration.md).
+
+### Runtime SMTP configuration
+
+`email_service` resolves SMTP settings through `smtp_service.get_effective_config()`: the
+admin-saved `smtp_settings` row wins when it has a host, otherwise the `SMTP_*` environment
+variables are the fallback. The admin API (`/api/admin/smtp`, `/api/admin/smtp/test`, admin-only)
+reads and writes the row; the stored password is Fernet-encrypted (`core/secret_box.py`) and never
+returned — the API exposes only `password_set`. A short in-process cache (invalidated on save) keeps
+the read cheap. `ENCRYPTION_SECRET` (falling back to `JWT_SECRET_KEY`) is the encryption key.
 
 ---
 

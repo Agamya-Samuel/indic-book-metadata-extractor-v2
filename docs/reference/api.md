@@ -44,7 +44,10 @@ Outside the approval gate so pending and rejected users can hold a session.
 | POST | `/refresh` | Rotate refresh token; 401 on replay |
 | POST | `/logout` | Revoke refresh token, clear cookies; 204 |
 | GET | `/me` | Current user |
+| PATCH | `/me` | Update own display name (`{ "display_name": "…" }`) |
+| POST | `/me/email` | Request an email change; requires current password, 202 |
 | POST | `/verify-email` | Consume verification token; starts a session |
+| POST | `/verify-new-email` | Confirm a new email address; revokes all sessions |
 | POST | `/resend-verification` | 202, always generic |
 | POST | `/forgot-password` | 202, always generic |
 | POST | `/reset-password` | Consume reset token; revokes all sessions |
@@ -210,6 +213,9 @@ Requires `role == admin` **and** an approved account.
 | GET | `/system` | Host and container metrics |
 | GET | `/maintenance` | Maintenance state |
 | PUT | `/maintenance` | Enable/disable maintenance mode |
+| GET | `/smtp` | Runtime SMTP config (password never returned) |
+| PUT | `/smtp` | Update runtime SMTP config (blank password keeps stored one) |
+| POST | `/smtp/test` | Test connection/login, or send a test email |
 | GET | `/jobs` | All jobs |
 | GET | `/jobs/summary` | Queue summary |
 | POST | `/jobs/cancel` | Bulk cancel |
@@ -509,7 +515,7 @@ LAST	P407	Q809
 | GET | `/api/notifications/unread-count` | `{ "count": N }` |
 | POST | `/api/notifications/{id}/read` | Row; 404 if it belongs to another user |
 | POST | `/api/notifications/read-all` | `{ "updated": N }` |
-| GET / PATCH | `/api/notifications/preferences` | `{ "email_enabled": true }` |
+| GET / PATCH | `/api/notifications/preferences` | `{ "email_enabled": false }`; email notifications are off by default for new users. In-app notifications are always on. |
 
 Types: `job_completed`, `job_failed`, `job_cancelled`, `account_approved`, `pending_registration`.
 Creation is idempotent per `(user, event_key)`.
