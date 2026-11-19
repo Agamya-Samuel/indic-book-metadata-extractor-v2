@@ -247,11 +247,18 @@ async def lifespan(app: FastAPI):
     if settings.stale_job_reaper_enabled:
         reaper_task = asyncio.create_task(_reaper_loop(), name="job-reaper")
     maintenance_task = asyncio.create_task(_maintenance_loop(), name="maintenance-refresh")
+    watchdog_task: asyncio.Task | None = None
+    if pool is not None:
+        from app.services.watchdog_service import watchdog_relay_loop
+
+        watchdog_task = asyncio.create_task(
+            watchdog_relay_loop(pool, async_session_factory), name="watchdog-relay"
+        )
 
     yield
     # Shutdown
     logger.info("Application shutting down...")
-    for task in (reaper_task, maintenance_task):
+    for task in (reaper_task, maintenance_task, watchdog_task):
         if task is not None:
             task.cancel()
             try:
