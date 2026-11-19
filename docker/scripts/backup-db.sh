@@ -27,3 +27,19 @@ if [ "$BACKUP_COUNT" -gt "$BACKUP_KEEP" ]; then
 fi
 
 echo "Backup created successfully: $BACKUP_DIR/$FILENAME"
+
+# Heartbeat: report success to Better Stack so a missing OR failing backup alerts.
+# URL comes from the environment (Dokploy env var), never from the repo.
+# The backup image is alpine (no curl) — fall back to busybox wget.
+if [ -n "${BETTERSTACK_BACKUP_HEARTBEAT_URL:-}" ]; then
+    if command -v curl >/dev/null 2>&1; then
+        PING="curl -fsS -o /dev/null"
+    else
+        PING="wget -q -O /dev/null"
+    fi
+    if $PING "$BETTERSTACK_BACKUP_HEARTBEAT_URL"; then
+        echo "Backup heartbeat pinged."
+    else
+        echo "WARNING: backup heartbeat ping failed (backup itself succeeded)." >&2
+    fi
+fi

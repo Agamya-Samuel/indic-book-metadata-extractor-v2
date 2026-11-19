@@ -314,6 +314,8 @@ services:
       PGUSER: postgres
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: indic_books
+      # Ping URL for the Better Stack daily-backup heartbeat. Unset in local/dev.
+      BETTERSTACK_BACKUP_HEARTBEAT_URL: ${BETTERSTACK_BACKUP_HEARTBEAT_URL:-}
     entrypoint: >
       /bin/sh -c "
       apk add --no-cache bash &&
