@@ -439,7 +439,7 @@ export default function BulkOperationsPage() {
               <li>
                 <strong className="text-[var(--text)]">Wikibase</strong> — Generate QuickStatements and upload to Wikibase via{" "}
                 <a
-                  href="https://quickstatements.toolforge.org/"
+                  href={process.env.NEXT_PUBLIC_QUICKSTATEMENTS_URL || "https://quickstatements.toolforge.org/"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[var(--accent-text)] hover:underline"
