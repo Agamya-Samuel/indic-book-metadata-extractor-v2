@@ -155,6 +155,12 @@ class WikibaseClient:
                 return hit["id"]
         return None
 
+    async def last_revid(self, item_id: str) -> int | None:
+        """Latest revision id of an item, for edit-conflict detection."""
+        payload = await self._get({"action": "wbgetentities", "ids": item_id, "props": "info"})
+        info = payload.get("entities", {}).get(item_id, {})
+        return info.get("lastrevid")
+
     async def create_item(
         self,
         labels: dict[str, dict[str, str]],
@@ -173,6 +179,7 @@ class WikibaseClient:
                 "data": json.dumps(data, ensure_ascii=False),
                 "token": self._csrf,
                 "summary": EDIT_SUMMARY,
+                "bot": "1",
             }
         )
         if "entity" not in payload:
@@ -180,18 +187,29 @@ class WikibaseClient:
         return payload["entity"]["id"]
 
     async def edit_item(self, item_id: str, data: dict[str, Any]) -> None:
-        payload = await self._post(
-            {
-                "action": "wbeditentity",
-                "id": item_id,
-                "data": json.dumps(data, ensure_ascii=False),
-                # This Wikibase (REL1_45) clears claims with `clear`.
-                "clear": 1,
-                "token": self._csrf,
-                "summary": EDIT_SUMMARY,
-            }
-        )
-        if "entity" not in payload:
+        """Replace an item's statements, detecting edit conflicts with baserevid."""
+        for attempt in range(2):
+            base = await self.last_revid(item_id)
+            body = {"claims": data.get("claims", {}), **{k: v for k, v in data.items() if k != "claims"}}
+            if base is not None:
+                body["baserevid"] = base
+            payload = await self._post(
+                {
+                    "action": "wbeditentity",
+                    "id": item_id,
+                    "data": json.dumps(body, ensure_ascii=False),
+                    # This Wikibase (REL1_45) clears claims with `clear`.
+                    "clear": 1,
+                    "token": self._csrf,
+                    "summary": EDIT_SUMMARY,
+                    "bot": "1",
+                }
+            )
+            if "entity" in payload:
+                return
+            if payload.get("error", {}).get("code") == "editconflict" and attempt == 0:
+                logger.info("edit conflict on %s, refetching", item_id)
+                continue
             raise RuntimeError(f"wbeditentity failed: {payload.get('error')}")
 
 
