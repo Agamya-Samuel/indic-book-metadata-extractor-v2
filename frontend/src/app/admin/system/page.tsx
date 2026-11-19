@@ -4,6 +4,7 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getAdminSystemMetrics, type ServiceHealth } from "@/lib/api";
 import MaintenanceCard from "@/components/admin/maintenance-card";
+import SmtpCard from "@/components/admin/smtp-card";
 import { PageContainer, Card, PageHeader } from "@/components/shared/card";
 import StatCard from "@/components/shared/stat-card";
 import DataTable, { type DataTableColumn } from "@/components/shared/data-table";
@@ -167,6 +168,7 @@ export default function AdminSystemPage() {
       />
 
       <MaintenanceCard />
+      <SmtpCard />
 
       {isError ? (
         <ErrorState

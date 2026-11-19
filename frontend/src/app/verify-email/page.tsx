@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  confirmEmailChange,
   isApprovedStatus,
   resendVerification,
   verifyEmail,
@@ -23,6 +24,7 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const emailParam = searchParams.get("email") ?? "";
+  const isEmailChange = searchParams.get("type") === "new-email";
 
   const { refreshUser } = useAuth();
   const [state, setState] = useState<VerificationState>(
@@ -40,19 +42,22 @@ function VerifyEmailContent() {
   useEffect(() => {
     if (!token || attempted.current) return;
     attempted.current = true;
-    verifyEmail(token)
-      .then(async (verified) => {
-        setVerifiedStatus(verified.account_status);
-        // Hydrate the auth context so the holding screen (or dashboard) is
-        // reachable without a second login.
-        await refreshUser();
+    // A change-email link confirms the new address; sessions were revoked on
+    // the change, so we do not hydrate the auth context here.
+    const confirm = isEmailChange ? confirmEmailChange : verifyEmail;
+    confirm(token)
+      .then(async (result) => {
+        if (!isEmailChange) {
+          setVerifiedStatus(result.account_status);
+          await refreshUser();
+        }
         setState("success");
       })
       .catch((err: unknown) => {
         setError(getErrorMessage(err));
         setState("error");
       });
-  }, [token, refreshUser]);
+  }, [token, refreshUser, isEmailChange]);
 
   const handleResend = useCallback(
     async (event: React.FormEvent) => {
@@ -82,6 +87,31 @@ function VerifyEmailContent() {
   }
 
   if (state === "success") {
+    if (isEmailChange) {
+      return (
+        <AuthCard
+          title="Email updated"
+          description="Your account email has been changed. For your security, you have been signed out."
+          footer={
+            <Link
+              href="/login"
+              className="text-[var(--accent-text)] hover:underline"
+            >
+              Sign in again
+            </Link>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
+              Sign in with your new email address to continue.
+            </p>
+            <LinkButton href="/login" className="w-full">
+              Sign in again
+            </LinkButton>
+          </div>
+        </AuthCard>
+      );
+    }
     if (!isApprovedStatus(verifiedStatus)) {
       return (
         <AuthCard

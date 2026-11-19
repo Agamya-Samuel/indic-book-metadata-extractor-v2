@@ -57,6 +57,7 @@ const NO_REFRESH_PATHS = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/auth/verify-email",
+  "/auth/verify-new-email",
   "/auth/resend-verification",
 ];
 
@@ -160,6 +161,30 @@ export const changePassword = async (
     current_password: currentPassword,
     new_password: newPassword,
   });
+};
+
+export const updateProfile = async (payload: {
+  display_name: string;
+}): Promise<AuthUser> => {
+  const response = await api.patch<AuthUser>("/auth/me", payload);
+  return response.data;
+};
+
+export const requestEmailChange = async (
+  currentPassword: string,
+  newEmail: string,
+): Promise<void> => {
+  await api.post("/auth/me/email", {
+    current_password: currentPassword,
+    new_email: newEmail,
+  });
+};
+
+export const confirmEmailChange = async (token: string): Promise<AuthUser> => {
+  const response = await api.post<AuthUser>("/auth/verify-new-email", {
+    token,
+  });
+  return response.data;
 };
 
 export interface Page<T> {
@@ -1466,6 +1491,60 @@ export const resetAdminUserPassword = async (
 
 export const deleteAdminUser = async (userId: string): Promise<void> => {
   await api.delete(`/admin/users/${userId}`);
+};
+
+// ---------------------------------------------------------------------------
+// Admin SMTP configuration
+// ---------------------------------------------------------------------------
+
+export interface SmtpConfig {
+  enabled: boolean;
+  host: string;
+  port: number;
+  username: string;
+  password_set: boolean;
+  from_email: string;
+  from_name: string;
+  use_tls: boolean;
+  use_starttls: boolean;
+  source: "db" | "env";
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+export interface SmtpConfigUpdate {
+  enabled?: boolean;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  from_email?: string;
+  from_name?: string;
+  use_tls?: boolean;
+  use_starttls?: boolean;
+}
+
+export const getAdminSmtp = async (): Promise<SmtpConfig> => {
+  const response = await api.get<SmtpConfig>("/admin/smtp");
+  return response.data;
+};
+
+export const updateAdminSmtp = async (
+  payload: SmtpConfigUpdate,
+): Promise<SmtpConfig> => {
+  const response = await api.put<SmtpConfig>("/admin/smtp", payload);
+  return response.data;
+};
+
+export const testAdminSmtp = async (payload: {
+  to_email?: string;
+  config?: SmtpConfigUpdate;
+}): Promise<{ ok: boolean; detail: string }> => {
+  const response = await api.post<{ ok: boolean; detail: string }>(
+    "/admin/smtp/test",
+    payload,
+  );
+  return response.data;
 };
 
 // ---------------------------------------------------------------------------

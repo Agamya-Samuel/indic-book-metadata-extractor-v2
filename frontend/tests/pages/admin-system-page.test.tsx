@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import AdminSystemPage from "@/app/admin/system/page";
@@ -7,6 +8,9 @@ import {
   getAdminSystemMetrics,
   getAdminMaintenance,
   updateAdminMaintenance,
+  getAdminSmtp,
+  updateAdminSmtp,
+  testAdminSmtp,
   type SystemMetricsResponse,
 } from "@/lib/api";
 
@@ -17,12 +21,18 @@ vi.mock("@/lib/api", async (importOriginal) => {
     getAdminSystemMetrics: vi.fn(),
     getAdminMaintenance: vi.fn(),
     updateAdminMaintenance: vi.fn(),
+    getAdminSmtp: vi.fn(),
+    updateAdminSmtp: vi.fn(),
+    testAdminSmtp: vi.fn(),
   };
 });
 
 const mockGetAdminSystemMetrics = vi.mocked(getAdminSystemMetrics);
 const mockGetAdminMaintenance = vi.mocked(getAdminMaintenance);
 const mockUpdateAdminMaintenance = vi.mocked(updateAdminMaintenance);
+const mockGetAdminSmtp = vi.mocked(getAdminSmtp);
+const mockUpdateAdminSmtp = vi.mocked(updateAdminSmtp);
+const mockTestAdminSmtp = vi.mocked(testAdminSmtp);
 
 const metrics: SystemMetricsResponse = {
   generated_at: "2024-01-01T10:00:00Z",
@@ -107,6 +117,38 @@ describe("AdminSystemPage", () => {
       updated_at: "2024-01-01T10:00:00Z",
       updated_by: "Admin User",
     });
+    mockGetAdminSmtp.mockResolvedValue({
+      enabled: true,
+      host: "smtp.example.com",
+      port: 587,
+      username: "mailer",
+      password_set: true,
+      from_email: "noreply@example.com",
+      from_name: "Open Book Map",
+      use_tls: false,
+      use_starttls: true,
+      source: "db",
+      updated_at: "2024-01-01T10:00:00Z",
+      updated_by: "Admin User",
+    });
+    mockUpdateAdminSmtp.mockResolvedValue({
+      enabled: true,
+      host: "smtp.example.com",
+      port: 587,
+      username: "mailer",
+      password_set: true,
+      from_email: "noreply@example.com",
+      from_name: "Open Book Map",
+      use_tls: false,
+      use_starttls: true,
+      source: "db",
+      updated_at: "2024-01-01T10:00:00Z",
+      updated_by: "Admin User",
+    });
+    mockTestAdminSmtp.mockResolvedValue({
+      ok: true,
+      detail: "Connected and authenticated successfully",
+    });
   });
 
   it("renders host resource cards", async () => {
@@ -158,5 +200,28 @@ describe("AdminSystemPage", () => {
       expect(screen.getByText("Could not load system metrics")).toBeDefined();
     });
     expect(screen.getByText("backend offline")).toBeDefined();
+  });
+
+  it("renders the SMTP configuration card without exposing the password", async () => {
+    render(<AdminSystemPage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText("Email (SMTP)")).toBeDefined();
+    expect(await screen.findByLabelText("Host")).toBeDefined();
+    expect((screen.getByLabelText("Host") as HTMLInputElement).value).toBe(
+      "smtp.example.com",
+    );
+    // The password field is never prefilled with the stored secret.
+    expect((screen.getByLabelText("Password") as HTMLInputElement).value).toBe("");
+  });
+
+  it("saves and tests SMTP settings", async () => {
+    const user = userEvent.setup();
+    render(<AdminSystemPage />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole("button", { name: "Test configuration" }));
+    await waitFor(() => expect(mockTestAdminSmtp).toHaveBeenCalled());
+
+    await user.click(screen.getByRole("button", { name: "Save SMTP settings" }));
+    await waitFor(() => expect(mockUpdateAdminSmtp).toHaveBeenCalled());
   });
 });

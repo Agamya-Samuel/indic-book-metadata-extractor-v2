@@ -258,6 +258,16 @@ export default function AppNavbar() {
                     Library
                   </Link>
                 )}
+                <Link
+                  href="/settings"
+                  onClick={closeAccountMenu}
+                  className={cn(
+                    "block px-4 py-2.5 text-[length:var(--text-sm)] text-[var(--text)] hover:bg-[var(--surface-sunken)]",
+                    focusRing,
+                  )}
+                >
+                  Account settings
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
