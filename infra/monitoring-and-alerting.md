@@ -1,8 +1,16 @@
 # Monitoring and alerting — options, decision, and pending actions
 
 - **Date:** 2026-11-14
-- **Status:** Provider chosen (Better Stack, free); waiting on account signup /
-  API token. Nothing is wired yet.
+- **Status:** Partially done (2026-11-19). Better Stack account created (team
+  "OKI Team"); 3 monitors + 2 heartbeats created via Uptime API v2 (all 3
+  monitors already `up` against production). `host-watchdog` installed on `oki`
+  (systemd timer, `/etc/betterstack-watchdog.env` with the ping URL — 600 perms,
+  root-only) and verified by a real drill: stopped worker → heartbeat `down` →
+  `up` after restart, Redis key set and cleared. `daily-backup` heartbeat still
+  `pending`: the Dokploy env var `BETTERSTACK_BACKUP_HEARTBEAT_URL` is not set
+  yet, so the backup service does not ping. Remaining: set that env var,
+  redeploy backend (activates the watchdog→admin in-app relay), confirm the
+  alert email address in Better Stack.
 - **Related:** [`plans/011-launch-readiness.md`](../plans/011-launch-readiness.md),
   [`todos/014-launch-readiness.md`](../todos/014-launch-readiness.md),
   [`docs/runbook.md`](../docs/operations/runbook.md)

@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenBookMap host watchdog (Better Stack heartbeat)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/betterstack-watchdog.env
+ExecStart=/opt/openbookmap/host-watchdog.sh
+User=root
+TimeoutStartSec=120
