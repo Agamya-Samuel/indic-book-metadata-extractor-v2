@@ -97,13 +97,19 @@ curl -s -X POST https://indic-book-metadata-extractor.nexio.uk/api/wikibase/publ
 
 ### Publish account
 
-The backend logs in with a **dedicated, non-admin Wikibase account**
-(`WIKIBASE_BOT_USERNAME` / `WIKIBASE_BOT_PASSWORD`, currently `OpenBookMapBot`).
+The backend logs in with a **dedicated, non-admin account using a bot password**:
+`WIKIBASE_BOT_USERNAME` is `OpenBookMapBot@publish` and `WIKIBASE_BOT_PASSWORD` is the
+bot token from *Special:BotPasswords*.
 
-Use the account's password, not a bot password: a bot password can authenticate but
-`wbeditentity` is rejected with `permissiondenied` / `badaccess-groups`, because the
-entity edit check requires rights that the bot-password grants do not carry. The account
-must be a normal user (createpage + edit), not a sysop.
+Create the bot password with these **grants** (MediaWiki grants, not user rights):
+
+* `basic` — required; without it every API call fails with `readapidenied`
+* `editpage` — carries `edit` and `item-term` (labels, descriptions, aliases)
+* `createeditmovepage` — carries `createpage`
+
+Without `editpage`, a bot password authenticates but `wbeditentity` fails with
+`permissiondenied` / `badaccess-groups`, because the entity edit check needs `item-term`
+for the label. The account must be a normal user, not a sysop.
 
 ## 5. Verification
 
