@@ -14,27 +14,19 @@ covers Celery specifically.
 `GET /health` (and `/api/health`) is deliberately unauthenticated so an external monitor can poll it.
 
 ```json
-{
-  "status": "ok",
-  "checks": {"postgres": "ok", "redis": "ok", "ollama": "ok"}
-}
+{"status": "ok"}
 ```
 
-| Condition | Status code | Body |
-| --- | --- | --- |
-| All checks ok | 200 | `status: "ok"` |
-| Any check fails | 503 | `status: "degraded"`, failing check carries `error: …` |
-
-| Check | Method |
-| --- | --- |
-| `postgres` | `SELECT 1` over the async engine |
-| `redis` | `PING` on the shared pool |
-| `ollama` | `GET /api/tags` with a 5 s timeout |
-
-`/api/status` is a lighter endpoint for uptime probes.
+It is a liveness probe only: it returns 200 with `status: "ok"` whenever the
+FastAPI process can answer. It says nothing about downstream dependencies —
+Postgres, Redis and Ollama health is visible through the container
+healthchecks (Compose `depends_on: service_healthy`) and the New Relic infra
+agent, not through this endpoint. `/api/status` (maintenance state) is the
+public status endpoint the frontend uses to gate the app.
 
 **What it does not check:** the worker, Tesseract, disk space, or queue depth. A green `/health` means
-the API can serve requests — not that books are progressing.
+the API can serve requests — not that books are progressing. The host-watchdog
+covers worker/disk/queue gaps (see runbook §12).
 
 ---
 
@@ -223,7 +215,7 @@ The hybrid tier logs are the fastest way to tell "OCR is bad" from "the LLM is b
 
 | Alert | Threshold suggestion | Rationale |
 | --- | --- | --- |
-| `/health` non-200 | 2 consecutive failures | Dependency outage |
+| `/health` non-200 | 2 consecutive failures | API process down (Better Stack keyword monitor) |
 | `jobs` stuck `running` | older than `STALE_JOB_MINUTES` (90) | Reaper will clear it, but it means lost work |
 | Queue depth growing | sustained > 5 for 30 min | Worker wedged or Ollama degraded |
 | Disk usage | > 85% | Storage grows with pages and previews |

@@ -27,9 +27,9 @@ Mounted at `/api` **and** unprefixed at `/health`. Unauthenticated by design.
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| GET | `/health` | Checks PostgreSQL, Redis, Ollama. 200 when all ok, 503 `degraded` otherwise |
+| GET | `/health` | Liveness probe: 200 `{"status": "ok"}` whenever the process answers; does not check dependencies |
 | GET | `/api/health` | Same handler |
-| GET | `/api/status` | Lightweight status |
+| GET | `/api/status` | Public maintenance state the frontend gates on |
 
 ---
 
@@ -536,4 +536,4 @@ Creation is idempotent per `(user, event_key)`.
 | 413 | Upload exceeds `MAX_UPLOAD_SIZE_MB` |
 | 422 | Validation error |
 | 429 | Rate limited; `Retry-After` set |
-| 503 | Maintenance mode, or `/health` degraded |
+| 503 | Maintenance mode |

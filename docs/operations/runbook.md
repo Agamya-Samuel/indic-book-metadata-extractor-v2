@@ -9,18 +9,15 @@ Symptom → diagnosis → action. For architecture, read
 
 ```bash
 make status                        # container health
-curl -s https://<host>/api/health  # dependency checks
+curl -s https://<host>/api/health  # liveness: {"status": "ok"}
 make logs-backend                  # API errors
 make logs-worker-ocr               # OCR/LLM errors (dev: also logs-worker-llm)
 ```
 
-`GET /api/health` returns:
-
-```json
-{"status": "ok", "checks": {"postgres": "ok", "redis": "ok", "ollama": "ok"}}
-```
-
-It returns `503` with `status: "degraded"` when any dependency fails, and the failing check says why.
+`GET /api/health` returns `{"status": "ok"}` whenever the FastAPI process can
+answer. It is a liveness probe only — it does not check dependencies; Postgres,
+Redis and Ollama are covered by the Compose healthchecks (`make status` shows
+container health). Dependency-level detail is in `docker compose logs`.
 
 > **Note:** the worker container does not serve HTTP. Its health is judged by task throughput and
 > logs, not by `/health`.
@@ -221,10 +218,15 @@ work even when the app's SMTP is down.
 | Alert | Fires when | First action |
 | --- | --- | --- |
 | **OpenBookMap API health** | `/api/health` missing `"status":"ok"` for 3 min | `make status`, then §11 capture set; if the host is down, `docker compose up -d` |
-| **OpenBookMap login page** | `/login` not 200 for 3 min | Check `frontend` container and proxy routing (`make logs-frontend`) |
 | **OpenBookMap homepage** | `/` not 200 for 3 min | Full CF → Traefik → app path broken; check proxy and origin reachability |
+| **OpenBookMap Wikibase API** | `w/api.php?...meta=siteinfo` missing `"batchcomplete"` for 3 min | `make wikibase-logs`; the export stack (Wikibase/MySQL/elasticsearch) is down |
+| **OpenBookMap QuickStatements** | `obm-quickstatements.oki-india.org/` not 200 for 3 min | `docker compose logs quickstatements` |
+| **OpenBookMap Ollama (health)** | `/api/health` missing `"ok"` for 3 min | Separate alert routing for the API tier; `docker compose logs ollama` |
 | **daily-backup** | No heartbeat ping for 36 h (period 24 h + grace 12 h) | Check `docker compose logs backup` and `ls -la` the backup volume; a failed `pg_dump` never pings, so this also catches silent failures |
 | **host-watchdog** | Watchdog `/fail` ping (worker/backend/frontend/proxy container down, disk > 85 %, or jobs running > 90 min) or missed 5-min ping | `make status` for container states, `df -h` for disk, `SELECT * FROM jobs WHERE status='running'` for stuck jobs; restarts: `docker compose up -d <service>` |
+
+Free tier is 10 monitors + heartbeats combined; the current set uses 7/10. The
+`/login` monitor was removed — `/` already exercises the frontend.
 
 Failures from the watchdog also create an **admin in-app notification** ("Host watchdog alert") via
 the backend relay (`backend/app/services/watchdog_service.py`), so the alert survives a dead SMTP.

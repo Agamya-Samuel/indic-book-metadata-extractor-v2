@@ -1,16 +1,17 @@
 # Monitoring and alerting — options, decision, and pending actions
 
 - **Date:** 2026-11-14
-- **Status:** Partially done (2026-11-19). Better Stack account created (team
-  "OKI Team"); 3 monitors + 2 heartbeats created via Uptime API v2 (all 3
-  monitors already `up` against production). `host-watchdog` installed on `oki`
-  (systemd timer, `/etc/betterstack-watchdog.env` with the ping URL — 600 perms,
-  root-only) and verified by a real drill: stopped worker → heartbeat `down` →
-  `up` after restart, Redis key set and cleared. `daily-backup` heartbeat still
-  `pending`: the Dokploy env var `BETTERSTACK_BACKUP_HEARTBEAT_URL` is not set
-  yet, so the backup service does not ping. Remaining: set that env var,
-  redeploy backend (activates the watchdog→admin in-app relay), confirm the
-  alert email address in Better Stack.
+- **Status:** Done (2026-11-19). Better Stack account created (team "OKI Team");
+  5 monitors + 2 heartbeats created via Uptime API v2, all green against
+  production (API health, homepage, Wikibase API, QuickStatements, Ollama
+  health; daily-backup + host-watchdog heartbeats). `host-watchdog` installed on
+  `oki` (systemd timer, `/etc/betterstack-watchdog.env` with the ping URL —
+  600 perms, root-only) and verified by a real drill: stopped worker →
+  heartbeat `down` → `up` after restart. `daily-backup` verified live: real
+  backup run → "Backup heartbeat pinged" → heartbeat `up` (alpine has no curl;
+  script falls back to busybox wget). Remaining: confirm the alert email
+  address in the Better Stack dashboard (Settings → Notifications — the API
+  cannot read or set it).
 - **Related:** [`plans/011-launch-readiness.md`](../plans/011-launch-readiness.md),
   [`todos/014-launch-readiness.md`](../todos/014-launch-readiness.md),
   [`docs/runbook.md`](../docs/operations/runbook.md)
@@ -47,15 +48,21 @@ Verified heartbeat mechanics (from the provider docs):
   `pending|up|down`
 - a heartbeat stays `pending` until the first ping
 
-### Items to create
+### Items (all created 2026-11-19 via `infra/betterstack-bootstrap.sh`)
 
 | Type | Target | Settings | Catches |
 |---|---|---|---|
 | HTTP keyword | `/api/health` | expect `"status":"ok"`, 3 min | site/host down, app hung |
-| HTTP | `/login` | expect 200 | frontend/routing broken |
 | HTTP | `/` | expect 200 | full CF → Traefik → app path |
+| HTTP keyword | `obm-wikibase.oki-india.org/w/api.php?...meta=siteinfo` | expect `"batchcomplete"`, 3 min | Wikibase/export stack down |
+| HTTP | `obm-quickstatements.oki-india.org/` | expect 200, 3 min | QuickStatements down |
+| HTTP keyword | `/api/health` ("Ollama (health)" monitor) | expect `"ok"`, 3 min | separate alert routing for the API tier |
 | Heartbeat | `daily-backup` | period 86400 s, grace 43200 s (36 h total) | backup missing **or failing** (only a successful run pings) |
 | Heartbeat | `host-watchdog` | period 600 s, grace 300 s; pings `/fail` with a one-line reason | worker down, job stuck > 90 min, disk > 85 % |
+
+Free tier is 10 monitors + heartbeats combined; this uses 5 monitors + 2 heartbeats (7/10).
+The `/login` monitor was removed (2026-11-19) — `/` already exercises the frontend, and free
+slots do not roll over.
 
 Detection latency ≈ check interval + grace; SMS/phone escalation is paid.
 
@@ -69,24 +76,12 @@ Detection latency ≈ check interval + grace; SMS/phone escalation is paid.
 | Gatus (self-hosted, YAML) | unlimited | Telegram/Slack/webhook | Same host-death blind spot; rejected |
 | Upptime (GitHub Actions) | free | GitHub issues | Ties monitoring to GitHub; 5-min floor |
 
-## Pending from the operator (Better Stack)
+## Operator follow-ups (Better Stack)
 
-1. Sign up at betterstack.com (third-party login — not handled by the agent).
-2. Either create the five items above, **or** create an API token, store it in
-   the gitignored `reference/betterstack`, and the agent creates them via
-   `POST /api/v2/monitors` and `/api/v2/heartbeats`.
-3. Say which email address receives alerts (or set it in the dashboard).
-
-## To wire once unblocked (all in-repo, no new services)
-
-1. `infra/host-watchdog.sh` + a systemd timer on `oki` (5 min): worker/backend
-   container state, jobs stuck > 90 min (reuses `job_reaper`'s SQL), `df /`
-   > 85 %, then ping the heartbeat or `/fail` with the reason. Failures also
-   create an **admin in-app notification**.
-2. One line in `docker/scripts/backup-db.sh`: ping the backup heartbeat after a
-   successful dump (URL from a Dokploy env var, never the repo).
-3. `docs/runbook.md` section: what each alert means and the first action.
-4. Verify honestly: stop the worker and confirm a real alert arrives.
+1. Confirm the alert email in the dashboard (Settings → Notifications); the API
+   cannot read or set it.
+2. Free-tier ceiling: add-ons are 50 extra monitors $21/mo annual, 10 extra
+   heartbeats $17/mo annual; phone/SMS needs the $29/mo responder license.
 
 ## Deferred with the domain change (Cloudflare account)
 
@@ -94,7 +89,8 @@ Detection latency ≈ check interval + grace; SMS/phone escalation is paid.
 - Edge WAF managed ruleset + a rate rule on `/api/auth/*`.
 - Options if done as code: API token + Terraform/script, so rules are
   reproducible when the domain moves.
-- Update the three monitor URLs to the final domain.
+- Update the monitor URLs (app origin, Wikibase, QuickStatements) to the final
+  domain.
 
 ## Also still outstanding
 
