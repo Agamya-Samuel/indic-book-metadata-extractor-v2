@@ -15,6 +15,7 @@ implemented on `main`.
 | Call the HTTP API | [API reference](reference/api.md) |
 | Deploy it | [Deployment](operations/deployment.md) |
 | Change hostnames | [Domain changes](operations/domain-changes.md) |
+| Set up QuickStatements | [QuickStatements setup](operations/quickstatements-setup.md) |
 | Publish metadata to OpenRefine/Wikibase | [Export pipeline](operations/export-pipeline.md) |
 | Fix something at 2am | [Runbook](operations/runbook.md) |
 | Use the application | [User guide](user-guide.md) |
@@ -49,6 +50,7 @@ docs/
 ├── operations/
 │   ├── deployment.md                compose, Dokploy, domains, rollback
 │   ├── domain-changes.md            moving every public hostname
+│   ├── quickstatements-setup.md     bot, OAuth consumer, verification
 │   ├── export-pipeline.md           application → OpenRefine → Wikibase, verified
 │   ├── runbook.md                   symptom → diagnosis → action
 │   ├── monitoring.md                health, New Relic, admin metrics, alerting

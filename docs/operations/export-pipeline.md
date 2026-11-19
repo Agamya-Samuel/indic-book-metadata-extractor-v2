@@ -128,30 +128,15 @@ original script in `title`, `author`, `publisher`, `pages` and `scribes`
 ## 7. QuickStatements (optional)
 
 QuickStatements is publicly routed at
-`https://indic-book-metadata-extractor-quickstatements.nexio.uk`, and its `config.json` and
-`oauth.ini` are rendered from the environment at startup (`QUICKSTATEMENTS_PUBLIC_URL`,
-`WIKIBASE_PUBLIC_URL`, `OAUTH_CONSUMER_KEY`, `OAUTH_CONSUMER_SECRET`).
+`https://indic-book-metadata-extractor-quickstatements.nexio.uk`; its `config.json` and
+`oauth.ini` are rendered from the environment at startup. It needs a Wikibase bot account and a
+**normal, not owner-only** OAuth consumer.
 
-It stays unusable until the OAuth consumer is registered:
+The full, reproducible procedure — bot account, email confirmation, `oauthbot` group, consumer
+registration, environment variables and verification — is in
+[`quickstatements-setup.md`](quickstatements-setup.md).
 
-1. Create the Wikibase bot account `QuickStatementsBot` and add it to the `oauthbot` group
-   (the group grants `mwoauthproposeconsumer`; see
-   `docker/wikibase/config/90-extensions.php`).
-2. As that bot, open `<wikibase>/wiki/Special:OAuthConsumerRegistration/propose/oauth1a` and
-   register a **normal, not owner-only** consumer:
-   * callback `https://<qs-host>/api.php`, with *callback is prefix* checked
-   * grant **Create, edit, and move pages**
-
-   Owner-only consumers cannot be used by a separate tool: the OAuth handshake fails with
-   `mwoauthserver-consumer-owner-only`, because QuickStatements has to fetch an access token.
-3. Set `WIKIBASE_QS_BOT_PASSWORD`, `QS_OAUTH_CONSUMER_KEY` and `QS_OAUTH_CONSUMER_SECRET` in the
-   Dokploy environment (and `.env.production`).
-4. Redeploy — the entrypoint writes `/quickstatements/data/oauth.ini` from them.
-
-Then open QuickStatements, sign in with the bot, and either paste the batch from
-`POST /api/bulk/export-wikibase` or open the URL-import form (`#/v1=<url-encoded batch>`).
-
-QuickStatements remains optional: OpenRefine's Wikibase extension and
+QuickStatements stays optional: OpenRefine's Wikibase extension and
 `POST /api/wikibase/publish` publish without it.
 
 ## 8. Deployment order
