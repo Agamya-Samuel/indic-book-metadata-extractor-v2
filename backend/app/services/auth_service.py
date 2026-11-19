@@ -29,8 +29,12 @@ from app.models.user import (
     User,
     UserRole,
 )
-from app.services import notification_service
-from app.services.email_service import send_password_reset_email, send_verification_email
+from app.services import notification_service, smtp_service
+from app.services.email_service import (
+    send_email_change_email,
+    send_password_reset_email,
+    send_verification_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +101,13 @@ async def create_user(
     return user
 
 
-async def create_email_token(db: AsyncSession, user: User, purpose: EmailTokenPurpose) -> str:
+async def create_email_token(
+    db: AsyncSession,
+    user: User,
+    purpose: EmailTokenPurpose,
+    *,
+    pending_email: str | None = None,
+) -> str:
     """Invalidate older links of the same purpose and return a fresh token."""
     await db.execute(
         update(EmailToken)
@@ -110,7 +120,7 @@ async def create_email_token(db: AsyncSession, user: User, purpose: EmailTokenPu
     )
 
     raw = generate_opaque_token()
-    if purpose == EmailTokenPurpose.VERIFY_EMAIL:
+    if purpose in (EmailTokenPurpose.VERIFY_EMAIL, EmailTokenPurpose.VERIFY_NEW_EMAIL):
         expires = utcnow() + timedelta(hours=settings.email_verification_expire_hours)
     else:
         expires = utcnow() + timedelta(minutes=settings.password_reset_expire_minutes)
@@ -121,6 +131,7 @@ async def create_email_token(db: AsyncSession, user: User, purpose: EmailTokenPu
             purpose=purpose,
             token_hash=hash_opaque_token(raw),
             expires_at=expires,
+            pending_email=pending_email,
         )
     )
     await db.commit()
@@ -147,7 +158,8 @@ async def register_user(db: AsyncSession, *, email: str, display_name: str, pass
     if user.account_status == AccountStatus.PENDING:
         notification_ids = await notification_service.notify_admins_registration(db, user)
         await db.commit()
-    await send_verification_email(user, token)
+    config = await smtp_service.get_effective_config(db)
+    await send_verification_email(user, token, config=config)
     return user, notification_ids
 
 
@@ -157,7 +169,8 @@ async def resend_verification(db: AsyncSession, email: str) -> None:
         # Do not disclose whether the address is registered.
         return
     token = await create_email_token(db, user, EmailTokenPurpose.VERIFY_EMAIL)
-    await send_verification_email(user, token)
+    config = await smtp_service.get_effective_config(db)
+    await send_verification_email(user, token, config=config)
 
 
 async def verify_email(db: AsyncSession, raw_token: str) -> User:
@@ -306,7 +319,8 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
     if user is None or not user.is_active:
         return
     token = await create_email_token(db, user, EmailTokenPurpose.RESET_PASSWORD)
-    await send_password_reset_email(user, token)
+    config = await smtp_service.get_effective_config(db)
+    await send_password_reset_email(user, token, config=config)
 
 
 async def _invalidate_password_reset_tokens(db: AsyncSession, user_id: UUID) -> None:
@@ -342,6 +356,67 @@ async def change_password(db: AsyncSession, user: User, current_password: str, n
     await _invalidate_password_reset_tokens(db, user.id)
     await db.commit()
     await revoke_all_sessions(db, user.id)
+
+
+async def update_profile(db: AsyncSession, user: User, *, display_name: str) -> User:
+    user.display_name = display_name.strip()
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def request_email_change(db: AsyncSession, user: User, new_email: str, current_password: str) -> None:
+    """Begin an email change: verify the new address before switching to it.
+
+    The current password is required to authorize the change. A verification
+    link goes to the *new* address; the current address stays active until the
+    link is confirmed.
+    """
+    if not verify_password(current_password, user.password_hash):
+        raise AuthError("Current password is incorrect", 400, "invalid_password")
+
+    normalized = normalize_email(new_email)
+    if normalized == user.email:
+        raise AuthError("This is already your email address", 400, "email_unchanged")
+    if await get_user_by_email(db, normalized) is not None:
+        raise AuthError("An account with this email already exists", 409, "email_taken")
+
+    token = await create_email_token(
+        db, user, EmailTokenPurpose.VERIFY_NEW_EMAIL, pending_email=normalized
+    )
+    config = await smtp_service.get_effective_config(db)
+    sent = await send_email_change_email(user, normalized, token, config=config)
+    if not sent:
+        raise AuthError(
+            "Could not send a verification email to the new address. Please try again later.",
+            502,
+            "email_send_failed",
+        )
+
+
+async def confirm_email_change(db: AsyncSession, raw_token: str) -> User:
+    token = await _consume_email_token(db, raw_token, EmailTokenPurpose.VERIFY_NEW_EMAIL)
+    user = await db.get(User, token.user_id)
+    if user is None:
+        raise AuthError("This link is invalid", 400, "invalid_token")
+
+    new_email = (token.pending_email or "").strip().lower()
+    if not new_email:
+        raise AuthError("This link is invalid", 400, "invalid_token")
+
+    existing = await get_user_by_email(db, new_email)
+    if existing is not None and existing.id != user.id:
+        raise AuthError("An account with this email already exists", 409, "email_taken")
+
+    user.email = new_email
+    if user.email_verified_at is None:
+        user.email_verified_at = utcnow()
+    await db.commit()
+    await db.refresh(user)
+    # Email is a credential: force re-authentication everywhere after a change.
+    await revoke_all_sessions(db, user.id)
+    await db.refresh(user)
+    return user
 
 
 # ---------------------------------------------------------------------------

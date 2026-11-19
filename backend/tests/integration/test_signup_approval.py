@@ -12,7 +12,7 @@ PASSWORD = "correct horse battery staple"
 
 
 async def _register(anon_client, monkeypatch, email: str) -> None:
-    async def fake_send(user, token):
+    async def fake_send(user, token, **kwargs):
         return True
 
     monkeypatch.setattr(auth_service, "send_verification_email", fake_send)

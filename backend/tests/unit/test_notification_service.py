@@ -236,7 +236,10 @@ async def test_account_approved_points_at_dashboard(db_session) -> None:
 
 
 async def test_email_delivery_respects_preference(db_session, monkeypatch) -> None:
-    opted_in = await _make_user(db_session)
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "smtp_enabled", True)
+    opted_in = await _make_user(db_session, email_notifications_enabled=True)
     opted_out = await _make_user(db_session, email_notifications_enabled=False)
 
     ids = []
@@ -272,6 +275,9 @@ async def test_email_delivery_respects_preference(db_session, monkeypatch) -> No
 
 
 async def test_email_failure_is_swallowed(db_session, monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "smtp_enabled", True)
     user = await _make_user(db_session)
     notification_id = await notification_service.create_notification(
         db_session,

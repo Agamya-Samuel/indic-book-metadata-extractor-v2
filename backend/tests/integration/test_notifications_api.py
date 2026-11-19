@@ -78,14 +78,15 @@ async def test_cannot_read_another_users_notification(client, admin_user, db_ses
 async def test_preferences_round_trip(client, regular_user) -> None:
     initial = await client.get("/api/notifications/preferences")
     assert initial.status_code == 200
-    assert initial.json()["email_enabled"] is True
+    # Email notifications are off by default for new users.
+    assert initial.json()["email_enabled"] is False
 
-    updated = await client.patch("/api/notifications/preferences", json={"email_enabled": False})
+    updated = await client.patch("/api/notifications/preferences", json={"email_enabled": True})
     assert updated.status_code == 200
-    assert updated.json()["email_enabled"] is False
+    assert updated.json()["email_enabled"] is True
 
     again = await client.get("/api/notifications/preferences")
-    assert again.json()["email_enabled"] is False
+    assert again.json()["email_enabled"] is True
 
 
 async def test_in_app_notifications_survive_preference_off(client, regular_user, db_session) -> None:

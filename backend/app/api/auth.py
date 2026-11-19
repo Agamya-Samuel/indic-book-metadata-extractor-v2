@@ -24,14 +24,17 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.schemas.auth import (
+    ChangeEmailRequest,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
     ResendVerificationRequest,
     ResetPasswordRequest,
+    UpdateProfileRequest,
     UserResponse,
     VerifyEmailRequest,
+    VerifyNewEmailRequest,
 )
 from app.services import auth_service
 from app.services.auth_service import AuthError
@@ -192,6 +195,42 @@ async def logout(
 
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)) -> UserResponse:
+    return UserResponse.model_validate(user)
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_profile(
+    body: UpdateProfileRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> UserResponse:
+    updated = await auth_service.update_profile(db, user, display_name=body.display_name)
+    return UserResponse.model_validate(updated)
+
+
+@router.post("/me/email", status_code=status.HTTP_202_ACCEPTED)
+async def request_email_change(
+    body: ChangeEmailRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    try:
+        await auth_service.request_email_change(db, user, body.new_email, body.current_password)
+    except AuthError as exc:
+        raise _http_error(exc)
+    return {"message": f"Verification sent to {body.new_email}. Confirm it to complete the change."}
+
+
+@router.post("/verify-new-email", response_model=UserResponse)
+async def verify_new_email(
+    body: VerifyNewEmailRequest,
+    db: AsyncSession = Depends(get_db),
+) -> UserResponse:
+    try:
+        user = await auth_service.confirm_email_change(db, body.token)
+    except AuthError as exc:
+        raise _http_error(exc)
+    # Sessions were revoked on the email change; the client must sign in again.
     return UserResponse.model_validate(user)
 
 

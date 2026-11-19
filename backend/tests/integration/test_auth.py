@@ -13,7 +13,7 @@ NEW_PASSWORD = "an entirely different passphrase"
 async def test_register_requires_email_verification_and_sets_session(anon_client, monkeypatch):
     captured: dict[str, str] = {}
 
-    async def fake_send(user, token):
+    async def fake_send(user, token, **kwargs):
         captured["token"] = token
         captured["email"] = user.email
         return True
@@ -148,7 +148,7 @@ async def test_forgot_and_reset_password(anon_client, create_user, monkeypatch):
     user = await create_user(email="reset@example.com", password=PASSWORD)
     captured: dict[str, str] = {}
 
-    async def fake_send(target, token):
+    async def fake_send(target, token, **kwargs):
         captured["token"] = token
         return True
 
@@ -180,7 +180,7 @@ async def test_forgot_and_reset_password(anon_client, create_user, monkeypatch):
 async def test_email_token_is_single_use(anon_client, create_user, monkeypatch):
     captured: dict[str, str] = {}
 
-    async def fake_send(user, token):
+    async def fake_send(user, token, **kwargs):
         captured["token"] = token
         return True
 

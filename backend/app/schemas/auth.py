@@ -74,6 +74,19 @@ class ChangePasswordRequest(BaseModel):
     _password = field_validator("new_password")(_validate_password)
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: str = Field(min_length=1, max_length=120)
+
+
+class ChangeEmailRequest(BaseModel):
+    current_password: str
+    new_email: EmailStr
+
+
+class VerifyNewEmailRequest(BaseModel):
+    token: str = Field(min_length=16, max_length=256)
+
+
 class AdminUserCreateRequest(BaseModel):
     email: EmailStr
     display_name: str = Field(min_length=1, max_length=120)
