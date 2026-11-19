@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     cookie_domain: str = ""
     frontend_url: str = "http://localhost:3000"
 
+    # Secret used to encrypt sensitive values at rest (SMTP password). Falls
+    # back to the JWT secret when empty so a single secret can bootstrap both.
+    encryption_secret: str = ""
+
     # Registration moderation. When True, new signups start `pending` and need
     # admin approval; when False, signups are auto-approved (open registration).
     registration_requires_approval: bool = True

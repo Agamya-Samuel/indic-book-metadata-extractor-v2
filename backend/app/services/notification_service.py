@@ -260,11 +260,6 @@ async def deliver_notification_emails(notification_ids: list[uuid.UUID]) -> None
     """
     if not notification_ids:
         return
-    if not settings.smtp_enabled:
-        # Nothing to do, and no reason to open a session: local development and
-        # the test suite run with SMTP off.
-        logger.debug("SMTP disabled; skipping notification emails")
-        return
     try:
         async with async_session_factory() as db:
             await deliver_emails_in_session(db, notification_ids)
@@ -283,6 +278,13 @@ async def deliver_emails_in_session(db: AsyncSession, notification_ids: list[uui
     if not notification_ids:
         return 0
     try:
+        from app.services import smtp_service
+
+        config = await smtp_service.get_effective_config(db)
+        if not config.enabled:
+            logger.debug("SMTP disabled; skipping notification emails")
+            return 0
+
         rows = (
             await db.execute(
                 select(Notification, User)
@@ -301,7 +303,7 @@ async def deliver_emails_in_session(db: AsyncSession, notification_ids: list[uui
                 skipped += 1
                 continue
             attempted += 1
-            if await _send_one(notification, user):
+            if await _send_one(notification, user, config):
                 notification.emailed_at = datetime.now(timezone.utc)
                 sent += 1
         await db.flush()
@@ -317,7 +319,7 @@ async def deliver_emails_in_session(db: AsyncSession, notification_ids: list[uui
         return 0
 
 
-async def _send_one(notification: Notification, user: User) -> bool:
+async def _send_one(notification: Notification, user: User, config) -> bool:
     link = (
         f"{settings.frontend_url.rstrip('/')}{notification.link_url}"
         if notification.link_url
@@ -328,6 +330,7 @@ async def _send_one(notification: Notification, user: User) -> bool:
         to=user.email,
         subject=notification.title,
         text_body=text,
+        config=config,
     )
 
 

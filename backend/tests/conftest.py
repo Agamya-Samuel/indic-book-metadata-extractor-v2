@@ -278,6 +278,16 @@ def mock_celery():
 
 
 @pytest.fixture(autouse=True)
+def _reset_smtp_cache():
+    """Keep the in-process SMTP config cache from leaking between tests."""
+    from app.services import smtp_service
+
+    smtp_service.reset_cache()
+    yield
+    smtp_service.reset_cache()
+
+
+@pytest.fixture(autouse=True)
 def _auto_mock_celery(request):
     """Auto-apply Celery task mocks to every test that does not explicitly
     request ``mock_celery``. Prevents integration tests from trying to reach
