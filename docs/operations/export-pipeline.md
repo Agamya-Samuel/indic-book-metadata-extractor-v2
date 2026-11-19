@@ -20,13 +20,13 @@ Application ──► OpenRefine CSV ──► OpenRefine ──► Wikibase ─
 | Field contract | `backend/app/schemas/metadata_contract.json` (49 fields) |
 | Bot account | `<wikibase>/wiki/Special:BotPasswords`, grants *Create, edit, and move pages* + *Edit existing pages* |
 | Backend config | `WIKIBASE_API_URL`, `WIKIBASE_PUBLIC_URL`, `WIKIBASE_BOT_USERNAME`, `WIKIBASE_BOT_PASSWORD` |
-| DNS | `indic-book-metadata-extractor-wikibase.nexio.uk` must resolve; OpenRefine runs in the browser and calls it directly |
+| DNS | `obm-wikibase.oki-india.org` must resolve; OpenRefine runs in the browser and calls it directly |
 
 Verify the catalogue before a run:
 
 ```bash
-curl -s "https://indic-book-metadata-extractor-wikibase.nexio.uk/w/api.php?action=query&list=allpages&apnamespace=122&format=json"
-curl -s "https://indic-book-metadata-extractor.nexio.uk/api/reconcile/manifest.json"
+curl -s "https://obm-wikibase.oki-india.org/w/api.php?action=query&list=allpages&apnamespace=122&format=json"
+curl -s "https://openbookmap.oki-india.org/api/reconcile/manifest.json"
 ```
 
 A manifest with `version: 2.0` and a `reconciliation_endpoint` means OpenRefine can edit.
@@ -45,15 +45,15 @@ The file is UTF-8 without a BOM, has 53 columns (`book_id`, `book_title`, `book_
 Import into OpenRefine with **Create project → This Computer**, or:
 
 ```bash
-TOKEN=$(curl -s https://…-openrefine.nexio.uk/command/core/get-csrf-token | jq -r .token)
-curl -s -X POST "https://…-openrefine.nexio.uk/command/core/create-project-from-upload" \
+TOKEN=$(curl -s https://obm-openrefine.oki-india.org/command/core/get-csrf-token | jq -r .token)
+curl -s -X POST "https://obm-openrefine.oki-india.org/command/core/create-project-from-upload" \
   -H "X-CSRF-Token: $TOKEN" -F "project-file=@hindi_openrefine.csv"
 ```
 
 ## 3. Reconcile and clean in OpenRefine
 
 1. **Add the Wikibase instance**: *Wikibase → Manage Wikibase instances → Add Wikibase instance*,
-   manifest URL `https://indic-book-metadata-extractor.nexio.uk/api/reconcile/manifest.json`.
+   manifest URL `https://openbookmap.oki-india.org/api/reconcile/manifest.json`.
 2. **Log in**: *Wikibase → Log in to Wikibase…* with the dedicated editor account
    `OpenRefineEditor` (credentials in `.env.production`), not the admin account.
 3. **Reconcile entity columns** (author, publisher, genre, subject, language, …):
@@ -73,7 +73,7 @@ curl -s -X POST "https://…-openrefine.nexio.uk/command/core/create-project-fro
 Reconciliation can also be driven from the API:
 
 ```bash
-curl -s "https://indic-book-metadata-extractor.nexio.uk/api/reconcile/en/api?query=book"
+curl -s "https://openbookmap.oki-india.org/api/reconcile/en/api?query=book"
 # {"result":[{"id":"Q1","name":"book",...}]}
 ```
 
@@ -82,7 +82,7 @@ curl -s "https://indic-book-metadata-extractor.nexio.uk/api/reconcile/en/api?que
 For scripted runs and regression checks, the backend can publish directly:
 
 ```bash
-curl -s -X POST https://indic-book-metadata-extractor.nexio.uk/api/wikibase/publish \
+curl -s -X POST https://openbookmap.oki-india.org/api/wikibase/publish \
   -H "Content-Type: application/json" \
   -d '{"book_ids":["<uuid>"],"dry_run":true}'
 ```
@@ -127,7 +127,7 @@ Writes follow MediaWiki's bot conventions:
 
 ```bash
 # Item created for the book
-curl -s "https://…-wikibase.nexio.uk/w/api.php?action=wbgetentities&ids=Q87&props=labels|claims&format=json"
+curl -s "https://obm-wikibase.oki-india.org/w/api.php?action=wbgetentities&ids=Q87&props=labels|claims&format=json"
 ```
 
 Confirmed on the live host (2026-11-18):
@@ -156,7 +156,7 @@ original script in `title`, `author`, `publisher`, `pages` and `scribes`
 ## 7. QuickStatements (optional)
 
 QuickStatements is publicly routed at
-`https://indic-book-metadata-extractor-quickstatements.nexio.uk`; its `config.json` and
+`https://obm-quickstatements.oki-india.org`; its `config.json` and
 `oauth.ini` are rendered from the environment at startup. It needs a Wikibase bot account and a
 **normal, not owner-only** OAuth consumer.
 

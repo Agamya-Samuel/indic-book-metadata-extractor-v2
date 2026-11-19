@@ -7,7 +7,7 @@ Runs the whole chain with real book metadata and prints evidence for each stage:
 
 Configure with:
 
-    E2E_BASE_URL        app origin (default https://indic-book-metadata-extractor.nexio.uk)
+    E2E_BASE_URL        app origin (default https://openbookmap.oki-india.org)
     E2E_OPENREFINE_URL  OpenRefine origin
     E2E_EMAIL / E2E_PASSWORD  admin account
     E2E_BOOK_ID         book for the single-book export
@@ -26,8 +26,8 @@ import sys
 
 import httpx
 
-BASE = os.environ.get("E2E_BASE_URL", "https://indic-book-metadata-extractor.nexio.uk")
-OPENREFINE = os.environ.get("E2E_OPENREFINE_URL", "https://indic-book-metadata-extractor-openrefine.nexio.uk")
+BASE = os.environ.get("E2E_BASE_URL", "https://openbookmap.oki-india.org")
+OPENREFINE = os.environ.get("E2E_OPENREFINE_URL", "https://obm-openrefine.oki-india.org")
 EMAIL = os.environ.get("E2E_EMAIL", "qa-admin@agamya.us.kg")
 PASSWORD = os.environ.get("E2E_PASSWORD", "")
 BOOK_ID = os.environ.get("E2E_BOOK_ID", "ee5b0f2d-8ae4-4c49-91ed-251864f5d22a")

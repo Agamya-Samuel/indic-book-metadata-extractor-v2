@@ -90,8 +90,8 @@ docker compose ps openrefine wikibase
 ```
 
 Access (production hostnames; local values are `localhost:3333` and `localhost:8181`):
-- **OpenRefine**: `https://indic-book-metadata-extractor-openrefine.nexio.uk`
-- **Wikibase**: `https://indic-book-metadata-extractor-wikibase.nexio.uk`
+- **OpenRefine**: `https://obm-openrefine.oki-india.org`
+- **Wikibase**: `https://obm-wikibase.oki-india.org`
 
 ---
 
@@ -99,7 +99,7 @@ Access (production hostnames; local values are `localhost:3333` and `localhost:8
 
 ### Step 1: Export Metadata from the System
 
-1. Open the application (production: `https://indic-book-metadata-extractor.nexio.uk`)
+1. Open the application (production: `https://openbookmap.oki-india.org`)
 2. Navigate to **Bulk Operations** (link in the top navbar)
 3. In the **Export to CSV** card:
    - Optionally filter by **Language** (e.g., Telugu only)
@@ -129,7 +129,7 @@ authors_in_compilation, opinions_messages, scribes
 
 ### Step 2: Open in OpenRefine
 
-1. Open OpenRefine (`https://indic-book-metadata-extractor-openrefine.nexio.uk`) in your browser
+1. Open OpenRefine (`https://obm-openrefine.oki-india.org`) in your browser
 2. Click **Open** (top left) → **Import Project** or drag the CSV onto the page
 3. Alternatively: click **Create Project** → **This Computer** → select the exported CSV
 4. Configure import settings:
@@ -260,7 +260,7 @@ The file contains one `CREATE` block per book, with:
 
 **Option B: Directly via Wikibase API**
 
-1. Open your Wikibase at `https://indic-book-metadata-extractor-wikibase.nexio.uk`
+1. Open your Wikibase at `https://obm-wikibase.oki-india.org`
 2. Use the API to batch-create items programmatically
 3. See the [Wikibase API documentation](https://www.mediawiki.org/wiki/Wikibase/API)
 
