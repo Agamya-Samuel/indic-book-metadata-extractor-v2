@@ -264,3 +264,8 @@ To list **all** items without a statement filter:
   (items plus their labels in one request)
 
 A SPARQL endpoint is **not** deployed; add a query service if you need joins and aggregates.
+
+## See also
+
+* [031 — Wikibase export pipeline findings](../../learnings/031-wikibase-export-pipeline.md)
+* [032 — Bot passwords, grants and the bot flag](../../learnings/032-wikibase-bot-passwords.md)

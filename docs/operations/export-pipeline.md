@@ -187,3 +187,9 @@ docker compose exec backend alembic upgrade head   # adds books.wikibase_item_id
   existing entities by label.
 * `tests/unit/test_export_service.py` and `tests/unit/test_wikibase_publish.py` cover the
   contract, datatypes, Unicode, and idempotency.
+## See also
+
+* [031 — What was broken and how it was fixed](../../learnings/031-wikibase-export-pipeline.md)
+* [032 — Bot-password grants and the bot flag](../../learnings/032-wikibase-bot-passwords.md)
+* [033 — QuickStatements OAuth](../../learnings/033-wikibase-oauth-quickstatements.md)
+* [034 — MediaWiki 1.45 accounts and lifecycle](../../learnings/034-mediawiki-145-accounts-and-lifecycle.md)

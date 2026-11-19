@@ -170,3 +170,7 @@ from `POST /api/bulk/export-wikibase` or imported with the URL form
 | `Could not complete the request.` from `oauth_redirect` | bad callback / owner-only / bad credentials | check `oauth.ini`, consumer callback, and QS logs |
 | QS cannot reach Wikibase | wrong `WIKIBASE_PUBLIC_URL` | use the public HTTPS origin in the QS env; internal `http://wikibase` is also reachable |
 | Config reverts after redeploy | Dokploy rewrites the compose env | update Dokploy, not just the file |
+## See also
+
+* [033 — QuickStatements OAuth on a self-hosted Wikibase](../../learnings/033-wikibase-oauth-quickstatements.md)
+* [034 — MediaWiki 1.45 account creation](../../learnings/034-mediawiki-145-accounts-and-lifecycle.md)
