@@ -37,6 +37,10 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 
+# MediaWiki API etiquette for automated writes.
+MAX_LAG = 5
+EDIT_SUMMARY = "Published from Open Book Map"
+
 LANGUAGE_TAGS = {"tel": "te", "hin": "hi", "eng": "en"}
 LANGUAGE_QIDS = {"tel": "Q809", "hin": "Q1568", "eng": "Q1860"}
 
@@ -100,9 +104,21 @@ class WikibaseClient:
         return response.json()
 
     async def _post(self, data: dict[str, Any]) -> dict[str, Any]:
-        response = await self._client.post(self._api, data={"format": "json", **data})
-        response.raise_for_status()
-        return response.json()
+        """POST an API action, honouring maxlag and retrying once on lag."""
+        import asyncio
+
+        payload: dict[str, Any] = {"format": "json", "maxlag": MAX_LAG, **data}
+        for attempt in range(2):
+            response = await self._client.post(self._api, data=payload)
+            response.raise_for_status()
+            body = response.json()
+            if body.get("error", {}).get("code") == "maxlag" and attempt == 0:
+                delay = int(response.headers.get("retry-after", MAX_LAG))
+                logger.info("wikibase maxlag, retrying in %ss", delay)
+                await asyncio.sleep(max(1, delay))
+                continue
+            return body
+        return body
 
     async def login(self) -> None:
         token = await self._get({"action": "query", "meta": "tokens", "type": "login"})
@@ -156,6 +172,7 @@ class WikibaseClient:
                 "new": "item",
                 "data": json.dumps(data, ensure_ascii=False),
                 "token": self._csrf,
+                "summary": EDIT_SUMMARY,
             }
         )
         if "entity" not in payload:
@@ -171,6 +188,7 @@ class WikibaseClient:
                 # This Wikibase (REL1_45) clears claims with `clear`.
                 "clear": 1,
                 "token": self._csrf,
+                "summary": EDIT_SUMMARY,
             }
         )
         if "entity" not in payload:

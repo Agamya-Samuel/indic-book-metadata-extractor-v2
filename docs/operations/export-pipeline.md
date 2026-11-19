@@ -111,6 +111,17 @@ Without `editpage`, a bot password authenticates but `wbeditentity` fails with
 `permissiondenied` / `badaccess-groups`, because the entity edit check needs `item-term`
 for the label. The account must be a normal user, not a sysop.
 
+### Bot etiquette
+
+Writes follow MediaWiki's bot conventions:
+
+* `maxlag=5`; when Wikibase replies `maxlag`, the request is retried after `Retry-After`.
+* `summary="Published from Open Book Map"` on every edit.
+* For interactive tools (OpenRefine, QuickStatements) OAuth is preferred; bot passwords
+  are for unattended scripts.
+* To hide these edits from RecentChanges, add the account to the `bot` group and send
+  `bot=true` — not enabled yet, so edits currently appear as normal user edits.
+
 ## 5. Verification
 
 ```bash
