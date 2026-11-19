@@ -186,6 +186,15 @@ export default function Home() {
             className="h-auto w-[120px] sm:w-[144px] opacity-80"
             priority={false}
           />
+          <a
+            href="https://github.com/Agamya-Samuel/indic-book-metadata-extractor-v2"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[length:var(--text-sm)] font-medium text-[var(--accent-text)] hover:underline"
+          >
+            Source code on GitHub{" "}
+            <span aria-hidden="true">↗</span>
+          </a>
         </div>
       </div>
     </div>
