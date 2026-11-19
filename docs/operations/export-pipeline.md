@@ -95,6 +95,16 @@ curl -s -X POST https://indic-book-metadata-extractor.nexio.uk/api/wikibase/publ
 * Values longer than 400 characters are truncated (Wikibase's string limit) and reported;
   entity names longer than 250 characters are skipped with a warning.
 
+### Publish account
+
+The backend logs in with a **dedicated, non-admin Wikibase account**
+(`WIKIBASE_BOT_USERNAME` / `WIKIBASE_BOT_PASSWORD`, currently `OpenBookMapBot`).
+
+Use the account's password, not a bot password: a bot password can authenticate but
+`wbeditentity` is rejected with `permissiondenied` / `badaccess-groups`, because the
+entity edit check requires rights that the bot-password grants do not carry. The account
+must be a normal user (createpage + edit), not a sysop.
+
 ## 5. Verification
 
 ```bash
