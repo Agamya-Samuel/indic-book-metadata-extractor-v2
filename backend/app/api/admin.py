@@ -37,7 +37,13 @@ from app.schemas.system import (
     MaintenanceUpdate,
     SystemMetricsResponse,
 )
-from app.services import admin_service, auth_service, maintenance_service, system_metrics_service
+from app.schemas.smtp import (
+    SmtpConfigResponse,
+    SmtpConfigUpdateRequest,
+    SmtpTestRequest,
+    SmtpTestResponse,
+)
+from app.services import admin_service, auth_service, maintenance_service, smtp_service, system_metrics_service
 from app.services.auth_service import AuthError
 from app.services.notification_service import deliver_notification_emails
 from app.services.search_service import SearchService
@@ -394,6 +400,71 @@ async def admin_update_maintenance(
     )
     data["updated_by"] = admin.display_name
     return MaintenanceStatus.model_validate(data)
+
+
+# ---------------------------------------------------------------------------
+# SMTP configuration (admin-managed, runtime)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/smtp", response_model=SmtpConfigResponse)
+async def admin_get_smtp(db: AsyncSession = Depends(get_db)) -> SmtpConfigResponse:
+    data = await smtp_service.get_admin_config(db)
+    return SmtpConfigResponse.model_validate(data)
+
+
+@router.put("/smtp", response_model=SmtpConfigResponse)
+async def admin_update_smtp(
+    body: SmtpConfigUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> SmtpConfigResponse:
+    try:
+        await smtp_service.update_admin_config(
+            db,
+            updated_by_id=admin.id,
+            enabled=body.enabled,
+            host=body.host,
+            port=body.port,
+            username=body.username,
+            password=body.password,
+            from_email=body.from_email,
+            from_name=body.from_name,
+            use_tls=body.use_tls,
+            use_starttls=body.use_starttls,
+        )
+    except AuthError as exc:
+        raise _auth_http_error(exc)
+    data = await smtp_service.get_admin_config(db)
+    return SmtpConfigResponse.model_validate(data)
+
+
+@router.post("/smtp/test", response_model=SmtpTestResponse)
+async def admin_test_smtp(
+    body: SmtpTestRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> SmtpTestResponse:
+    body = body or SmtpTestRequest()
+    override = None
+    if body.config is not None:
+        base = await smtp_service.get_effective_config(db)
+        override = smtp_service.config_from_request(
+            enabled=body.config.enabled,
+            host=body.config.host,
+            port=body.config.port,
+            username=body.config.username,
+            password=body.config.password,
+            from_email=body.config.from_email,
+            from_name=body.config.from_name,
+            use_tls=body.config.use_tls,
+            use_starttls=body.config.use_starttls,
+            base=base,
+        )
+    result = await smtp_service.test_config(
+        db, to_email=(str(body.to_email) if body.to_email else None), override=override
+    )
+    return SmtpTestResponse(ok=result["ok"], detail=result["detail"])
 
 
 # ---------------------------------------------------------------------------
