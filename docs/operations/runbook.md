@@ -213,7 +213,32 @@ That set answers almost every "why is this book stuck" question without reproduc
 
 ---
 
-## 12. Known-good recovery state
+## 12. Better Stack alerts
+
+Hosted monitoring (Better Stack, free tier). Alerts arrive by email from Better Stack itself, so they
+work even when the app's SMTP is down.
+
+| Alert | Fires when | First action |
+| --- | --- | --- |
+| **OpenBookMap API health** | `/api/health` missing `"status":"ok"` for 3 min | `make status`, then §11 capture set; if the host is down, `docker compose up -d` |
+| **OpenBookMap login page** | `/login` not 200 for 3 min | Check `frontend` container and proxy routing (`make logs-frontend`) |
+| **OpenBookMap homepage** | `/` not 200 for 3 min | Full CF → Traefik → app path broken; check proxy and origin reachability |
+| **daily-backup** | No heartbeat ping for 36 h (period 24 h + grace 12 h) | Check `docker compose logs backup` and `ls -la` the backup volume; a failed `pg_dump` never pings, so this also catches silent failures |
+| **host-watchdog** | Watchdog `/fail` ping (worker/backend/frontend/proxy container down, disk > 85 %, or jobs running > 90 min) or missed 5-min ping | `make status` for container states, `df -h` for disk, `SELECT * FROM jobs WHERE status='running'` for stuck jobs; restarts: `docker compose up -d <service>` |
+
+Failures from the watchdog also create an **admin in-app notification** ("Host watchdog alert") via
+the backend relay (`backend/app/services/watchdog_service.py`), so the alert survives a dead SMTP.
+
+Both heartbeats must only be pinged on success. The URLs live in: Dokploy env
+`BETTERSTACK_BACKUP_HEARTBEAT_URL` (backup service) and `/etc/betterstack-watchdog.env`
+(`BETTERSTACK_WATCHDOG_HEARTBEAT_URL`) on the host — never in the repo.
+
+Verification drill (real, not simulated): `docker compose stop worker`, wait ≤ 10 min, confirm the
+host-watchdog alert email arrives, then `docker compose start worker`.
+
+---
+
+## 13. Known-good recovery state
 
 A healthy book at rest looks like:
 

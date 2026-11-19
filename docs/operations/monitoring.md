@@ -231,12 +231,17 @@ The hybrid tier logs are the fastest way to tell "OCR is bad" from "the LLM is b
 | OCR mean confidence | sudden drop | Preprocessing or language regression |
 | Hallucination rate | rising in evaluation | Prompt or model regression |
 
+**Implemented:** the first four rows are wired in Better Stack (uptime monitors + heartbeats) —
+see runbook §12 for the live alert list and first actions.
+
 ---
 
 ## 8. What is not instrumented
 
 1. **No Prometheus/metrics endpoint.** New Relic custom events are the only structured telemetry.
 2. **No per-page timing histogram** for OCR.
-3. **No alerting definitions in the repository.** Alert policies live in New Relic, not here.
+3. **Alert definitions live in two places.** Uptime/heartbeat monitors are Better Stack resources
+   (created via API; `infra/betterstack-bootstrap.sh`), and their URLs are secrets kept out of the
+   repo. New Relic alert policies, if any, live in New Relic.
 4. **No worker-level health endpoint.**
 5. **No cost tracking** for the (optional) hosted model experiments.
