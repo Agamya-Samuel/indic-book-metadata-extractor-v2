@@ -26,6 +26,7 @@ class AccountStatus(StrEnum):
 class EmailTokenPurpose(StrEnum):
     VERIFY_EMAIL = "verify_email"
     RESET_PASSWORD = "reset_password"
+    VERIFY_NEW_EMAIL = "verify_new_email"
 
 
 class User(UUIDMixin, TimestampMixin, Base):
@@ -46,8 +47,11 @@ class User(UUIDMixin, TimestampMixin, Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     # Email mirror of in-app notifications. In-app delivery is never gated by
-    # this flag; it only decides whether an alert email is sent.
-    email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # this flag; it only decides whether an alert email is sent. Off by default:
+    # new users must opt in to email notifications.
+    email_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
 
     books = relationship("Book", back_populates="owner")
     jobs = relationship("Job", back_populates="requested_by")
@@ -63,6 +67,8 @@ class EmailToken(UUIDMixin, Base):
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Target address for VERIFY_NEW_EMAIL: the new email awaiting confirmation.
+    pending_email: Mapped[str | None] = mapped_column(String(320))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="email_tokens")
