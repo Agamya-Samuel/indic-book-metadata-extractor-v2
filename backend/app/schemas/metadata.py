@@ -182,9 +182,7 @@ if _CONTRACT_FIELDS != _MODEL_FIELDS:
         f"unknown={sorted(_CONTRACT_FIELDS - _MODEL_FIELDS)}"
     )
 if len(FIELD_CONTRACT) != EXPECTED_FIELD_COUNT:
-    raise RuntimeError(
-        f"metadata_contract.json defines {len(FIELD_CONTRACT)} fields, expected {EXPECTED_FIELD_COUNT}"
-    )
+    raise RuntimeError(f"metadata_contract.json defines {len(FIELD_CONTRACT)} fields, expected {EXPECTED_FIELD_COUNT}")
 
 FIELD_DISPLAY_NAMES = {
     "label": "Label (Work and Edition)",

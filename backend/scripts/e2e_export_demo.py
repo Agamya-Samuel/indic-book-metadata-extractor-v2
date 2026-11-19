@@ -111,7 +111,7 @@ def main() -> int:
             print(f"  {line[:100]}")
 
         header("6. Publish to Wikibase" + ("" if args.publish else " (dry run)"))
-        book_ids = [row[0] for row in rows[1:] if row and row[0]] if 'rows' in dir() else None
+        book_ids = [row[0] for row in rows[1:] if row and row[0]] if "rows" in dir() else None
         published = app.post(
             "/api/wikibase/publish",
             json={"dry_run": not args.publish, "book_ids": book_ids},
@@ -122,7 +122,9 @@ def main() -> int:
             body = published.json()
             print(f"books {len(body.get('reports', []))}, with item {body.get('published')}")
             for report in body.get("reports", [])[:4]:
-                print(f"  {report['language']:4} {report['item_id'] or '-':6} {(report['title'] or '')[:40]} warnings={len(report['warnings'])}")
+                print(
+                    f"  {report['language']:4} {report['item_id'] or '-':6} {(report['title'] or '')[:40]} warnings={len(report['warnings'])}"
+                )
         else:
             print(f"  {published.text[:160]}")
 

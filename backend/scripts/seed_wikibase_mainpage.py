@@ -55,9 +55,9 @@ def main() -> int:
             print(f"login failed: {result.text[:200]}", file=sys.stderr)
             return 1
 
-        csrf = client.get(
-            api, params={"action": "query", "meta": "tokens", "format": "json"}
-        ).json()["query"]["tokens"]["csrftoken"]
+        csrf = client.get(api, params={"action": "query", "meta": "tokens", "format": "json"}).json()["query"][
+            "tokens"
+        ]["csrftoken"]
 
         response = client.post(
             api,

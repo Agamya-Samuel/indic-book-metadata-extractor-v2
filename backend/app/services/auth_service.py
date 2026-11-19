@@ -381,9 +381,7 @@ async def request_email_change(db: AsyncSession, user: User, new_email: str, cur
     if await get_user_by_email(db, normalized) is not None:
         raise AuthError("An account with this email already exists", 409, "email_taken")
 
-    token = await create_email_token(
-        db, user, EmailTokenPurpose.VERIFY_NEW_EMAIL, pending_email=normalized
-    )
+    token = await create_email_token(db, user, EmailTokenPurpose.VERIFY_NEW_EMAIL, pending_email=normalized)
     config = await smtp_service.get_effective_config(db)
     sent = await send_email_change_email(user, normalized, token, config=config)
     if not sent:

@@ -235,9 +235,7 @@ async def test_config(
             message["From"] = config.display_from or config.from_address
             message["To"] = to_email
             message["Subject"] = "Open Book Map SMTP test"
-            message.set_content(
-                "This is a test message from Open Book Map to confirm your SMTP settings work.\n"
-            )
+            message.set_content("This is a test message from Open Book Map to confirm your SMTP settings work.\n")
             await aiosmtplib.send(
                 message,
                 hostname=config.host,
