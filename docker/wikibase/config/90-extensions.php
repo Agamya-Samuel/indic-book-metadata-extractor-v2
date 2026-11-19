@@ -24,6 +24,10 @@ if (getenv('MW_WG_SERVER')) {
     $wgCanonicalServer = $wgServer;
 }
 
+# --- QuickStatements OAuth ---
+# QuickStatements registers its own owner-only consumer on first setup.
+$wgGroupPermissions['oauthbot']['mwoauthproposeconsumer'] = true;
+
 # --- Statement indexing (WikibaseCirrusSearch) ---
 # haswbstatement: only works for properties listed here. Without this,
 # statement_keywords is empty in Elasticsearch and every haswbstatement

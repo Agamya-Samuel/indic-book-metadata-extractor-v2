@@ -134,11 +134,16 @@ QuickStatements is publicly routed at
 
 It stays unusable until the OAuth consumer is registered:
 
-1. Create the Wikibase bot account `QuickStatementsBot`.
-2. As that bot, open `<wikibase>/wiki/Special:OAuthConsumerRegistration` and register an
-   **owner-only** consumer:
-   * callback `https://<qs-host>/api.php`
+1. Create the Wikibase bot account `QuickStatementsBot` and add it to the `oauthbot` group
+   (the group grants `mwoauthproposeconsumer`; see
+   `docker/wikibase/config/90-extensions.php`).
+2. As that bot, open `<wikibase>/wiki/Special:OAuthConsumerRegistration/propose/oauth1a` and
+   register a **normal, not owner-only** consumer:
+   * callback `https://<qs-host>/api.php`, with *callback is prefix* checked
    * grant **Create, edit, and move pages**
+
+   Owner-only consumers cannot be used by a separate tool: the OAuth handshake fails with
+   `mwoauthserver-consumer-owner-only`, because QuickStatements has to fetch an access token.
 3. Set `WIKIBASE_QS_BOT_PASSWORD`, `QS_OAUTH_CONSUMER_KEY` and `QS_OAUTH_CONSUMER_SECRET` in the
    Dokploy environment (and `.env.production`).
 4. Redeploy — the entrypoint writes `/quickstatements/data/oauth.ini` from them.
