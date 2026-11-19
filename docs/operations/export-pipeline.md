@@ -54,8 +54,8 @@ curl -s -X POST "https://…-openrefine.nexio.uk/command/core/create-project-fro
 
 1. **Add the Wikibase instance**: *Wikibase → Manage Wikibase instances → Add Wikibase instance*,
    manifest URL `https://indic-book-metadata-extractor.nexio.uk/api/reconcile/manifest.json`.
-2. **Log in**: *Wikibase → Log in to Wikibase…* using the bot username (`User@BotName`) and
-   bot password.
+2. **Log in**: *Wikibase → Log in to Wikibase…* with the dedicated editor account
+   `OpenRefineEditor` (credentials in `.env.production`), not the admin account.
 3. **Reconcile entity columns** (author, publisher, genre, subject, language, …):
    *Reconcile → Start reconciling → IndicBooks Wikibase reconciliation*. Values that already
    exist link to their QID; missing values can be created as new items.
@@ -119,8 +119,9 @@ Writes follow MediaWiki's bot conventions:
 * `summary="Published from Open Book Map"` on every edit.
 * For interactive tools (OpenRefine, QuickStatements) OAuth is preferred; bot passwords
   are for unattended scripts.
-* To hide these edits from RecentChanges, add the account to the `bot` group and send
-  `bot=true` — not enabled yet, so edits currently appear as normal user edits.
+* `OpenBookMapBot` is in the `bot` group and the publisher sends `bot=1`, but
+  `wbeditentity` in Wikibase REL1_45 hardcodes `bot=false` (`ModifyEntity.php`), so entity
+  edits still appear as normal user edits. Re-check after the 1.47 upgrade.
 
 ## 5. Verification
 
