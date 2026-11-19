@@ -197,13 +197,20 @@ Extensions deliberately **not** installed are the ones that require Wikimedia-wi
 
 ## 11. Branding (OKI logo)
 
-`$wgLogos` is overridden in `docker/wikibase/config/90-extensions.php` to use three files in the
-`wikibase_data` volume at `/var/www/html/images/indico/`:
+`$wgLogos` is overridden in `docker/wikibase/config/90-extensions.php` to use two files served from
+`/var/www/html/images/indico/`:
 
 | File | Used as | Source |
 | --- | --- | --- |
 | `logo.png` | `1x`, `1.5x`, `2x` (full lockup) | `docker/wikibase/images/logo.png` |
 | `icon.png` | `icon` (square emblem, left of the title) | `docker/wikibase/images/icon.png` |
+
+The `wikibase` (web) container bind-mounts `./docker/wikibase/images` read-only at
+`/var/www/html/images/indico`, so the logo is always the version in the repository — it survives
+volume recreation and container rebuilds without a manual step.
+
+`icon.png` must be a **perfect square** (currently 180×180). Vector renders it in a square slot, so
+a non-square image is cropped ("zoomed in and cut off"). `logo.png` is the wide lockup.
 
 There is deliberately **no** `wordmark` entry: Vector 2022 then renders `$wgSitename` as the
 text next to the icon. A wordmark image would repeat the emblem, because the artwork already
@@ -213,7 +220,8 @@ MediaWiki 1.45 requires the `wordmark` entry, if present, to be an array with `s
 and `height`; a plain string raises a `TypeError` in `SkinModule::getRelativeSizedLogo()` and
 every page returns HTTP 500.
 
-If the volume is recreated, reinstall the files and reload the web server:
+If you are **not** using the bind mount (e.g. a bare `docker run`), copy the files into the volume
+and reload the web server:
 
 ```bash
 ./docker/wikibase/seed-branding.sh <wikibase-container>

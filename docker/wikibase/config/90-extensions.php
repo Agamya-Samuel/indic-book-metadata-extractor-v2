@@ -43,9 +43,11 @@ $wgWBRepoSettings['searchIndexTypes'] = [
 ];
 
 # --- Branding ---
-# Files live in the images volume so they survive container recreation.
-# icon.png is the emblem shown at the left of the header. There is no wordmark
-# image: Vector 2022 falls back to $wgSitename as the text beside the icon.
+# Served from /var/www/html/images/indico, bind-mounted read-only from
+# docker/wikibase/images (so the logo is always the repo version).
+# icon.png MUST be a perfect square (Vector renders it in a square slot; a
+# non-square image is cropped). There is no wordmark image: Vector 2022 falls
+# back to $wgSitename as the text beside the icon.
 $wgSitename = 'Open Book Map Wikibase';
 $wgLogos = [
     '1x' => "$wgServer/images/indico/logo.png",

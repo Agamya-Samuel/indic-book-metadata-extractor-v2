@@ -301,6 +301,7 @@ services:
       - wikibase_config:/config
       - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
       - wikibase_data:/var/www/html/images
+      - ./docker/wikibase/images:/var/www/html/images/indico:ro
       - quickstatements_data:/quickstatements/data
     depends_on:
       mysql:
