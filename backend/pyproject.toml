@@ -65,6 +65,9 @@ ocr-line = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "postgres: requires TEST_POSTGRES_URL pointing at a real Postgres (append-only trigger verification)",
+]
 
 [tool.ruff]
 line-length = 120

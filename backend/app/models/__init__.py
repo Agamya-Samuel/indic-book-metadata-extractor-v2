@@ -1,3 +1,4 @@
+from app.models.audit_log import AuditLog, AuditResult
 from app.models.base import Base
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
@@ -13,6 +14,8 @@ from app.models.system_setting import SystemSetting
 from app.models.user import EmailToken, EmailTokenPurpose, RefreshToken, User, UserRole
 
 __all__ = [
+    "AuditLog",
+    "AuditResult",
     "Base",
     "Book",
     "BookMetadata",
