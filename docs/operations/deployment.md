@@ -24,7 +24,7 @@ Cloudflare (DNS, TLS)
                         │
         ┌───────────────┼───────────────┬──────────────┐
      postgres        redis           ollama        worker
-     (pgvector)      (broker)        (gemma4)      (celery)
+      (pg_trgm)       (broker)        (gemma4)      (celery)
 
   public: frontend (app), openrefine, wikibase, quickstatements (if enabled)
   internal only: flower, backup, mysql, elasticsearch, ollama, prometheus

@@ -1,6 +1,6 @@
 # Data Model
 
-All persistent state lives in PostgreSQL 16 with the `pgvector` extension. SQLAlchemy 2.x models are
+All persistent state lives in PostgreSQL 16. SQLAlchemy 2.x models are
 in `backend/app/models/`; migrations are in `backend/alembic/versions/`.
 
 Base mixins (`backend/app/models/base.py`):
@@ -31,7 +31,6 @@ erDiagram
     books ||--o{ book_stage_status : ""
     books ||--|| metadata : ""
     books ||--o{ metadata_field_evidence : ""
-    books ||--o{ embeddings : ""
     books ||--o{ notifications : ""
 
     pages ||--o| ocr_results : ""
@@ -260,17 +259,6 @@ set, this overrides the `SMTP_*` environment variables; otherwise the environmen
 The password is encrypted at rest with a key derived from `ENCRYPTION_SECRET` (falling back to
 `JWT_SECRET_KEY`). The admin API exposes only `password_set`, never the secret.
 
-### `embeddings`
-
-**Reserved — nothing writes to it yet.**
-
-| Column | Type | Notes |
-| --- | --- | --- |
-| `book_id` | UUID | FK `books.id` `ON DELETE CASCADE` |
-| `embedding` | `vector(768)` | pgvector |
-| `source_text` | text | |
-| `created_at` | timestamptz | |
-
 ---
 
 ## 3. Enumerations
@@ -300,7 +288,7 @@ order to pick the most advanced terminal stage.
 | Deleting | Cascades to | Blocked by |
 | --- | --- | --- |
 | `users` | `refresh_tokens`, `email_tokens`, `notifications` | `books.owner_id` `RESTRICT` — must delete books first |
-| `books` | `pages`, `jobs`, `metadata`, `metadata_field_evidence`, `book_stage_status`, `embeddings` | — |
+| `books` | `pages`, `jobs`, `metadata`, `metadata_field_evidence`, `book_stage_status` | — |
 | `books` | `jobs.book_id` → `NULL`, `notifications.book_id` → `NULL` | — |
 | `pages` | `ocr_results` | — |
 | `jobs` | `llm_runs.job_id` → `NULL` (row kept) | — |
@@ -309,7 +297,7 @@ order to pick the most advanced terminal stage.
 
 ## 5. Migration history
 
-20 revisions, applied in order:
+22 revisions, applied in order:
 
 | Revision | Purpose |
 | --- | --- |
@@ -332,9 +320,9 @@ order to pick the most advanced terminal stage.
 | 017 | OCR route metadata (`ocr_engine`, `ocr_route`, `ocr_coverage`, `ocr_script`) |
 | 018 | Job queue indexes |
 | 019 | Maintenance mode (`system_settings`) |
-
-Migration 001 is also where the `vector` extension is created, before any table references
-`vector(768)`.
+| 020 | `books.wikibase_item_id` |
+| 021 | Account management + runtime SMTP settings |
+| 022 | Drop the unused `embeddings` table and the `vector` extension |
 
 **Rule:** never edit an applied migration. Add a new revision.
 

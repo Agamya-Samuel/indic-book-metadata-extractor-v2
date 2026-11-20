@@ -59,7 +59,7 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
 └──────┬──────┘              └──────────────────┘
        │
 ┌──────▼───────────────────────────────────────────┐
-│          PostgreSQL + pgvector (:5432)           │
+│                  PostgreSQL 16                   │
 │   Books, Pages, OCR Text, Metadata, Jobs         │
 └──────────────────────────────────────────────────┘
 ```
@@ -96,7 +96,7 @@ Start here:
 | Image Preprocessing | OpenCV, Pillow |
 | OCR Engine | Tesseract 5+ (with Indic language packs) |
 | LLM Inference | Ollama, Instructor (structured output) |
-| Database | PostgreSQL 16, pgvector, pg_trgm |
+| Database | PostgreSQL 16, pg_trgm |
 | Search | pg_trgm (server) + Fuse.js (client) |
 
 ---
@@ -212,7 +212,7 @@ All fields are mapped to Wikidata properties where applicable.
 - **No per-user quotas**: any registered user can upload unlimited books and run unlimited jobs
 - **SMTP dependency**: email verification and password resets need SMTP (`SMTP_ENABLED=true` + credentials in production). Without SMTP the links are logged to the backend log instead — workable locally, not for real users
 - **Rate limiting**: request rate limits exist only on the auth endpoints, not on upload/job endpoints
-- **pgvector embeddings**: Schema exists but semantic search is not yet implemented
+- **No semantic search**: library search is trigram fuzzy matching (`pg_trgm`); there are no embeddings
 - **1 test skipped**: Library filter options test requires PostgreSQL (not compatible with SQLite test runner)
 
 ---

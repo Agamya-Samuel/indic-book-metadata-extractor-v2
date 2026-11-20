@@ -41,7 +41,7 @@ flowchart TB
     end
 
     subgraph core["Core infrastructure (internal)"]
-        PG[("postgres 16<br/>+ pgvector")]
+        PG[("postgres 16")]
         RD[("redis 7<br/>broker, cache, SSE, rate limit")]
         OL["ollama<br/>gemma4:e4b"]
         WK["worker<br/>Celery: ocr, llm, default"]
@@ -92,7 +92,7 @@ core pipeline depends on it, and it is not gated behind Compose profiles yet.
 | `frontend` | `Dockerfile.frontend` | Next.js App Router UI; the browser calls same-origin `/api`, which the proxy forwards | stateless |
 | `backend` | `Dockerfile.backend` | HTTP API, auth, rate limiting, SSE hub, job reaper, maintenance state | stateless |
 | `worker` | `Dockerfile.backend` (with `OCR_LINE=true`) | All Celery tasks: page rendering, preprocessing, OCR, LLM extraction | stateless |
-| `postgres` | `pgvector/pgvector:pg16` | System of record for everything except files | `pgdata` |
+| `postgres` | `postgres:16-bookworm` | System of record for everything except files | `pgdata` |
 | `redis` | `redis:7-alpine` | Celery broker, Celery result backend, rate-limit counters, SSE pub/sub | `redis_data` |
 | `ollama` | `ollama/ollama` | Local inference for metadata extraction | `ollama_data` |
 | `backup` | `postgres:16-alpine` | Daily `pg_dump`, retains 7 copies | `backup_data` |
@@ -172,7 +172,6 @@ erDiagram
     books ||--o{ book_stage_status : "tracks"
     books ||--|| metadata : "has one"
     books ||--o{ metadata_field_evidence : "provenance"
-    books ||--o{ embeddings : "search"
 
     pages ||--o| ocr_results : "has one"
     jobs ||--o{ llm_runs : "records"
@@ -193,10 +192,8 @@ erDiagram
 | `book_stage_status` | Append-only stage history | `stage_name`, `attempt`, `status`, `started_at`, `completed_at`, `error_log` |
 | `notifications` | In-app alerts | `type`, `title`, `body`, `read_at` |
 | `system_settings` | Runtime toggles | maintenance mode and related flags |
-| `embeddings` | Reserved for semantic search | `embedding vector(768)`, `source_text` |
 
-Migrations are Alembic, 20 revisions, under [`backend/alembic/versions/`](../../backend/alembic/versions).
-The `vector` extension is created by a migration before the embeddings table.
+Migrations are Alembic, 22 revisions, under [`backend/alembic/versions/`](../../backend/alembic/versions).
 
 ### Two parallel state machines
 
@@ -406,7 +403,9 @@ Documented here because they shape what the documentation can honestly promise:
    env-driven, but the consumer callback is still `https://localhost/api.php`, so login fails.
    Wikibase itself is public and protected by MediaWiki accounts, bot passwords and OAuth. See
    [integrations.md](integrations.md).
-5. **Semantic search is not implemented.** The `embeddings` table and pgvector extension exist, but
-   nothing writes embeddings or queries them.
+5. **Semantic search is not implemented.** Library search is trigram fuzzy matching (`pg_trgm` +
+   Fuse.js). The pgvector schema was removed as dead code in migration `022`; see
+   [`learnings/036`](../../learnings/036-pgvector-removal.md) for the resource analysis behind that
+   decision.
 6. **Export services are not gated.** They always start with the compose stack and idle at roughly
    2.5 GiB, even on digitisation-only deployments.

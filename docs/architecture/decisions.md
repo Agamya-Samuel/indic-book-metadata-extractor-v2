@@ -106,6 +106,7 @@ or `complete`.
 | 016 | [The Pipeline Could Not Process a Book at HEAD](../../learnings/016-pipeline-non-functional-at-head.md) | All three fixed |
 | 023 | [Production Hardening: End-to-End Outcome](../../learnings/023-production-hardening-outcome.md) | Complete |
 | 024 | [Host Network Recovery and gemma4 Resource Reality](../../learnings/024-host-network-and-gemma-resource-reality.md) | — |
+| 036 | [pgvector Semantic Search: Cost Analysis and Removal](../../learnings/036-pgvector-removal.md) | Removed as dead code |
 
 ### Product and UI
 

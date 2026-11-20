@@ -79,13 +79,20 @@ correct rollback is to leave volumes alone.
 
 ### PostgreSQL (`postgres`)
 
-- **Image:** `pgvector/pgvector:pg16`
+- **Image:** `postgres:16-bookworm` (bookworm, not trixie — see the note below)
 - **Role:** system of record for every table in [the data model](system-architecture.md#4-data-model)
-- **Extensions:** `vector`, created by an Alembic migration before the `embeddings` table
+- **Extensions:** `pg_trgm` (fuzzy search), created by migrations `004`/`006` and by
+  `docker/postgres/init_extensions.sql`
 - **Access:** `DATABASE_URL` — SQLAlchemy async engine over `asyncpg`
 - **Health:** `pg_isready`; also asserted by `GET /api/health`
 - **Volume:** `pgdata`
 - **Migrations:** Alembic, run by the backend entrypoint before the app starts
+
+The tag is pinned to `bookworm` deliberately. `pgvector/pgvector:pg16` (the image this stack used
+until 2026-11-20) is bookworm / glibc 2.36, while the floating `postgres:16` tag is now trixie /
+glibc 2.41. Pointing an existing `pgdata` volume at the newer base records a collation-version
+mismatch for every database and makes `CREATE DATABASE` fail outright (`template1` mismatch), which
+breaks the restore drill. Both images ship PostgreSQL 16.16, so staying on bookworm costs nothing.
 
 ### Redis (`redis`)
 
@@ -236,7 +243,7 @@ ground truth. None of them run in production.
 
 | Capability | Status |
 | --- | --- |
-| PostgreSQL + pgvector | Implemented |
+| PostgreSQL 16 + `pg_trgm` | Implemented |
 | Redis (broker, results, rate limit, SSE, locks) | Implemented |
 | Ollama extraction (`/api/chat`) | Implemented |
 | SMTP email delivery | Implemented, disabled by default locally |
@@ -248,4 +255,4 @@ ground truth. None of them run in production.
 | OpenRefine integration | Implemented: manifest v2 + Reconciliation Service; UI workflow documented |
 | Compose-profile gating | **Recommended, not implemented** |
 | Runtime UI feature flags | **Not implemented** (build-time env only) |
-| Semantic search over `embeddings` | **Not implemented** (schema only) |
+| Semantic search over metadata | **Not implemented** — the pgvector schema was removed as dead code (migration `022`, [`learnings/036`](../../learnings/036-pgvector-removal.md)) |

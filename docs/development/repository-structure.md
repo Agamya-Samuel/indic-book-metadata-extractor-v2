@@ -91,7 +91,7 @@ backend/
 │   │   ├── extractors/       Regex and dictionary tiers + hybrid orchestrator
 │   │   └── dictionaries/     Language word lists
 │   └── tasks/                Celery tasks, lock, cancellation, async bridges
-├── alembic/versions/         20 migrations, applied in order
+├── alembic/versions/         22 migrations, applied in order
 ├── tests/
 │   ├── unit/                 Pure and mocked tests
 │   ├── integration/          Database/task integration

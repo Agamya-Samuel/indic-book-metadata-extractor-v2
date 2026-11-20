@@ -59,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Ten archived documents after their content was verified to exist in the current tree: `api-reference`, `local-development-guide`, `monitoring`, `ocr-setup`, `runbook`, `developer-guide`, `metadata-fields`, `wikibase-reference`, `known-issues`, and a duplicate project overview
 - `frontend/README.md` — unmodified `create-next-app` boilerplate
 - The public catalog: `PUBLIC_BOOK_STATUSES`, `get_visible_book_or_404`, and the anonymous metadata view are gone
+- **pgvector / semantic search** — the `Embedding` model, the `pgvector` Python dependency, the `embeddings` table and the `vector` extension are removed. The table was provisioned in 001 for a feature that was never built and nothing ever read or wrote it; migration `022` drops it from existing databases and `001` no longer creates it. Postgres runs on `postgres:16-bookworm` again (the bookworm tag, not the floating `postgres:16`, which moved to trixie/glibc 2.41 and breaks existing volumes). See [`learnings/036`](learnings/036-pgvector-removal.md)
 
 ---
 

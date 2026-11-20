@@ -95,7 +95,7 @@ For hot-reloading and faster iteration. You still need PostgreSQL, Redis and Oll
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y postgresql-16 postgresql-server-dev-16 postgresql-16-pgvector
+sudo apt install -y postgresql-16 postgresql-server-dev-16
 sudo apt install -y redis-server
 sudo apt install -y tesseract-ocr tesseract-ocr-tel tesseract-ocr-hin tesseract-ocr-eng
 curl -fsSL https://ollama.com/install.sh | sh
@@ -103,17 +103,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh && source ~/.bashrc
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs
 ```
 
-If `postgresql-16-pgvector` is unavailable, build it:
-
-```bash
-git clone --branch v0.7.0 https://github.com/pgvector/pgvector.git
-cd pgvector && make && sudo make install
-```
-
 **macOS**
 
 ```bash
-brew install postgresql@16 pgvector redis tesseract tesseract-lang ollama uv node@20
+brew install postgresql@16 redis tesseract tesseract-lang ollama uv node@20
 ```
 
 **Windows** — use WSL 2 with the Ubuntu steps (`wsl --install` from an elevated PowerShell).
@@ -157,9 +150,8 @@ sudo service postgresql start     # macOS: brew services start postgresql@16
 sudo service redis-server start   # macOS: brew services start redis
 
 createdb indic_books
-psql -d indic_books -c "CREATE EXTENSION IF NOT EXISTS vector;"
 psql -d indic_books -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
-psql -d indic_books -c "\dx"      # confirm both extensions
+psql -d indic_books -c "\dx"      # confirm pg_trgm
 
 redis-cli ping                    # → PONG
 
@@ -269,7 +261,7 @@ In production only the frontend and backend are published; both sit behind one h
 | Emails not sent | `SMTP_ENABLED=false` (the default) | Set SMTP variables, or accept in-app notifications only |
 | Book stuck at `ocr_running` | A worker died | Wait for the reaper (90 min) or cancel the job |
 | Port already in use | Another process holds it | `lsof -i :<PORT>` then `kill -9 <PID>`; Windows: `netstat -ano` + `taskkill` |
-| `CREATE EXTENSION vector` fails | pgvector not installed | Install per platform, or use the `pgvector/pgvector:pg16` image |
+| `CREATE EXTENSION pg_trgm` fails | The `postgresql-contrib` package is missing | Install `postgresql-contrib` for your PG16 package, or use the `postgres:16-bookworm` image |
 | Celery: `Cannot connect to redis://…` | Redis down or wrong URL | `redis-cli ping`; check `REDIS_URL` points at localhost for native runs |
 | SQLAlchemy: `cannot connect to server` | Postgres down, or URL still points at the `postgres` container name | `pg_isready -U postgres`; set `DATABASE_URL` to localhost |
 | Migrations out of sync | Diverged database | `uv run alembic current`; reset with `downgrade base && upgrade head` (destroys data) |

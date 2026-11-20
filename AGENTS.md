@@ -18,8 +18,9 @@ email-verified, admin-approved accounts.
   `benchmarks/`, archived material in `docs/history/`.
 
 Open gaps: CPU-only inference (tens of minutes per book), Telugu/Hindi only, one book processed at a
-time, pgvector semantic search unimplemented, and Compose-profile gating for the optional services
-still unshipped.
+time, no semantic search (the pgvector schema was removed as dead code — see
+`learnings/036-pgvector-removal.md`), and Compose-profile gating for the optional services still
+unshipped.
 
 ---
 

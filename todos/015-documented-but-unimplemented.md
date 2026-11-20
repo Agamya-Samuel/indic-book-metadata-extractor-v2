@@ -36,7 +36,7 @@
 
 | # | Documented (where) | Code reality | Impact | Owner |
 |---|---|---|---|---|
-| 10 | **pgvector semantic search** — schema exists, search "not yet implemented" — [README](../README.md#L199), [known-issues](../docs/known-limitations.md), [changelog](../CHANGELOG.md), [AGENTS.md](../AGENTS.md) | Only `backend/app/models/embedding.py` + the model import exist; **no service populates or queries** it (grep for `embedding` in `backend/app` returns only the model) | The 768-dim `embeddings` table is dead schema | Dev |
+| 10 | ~~**pgvector semantic search**~~ — schema existed, search "not yet implemented" | **RESOLVED 2026-11-20 — removed as dead code.** The `Embedding` model, the `pgvector` dependency and the `embeddings` table are gone; migration `022` drops the table and the `vector` extension, and `001` no longer creates them. Postgres is back on `postgres:16-bookworm`. See [`learnings/036`](../learnings/036-pgvector-removal.md). | No dead schema; the "semantic search not implemented" gap is closed as *won't do* | Dev |
 
 ---
 
@@ -75,7 +75,7 @@ Do **not** build these — the documentation is out of date, the feature exists.
 | known-limitations §LLM: "The current model is `ai4bharat/Airavata-GGUF`" | Production preloads **`phi4-mini`** (`docker-compose.production.yml` `OLLAMA_PRELOAD_MODEL`) |
 | learnings/021: "`ocr_results.corrections` is never written" | Now written — `ocr_tasks.py:80` sets `existing.corrections` (via `ocr_postprocess`) |
 | AGENTS.md: "no authentication" | Auth/RBAC shipped (learnings 008/013, `plans/005`) |
-| AGENTS.md / changelog: "pgvector semantic search not yet implemented" | Still true — not stale (see §3 item 10) |
+| AGENTS.md / changelog: "pgvector semantic search not yet implemented" | **Resolved 2026-11-20** — the schema was removed, so the gap no longer exists (see §3 item 10) |
 | `docs/agent-browser-testing-handoff.md` ⬜ Phase-2 list (SaveBar, evidence nav, field revert) | `frontend/src/components/shared/save-bar.tsx` and metadata-review wiring now exist → treat that ⬜ block as **unreliable** |
 | learnings/017 & 018: "Ollama 6 GiB cap" | Raised to **7 GB** on 2026-11-13 (known-issues §Ollama memory cap; `docker-compose.production.yml` `mem_limit: "7g"`) — my own docs are stale here |
 
@@ -94,7 +94,7 @@ Do **not** build these — the documentation is out of date, the feature exists.
 
 | Bucket | Count |
 |---|---|
-| Verified documented-but-absent (code change needed) | **13** (§1–§4) |
+| Verified documented-but-absent (code change needed) | **12** (§1–§4; item 10 resolved 2026-11-20) |
 | Documented, blocked on operator access | 4 (§5) |
 | Stale docs (feature exists — do not rebuild) | 7 (§6) |
 | In progress elsewhere | 1 (§7) |
