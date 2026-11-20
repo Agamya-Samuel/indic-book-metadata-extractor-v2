@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin/jobs", label: "Jobs" },
   { href: "/admin/system", label: "System" },
   { href: "/admin/users", label: "Users" },
+  { href: "/admin/audit", label: "Audit logs" },
   { href: "/admin/bulk", label: "Bulk operations" },
 ];
 

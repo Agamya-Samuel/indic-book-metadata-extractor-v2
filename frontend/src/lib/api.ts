@@ -1625,3 +1625,82 @@ export const setNotificationPreferences = async (
   );
   return response.data.email_enabled;
 };
+
+// ---------------------------------------------------------------------------
+// Audit logs (admin)
+// ---------------------------------------------------------------------------
+
+export type AuditActorType = "user" | "admin" | "system" | "anonymous";
+
+export interface AuditLogRow {
+  id: string;
+  created_at: string;
+  actor_type: AuditActorType;
+  actor_user_id: string | null;
+  actor_role: string | null;
+  actor_email: string | null;
+  actor_display_name: string | null;
+  action: string;
+  category: string;
+  description: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  resource_label: string | null;
+  subject_user_id: string | null;
+  result: "success" | "failure";
+  error_message: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  request_id: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  details: Record<string, unknown> | null;
+  truncated: boolean;
+}
+
+export interface AuditActionInfo {
+  value: string;
+  category: string;
+  label: string;
+  critical: boolean;
+}
+
+export type AuditSortColumn = "created_at" | "action" | "actor" | "category" | "result";
+
+export interface AuditLogListParams {
+  q?: string;
+  actor_user_id?: string;
+  actor_role?: string;
+  actor_type?: string;
+  action?: string;
+  category?: string;
+  resource_type?: string;
+  resource_id?: string;
+  result?: string;
+  exclude_meta?: boolean;
+  date_from?: string;
+  date_to?: string;
+  sort?: AuditSortColumn;
+  order?: "asc" | "desc";
+  page?: number;
+  page_size?: number;
+}
+
+export const getAuditLogs = async (
+  params: AuditLogListParams = {},
+): Promise<Page<AuditLogRow>> => {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "") continue;
+    searchParams.set(key, String(value));
+  }
+  const response = await api.get<Page<AuditLogRow>>(
+    `/admin/audit-logs?${searchParams.toString()}`,
+  );
+  return response.data;
+};
+
+export const getAuditActions = async (): Promise<AuditActionInfo[]> => {
+  const response = await api.get<AuditActionInfo[]>("/admin/audit-logs/actions");
+  return response.data;
+};
