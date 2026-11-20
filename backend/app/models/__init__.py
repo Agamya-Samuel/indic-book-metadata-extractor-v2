@@ -1,6 +1,5 @@
 from app.models.base import Base
 from app.models.book import Book, BookStatus
-from app.models.embedding import Embedding
 from app.models.job import Job, JobStatus, JobType
 from app.models.llm_run import LlmRun
 from app.models.metadata import BookMetadata
@@ -22,7 +21,6 @@ __all__ = [
     "BookStatus",
     "EmailToken",
     "EmailTokenPurpose",
-    "Embedding",
     "Job",
     "JobStatus",
     "JobType",

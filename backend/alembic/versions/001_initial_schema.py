@@ -1,4 +1,4 @@
-"""Initial schema with all 7 tables
+"""Initial schema with all 6 tables
 
 Revision ID: 001
 Revises:
@@ -9,7 +9,6 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-from pgvector.sqlalchemy import Vector
 
 from alembic import op
 
@@ -21,11 +20,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # The embeddings table uses the vector type. The production image ships the
-    # extension, but a fresh database (e.g. the CI service) has not installed
-    # it yet; create it before the first table that needs it.
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
-
     # Books
     op.create_table(
         "books",
@@ -119,18 +113,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
 
-    # Embeddings
-    op.create_table(
-        "embeddings",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column(
-            "book_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("books.id", ondelete="CASCADE"), nullable=False
-        ),
-        sa.Column("embedding", Vector(768), nullable=True),
-        sa.Column("source_text", sa.Text, nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-    )
-
     # Indexes
     op.create_index("ix_books_status", "books", ["status"])
     op.create_index("ix_jobs_book_id", "jobs", ["book_id"])
@@ -139,7 +121,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("embeddings")
     op.drop_table("llm_runs")
     op.drop_table("metadata")
     op.drop_table("jobs")
