@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -149,6 +149,33 @@ describe("AdminSystemPage", () => {
       ok: true,
       detail: "Connected and authenticated successfully",
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("explains how to configure external monitoring when no links are set", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BETTERSTACK_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_NEW_RELIC_URL", "");
+    render(<AdminSystemPage />, { wrapper: createWrapper() });
+
+    expect(
+      await screen.findByText(/No external monitoring links configured/),
+    ).toBeDefined();
+    expect(screen.getByText(/rebuild the frontend/)).toBeDefined();
+  });
+
+  it("links to a configured external monitoring provider", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BETTERSTACK_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_NEW_RELIC_URL", "https://newrelic.example.com");
+    render(<AdminSystemPage />, { wrapper: createWrapper() });
+
+    const link = await screen.findByRole("link", { name: /New Relic/ });
+    expect(link.getAttribute("href")).toBe("https://newrelic.example.com");
+    expect(
+      screen.queryByText(/No external monitoring links configured/),
+    ).toBeNull();
   });
 
   it("renders host resource cards", async () => {

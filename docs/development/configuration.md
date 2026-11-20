@@ -182,6 +182,7 @@ Read by `docker-compose*.yml`, never by the app:
 | `COMPOSE_PROFILES` | Would gate optional services — **not yet applied** to production compose |
 | `NEXT_PUBLIC_API_URL` | Frontend API base, default `/api` |
 | `NEXT_PUBLIC_OPENREFINE_URL`, `NEXT_PUBLIC_WIKIBASE_URL` | Baked into the client bundle at build time |
+| `NEXT_PUBLIC_BETTERSTACK_URL`, `NEXT_PUBLIC_NEW_RELIC_URL` | External monitoring links on Admin → System; baked in at build time |
 | `FLOWER_BASIC_AUTH` | Required for Flower |
 | `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `WIKIBASE_ADMIN_PASS` | Wikibase database/admin credentials |
 | `WIKIBASE_HOST`, `WIKIBASE_SCHEME` | Public Wikibase origin (canonical `$wgServer`) |

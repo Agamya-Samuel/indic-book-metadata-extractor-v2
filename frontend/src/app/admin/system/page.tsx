@@ -144,9 +144,8 @@ export default function AdminSystemPage() {
   });
 
   const externalLinks = [
-    { label: "Flower", href: process.env.NEXT_PUBLIC_FLOWER_URL },
-    { label: "New Relic", href: process.env.NEXT_PUBLIC_NEW_RELIC_URL },
     { label: "Better Stack", href: process.env.NEXT_PUBLIC_BETTERSTACK_URL },
+    { label: "New Relic", href: process.env.NEXT_PUBLIC_NEW_RELIC_URL },
   ].filter((link): link is { label: string; href: string } => Boolean(link.href));
 
   const server = data?.server;
@@ -328,8 +327,8 @@ export default function AdminSystemPage() {
               {externalLinks.length === 0 ? (
                 <p className="text-[length:var(--text-sm)] text-[var(--text-muted)]">
                   No external monitoring links configured. Set
-                  NEXT_PUBLIC_FLOWER_URL, NEXT_PUBLIC_NEW_RELIC_URL, or
-                  NEXT_PUBLIC_BETTERSTACK_URL to surface them here.
+                  NEXT_PUBLIC_NEW_RELIC_URL or NEXT_PUBLIC_BETTERSTACK_URL and
+                  rebuild the frontend to surface them here.
                 </p>
               ) : (
                 <ul className="divide-y divide-[var(--border)]">

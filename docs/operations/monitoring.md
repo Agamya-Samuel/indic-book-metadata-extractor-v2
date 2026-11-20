@@ -177,6 +177,36 @@ hammer the host. If `psutil` is unavailable the server section degrades rather t
 
 Required in practice: host metrics need `/proc`, so the container must not be stripped of procfs.
 
+### 4.1 External monitoring links
+
+The **External monitoring** card on Admin → System links out to the hosted providers that own
+long-term history and alerting. It is built from two optional variables:
+
+| Variable | Link shown as |
+| --- | --- |
+| `NEXT_PUBLIC_BETTERSTACK_URL` | Better Stack (uptime + heartbeats, status page) |
+| `NEXT_PUBLIC_NEW_RELIC_URL` | New Relic (APM, traces, browser) |
+
+Empty variables hide their link, and the card shows a "no external monitoring links configured"
+message when both are empty.
+
+**These are build-time values.** `NEXT_PUBLIC_*` is inlined into the client bundle by
+`next build`, so setting a variable in Dokploy and restarting is not enough — the frontend image
+must be rebuilt. Redeploy after changing them, then confirm the URL is present in the served
+bundle:
+
+```bash
+curl -fsSL https://<host>/ | grep -o '/_next/static/[^"]*\.js' | sort -u \
+  | while read -r p; do
+      if curl -fsSL "https://<host>$p" | grep -q '<your-monitor-host>'; then
+        echo "found in $p"
+      fi
+    done
+```
+
+Flower is internal-only (`expose: 5555`, `FLOWER_BASIC_AUTH`, no public route) and is deliberately
+not linked from this card.
+
 ---
 
 ## 5. Celery visibility

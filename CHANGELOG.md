@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The separate `/library` catalog page is removed (superseded by the admin-only `/admin/books`); book detail moved from `/library/{id}` to `/books/{id}`
 
 ### Fixed
+- **Admin → System monitoring links:** `NEXT_PUBLIC_BETTERSTACK_URL` and `NEXT_PUBLIC_NEW_RELIC_URL` are now in the production/staging environment templates and documented in the operations guide. The empty state states that these are build-time values, so a frontend rebuild is required — setting them in Dokploy alone does not change the served bundle. Flower is internal-only and is no longer linked from the card
 - **Wikibase property catalogue:** removed the invalid P2919 mapping (`place_of_printing` now has no property), switched `original_language` from deprecated P364 to P407, and added 13 missing properties (P110, P166, P179, P212, P361, P750, P825, P1433, P1476, P1545, P1680, P2679, P957). The export mapping now covers 34 of 49 fields
 - **`wikibase-init` is incremental:** it merges new entities into an existing mapping instead of exiting early, creates the book and language items, and writes `property-mapping.json` to the backend storage volume so exports resolve local P-IDs
 - **Wikibase datatypes:** `title`/`subtitle` export as monolingual text, `pages` as a quantity, dates as QuickStatements time values, and 10-digit ISBNs route to P957

@@ -76,6 +76,11 @@ Strongly recommended:
 | `FLOWER_BASIC_AUTH` | `admin:<password>` |
 | `COOKIE_SECURE` | `true` |
 | `SMTP_*` | Required for verification and reset email |
+| `NEXT_PUBLIC_BETTERSTACK_URL` | Hosted status page linked from Admin → System |
+
+The `NEXT_PUBLIC_*` monitoring links are baked into the frontend bundle at build time, so changing
+them requires a redeploy, not just a restart. See
+[monitoring §4.1](monitoring.md#41-external-monitoring-links).
 
 Everything else has a working default. See [configuration](../development/configuration.md).
 
