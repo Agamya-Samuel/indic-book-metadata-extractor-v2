@@ -9,13 +9,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_admin
+from app.api.deps import get_audit_context, require_admin
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.book import Book, BookStatus
 from app.models.user import User
 from app.schemas.export import PublishRequest
-from app.services import wikibase_publish
+from app.services import audit_service, wikibase_publish
+from app.services.audit_service import AuditAction, AuditContext
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ async def publish_to_wikibase(
     body: PublishRequest,
     user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> dict:
     """Create or update one Wikibase item per selected book.
 
@@ -96,8 +98,23 @@ async def publish_to_wikibase(
     finally:
         await client.aclose()
 
+    published = len([r for r in reports if r["item_id"]])
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.EXPORT_WIKIBASE,
+        ctx=ctx,
+        description=f"Wikibase publish ({'dry run' if body.dry_run else 'live'}) for {len(reports)} book(s)",
+        resource_type="wikibase",
+        details={
+            "dry_run": body.dry_run,
+            "book_count": len(reports),
+            "published": published,
+            "book_ids": [r["book_id"] for r in reports],
+            "language": body.language,
+        },
+    )
     return {
         "dry_run": body.dry_run,
-        "published": len([r for r in reports if r["item_id"]]),
+        "published": published,
         "reports": reports,
     }

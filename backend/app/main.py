@@ -22,6 +22,7 @@ from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.maintenance_middleware import MaintenanceMiddleware
 from app.core.redis import get_redis_pool, set_redis_pool
+from app.core.request_context import RequestIDMiddleware, client_ip
 from app.services import maintenance_service
 
 logger = logging.getLogger(__name__)
@@ -42,27 +43,6 @@ AUTH_RATE_LIMIT_PATHS = frozenset(
         "/api/auth/resend-verification",
     }
 )
-
-
-def client_ip(request: Request) -> str:
-    """The real client address, not the edge proxy that delivered the request.
-
-    Cloudflare sets ``CF-Connecting-IP``; behind Traefik the socket peer is the
-    proxy, so keying limits on it would put every visitor in one bucket. Only
-    the *last* ``X-Forwarded-For`` hop is trusted (the one our own proxy
-    appended); earlier entries are client-controlled. Residual risk: until the
-    origin only accepts Cloudflare, a direct caller can forge either header —
-    see plans/011-launch-readiness.md.
-    """
-    forwarded = request.headers.get("cf-connecting-ip")
-    if forwarded and forwarded.strip():
-        return forwarded.strip()
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        last_hop = xff.split(",")[-1].strip()
-        if last_hop:
-            return last_hop
-    return request.client.host if request.client else "unknown"
 
 
 _THUMBNAIL_PATH_RE = re.compile(r"^/api/books/[^/]+/pages/\d+/thumbnail$")
@@ -304,6 +284,9 @@ if settings.new_relic_enabled:
             "New Relic is ENABLED but initialisation failed — APM data will NOT be reported. Error: %s",
             exc,
         )
+
+# Correlates an audit row with the application log line for the same request.
+app.add_middleware(RequestIDMiddleware)
 
 # Rate limiting middleware (must be added BEFORE CORS — runs after CORS in the stack)
 app.add_middleware(RateLimitMiddleware)

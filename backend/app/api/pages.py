@@ -6,7 +6,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import can_view_full_book, get_current_user
+from app.api.deps import can_view_full_book, get_audit_context, get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.book import Book
@@ -20,13 +20,15 @@ from app.schemas.page import (
     PreprocessingPreviewResponse,
     PreprocessingResponse,
 )
+from app.services import audit_service
 from app.services import storage
 from app.services import preprocessing as prep_svc
+from app.services.audit_service import AuditAction, AuditContext
 
 router = APIRouter()
 
 
-async def _get_page(page_id: UUID, db: AsyncSession, user: User) -> Page:
+async def _get_page(page_id: UUID, db: AsyncSession, user: User) -> tuple[Page, Book]:
     result = await db.execute(select(Page).where(Page.id == page_id))
     page = result.scalar_one_or_none()
     if page is None:
@@ -34,7 +36,7 @@ async def _get_page(page_id: UUID, db: AsyncSession, user: User) -> Page:
     book = await db.get(Book, page.book_id)
     if book is None or not can_view_full_book(book, user):
         raise HTTPException(status_code=404, detail="Page not found")
-    return page
+    return page, book
 
 
 @router.put("/{page_id}/preprocessing", response_model=PreprocessingResponse)
@@ -43,8 +45,9 @@ async def update_preprocessing(
     config: PreprocessingConfig,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> PreprocessingResponse:
-    page = await _get_page(page_id, db, user)
+    page, book = await _get_page(page_id, db, user)
 
     if not page.image_path:
         raise HTTPException(status_code=400, detail="Page has no source image")
@@ -59,8 +62,23 @@ async def update_preprocessing(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preprocessing failed: {e}")
 
+    before, after = audit_service.change_snapshots(
+        page.preprocessing_config or {},
+        config.model_dump(),
+    )
     page.preprocessing_config = config.model_dump()
     page.processed_image_path = storage.relative(output_path)
+    await audit_service.record(
+        db,
+        action=AuditAction.PREPROCESSING_UPDATED,
+        ctx=ctx,
+        description=f"Updated preprocessing for page {page.page_number} of book {page.book_id}",
+        resource_type="page",
+        resource_id=page.id,
+        subject_user_id=book.owner_id,
+        before=before,
+        after=after,
+    )
     await db.commit()
     await db.refresh(page)
 
@@ -88,7 +106,7 @@ async def preview_preprocessing(
     Nothing is committed: the preview PNG is written to the page's processed
     directory and served until Apply overwrites the real processed image.
     """
-    page = await _get_page(page_id, db, user)
+    page, _ = await _get_page(page_id, db, user)
 
     if not page.image_path:
         raise HTTPException(status_code=400, detail="Page has no source image")
@@ -116,7 +134,7 @@ async def get_ocr_result(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> OcrResultResponse:
-    page = await _get_page(page_id, db, user)
+    page, _ = await _get_page(page_id, db, user)
 
     result = await db.execute(select(OcrResult).where(OcrResult.page_id == page_id))
     ocr = result.scalar_one_or_none()
@@ -147,8 +165,9 @@ async def update_ocr_correction(
     body: OcrCorrectionRequest,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> OcrResultResponse:
-    page = await _get_page(page_id, db, user)
+    page, book = await _get_page(page_id, db, user)
 
     # Row lock to prevent concurrent OCR re-runs from silently overwriting
     # a user correction. The lock is released at the end of the transaction.
@@ -157,7 +176,23 @@ async def update_ocr_correction(
     if ocr is None:
         raise HTTPException(status_code=404, detail="OCR result not found")
 
+    before, after = audit_service.change_snapshots(
+        {"corrected_text": ocr.corrected_text},
+        {"corrected_text": body.corrected_text},
+    )
     ocr.corrected_text = body.corrected_text
+    await audit_service.record(
+        db,
+        action=AuditAction.OCR_CORRECTION_SAVED,
+        ctx=ctx,
+        description=f"Saved OCR correction for page {page.page_number} of book {book.title or book.filename}",
+        resource_type="page",
+        resource_id=page.id,
+        resource_label=f"page {page.page_number}",
+        subject_user_id=book.owner_id,
+        before=before,
+        after=after,
+    )
     await db.commit()
     await db.refresh(ocr)
 

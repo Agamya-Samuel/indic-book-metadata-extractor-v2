@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.api.deps import PaginationParams, get_owned_book_or_404, get_pagination
+from app.api.deps import PaginationParams, get_audit_context, get_owned_book_or_404, get_pagination
 from app.core.database import get_db
 from app.models.book import Book, BookStatus
 from app.models.job import Job, JobStatus, JobType
@@ -22,6 +22,8 @@ from app.schemas.metadata import (
     MetadataResponse,
     MetadataUpdateRequest,
 )
+from app.services import audit_service
+from app.services.audit_service import AuditAction, AuditContext
 from app.services.stage_manager import StageManager
 
 router = APIRouter()
@@ -53,18 +55,36 @@ async def update_metadata(
     body: MetadataUpdateRequest,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> MetadataResponse:
     result = await db.execute(select(BookMetadata).where(BookMetadata.book_id == book_id).with_for_update())
     metadata = result.scalar_one_or_none()
 
     if metadata is None:
+        before_fields: dict = {}
         metadata = BookMetadata(book_id=book_id, fields=body.fields)
         db.add(metadata)
     else:
+        before_fields = dict(metadata.fields or {})
         existing = metadata.fields or {}
         existing.update(body.fields)
         metadata.fields = existing
         flag_modified(metadata, "fields")
+
+    before, after = audit_service.change_snapshots(before_fields, metadata.fields or {})
+    await audit_service.record(
+        db,
+        action=AuditAction.METADATA_UPDATED,
+        ctx=ctx,
+        description=f"Updated metadata for book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book_id,
+        resource_label=book.title or book.filename,
+        subject_user_id=book.owner_id,
+        before=before,
+        after=after,
+        details={"changed_field_count": len(after)},
+    )
 
     # Saving no longer completes the workflow. Keep the book in
     # `awaiting_review` and mark `human_review` as in progress; the explicit
@@ -92,6 +112,7 @@ async def complete_review(
     book_id: UUID,
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> MetadataResponse:
     """Explicitly finish the human review and complete the workflow.
 
@@ -119,6 +140,7 @@ async def complete_review(
         )
 
     if book.status != BookStatus.COMPLETE:
+        status_before = str(book.status)
         human = await StageManager.get_stage(db, book_id, "human_review")
         if human is None:
             human = await StageManager.initiate_stage(db, book_id, "human_review")
@@ -143,6 +165,18 @@ async def complete_review(
         if completion.status != StageStatus.COMPLETED:
             await StageManager.complete_stage(db, book_id, "completion")
 
+        await audit_service.record(
+            db,
+            action=AuditAction.METADATA_REVIEW_COMPLETED,
+            ctx=ctx,
+            description=f"Completed metadata review for book {book.title or book.filename}",
+            resource_type="book",
+            resource_id=book_id,
+            resource_label=book.title or book.filename,
+            subject_user_id=book.owner_id,
+            before={"status": status_before},
+            after={"status": BookStatus.COMPLETE.value},
+        )
         await db.commit()
         await db.refresh(metadata)
 

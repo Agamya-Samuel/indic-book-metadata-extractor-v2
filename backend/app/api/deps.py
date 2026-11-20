@@ -19,6 +19,8 @@ from app.core.security import (
 from app.models.book import Book
 from app.models.job import Job
 from app.models.user import AccountStatus, User, UserRole
+from app.services import audit_service
+from app.services.audit_service import AuditContext
 
 _MUTATION_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
@@ -117,6 +119,18 @@ async def get_optional_user(
     if not token:
         return None
     return await _user_from_token(db, token)
+
+
+async def get_audit_context(
+    request: Request,
+    user: User | None = Depends(get_optional_user),
+) -> AuditContext:
+    """Actor, IP, and request id for an audit entry.
+
+    Optional-user (not required-user) so unauthenticated routes — sign-in,
+    registration, email-token links — can still record an anonymous event.
+    """
+    return audit_service.context_from_request(request, user)
 
 
 async def require_approved_user(

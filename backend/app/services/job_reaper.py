@@ -11,6 +11,7 @@ same way a task failure does, and tells the owner.
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -60,6 +61,7 @@ async def reap_stale_jobs(db: AsyncSession, *, now: datetime | None = None) -> i
 
     reaped = 0
     notification_ids: list = []
+    reaped_jobs: list[tuple[uuid.UUID, str, uuid.UUID | None, uuid.UUID | None, int]] = []
     reference_now = now or datetime.now(timezone.utc)
     for job in jobs:
         started = job.last_progress_at or job.started_at
@@ -89,10 +91,36 @@ async def reap_stale_jobs(db: AsyncSession, *, now: datetime | None = None) -> i
         notification_ids.append(
             await notification_service.notify_job_terminal(db, job=job, book=book, status=JobStatus.FAILED)
         )
+        # Capture primitives now: rows expire from the identity map on some
+        # sessions, and the audit write happens after the commit below.
+        reaped_jobs.append((job.id, job.job_type, job.book_id, job.requested_by_id, age_minutes))
         reaped += 1
         logger.warning("Reaped stale %s job %s (age %d min)", job.job_type, job.id, age_minutes)
 
     if reaped:
+        from app.services import audit_service
+
+        # The audit rows ride in the reap transaction itself: reaped iff
+        # audited, and no per-job thread/connection is spawned on the loop.
+        reaper_ctx = audit_service.system_context(label="job-reaper")
+        for job_id, job_type, book_id, requested_by_id, age_minutes in reaped_jobs:
+            await audit_service.record(
+                db,
+                action=audit_service.AuditAction.JOB_REAPED,
+                ctx=reaper_ctx,
+                description=f"Reaped stale {job_type} job {job_id} (no progress for {age_minutes} min)",
+                resource_type="job",
+                resource_id=job_id,
+                resource_label=job_type,
+                subject_user_id=requested_by_id,
+                result=audit_service.AuditResult.FAILURE,
+                error_message="Worker lost: exceeded stale-job threshold",
+                details={
+                    "book_id": str(book_id) if book_id else None,
+                    "age_minutes": age_minutes,
+                    "threshold_minutes": settings.stale_job_minutes,
+                },
+            )
         await db.commit()
         await notification_service.notify_and_deliver(db, notification_ids)
     return reaped

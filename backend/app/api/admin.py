@@ -7,10 +7,11 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_admin
+from app.api.deps import get_audit_context, require_admin
 from app.core.database import get_db
 from app.core.media_tokens import thumbnail_url
 from app.core.redis import get_redis_pool
+from app.models.book import Book
 from app.models.user import AccountStatus, User
 from app.schemas.auth import (
     AdminPasswordResetRequest,
@@ -43,7 +44,15 @@ from app.schemas.smtp import (
     SmtpTestRequest,
     SmtpTestResponse,
 )
-from app.services import admin_service, auth_service, maintenance_service, smtp_service, system_metrics_service
+from app.services import (
+    admin_service,
+    audit_service,
+    auth_service,
+    maintenance_service,
+    smtp_service,
+    system_metrics_service,
+)
+from app.services.audit_service import AuditAction, AuditContext, AuditResult
 from app.services.auth_service import AuthError
 from app.services.notification_service import deliver_notification_emails
 from app.services.search_service import SearchService
@@ -98,6 +107,7 @@ async def admin_list_users(
 async def admin_create_user(
     body: AdminUserCreateRequest,
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> UserResponse:
     try:
         user = await auth_service.create_user(
@@ -110,6 +120,17 @@ async def admin_create_user(
         )
     except AuthError as exc:
         raise _auth_http_error(exc)
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.USER_CREATED,
+        ctx=ctx,
+        description=f"Created account {user.email}",
+        resource_type="user",
+        resource_id=user.id,
+        resource_label=user.email,
+        subject_user_id=user.id,
+        details={"role": user.role, "account_status": user.account_status},
+    )
     return UserResponse.model_validate(user)
 
 
@@ -141,6 +162,7 @@ async def admin_update_user(
     body: AdminUserUpdateRequest,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> UserResponse:
     target = await _get_user_or_404(db, user_id)
     try:
@@ -151,6 +173,7 @@ async def admin_update_user(
             display_name=body.display_name,
             role=body.role.value if body.role is not None else None,
             is_active=body.is_active,
+            audit=ctx,
         )
     except AuthError as exc:
         raise _auth_http_error(exc)
@@ -163,12 +186,23 @@ async def admin_approve_user(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> UserResponse:
     target = await _get_user_or_404(db, user_id)
     try:
         user, notification_id = await auth_service.approve_user(db, admin, target)
     except AuthError as exc:
         raise _auth_http_error(exc)
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.USER_APPROVED,
+        ctx=ctx,
+        description=f"Approved account {user.email}",
+        resource_type="user",
+        resource_id=user.id,
+        resource_label=user.email,
+        subject_user_id=user.id,
+    )
     if notification_id is not None:
         background_tasks.add_task(deliver_notification_emails, [notification_id])
     return UserResponse.model_validate(user)
@@ -180,12 +214,24 @@ async def admin_reject_user(
     body: AdminUserRejectRequest,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> UserResponse:
     target = await _get_user_or_404(db, user_id)
     try:
         user = await auth_service.reject_user(db, admin, target, body.rejection_reason)
     except AuthError as exc:
         raise _auth_http_error(exc)
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.USER_REJECTED,
+        ctx=ctx,
+        description=f"Rejected account {user.email}",
+        resource_type="user",
+        resource_id=user.id,
+        resource_label=user.email,
+        subject_user_id=user.id,
+        details={"reason": body.rejection_reason},
+    )
     return UserResponse.model_validate(user)
 
 
@@ -194,9 +240,21 @@ async def admin_reset_user_password(
     user_id: UUID,
     body: AdminPasswordResetRequest,
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> None:
     target = await _get_user_or_404(db, user_id)
     await auth_service.reset_user_password_admin(db, target, body.new_password)
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.USER_PASSWORD_RESET,
+        ctx=ctx,
+        description=f"Reset the password for {target.email}",
+        resource_type="user",
+        resource_id=target.id,
+        resource_label=target.email,
+        subject_user_id=target.id,
+        details={"sessions_revoked": True},
+    )
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -204,10 +262,11 @@ async def admin_delete_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> None:
     target = await _get_user_or_404(db, user_id)
     try:
-        await auth_service.delete_user_admin(db, admin, target)
+        await auth_service.delete_user_admin(db, admin, target, audit=ctx)
     except AuthError as exc:
         raise _auth_http_error(exc)
 
@@ -306,22 +365,45 @@ async def admin_list_books(
 async def admin_delete_book(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> None:
+    book = await db.get(Book, book_id)
     try:
         await admin_service.delete_book(db, book_id)
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.BOOK_DELETED,
+        ctx=ctx,
+        description=f"Deleted book {book.title or book.filename if book else book_id}",
+        resource_type="book",
+        resource_id=book_id,
+        resource_label=(book.title or book.filename) if book else None,
+        details={"filename": book.filename, "owner_id": str(book.owner_id)} if book else None,
+    )
 
 
 @router.post("/books/{book_id}/reset")
 async def admin_reset_book(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> dict:
     try:
         book = await admin_service.reset_book(db, book_id)
     except LookupError:
         raise HTTPException(status_code=404, detail="Book not found")
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.BOOK_RESET,
+        ctx=ctx,
+        description=f"Reset book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book.id,
+        resource_label=book.title or book.filename,
+        details={"status": book.status},
+    )
     return {"id": str(book.id), "status": book.status}
 
 
@@ -330,6 +412,7 @@ async def admin_rerun_ocr(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> dict:
     try:
         job = await admin_service.rerun_ocr(db, book_id, requested_by_id=admin.id)
@@ -337,6 +420,15 @@ async def admin_rerun_ocr(
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.BOOK_RERUN_OCR,
+        ctx=ctx,
+        description=f"Re-ran OCR for book {book_id}",
+        resource_type="book",
+        resource_id=book_id,
+        details={"job_id": str(job.id)},
+    )
     return {
         "job_id": str(job.id),
         "book_id": str(book_id),
@@ -349,6 +441,7 @@ async def admin_rerun_extraction(
     book_id: UUID,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> dict:
     try:
         job = await admin_service.rerun_extraction(db, book_id, requested_by_id=admin.id)
@@ -356,6 +449,15 @@ async def admin_rerun_extraction(
         raise HTTPException(status_code=404, detail="Book not found")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.BOOK_RERUN_EXTRACTION,
+        ctx=ctx,
+        description=f"Re-ran extraction for book {book_id}",
+        resource_type="book",
+        resource_id=book_id,
+        details={"job_id": str(job.id)},
+    )
     return {
         "job_id": str(job.id),
         "book_id": str(book_id),
@@ -389,6 +491,7 @@ async def admin_update_maintenance(
     body: MaintenanceUpdate,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> MaintenanceStatus:
     data = await maintenance_service.set_maintenance(
         db,
@@ -397,6 +500,7 @@ async def admin_update_maintenance(
         until=body.until,
         updated_by_id=admin.id,
         redis=get_redis_pool(),
+        audit=ctx,
     )
     data["updated_by"] = admin.display_name
     return MaintenanceStatus.model_validate(data)
@@ -418,6 +522,7 @@ async def admin_update_smtp(
     body: SmtpConfigUpdateRequest,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> SmtpConfigResponse:
     try:
         await smtp_service.update_admin_config(
@@ -432,6 +537,7 @@ async def admin_update_smtp(
             from_name=body.from_name,
             use_tls=body.use_tls,
             use_starttls=body.use_starttls,
+            audit=ctx,
         )
     except AuthError as exc:
         raise _auth_http_error(exc)
@@ -444,6 +550,7 @@ async def admin_test_smtp(
     body: SmtpTestRequest | None = None,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> SmtpTestResponse:
     body = body or SmtpTestRequest()
     override = None
@@ -463,6 +570,17 @@ async def admin_test_smtp(
         )
     result = await smtp_service.test_config(
         db, to_email=(str(body.to_email) if body.to_email else None), override=override
+    )
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.CONFIG_SMTP_TESTED,
+        ctx=ctx,
+        description="Ran an SMTP connection test",
+        resource_type="config",
+        resource_id="smtp",
+        result=AuditResult.SUCCESS if result["ok"] else AuditResult.FAILURE,
+        error_message=None if result["ok"] else result["detail"],
+        details={"recipient": str(body.to_email) if body.to_email else None, "used_override": override is not None},
     )
     return SmtpTestResponse(ok=result["ok"], detail=result["detail"])
 
@@ -515,8 +633,23 @@ async def admin_bulk_cancel_jobs(
     body: BulkCancelRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> BulkCancelResponse:
     results, notification_ids = await admin_service.cancel_jobs_bulk(db, body.job_ids)
+    cancelled = [item for item in results if item.get("ok")]
+    failed = [item for item in results if not item.get("ok")]
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.JOB_CANCELLED,
+        ctx=ctx,
+        description=f"Cancelled {len(cancelled)} of {len(results)} jobs",
+        resource_type="job",
+        details={
+            "requested": len(results),
+            "cancelled": len(cancelled),
+            "failed": [{"id": str(item.get("id")), "error": item.get("error")} for item in failed][:20],
+        },
+    )
     if notification_ids:
         background_tasks.add_task(deliver_notification_emails, notification_ids)
     return BulkCancelResponse.model_validate({"results": results})
@@ -527,6 +660,7 @@ async def admin_retry_job(
     job_id: UUID,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> dict:
     try:
         job = await admin_service.retry_job(db, job_id, requested_by_id=admin.id)
@@ -534,6 +668,17 @@ async def admin_retry_job(
         raise HTTPException(status_code=404, detail="Job not found")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.JOB_RETRIED,
+        ctx=ctx,
+        description=f"Retried job {job_id}",
+        resource_type="job",
+        resource_id=job_id,
+        resource_label=job.job_type,
+        subject_user_id=job.requested_by_id,
+        details={"new_job_id": str(job.id), "book_id": str(job.book_id) if job.book_id else None},
+    )
     return {
         "job_id": str(job.id),
         "book_id": str(job.book_id) if job.book_id else None,
@@ -546,6 +691,7 @@ async def admin_cancel_job(
     job_id: UUID,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> dict:
     try:
         job, notification_id = await admin_service.cancel_job(db, job_id)
@@ -553,6 +699,17 @@ async def admin_cancel_job(
         raise HTTPException(status_code=404, detail="Job not found")
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.JOB_CANCELLED,
+        ctx=ctx,
+        description=f"Cancelled job {job.id}",
+        resource_type="job",
+        resource_id=job.id,
+        resource_label=job.job_type,
+        subject_user_id=job.requested_by_id,
+        details={"book_id": str(job.book_id) if job.book_id else None},
+    )
     if notification_id is not None:
         background_tasks.add_task(deliver_notification_emails, [notification_id])
     return {"id": str(job.id), "status": job.status}

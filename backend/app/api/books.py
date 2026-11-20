@@ -41,12 +41,14 @@ from app.services.search_service import SearchService
 from app.services.stage_manager import StageManager
 from app.api.deps import (
     PaginationParams,
+    get_audit_context,
     get_current_user,
     get_owned_book_or_404,
     get_pagination,
 )
 from app.models.user import User
-from app.services import admin_service
+from app.services import admin_service, audit_service
+from app.services.audit_service import AuditAction, AuditContext
 
 VALID_LANGUAGES = frozenset(LANGUAGE_MAP.keys())
 logger = logging.getLogger(__name__)
@@ -82,6 +84,7 @@ async def upload_book(
     language: str = Form(""),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> BookUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
@@ -156,6 +159,22 @@ async def upload_book(
 
     background_tasks.add_task(_pre_render_thumbnails, str(book_id), pdf_path, page_count)
 
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.BOOK_UPLOADED,
+        ctx=ctx,
+        description=f"Uploaded book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book.id,
+        resource_label=book.title or book.filename,
+        subject_user_id=user.id,
+        details={
+            "filename": book.filename,
+            "language": book.language,
+            "total_pages": book.total_pages,
+        },
+    )
+
     return BookUploadResponse.model_validate(book)
 
 
@@ -165,6 +184,7 @@ async def update_book_language(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> BookLanguageResponse:
     """Correct a book's language and re-run OCR when pages already exist.
 
@@ -179,12 +199,27 @@ async def update_book_language(
             detail=f"Unsupported language '{body.language}'. Valid options: {sorted(VALID_LANGUAGES)}",
         )
 
+    previous_language = book.language
     updated, job = await admin_service.change_language(
         db,
         book.id,
         body.language,
         requested_by_id=user.id,
     )
+    if updated.language != previous_language:
+        await audit_service.record_isolated(
+            db,
+            action=AuditAction.BOOK_LANGUAGE_CHANGED,
+            ctx=ctx,
+            description=f"Changed the language of book {updated.title or updated.filename} to {updated.language}",
+            resource_type="book",
+            resource_id=updated.id,
+            resource_label=updated.title or updated.filename,
+            subject_user_id=updated.owner_id,
+            before={"language": previous_language},
+            after={"language": updated.language},
+            details={"job_id": str(job.id) if job is not None else None},
+        )
     return BookLanguageResponse(
         id=updated.id,
         language=updated.language,
@@ -254,6 +289,7 @@ async def select_pages(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> PageSelectionResponse:
     """Select pages and enqueue a PAGE_EXTRACTION job to render them.
 
@@ -315,7 +351,24 @@ async def select_pages(
         progress=0.0,
     )
     db.add(job)
+    await db.flush()
     book.status = BookStatus.PAGES_SELECTED
+    await audit_service.record(
+        db,
+        action=AuditAction.PAGES_SELECTED,
+        ctx=ctx,
+        description=f"Selected {len(unique_pages)} pages for book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book_id,
+        resource_label=book.title or book.filename,
+        subject_user_id=book.owner_id,
+        details={
+            "selected_count": len(unique_pages),
+            "page_numbers": unique_pages,
+            "superseded_job_count": len(revoked),
+            "job_id": str(job.id),
+        },
+    )
     await db.commit()
     admin_service._revoke_task_ids(revoked)
     await db.refresh(job)
@@ -347,6 +400,7 @@ async def apply_preprocessing_all(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> JobResponse:
     """Apply one preprocessing config to every page as a background job.
 
@@ -369,6 +423,18 @@ async def apply_preprocessing_all(
         progress=0.0,
     )
     db.add(job)
+    await db.flush()
+    await audit_service.record(
+        db,
+        action=AuditAction.PREPROCESSING_APPLIED,
+        ctx=ctx,
+        description=f"Applied preprocessing to every page of book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book.id,
+        resource_label=book.title or book.filename,
+        subject_user_id=book.owner_id,
+        details={"job_id": str(job.id), "config": config.model_dump()},
+    )
     await db.commit()
     await db.refresh(job)
 
@@ -425,6 +491,7 @@ async def run_ocr(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> JobResponse:
     book_id = book.id
 
@@ -466,8 +533,20 @@ async def run_ocr(
         progress=0.0,
     )
     db.add(job)
+    await db.flush()
 
     book.status = BookStatus.OCR_RUNNING
+    await audit_service.record(
+        db,
+        action=AuditAction.OCR_REQUESTED,
+        ctx=ctx,
+        description=f"Started OCR for book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book_id,
+        resource_label=book.title or book.filename,
+        subject_user_id=book.owner_id,
+        details={"job_id": str(job.id), "page_count": len(pages)},
+    )
     await db.commit()
     admin_service._revoke_task_ids(revoked)
     await db.refresh(job)

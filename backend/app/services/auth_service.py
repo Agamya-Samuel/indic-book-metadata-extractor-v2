@@ -29,7 +29,8 @@ from app.models.user import (
     User,
     UserRole,
 )
-from app.services import notification_service, smtp_service
+from app.services import audit_service, notification_service, smtp_service
+from app.services.audit_service import AuditAction, AuditContext
 from app.services.email_service import (
     send_email_change_email,
     send_password_reset_email,
@@ -42,11 +43,21 @@ logger = logging.getLogger(__name__)
 class AuthError(Exception):
     """An authentication or account-management failure with an HTTP mapping."""
 
-    def __init__(self, detail: str, status_code: int = 400, code: str = "auth_error"):
+    def __init__(
+        self,
+        detail: str,
+        status_code: int = 400,
+        code: str = "auth_error",
+        *,
+        user_id: UUID | None = None,
+    ):
         super().__init__(detail)
         self.detail = detail
         self.status_code = status_code
         self.code = code
+        # Set when the failure is attributable to a known account, so a route
+        # can record the event against that account (e.g. token replay).
+        self.user_id = user_id
 
 
 def normalize_email(email: str) -> str:
@@ -270,7 +281,7 @@ async def rotate_refresh_token(
         # A revoked token was replayed. Treat the whole session family as
         # compromised and invalidate every refresh token for the user.
         await revoke_all_sessions(db, token.user_id)
-        raise AuthError("Session revoked", 401, "refresh_reused")
+        raise AuthError("Session revoked", 401, "refresh_reused", user_id=token.user_id)
 
     if _is_expired(token.expires_at):
         token.revoked_at = utcnow()
@@ -392,7 +403,7 @@ async def request_email_change(db: AsyncSession, user: User, new_email: str, cur
         )
 
 
-async def confirm_email_change(db: AsyncSession, raw_token: str) -> User:
+async def confirm_email_change(db: AsyncSession, raw_token: str) -> tuple[User, str]:
     token = await _consume_email_token(db, raw_token, EmailTokenPurpose.VERIFY_NEW_EMAIL)
     user = await db.get(User, token.user_id)
     if user is None:
@@ -406,6 +417,7 @@ async def confirm_email_change(db: AsyncSession, raw_token: str) -> User:
     if existing is not None and existing.id != user.id:
         raise AuthError("An account with this email already exists", 409, "email_taken")
 
+    previous_email = user.email
     user.email = new_email
     if user.email_verified_at is None:
         user.email_verified_at = utcnow()
@@ -414,7 +426,7 @@ async def confirm_email_change(db: AsyncSession, raw_token: str) -> User:
     # Email is a credential: force re-authentication everywhere after a change.
     await revoke_all_sessions(db, user.id)
     await db.refresh(user)
-    return user
+    return user, previous_email
 
 
 # ---------------------------------------------------------------------------
@@ -546,6 +558,7 @@ async def update_user_admin(
     display_name: str | None,
     role: str | None,
     is_active: bool | None,
+    audit: AuditContext | None = None,
 ) -> User:
     _ensure_admin_target_preserved(
         acting_admin,
@@ -566,12 +579,40 @@ async def update_user_admin(
             "last_admin_protection",
         )
 
+    before = {
+        "display_name": target.display_name,
+        "role": target.role,
+        "is_active": target.is_active,
+    }
     if display_name is not None:
         target.display_name = display_name.strip()
     if role is not None:
         target.role = role
     if is_active is not None:
         target.is_active = is_active
+
+    after = {
+        "display_name": target.display_name,
+        "role": target.role,
+        "is_active": target.is_active,
+    }
+    if audit is not None:
+        changed_before, changed_after = audit_service.change_snapshots(before, after)
+        if changed_before:
+            # Critical: staged in this transaction so a failed insert blocks
+            # the role/permission change instead of leaving it unaudited.
+            await audit_service.record(
+                db,
+                action=AuditAction.USER_UPDATED,
+                ctx=audit,
+                description=f"Updated account {target.email}",
+                resource_type="user",
+                resource_id=target.id,
+                resource_label=target.email,
+                subject_user_id=target.id,
+                before=changed_before,
+                after=changed_after,
+            )
 
     await db.commit()
     await db.refresh(target)
@@ -587,7 +628,13 @@ async def reset_user_password_admin(db: AsyncSession, target: User, new_password
     await revoke_all_sessions(db, target.id)
 
 
-async def delete_user_admin(db: AsyncSession, acting_admin: User, target: User) -> None:
+async def delete_user_admin(
+    db: AsyncSession,
+    acting_admin: User,
+    target: User,
+    *,
+    audit: AuditContext | None = None,
+) -> None:
     _ensure_admin_target_preserved(acting_admin, target, new_role=None, new_active=None, deleting=True)
 
     if target.role == UserRole.ADMIN and target.is_active:
@@ -604,6 +651,27 @@ async def delete_user_admin(db: AsyncSession, acting_admin: User, target: User) 
             f"This user owns {book_count} book(s). Delete or transfer those books first.",
             409,
             "user_has_books",
+        )
+
+    if audit is not None:
+        # Critical: staged before the delete so the audit row and the deletion
+        # commit together. There is no FK, so the row survives the delete.
+        await audit_service.record(
+            db,
+            action=AuditAction.USER_DELETED,
+            ctx=audit,
+            description=f"Deleted account {target.email}",
+            resource_type="user",
+            resource_id=target.id,
+            resource_label=target.email,
+            subject_user_id=target.id,
+            before={
+                "email": target.email,
+                "display_name": target.display_name,
+                "role": target.role,
+                "account_status": target.account_status,
+                "is_active": target.is_active,
+            },
         )
 
     await db.delete(target)

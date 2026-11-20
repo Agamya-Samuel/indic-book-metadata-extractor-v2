@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
-from app.api.deps import require_admin
+from app.api.deps import get_audit_context, require_admin
 from app.models.book import Book
 from app.models.metadata import BookMetadata
 from app.schemas.bulk import (
@@ -22,7 +22,8 @@ from app.schemas.bulk import (
 )
 from app.schemas.export import ExportFormat
 from app.schemas.metadata import FIELD_WIKIDATA
-from app.services import export_service
+from app.services import audit_service, export_service
+from app.services.audit_service import AuditAction, AuditContext, AuditResult
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ async def bulk_export(
     status: str | None = Query(default=None),
     format: ExportFormat = Query(default="csv"),
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> Response:
     """Export every eligible book's metadata as a download (admin scope)."""
     try:
@@ -73,6 +75,19 @@ async def bulk_export(
     scope = "all-books" if len(rows) > 1 else f"book-{str(rows[0].book_id)[:8]}"
     filename = f"metadata_export_{scope}_{timestamp}.{extension}"
 
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.EXPORT_METADATA,
+        ctx=ctx,
+        description=f"Bulk exported metadata for {len(rows)} book(s)",
+        resource_type="book",
+        details={
+            "format": format,
+            "row_count": len(rows),
+            "language": language,
+            "status": status,
+        },
+    )
     return Response(
         content=body,
         media_type=media_type,
@@ -88,6 +103,7 @@ async def bulk_import(
     file: UploadFile = File(...),
     mode: str = Query(default="merge"),
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ):
     """Import cleaned metadata from a CSV file.
 
@@ -233,6 +249,24 @@ async def bulk_import(
 
     await db.commit()
 
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.BULK_IMPORT,
+        ctx=ctx,
+        description=f"Imported metadata from {file.filename} ({mode} mode)",
+        resource_type="bulk_import",
+        details={
+            "filename": file.filename,
+            "mode": mode,
+            "total_rows": total_rows,
+            "books_updated": books_updated,
+            "books_not_found": books_not_found,
+            "fields_changed": fields_changed,
+            "error_count": len(errors),
+        },
+        result=AuditResult.SUCCESS if not errors else AuditResult.FAILURE,
+        error_message="; ".join(errors[:5]) if errors else None,
+    )
     return BulkImportResult(
         total_rows=total_rows,
         books_updated=books_updated,
@@ -246,6 +280,7 @@ async def bulk_import(
 async def bulk_export_wikibase(
     language: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
+    ctx: AuditContext = Depends(get_audit_context),
 ):
     """Generate QuickStatements TSV for Wikibase upload.
 
@@ -314,6 +349,14 @@ async def bulk_export_wikibase(
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"wikibase_quickstatements_{timestamp}.tsv"
 
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.EXPORT_WIKIBASE,
+        ctx=ctx,
+        description=f"Generated QuickStatements TSV for {len(rows)} book(s)",
+        resource_type="wikibase",
+        details={"book_count": len(rows), "language": language},
+    )
     return StreamingResponse(
         iter([tsv_content]),
         media_type="text/tab-separated-values",

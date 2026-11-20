@@ -24,6 +24,8 @@ from app.core import secret_box
 from app.core.config import settings
 from app.models.smtp_setting import SINGLETON_ID, SmtpSetting
 from app.models.user import User
+from app.services import audit_service
+from app.services.audit_service import AuditAction, AuditContext
 
 logger = logging.getLogger(__name__)
 
@@ -170,10 +172,12 @@ async def update_admin_config(
     from_name: str | None = None,
     use_tls: bool | None = None,
     use_starttls: bool | None = None,
+    audit: AuditContext | None = None,
 ) -> SmtpSetting:
     global _cache
     row = await _get_or_create(db)
 
+    before = _audit_snapshot(row)
     if enabled is not None:
         row.enabled = enabled
     if host is not None:
@@ -198,11 +202,42 @@ async def update_admin_config(
         row.use_starttls = use_starttls
 
     row.updated_by_id = updated_by_id
+    after = _audit_snapshot(row)
+    if audit is not None:
+        changed_before, changed_after = audit_service.change_snapshots(before, after)
+        if changed_before:
+            # Critical: same transaction, so a failed insert blocks the change.
+            await audit_service.record(
+                db,
+                action=AuditAction.CONFIG_SMTP_UPDATED,
+                ctx=audit,
+                description="Updated SMTP configuration",
+                resource_type="config",
+                resource_id="smtp",
+                before=changed_before,
+                after=changed_after,
+            )
+
     await db.commit()
     await db.refresh(row)
 
     _cache = None
     return row
+
+
+def _audit_snapshot(row: SmtpSetting) -> dict:
+    """Config values that are safe to store; the password is only a boolean."""
+    return {
+        "enabled": row.enabled,
+        "host": row.host,
+        "port": row.port,
+        "username": row.username,
+        "from_email": row.from_email,
+        "from_name": row.from_name,
+        "use_tls": row.use_tls,
+        "use_starttls": row.use_starttls,
+        "password_set": bool(row.password_encrypted),
+    }
 
 
 async def test_config(

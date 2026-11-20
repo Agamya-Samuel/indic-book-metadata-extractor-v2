@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.system_setting import SINGLETON_ID, SystemSetting
 from app.models.user import User
+from app.services import audit_service
+from app.services.audit_service import AuditAction, AuditContext
 
 logger = logging.getLogger(__name__)
 
@@ -157,12 +159,29 @@ async def set_maintenance(
     until: datetime | None,
     updated_by_id: UUID | None,
     redis=None,
+    audit: AuditContext | None = None,
 ) -> dict:
     row = await _get_or_create(db)
+    before = _maintenance_snapshot(row)
     row.maintenance_enabled = enabled
     row.maintenance_message = (message or "").strip() or None
     row.maintenance_until = None if not enabled else _as_aware(until)
     row.updated_by_id = updated_by_id
+    after = _maintenance_snapshot(row)
+    if audit is not None:
+        changed_before, changed_after = audit_service.change_snapshots(before, after)
+        if changed_before:
+            # Critical: same transaction, so a failed insert blocks the change.
+            await audit_service.record(
+                db,
+                action=AuditAction.CONFIG_MAINTENANCE_UPDATED,
+                ctx=audit,
+                description=("Enabled maintenance mode" if enabled else "Disabled maintenance mode"),
+                resource_type="config",
+                resource_id="maintenance",
+                before=changed_before,
+                after=changed_after,
+            )
     await db.commit()
     await db.refresh(row)
 
@@ -170,3 +189,11 @@ async def set_maintenance(
     await _write_cache(redis, data)
     _set_state(data)
     return data
+
+
+def _maintenance_snapshot(row: SystemSetting) -> dict:
+    return {
+        "enabled": bool(row.maintenance_enabled),
+        "message": row.maintenance_message,
+        "until": row.maintenance_until.isoformat() if row.maintenance_until else None,
+    }

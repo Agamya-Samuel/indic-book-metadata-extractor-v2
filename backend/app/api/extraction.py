@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
     PaginationParams,
+    get_audit_context,
     get_current_user,
     get_owned_book_or_404,
     get_pagination,
@@ -24,6 +25,8 @@ from app.schemas.metadata import (
     ModelInfo,
     PromptDefaultsResponse,
 )
+from app.services import audit_service
+from app.services.audit_service import AuditAction, AuditContext
 from app.services.llm_service import llm_service
 from app.services.prompt_profiles import get_profile
 from app.services.stage_manager import StageManager, StageStatus
@@ -84,6 +87,7 @@ async def run_extraction(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> ExtractionResponse:
     # Check for an active run before the status gate: after the first request
     # the book is llm_running, and a duplicate must see 409 (with the job id),
@@ -143,6 +147,24 @@ async def run_extraction(
         progress=0.0,
     )
     db.add(job)
+    await db.flush()
+    await audit_service.record(
+        db,
+        action=AuditAction.EXTRACTION_REQUESTED,
+        ctx=ctx,
+        description=f"Requested metadata extraction for book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book_id,
+        resource_label=book.title or book.filename,
+        subject_user_id=book.owner_id,
+        details={
+            "job_id": str(job.id),
+            "model": body.model,
+            "temperature": body.temperature,
+            "max_tokens": body.max_tokens,
+            "batch_count": len(BATCH_FIELD_ORDER),
+        },
+    )
     await db.commit()
     await db.refresh(job)
 
@@ -181,6 +203,7 @@ async def retry_extraction(
     book: Book = Depends(get_owned_book_or_404),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    ctx: AuditContext = Depends(get_audit_context),
 ) -> ExtractionResponse:
     if book.status not in (
         BookStatus.OCR_COMPLETE,
@@ -197,4 +220,19 @@ async def retry_extraction(
         await StageManager.cancel_stage(db, book_id, "llm_extraction", "Superseded by retry")
         await db.commit()
 
-    return await run_extraction(book_id, body, book=book, db=db, user=user)
+    # Record the retry only once the new job exists: run_extraction re-validates
+    # and can still reject (409 duplicate, 400 bad status / no pages / no OCR
+    # text), and a rejected retry must not leave a "retried" row behind.
+    response = await run_extraction(book_id, body, book=book, db=db, user=user, ctx=ctx)
+    await audit_service.record_isolated(
+        db,
+        action=AuditAction.EXTRACTION_RETRIED,
+        ctx=ctx,
+        description=f"Retried metadata extraction for book {book.title or book.filename}",
+        resource_type="book",
+        resource_id=book_id,
+        resource_label=book.title or book.filename,
+        subject_user_id=book.owner_id,
+        details={"superseded_stage": bool(existing), "new_job_id": str(response.job_id)},
+    )
+    return response

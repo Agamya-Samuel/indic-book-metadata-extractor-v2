@@ -79,6 +79,17 @@ async def poll_and_notify(redis, db_factory) -> int:
         except Exception:  # noqa: BLE001
             logger.exception("Could not notify admins about watchdog key %s", key)
             continue
+
+        from app.services import audit_service
+
+        audit_service.record_system(
+            action=audit_service.AuditAction.SYSTEM_WATCHDOG_ALERT,
+            label="watchdog",
+            description=f"Host watchdog alert: {reason}",
+            resource_type="system",
+            result=audit_service.AuditResult.FAILURE,
+            details={"key": short, "reason": reason},
+        )
         await redis.delete(key)
         notified += 1
     return notified

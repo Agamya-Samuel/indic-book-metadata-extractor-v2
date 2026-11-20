@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.admin import router as admin_router
+from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
 from app.api.books import router as books_router
 from app.api.bulk import router as bulk_router
@@ -88,6 +89,9 @@ api_router.include_router(
     dependencies=[Depends(require_approved_user)],
 )
 api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
+# Read-only audit trail. Mounted separately from the admin router so the path
+# prefix stays explicit and no mutation route can be added by accident.
+api_router.include_router(audit_router, prefix="/admin/audit-logs", tags=["audit"])
 api_router.include_router(
     stages_router,
     prefix="/books",

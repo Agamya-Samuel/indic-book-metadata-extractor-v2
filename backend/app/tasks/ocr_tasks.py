@@ -534,11 +534,27 @@ def _finalize_job(job_id_str: str, book_id_str: str, total_pages: int, errors: l
             await db.commit()
             terminal_status = job.status
             error_log = job.error_log
+            requested_by_id = job.requested_by_id
             new_book_status = book.status if book else None
             notification_id = await notification_service.notify_job_terminal(
                 db, job=job, book=book, status=terminal_status
             )
             await notification_service.notify_and_deliver(db, [notification_id])
+
+            if errors and terminal_status != JobStatus.FAILED:
+                from app.services import audit_service
+
+                audit_service.record_system(
+                    action=audit_service.AuditAction.OCR_PARTIAL_FAILURE,
+                    label="ocr-worker",
+                    description=f"OCR completed with {len(errors)} failed page(s) for book {book_id_str}",
+                    resource_type="book",
+                    resource_id=book_id,
+                    subject_user_id=requested_by_id,
+                    result=audit_service.AuditResult.FAILURE,
+                    error_message=outcome_log[:1000] if outcome_log else None,
+                    details={"failed_pages": len(errors), "total_pages": total_pages},
+                )
 
         _publish_job_terminal(book_id, job_id, terminal_status, error_log)
         if new_book_status is not None:

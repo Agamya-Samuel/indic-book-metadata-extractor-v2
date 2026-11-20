@@ -65,6 +65,21 @@ def _on_task_failure(sender=None, task_id=None, exception=None, **kwargs):
                 job.completed_at = datetime.now(timezone.utc)
                 await db.commit()
 
+                from app.services import audit_service
+
+                audit_service.record_system(
+                    action=audit_service.AuditAction.JOB_FAILED,
+                    label="celery",
+                    description=f"Job {job.id} ({job.job_type}) failed: {error[:300]}",
+                    resource_type="job",
+                    resource_id=job.id,
+                    resource_label=job.job_type,
+                    subject_user_id=job.requested_by_id,
+                    result=audit_service.AuditResult.FAILURE,
+                    error_message=error[:1000],
+                    details={"task_id": task_id, "book_id": str(job.book_id) if job.book_id else None},
+                )
+
                 book_id = job.book_id
                 if book_id:
                     book_result = await db.execute(select(Book).where(Book.id == book_id))
