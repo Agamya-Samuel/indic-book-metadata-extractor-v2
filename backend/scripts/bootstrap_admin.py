@@ -39,9 +39,7 @@ async def _run() -> int:
         return 0
 
     async with async_session_factory() as db:
-        admin_count = await db.scalar(
-            select(func.count()).select_from(User).where(User.role == UserRole.ADMIN)
-        )
+        admin_count = await db.scalar(select(func.count()).select_from(User).where(User.role == UserRole.ADMIN))
         if admin_count:
             print(f"bootstrap_admin: {admin_count} administrator(s) already exist; skipping.")
             return 0

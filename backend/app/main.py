@@ -251,9 +251,7 @@ async def lifespan(app: FastAPI):
     if pool is not None:
         from app.services.watchdog_service import watchdog_relay_loop
 
-        watchdog_task = asyncio.create_task(
-            watchdog_relay_loop(pool, async_session_factory), name="watchdog-relay"
-        )
+        watchdog_task = asyncio.create_task(watchdog_relay_loop(pool, async_session_factory), name="watchdog-relay")
 
     yield
     # Shutdown

@@ -64,9 +64,7 @@ async def test_relay_notifies_admins_once(db_session) -> None:
     count = await watchdog_service.poll_and_notify(redis, db_factory)
 
     assert count == 1
-    rows = (
-        await db_session.execute(Notification.__table__.select().where(Notification.user_id == admin.id))
-    ).all()
+    rows = (await db_session.execute(Notification.__table__.select().where(Notification.user_id == admin.id))).all()
     assert len(rows) == 1
     assert rows[0].title == "Host watchdog alert"
     assert "container 'worker' is not running" in rows[0].body

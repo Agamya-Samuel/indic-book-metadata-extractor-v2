@@ -66,7 +66,7 @@ async def poll_and_notify(redis, db_factory) -> int:
         key = raw_key if isinstance(raw_key, str) else raw_key.decode()
         reason = await redis.get(key)
         reason = (reason if isinstance(reason, str) else reason.decode()) if reason else "unknown reason"
-        short = key[len(WATCHDOG_FAIL_KEY_PREFIX):]
+        short = key[len(WATCHDOG_FAIL_KEY_PREFIX) :]
         try:
             async with db_factory() as db:
                 ids = await _notify_admins(
