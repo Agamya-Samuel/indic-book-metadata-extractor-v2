@@ -421,7 +421,10 @@ services:
         condition: service_healthy
 
   quickstatements:
-    image: wikibase/quickstatements:1
+    image: app-jb5tjz-quickstatements
+    build:
+      context: ./docker/quickstatements
+      dockerfile: Dockerfile
     restart: unless-stopped
     expose:
       - "80"
@@ -431,10 +434,16 @@ services:
       # The image renders config.json and oauth.ini from these at startup.
       OAUTH_CONSUMER_KEY: ${QS_OAUTH_CONSUMER_KEY:-}
       OAUTH_CONSUMER_SECRET: ${QS_OAUTH_CONSUMER_SECRET:-}
+      # The entrypoint writes the Toolforge-style replica.my.cnf for the local DB.
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    entrypoint: ["/bin/bash", "/qs-entrypoint.sh"]
     volumes:
       - quickstatements_data:/quickstatements/data
+      - ./docker/quickstatements/entrypoint.sh:/qs-entrypoint.sh:ro
     depends_on:
       wikibase:
+        condition: service_healthy
+      mysql:
         condition: service_healthy
 
   mysql:
@@ -448,6 +457,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init_wikibase.sql:/docker-entrypoint-initdb.d/01-init-wikibase.sql:ro
+      - ./docker/mysql/02-init-quickstatements.sql:/docker-entrypoint-initdb.d/02-init-quickstatements.sql:ro
+      - ./docker/mysql/quickstatements-schema.sql:/docker-entrypoint-initdb.d/lib/quickstatements-schema.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s

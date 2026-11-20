@@ -171,11 +171,13 @@ from `POST /api/bulk/export-wikibase` or imported with the URL form
 
 `POST /api/bulk/export-wikibase` returns a QuickStatements v1 TSV. The UI/API parses it with
 `api.php?action=import&format=v1` and executes it with `api.php?action=run_single_command`
-(one command per call, `last_item` threaded between calls). The **batch** path
-(`api.php?action=run_batch`) additionally needs the Toolforge batch database
-(`quickstatements_p` / `quickstatements_auth`), which is **not provisioned** in this self-hosted
-compose. Until that DB is added, use `run_single_command` (or the app's direct
-`POST /api/wikibase/publish`) for scripted runs.
+(one command per call, `last_item` threaded between calls). The batch path
+(`api.php?action=run_batch`) is also supported: the compose provisions
+`wikibase__quickstatements_p` / `wikibase__quickstatements_auth` on first boot
+(`docker/mysql/02-init-quickstatements.sql`), and the custom QS image
+(`docker/quickstatements/Dockerfile`) adds the `mysqli` extension and repoints the
+Toolforge DB wrapper at the local `mysql` service. Both modes work; the app's direct
+`POST /api/wikibase/publish` remains the simplest scripted path.
 
 ## Troubleshooting
 
@@ -188,7 +190,7 @@ compose. Until that DB is added, use `run_single_command` (or the app's direct
 | `You do not have permission to propose…` | missing `mwoauthproposeconsumer` | step 3 |
 | `mwoauthserver-consumer-owner-only` | owner-only consumer | register a normal consumer (step 4) |
 | `permissiondenied` on every QS edit | consumer missing `basic` | add `grant-basic` (step 4) |
-| `run_batch` returns `Could not complete the request.` | Toolforge batch DB not provisioned | use `run_single_command` or `/api/wikibase/publish` |
+| `run_batch` returns `Could not complete the request.` | QS image missing the local-DB fix, or `wikibase__quickstatements_*` not provisioned | rebuild the QS image (`docker/quickstatements/Dockerfile`) and check the schemas |
 | `Could not complete the request.` from `oauth_redirect` | bad callback / owner-only / bad credentials | check `oauth.ini`, consumer callback, and QS logs |
 | QS cannot reach Wikibase | wrong `WIKIBASE_PUBLIC_URL` | use the public HTTPS origin in the QS env; internal `http://wikibase` is also reachable |
 | Config reverts after redeploy | Dokploy rewrites the compose env | update Dokploy, not just the file |
