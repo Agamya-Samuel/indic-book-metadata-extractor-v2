@@ -20,7 +20,7 @@
     "dotenv": "^16.5.0",
     "fuse.js": "^7.3.0",
     "konva": "^10.3.0",
-    "newrelic": "^14.1.0",
+    "newrelic": "^14.13.0",
     "next": "^16.3.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -49,7 +49,7 @@
   },
   "allowScripts": {
     "@newrelic/native-metrics@13.0.0": true,
-    "@newrelic/fn-inspect@5.0.0": true,
+    "@newrelic/fn-inspect@5.1.0": true,
     "@datadog/pprof@5.15.0": true,
     "msw@2.14.6": true,
     "@tailwindcss/postcss@4.1.16": true,
