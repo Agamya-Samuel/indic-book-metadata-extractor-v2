@@ -1,6 +1,6 @@
 # Data Model
 
-All persistent state lives in PostgreSQL 16. SQLAlchemy 2.x models are
+All persistent state lives in PostgreSQL 18. SQLAlchemy 2.x models are
 in `backend/app/models/`; migrations are in `backend/alembic/versions/`.
 
 Base mixins (`backend/app/models/base.py`):

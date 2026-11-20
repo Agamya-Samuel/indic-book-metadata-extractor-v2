@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Rate limiting on auth endpoints; CSRF (`X-CSRF-Token`) required on state-changing requests
 
 ### Changed
+- **PostgreSQL 18:** production and staging run `postgres:18-trixie`; dev Compose and CI run `postgres:18-alpine`. The `pgdata` mount moves from `/var/lib/postgresql/data` to `/var/lib/postgresql` because PG18 images use the versioned `PGDATA=/var/lib/postgresql/18/docker` layout — keeping the old path would put the cluster in the container's writable layer and lose it on every recreate. The `backup` sidecar moves to `postgres:18-alpine` to keep `pg_dump` on the server's major version. See [`learnings/037`](learnings/037-postgres-18-upgrade.md)
 - **Documentation restructured:** 54 files in a flat `docs/` became 37 categorised documents. Legacy content was merged forward before archiving, not discarded
 - **Data and results relocated:** evaluation inputs now live in `datasets/`, benchmark outputs in `benchmarks/`. PDFs remain gitignored, so the repository's git footprint is unchanged
 - **Path references repaired:** dataset constants in `backend/scripts/`, `.gitignore` rules, and every relative Markdown link were updated. A pre-existing off-by-one bug in cross-root documentation links was fixed at the same time

@@ -21,14 +21,17 @@ services:
   # Database
   # ─────────────────────────────────────────────────────────────────────────────
   postgres:
-    image: postgres:16-bookworm
+    image: postgres:18-trixie
     restart: unless-stopped
     environment:
       POSTGRES_DB: indic_books
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PG18 uses the versioned Debian layout: PGDATA is /var/lib/postgresql/18/docker.
+      # Mount the parent, not /var/lib/postgresql/data — mounting the old path puts
+      # the cluster in the container's writable layer and every recreate loses it.
+      - pgdata:/var/lib/postgresql
       - ./docker/postgres/init_extensions.sql:/docker-entrypoint-initdb.d/init_extensions.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -306,7 +309,7 @@ services:
   # Daily DB Backup (retains last 7)
   # ─────────────────────────────────────────────────────────────────────────────
   backup:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     volumes:
       - ./docker/scripts/backup-db.sh:/backup-db.sh:ro

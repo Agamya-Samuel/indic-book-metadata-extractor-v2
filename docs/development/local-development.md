@@ -95,7 +95,7 @@ For hot-reloading and faster iteration. You still need PostgreSQL, Redis and Oll
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y postgresql-16 postgresql-server-dev-16
+sudo apt install -y postgresql-18 postgresql-server-dev-18
 sudo apt install -y redis-server
 sudo apt install -y tesseract-ocr tesseract-ocr-tel tesseract-ocr-hin tesseract-ocr-eng
 curl -fsSL https://ollama.com/install.sh | sh
@@ -106,7 +106,7 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt in
 **macOS**
 
 ```bash
-brew install postgresql@16 redis tesseract tesseract-lang ollama uv node@20
+brew install postgresql@18 redis tesseract tesseract-lang ollama uv node@20
 ```
 
 **Windows** — use WSL 2 with the Ubuntu steps (`wsl --install` from an elevated PowerShell).
@@ -146,7 +146,7 @@ Tesseract and record `pages.ocr_error` — useful to know before debugging accur
 ### 5.2 Start the dependencies
 
 ```bash
-sudo service postgresql start     # macOS: brew services start postgresql@16
+sudo service postgresql start     # macOS: brew services start postgresql@18
 sudo service redis-server start   # macOS: brew services start redis
 
 createdb indic_books
@@ -261,7 +261,7 @@ In production only the frontend and backend are published; both sit behind one h
 | Emails not sent | `SMTP_ENABLED=false` (the default) | Set SMTP variables, or accept in-app notifications only |
 | Book stuck at `ocr_running` | A worker died | Wait for the reaper (90 min) or cancel the job |
 | Port already in use | Another process holds it | `lsof -i :<PORT>` then `kill -9 <PID>`; Windows: `netstat -ano` + `taskkill` |
-| `CREATE EXTENSION pg_trgm` fails | The `postgresql-contrib` package is missing | Install `postgresql-contrib` for your PG16 package, or use the `postgres:16-bookworm` image |
+| `CREATE EXTENSION pg_trgm` fails | The `postgresql-contrib` package is missing | Install `postgresql-contrib` for your PG18 package, or use the `postgres:18-alpine` image |
 | Celery: `Cannot connect to redis://…` | Redis down or wrong URL | `redis-cli ping`; check `REDIS_URL` points at localhost for native runs |
 | SQLAlchemy: `cannot connect to server` | Postgres down, or URL still points at the `postgres` container name | `pg_isready -U postgres`; set `DATABASE_URL` to localhost |
 | Migrations out of sync | Diverged database | `uv run alembic current`; reset with `downgrade base && upgrade head` (destroys data) |

@@ -79,20 +79,26 @@ correct rollback is to leave volumes alone.
 
 ### PostgreSQL (`postgres`)
 
-- **Image:** `postgres:16-bookworm` (bookworm, not trixie — see the note below)
+- **Image:** `postgres:18-trixie` (dev and CI use `postgres:18-alpine` — see the note below)
 - **Role:** system of record for every table in [the data model](system-architecture.md#4-data-model)
 - **Extensions:** `pg_trgm` (fuzzy search), created by migrations `004`/`006` and by
   `docker/postgres/init_extensions.sql`
 - **Access:** `DATABASE_URL` — SQLAlchemy async engine over `asyncpg`
 - **Health:** `pg_isready`; also asserted by `GET /api/health`
-- **Volume:** `pgdata`
+- **Volume:** `pgdata`, mounted at **`/var/lib/postgresql`** (not `/var/lib/postgresql/data`)
 - **Migrations:** Alembic, run by the backend entrypoint before the app starts
 
-The tag is pinned to `bookworm` deliberately. `pgvector/pgvector:pg16` (the image this stack used
-until 2026-11-20) is bookworm / glibc 2.36, while the floating `postgres:16` tag is now trixie /
-glibc 2.41. Pointing an existing `pgdata` volume at the newer base records a collation-version
-mismatch for every database and makes `CREATE DATABASE` fail outright (`template1` mismatch), which
-breaks the restore drill. Both images ship PostgreSQL 16.16, so staying on bookworm costs nothing.
+**Why the mount path matters.** PostgreSQL 18 images ship the versioned Debian layout:
+`PGDATA=/var/lib/postgresql/18/docker`, and the image declares `VOLUME /var/lib/postgresql`. If you
+keep the old `pgdata:/var/lib/postgresql/data` mount, the cluster is created inside the container's
+writable layer instead of the volume — the app, the backups and every query look healthy, and every
+container recreate silently starts an empty database. Mount the parent directory.
+
+**Why the tags differ.** Production and staging use `postgres:18-trixie`; the dev Compose file and CI
+use `postgres:18-alpine` to keep them light. Note that Alpine is musl libc and initialises with a
+different collation than the glibc images, so ordering and `LIKE`/`pg_trgm` behaviour can differ
+between CI and production. If that ever matters, move dev and CI to `postgres:18-trixie` too.
+`bookworm` is only needed if you have a legacy glibc-2.36 dependency; nothing here does.
 
 ### Redis (`redis`)
 
@@ -128,7 +134,7 @@ Four distinct jobs, which is why it is core rather than optional:
 
 ### Backup (`backup`)
 
-- **Image:** `postgres:16-alpine` running `docker/scripts/backup-db.sh` in a 24-hour loop
+- **Image:** `postgres:18-alpine` running `docker/scripts/backup-db.sh` in a 24-hour loop
 - **Retention:** 7 daily dumps in the `backup_data` volume
 - **Why ungated:** it costs ~12 MiB and is the only automated database backup. See
   [backup-and-recovery](../operations/backup-and-recovery.md).
@@ -243,7 +249,7 @@ ground truth. None of them run in production.
 
 | Capability | Status |
 | --- | --- |
-| PostgreSQL 16 + `pg_trgm` | Implemented |
+| PostgreSQL 18 + `pg_trgm` | Implemented |
 | Redis (broker, results, rate limit, SSE, locks) | Implemented |
 | Ollama extraction (`/api/chat`) | Implemented |
 | SMTP email delivery | Implemented, disabled by default locally |

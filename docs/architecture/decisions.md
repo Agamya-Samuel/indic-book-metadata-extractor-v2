@@ -107,6 +107,7 @@ or `complete`.
 | 023 | [Production Hardening: End-to-End Outcome](../../learnings/023-production-hardening-outcome.md) | Complete |
 | 024 | [Host Network Recovery and gemma4 Resource Reality](../../learnings/024-host-network-and-gemma-resource-reality.md) | — |
 | 036 | [pgvector Semantic Search: Cost Analysis and Removal](../../learnings/036-pgvector-removal.md) | Removed as dead code |
+| 037 | [PostgreSQL 18 Upgrade (Fresh Volume)](../../learnings/037-postgres-18-upgrade.md) | Applied |
 
 ### Product and UI
 

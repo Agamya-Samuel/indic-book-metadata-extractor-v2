@@ -41,7 +41,7 @@ flowchart TB
     end
 
     subgraph core["Core infrastructure (internal)"]
-        PG[("postgres 16")]
+        PG[("postgres 18")]
         RD[("redis 7<br/>broker, cache, SSE, rate limit")]
         OL["ollama<br/>gemma4:e4b"]
         WK["worker<br/>Celery: ocr, llm, default"]
@@ -92,10 +92,10 @@ core pipeline depends on it, and it is not gated behind Compose profiles yet.
 | `frontend` | `Dockerfile.frontend` | Next.js App Router UI; the browser calls same-origin `/api`, which the proxy forwards | stateless |
 | `backend` | `Dockerfile.backend` | HTTP API, auth, rate limiting, SSE hub, job reaper, maintenance state | stateless |
 | `worker` | `Dockerfile.backend` (with `OCR_LINE=true`) | All Celery tasks: page rendering, preprocessing, OCR, LLM extraction | stateless |
-| `postgres` | `postgres:16-bookworm` | System of record for everything except files | `pgdata` |
+| `postgres` | `postgres:18-trixie` | System of record for everything except files | `pgdata` |
 | `redis` | `redis:7-alpine` | Celery broker, Celery result backend, rate-limit counters, SSE pub/sub | `redis_data` |
 | `ollama` | `ollama/ollama` | Local inference for metadata extraction | `ollama_data` |
-| `backup` | `postgres:16-alpine` | Daily `pg_dump`, retains 7 copies | `backup_data` |
+| `backup` | `postgres:18-alpine` | Daily `pg_dump`, retains 7 copies | `backup_data` |
 
 **Important:** production runs a **single** `worker` container at `--concurrency=1` subscribed to
 `ocr,llm,default`. The `ocr` and `llm` queues exist as separate routing targets, but one process

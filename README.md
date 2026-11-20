@@ -59,7 +59,7 @@ That's it. Upload a Telugu or Hindi PDF and follow the guided workflow.
 └──────┬──────┘              └──────────────────┘
        │
 ┌──────▼───────────────────────────────────────────┐
-│                  PostgreSQL 16                   │
+│                  PostgreSQL 18                   │
 │   Books, Pages, OCR Text, Metadata, Jobs         │
 └──────────────────────────────────────────────────┘
 ```
@@ -96,7 +96,7 @@ Start here:
 | Image Preprocessing | OpenCV, Pillow |
 | OCR Engine | Tesseract 5+ (with Indic language packs) |
 | LLM Inference | Ollama, Instructor (structured output) |
-| Database | PostgreSQL 16, pg_trgm |
+| Database | PostgreSQL 18, pg_trgm |
 | Search | pg_trgm (server) + Fuse.js (client) |
 
 ---

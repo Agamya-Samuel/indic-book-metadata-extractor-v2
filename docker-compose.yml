@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-bookworm
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: indic_books
@@ -9,7 +9,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # PG18 uses the versioned Debian layout: PGDATA is /var/lib/postgresql/18/docker.
+      # Mount the parent, not /var/lib/postgresql/data.
+      - pgdata:/var/lib/postgresql
       - ./docker/postgres/init_extensions.sql:/docker-entrypoint-initdb.d/init_extensions.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -235,7 +237,7 @@ services:
         condition: service_healthy
 
   backup:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     volumes:
       - ./docker/scripts/backup-db.sh:/backup-db.sh:ro
