@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: postgres:16-bookworm
     restart: unless-stopped
     environment:
       POSTGRES_DB: indic_books
