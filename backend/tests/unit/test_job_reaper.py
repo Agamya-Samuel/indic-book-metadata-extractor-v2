@@ -73,6 +73,16 @@ async def test_reaps_a_job_past_the_threshold(db_session) -> None:
     await db_session.refresh(book)
     assert book.status == BookStatus.OCR_COMPLETE
 
+    # The reap and its audit row commit together.
+    from sqlalchemy import select
+
+    from app.models.audit_log import AuditLog
+
+    audit_rows = (await db_session.execute(select(AuditLog).where(AuditLog.action == "job.reaped"))).scalars().all()
+    assert len(audit_rows) == 1
+    assert audit_rows[0].resource_id == str(stale.id)
+    assert audit_rows[0].result == "failure"
+
     notification = (
         await db_session.execute(Notification.__table__.select().where(Notification.user_id == owner.id))
     ).first()
