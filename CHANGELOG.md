@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+**Audit logs**
+- Centralised, append-only audit trail (`audit_logs` + migration `023` triggers): auth, user management, book upload/delete/reset/re-run, page selection, preprocessing, OCR corrections, extraction requests/retries, metadata edits (with before/after diffs), review completion, jobs (cancel/retry/fail/reap), exports (metadata, Wikibase, QuickStatements), bulk import, SMTP/maintenance config, and system events (watchdog alerts, partial OCR) — actor snapshots, IP/request-id correlation, and recursive secret redaction on every row
+- Read-only admin API `/api/admin/audit-logs` (filter by user/role/action/category/resource/result/date, full-text search, sortable columns, pagination, `exclude_meta` toggle) plus `/actions` catalogue; viewing the log is itself recorded (`audit.viewed`)
+- Admin UI at `/admin/audit`: filter bar with category-dependent action labels, date presets, shareable query-string state, expandable rows with a before/after diff table, request metadata and a raw-JSON toggle
+- `record_system()` audit helper for sync contexts (Celery signal handlers, background loops) — opens its own session and never raises into the worker
+- Gated `TEST_POSTGRES_URL` pytest that proves `UPDATE`/`DELETE`/`TRUNCATE` on `audit_logs` are rejected by the database, plus `poc/005` reproduction steps
+
 **Repository layout**
 - `datasets/` — ground truth, sample PDFs and the frozen evaluation corpus, moved out of `backend/tests/fixtures/` and `backend/prompt_eval/`
 - `benchmarks/` — measured outputs moved out of `backend/reports/`, so results are no longer stored inside the application source

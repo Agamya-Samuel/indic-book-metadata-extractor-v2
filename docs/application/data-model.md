@@ -259,6 +259,38 @@ set, this overrides the `SMTP_*` environment variables; otherwise the environmen
 The password is encrypted at rest with a key derived from `ENCRYPTION_SECRET` (falling back to
 `JWT_SECRET_KEY`). The admin API exposes only `password_set`, never the secret.
 
+### `audit_logs`
+
+Append-only trail of user, administrator, and system activity. Written by
+`services/audit_service.py` — never by the client. **No foreign keys**: a row must outlive the
+account or book it refers to, and an `ON DELETE SET NULL` cascade would itself be an `UPDATE`,
+which the database forbids. Actor identity is snapshotted into each row instead.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | UUID | primary key |
+| `created_at` | timestamptz | server default `now()` |
+| `actor_type` | varchar(16) | `user`, `admin`, `system`, `anonymous` |
+| `actor_user_id` | UUID | null for `system`/`anonymous` |
+| `actor_role` | varchar(20) | snapshot |
+| `actor_email` | varchar(320) | snapshot, stays readable after account deletion |
+| `actor_display_name` | varchar(120) | snapshot |
+| `action` | varchar(64) | e.g. `auth.login`, `metadata.updated`; catalogue in `services/audit_service.py` |
+| `category` | varchar(32) | `auth`, `user`, `book`, `processing`, `job`, `export`, `config`, `system` |
+| `description` | text | human-readable summary |
+| `resource_type` / `resource_id` | varchar | generic — UUID, singleton id, or Wikibase Q-id |
+| `resource_label` | varchar(500) | e.g. book title |
+| `subject_user_id` | UUID | whose work was affected, when not the actor |
+| `result` | varchar(16) | `success` or `failure` |
+| `error_message` | varchar(1000) | failure detail |
+| `ip_address` / `user_agent` / `request_id` | varchar | request correlation |
+| `before_values` / `after_values` / `details` | JSONB | changed keys only; secrets redacted, long values truncated (`truncated` flag) |
+| `truncated` | boolean | some value was cut to fit |
+
+Enforcement: migration `023` installs a `BEFORE UPDATE OR DELETE OR TRUNCATE` trigger that raises
+`audit_logs is append-only; … is not permitted`. There is no API route that mutates a row.
+Retention is forever; revisit with range partitioning on `created_at` only if volume demands it.
+
 ---
 
 ## 3. Enumerations
@@ -276,6 +308,8 @@ Stored as `varchar`, defined in Python and (for stages) enforced by check constr
 | `BookStage` | `upload`, `page_selection`, `ocr`, `llm_extraction`, `human_review`, `completion` |
 | `StageStatus` | `initiated`, `processing`, `completed`, `failed`, `cancelled` |
 | `NotificationType` | `job_completed`, `job_failed`, `job_cancelled`, `account_approved`, `pending_registration` |
+| `AuditActorType` | `user`, `admin`, `system`, `anonymous` |
+| `AuditCategory` | `auth`, `user`, `book`, `processing`, `job`, `export`, `config`, `system` |
 
 `BookStatus` is **derived**, not authoritative. `BOOK_STATUS_MAP` in `stage_manager.py` maps
 `(stage, stage_status)` pairs to a book status, and `_derive_book_status` walks stages in reverse
@@ -297,7 +331,7 @@ order to pick the most advanced terminal stage.
 
 ## 5. Migration history
 
-22 revisions, applied in order:
+24 revisions, applied in order:
 
 | Revision | Purpose |
 | --- | --- |
@@ -323,6 +357,8 @@ order to pick the most advanced terminal stage.
 | 020 | `books.wikibase_item_id` |
 | 021 | Account management + runtime SMTP settings |
 | 022 | Drop the unused `embeddings` table and the `vector` extension |
+| 023 | `audit_logs` + append-only triggers + trigram search indexes |
+| 024 | Audit search coverage: trigram indexes on `resource_label`/`action`, actor sort index |
 
 **Rule:** never edit an applied migration. Add a new revision.
 

@@ -14,6 +14,14 @@ make logs-backend                  # API errors
 make logs-worker-ocr               # OCR/LLM errors (dev: also logs-worker-llm)
 ```
 
+For anything involving *who did what* — a failed sign-in wave, an unexpected
+config or role change, a job that was cancelled by hand — open
+**`/admin/audit`** first: filter by actor, action, resource, or a 24 h / 7 d
+window, and expand a row for the before/after values, IP and request id. The
+audit trail records system events too (`job.failed`, `job.reaped`,
+`system.watchdog_alert`, `ocr.partial_failure`), so "nobody touched it" is
+itself verifiable.
+
 `GET /api/health` returns `{"status": "ok"}` whenever the FastAPI process can
 answer. It is a liveness probe only — it does not check dependencies; Postgres,
 Redis and Ollama are covered by the Compose healthchecks (`make status` shows
@@ -205,6 +213,8 @@ Before escalating, capture:
 4. The `book_stage_status` rows for that book (all attempts).
 5. Worker log excerpt around the failure.
 6. `llm_runs.raw_response` if extraction is involved.
+7. The `/admin/audit` rows for the affected book/user (filter by resource or
+   actor) — they carry the exact actor, timestamp and before/after values.
 
 That set answers almost every "why is this book stuck" question without reproducing anything.
 

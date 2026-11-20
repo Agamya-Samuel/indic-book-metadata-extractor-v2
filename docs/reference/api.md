@@ -224,6 +224,29 @@ Requires `role == admin` **and** an approved account.
 
 ---
 
+## Audit logs — `/api/admin/audit-logs`
+
+Requires `role == admin`. Read-only by design: rows are written by the services that perform the
+action, the database rejects `UPDATE`/`DELETE`/`TRUNCATE`, and no mutation route exists.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/` | Filterable, sortable, paginated log |
+| GET | `/{log_id}` | One entry |
+| GET | `/actions` | Event catalogue (value, category, label, critical) for filter labels |
+
+**List query parameters** (all optional): `q` (free text over description, actor, action,
+resource), `actor_user_id`, `actor_role`, `actor_type`, `action`, `category`,
+`resource_type`, `resource_id`, `result` (`success`/`failure`), `exclude_meta`
+(hide `audit.viewed` rows, default `false`), `date_from`, `date_to`,
+`sort` (`created_at` default, `action`, `actor`, `category`, `result`),
+`order` (`asc`/`desc`, default `desc`), `page` (default 1), `page_size` (default 50, max 200).
+
+Every list and detail request is itself recorded as `audit.viewed` (meta-audit) — filter it out
+with `exclude_meta=true` when reviewing real activity.
+
+---
+
 ## Bulk — `/api/bulk`
 
 | Method | Path | Purpose |
@@ -472,6 +495,26 @@ terminal job.
 `pending_user_count`. Role changes, deactivation, rejection, and password resets revoke the target
 user's sessions. The last active admin cannot be demoted or deactivated, and an admin cannot reject or
 delete their own account.
+
+### Audit logs
+
+```json
+GET /api/admin/audit-logs?action=metadata.updated&exclude_meta=true
+200 → { "items": [ { "id": "…", "created_at": "2026-11-20T10:00:00Z",
+                     "actor_type": "user", "actor_email": "reader@example.com",
+                     "action": "metadata.updated", "category": "processing",
+                     "description": "Updated metadata for book …",
+                     "resource_type": "book", "resource_id": "…",
+                     "result": "success", "truncated": false,
+                     "before": { "title": "Old" }, "after": { "title": "New" },
+                     "details": { "changed_field_count": 1 } } ],
+        "total": 1, "page": 1, "page_size": 50, "total_pages": 1 }
+```
+
+`GET /api/admin/audit-logs/actions` → `[ { "value": "auth.login", "category": "auth",
+"label": "Signed in", "critical": false }, … ]`. Actions in the `critical` set
+(`user.deleted`, `user.updated`, `config.smtp_updated`, `config.maintenance_updated`) are
+recorded inside the action's own transaction: if the audit insert fails, the action fails.
 
 ### Bulk
 

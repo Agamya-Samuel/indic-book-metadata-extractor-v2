@@ -385,6 +385,12 @@ Full detail is in [authentication.md](../application/authentication.md). The arc
 | APM | New Relic, backend and worker, enabled by `NEW_RELIC_ENABLED` |
 | Metrics | `app/services/metrics.py` records OCR completion, confidence and duration |
 | Errors | Structured logging via `app/core/logging_config.py`; global handlers normalise error bodies to `{detail, type}` |
+| Audit trail | `app/services/audit_service.py` writes `audit_logs` for every security-relevant action (auth, user management, books, processing, jobs, exports, config) and system events (job failures/reaps, watchdog alerts, partial OCR). Rows are append-only — a Postgres trigger rejects `UPDATE`/`DELETE`/`TRUNCATE` — and secrets are redacted before storage. Admins review them at `/admin/audit`. |
+
+The audit log is a cross-cutting concern, not a layer: request handlers, auth services, Celery
+signal handlers, and the lifespan background loops all write through the same three entry points
+(`record`, `record_isolated`, `record_system`) so the write-path choice is explicit at each call
+site — see [backend](../application/backend.md#91-audit-logging).
 
 ---
 

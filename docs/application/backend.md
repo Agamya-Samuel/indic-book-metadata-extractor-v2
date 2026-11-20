@@ -181,6 +181,36 @@ These are load-bearing and easy to break:
 | Metrics | `services/metrics.py` — OCR completion count, average confidence, duration |
 | Structured logging | `core/logging_config.py`, `logger.exception` in every handler |
 | Health | `GET /health` (unprefixed, unauthenticated) and `/api/health` |
+| Audit trail | `services/audit_service.py` → `audit_logs` (see below) |
+
+### 9.1 Audit logging
+
+Every recorded action goes through `services/audit_service.py`. Never insert into `audit_logs`
+directly, and never log from the frontend.
+
+**Which write path:**
+
+| Situation | Function |
+| --- | --- |
+| The route/service owns the commit (action + audit row commit together) | `record(db, …)` |
+| The action already committed (auth flows, exports, post-commit paths) | `record_isolated(db, …)` |
+| Sync code: Celery signal handlers, background loops | `record_system(…)` — opens its own session, never raises |
+
+Actions in `CRITICAL_ACTIONS` (`user.deleted`, `user.updated`, `config.smtp_updated`,
+`config.maintenance_updated`) **must** use `record` inside the action's transaction — an unaudited
+role change or config edit is worse than a failed request.
+
+**Change diffs:** use `change_snapshots(before, after)` so only changed keys are stored; a
+49-field metadata save stays bounded.
+
+**Secrets:** `_build_row` runs `sanitize()` over every payload — credential-shaped keys
+(`password`, `token`, `secret`, `cookie`, …) are redacted recursively and oversized values are
+truncated (`truncated=true`). Do not log raw request bodies.
+
+**System events** (job failures, watchdog alerts, partial OCR) use `record_system` with
+`label=` naming the source (e.g. `"job-reaper"`); they land as `actor_type=system` with the affected
+user in `subject_user_id`. The job reaper instead records its `job.reaped` rows with the
+transactional `record()` inside the reap transaction, so reaped and audited commit together.
 
 ---
 
