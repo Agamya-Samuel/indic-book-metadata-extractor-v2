@@ -104,11 +104,21 @@ https://<wikibase-host>/wiki/Special:OAuthConsumerRegistration/propose/oauth1a
 | Callback URL | `https://<qs-host>/api.php` |
 | Callback is prefix | **checked** |
 | Owner-only | **unchecked** |
-| Grant | **Create, edit, and move pages** (`grant-createeditmovepage`) |
+| Grant | **Basic** (`grant-basic`) + **Create, edit, and move pages** (`grant-createeditmovepage`) + **Edit pages** (`grant-editpage`) + **High volume** (`grant-highvolume`) |
 | Agreement | checked |
 
 **Do not use an owner-only consumer.** QuickStatements fetches an access token from a different
 site, and the handshake fails with `mwoauthserver-consumer-owner-only`.
+
+**`grant-basic` is mandatory.** A consumer with only `createeditmovepage` logs in fine but every
+`wbeditentity` fails with *"You do not have the permissions needed to carry out this action."*
+Adding the grant does not require re-registration:
+
+```sql
+UPDATE oauth_registered_consumer
+   SET oarc_grants = '["useoauth","basic","createeditmovepage","editpage","highvolume"]'
+ WHERE oarc_consumer_key = '<consumer-key>';
+```
 
 On success the page prints the consumer token/secret and an access token/secret. Copy the
 **consumer** pair into the environment (step 5); the access token is obtained by the OAuth flow.
@@ -157,6 +167,16 @@ A logged-in response names `QuickStatementsBot` and lists its rights. Batches ca
 from `POST /api/bulk/export-wikibase` or imported with the URL form
 `https://<qs-host>/#/v1=<url-encoded batch>`.
 
+### Batch vs single-command mode
+
+`POST /api/bulk/export-wikibase` returns a QuickStatements v1 TSV. The UI/API parses it with
+`api.php?action=import&format=v1` and executes it with `api.php?action=run_single_command`
+(one command per call, `last_item` threaded between calls). The **batch** path
+(`api.php?action=run_batch`) additionally needs the Toolforge batch database
+(`quickstatements_p` / `quickstatements_auth`), which is **not provisioned** in this self-hosted
+compose. Until that DB is added, use `run_single_command` (or the app's direct
+`POST /api/wikibase/publish`) for scripted runs.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -167,6 +187,8 @@ from `POST /api/bulk/export-wikibase` or imported with the URL form
 | `You must confirm your email address` | bot email not confirmed | step 2 |
 | `You do not have permission to propose…` | missing `mwoauthproposeconsumer` | step 3 |
 | `mwoauthserver-consumer-owner-only` | owner-only consumer | register a normal consumer (step 4) |
+| `permissiondenied` on every QS edit | consumer missing `basic` | add `grant-basic` (step 4) |
+| `run_batch` returns `Could not complete the request.` | Toolforge batch DB not provisioned | use `run_single_command` or `/api/wikibase/publish` |
 | `Could not complete the request.` from `oauth_redirect` | bad callback / owner-only / bad credentials | check `oauth.ini`, consumer callback, and QS logs |
 | QS cannot reach Wikibase | wrong `WIKIBASE_PUBLIC_URL` | use the public HTTPS origin in the QS env; internal `http://wikibase` is also reachable |
 | Config reverts after redeploy | Dokploy rewrites the compose env | update Dokploy, not just the file |

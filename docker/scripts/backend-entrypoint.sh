@@ -22,6 +22,9 @@ fi
 
 uv run alembic upgrade head
 
+echo "Bootstrapping first administrator (if configured)..."
+uv run python scripts/bootstrap_admin.py || echo "WARN: first-admin bootstrap failed; run make create-admin manually."
+
 echo "Starting application..."
 # If no CMD was passed (e.g. missing 'command:' in docker-compose),
 # fall back to the default uvicorn command instead of execing nothing.

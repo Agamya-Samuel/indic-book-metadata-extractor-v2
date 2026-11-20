@@ -84,6 +84,14 @@ The default model is not an environment variable — it is `DEFAULT_LLM_MODEL` i
 | `COOKIE_DOMAIN` | `""` | Leave empty for host-only cookies |
 | `REGISTRATION_REQUIRES_APPROVAL` | `true` | When `false`, signups are auto-approved |
 
+First-admin bootstrap (compose-level, read by `scripts/bootstrap_admin.py`, not `Settings`):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `BOOTSTRAP_ADMIN_EMAIL` | `""` | Admin email; empty disables the bootstrap |
+| `BOOTSTRAP_ADMIN_NAME` | `Admin` | Display name |
+| `BOOTSTRAP_ADMIN_PASSWORD` | `""` | Empty disables; only used when no admin exists |
+
 ---
 
 ## Email
@@ -128,7 +136,8 @@ In-app notifications are never gated by these; only alert email is.
 | `OCR_LOW_CONF_THRESHOLD` | `40` | Retry below this confidence |
 
 Production sets `OCR_TEL_ENGINE=line_model` for the worker and points
-`OCR_LINE_MODEL_NAME` at `/app/storage/models/telugu-ocr-ft`.
+`OCR_LINE_MODEL_NAME` at `/app/ocr_models/telugu-ocr-ft` (baked into the worker
+image from `agamyasamuel/telugu-ocr-ft` v1.0.0; the base model is the fallback).
 
 ---
 

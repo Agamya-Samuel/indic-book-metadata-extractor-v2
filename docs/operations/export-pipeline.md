@@ -158,7 +158,14 @@ original script in `title`, `author`, `publisher`, `pages` and `scribes`
 QuickStatements is publicly routed at
 `https://obm-quickstatements.oki-india.org`; its `config.json` and
 `oauth.ini` are rendered from the environment at startup. It needs a Wikibase bot account and a
-**normal, not owner-only** OAuth consumer.
+**normal, not owner-only** OAuth consumer. The consumer must include the **`basic`** grant (plus
+`createeditmovepage`/`editpage`); without `basic` every `wbeditentity` fails with
+`permissiondenied` even though login succeeds.
+
+`POST /api/bulk/export-wikibase` returns a QuickStatements v1 TSV. QS v1 parses it with
+`api.php?action=import&format=v1` and executes it with `api.php?action=run_single_command`
+(threading `last_item`); the batch path (`run_batch`) also needs the Toolforge batch DB
+(`quickstatements_p`/`_auth`), which is not provisioned here.
 
 The full, reproducible procedure — bot account, email confirmation, `oauthbot` group, consumer
 registration, environment variables and verification — is in

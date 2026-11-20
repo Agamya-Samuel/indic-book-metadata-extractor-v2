@@ -113,20 +113,27 @@ See also [domain-changes.md](domain-changes.md) for the full list of hostnames a
 Press **Deploy**. The first deploy takes a while:
 
 - Ollama pulls `gemma4:e4b` (~6.6 GB).
-- The worker image bakes CPU torch/transformers plus the Telugu OCR model, gated behind the
-  `OCR_LINE=true` build arg. Weights are baked in and never downloaded at runtime
-  (`HF_HUB_OFFLINE=1`). The backend image is built **without** the extra, so it stays small.
+- The worker image bakes CPU torch/transformers plus **both** Telugu OCR checkpoints (the
+  fine-tuned `agamyasamuel/telugu-ocr-ft` v1.0.0 and the base
+  `harsha-desaraju/telugu-ocr-model` fallback), gated behind the `OCR_LINE=true` build arg.
+  Weights are baked in and never downloaded at runtime (`HF_HUB_OFFLINE=1`). The backend image
+  is built **without** the extra, so it stays small.
 - The backend entrypoint runs `alembic upgrade head` before starting.
 
-### 2.5 Create the first administrator
+### 2.5 First administrator
 
-Registration is open but new accounts must verify email, and nobody can self-register as admin:
+Set these in Dokploy → Environment before the first deploy:
 
 ```bash
-make create-admin EMAIL=admin@<your-domain> DISPLAY_NAME="Admin"
+BOOTSTRAP_ADMIN_EMAIL=admin@<your-domain>
+BOOTSTRAP_ADMIN_NAME=Admin
+BOOTSTRAP_ADMIN_PASSWORD=<strong-password>
 ```
 
-The account is created verified and active. Further admins are managed in **Admin → Users**.
+The backend entrypoint runs `scripts/bootstrap_admin.py` after migrations. It creates the admin
+only when no administrator exists, so leaving it set on later deploys is safe (it skips).
+`make create-admin EMAIL=... DISPLAY_NAME=...` remains available for manual creation or recovery.
+Further admins are managed in **Admin → Users**.
 
 > Migration `012` (users/roles/ownership) refuses to run against a database that already contains
 > books. A database from before auth existed must be reset; books are re-uploaded under their owners.

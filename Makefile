@@ -15,7 +15,7 @@ help:
 	@echo "  make logs-worker-ocr  Tail OCR worker logs"
 	@echo "  make logs-worker-llm  Tail LLM worker logs"
 	@echo "  make migrate         Run database migrations"
-	@echo "  make create-admin    Create the first administrator account"
+	@echo "  make create-admin    Create an admin manually (optional; first deploy auto-bootstraps)"
 	@echo "                       (EMAIL=... DISPLAY_NAME=... [PASSWORD=...])"
 	@echo "  make reset-db        Reset database (destroys data!)"
 	@echo "  make download-model  Download Qwen2.5 7B model to Ollama"

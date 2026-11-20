@@ -348,7 +348,6 @@ storage/
 ├── processed/{book_id}/p0001_processed.png # preprocessing output
 ├── thumbnails/{book_id}/p0001.jpg
 ├── thumbnails/{book_id}/previews/p0001_w1200.jpg  # cached wide previews
-├── models/telugu-ocr-ft/                  # fine-tuned checkpoint, if present
 └── property-mapping.json                  # Wikidata P-ID → local P-ID map
 ```
 

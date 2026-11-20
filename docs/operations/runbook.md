@@ -77,7 +77,7 @@ endpoints, or the two state machines will permanently disagree.
 | Finding | Action |
 | --- | --- |
 | Wrong `books.language` | Correct it, then re-run OCR |
-| Line model failing | Check `/app/storage/models/telugu-ocr-ft` exists; fallback is automatic |
+| Line model failing | Check `/app/ocr_models/telugu-ocr-ft` exists in the worker image; fallback is `/app/ocr_models/telugu-ocr-model` |
 | Binarization enabled | Set `binarization: null` for that page |
 | Very low confidence, readable image | Accept and correct manually in OCR review |
 | Image genuinely corrupt | Re-render the page |

@@ -108,3 +108,9 @@ TESSDATA_PREFIX=/home/agamya/.cache/tessdata_fast \
 - Labels are model-aligned to verified page text, so easy lines dominate; the hard decorative/multi-column lines were excluded. The fine-tune improves the readable-body distribution, not the pathological pages.
 - The deployed epoch-4 checkpoint is not the line-level optimum (epoch 2); a future run should keep epoch 2 and compare page-level on more held-out books.
 - No Hindi model was improved; the routing fix in 029 remains the Hindi gain.
+
+**Published artifact (2026-11-20):** the deployed epoch-4 checkpoint is on HuggingFace Hub at
+[`agamyasamuel/telugu-ocr-ft`](https://huggingface.co/agamyasamuel/telugu-ocr-ft), tag `v1.0.0`,
+SHA `69d2ddb4ac458ee43f04d27096209fdad7727490`, MIT. `docker/Dockerfile.backend` bakes it into
+the worker image at `/app/ocr_models/telugu-ocr-ft`; the local `/home/agamya/.cache` copy is no
+longer a deploy dependency.

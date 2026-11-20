@@ -121,6 +121,10 @@ services:
       TESSERACT_CMD: tesseract
       OCR_TEL_ENGINE: ${OCR_TEL_ENGINE:-tesseract}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      # First-admin bootstrap (fresh deploy only; skips when an admin exists).
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Admin}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
@@ -189,9 +193,10 @@ services:
       STORAGE_PATH: /app/storage
       TESSERACT_CMD: tesseract
       OCR_TEL_ENGINE: ${OCR_TEL_ENGINE:-line_model}
-      # Fine-tuned checkpoint lives on the persistent storage volume; the
-      # baked base model is the automatic fallback if it is absent.
-      OCR_LINE_MODEL_NAME: /app/storage/models/telugu-ocr-ft
+      # Both checkpoints are baked into the worker image at build time: the
+      # fine-tuned model from HF (agamyasamuel/telugu-ocr-ft, v1.0.0) and the
+      # base model as the automatic fallback.
+      OCR_LINE_MODEL_NAME: /app/ocr_models/telugu-ocr-ft
       OCR_LINE_MODEL_FALLBACK_NAME: /app/ocr_models/telugu-ocr-model
       HF_HUB_OFFLINE: "1"
       OCR_BATCH_SIZE: ${OCR_BATCH_SIZE:-10}

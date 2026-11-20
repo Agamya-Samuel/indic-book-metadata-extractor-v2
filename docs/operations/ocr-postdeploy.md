@@ -42,6 +42,13 @@ an empty `{}` still merges the defaults.
 - Watch the first 5–10 books processed post-deploy.
 - Compare `avg_confidence` in the Library page against the pre-deploy baseline.
 
+### 1.4 Telugu line model (published artifact)
+
+The Telugu fine-tune is published at [`agamyasamuel/telugu-ocr-ft`](https://huggingface.co/agamyasamuel/telugu-ocr-ft)
+(tag `v1.0.0`, SHA `69d2ddb4ac458ee43f04d27096209fdad7727490`, MIT) and baked into the worker
+image by `docker/Dockerfile.backend`. No post-deploy copy is needed; the base model at
+`/app/ocr_models/telugu-ocr-model` remains the fallback.
+
 ---
 
 ## 2. Should do (no code, but needed for the gains to materialize)

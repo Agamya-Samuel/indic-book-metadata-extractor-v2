@@ -100,7 +100,7 @@ starting it performs the migration — but do that deliberately, not accidentall
 | `storage_data/pages` | Rendered page PNGs | Yes — re-render from PDF |
 | `storage_data/processed` | Preprocessed images | Yes — re-preprocess |
 | `storage_data/thumbnails` | Thumbnails and previews | Yes — regenerate |
-| `storage_data/models/telugu-ocr-ft` | Fine-tuned checkpoint | Only from training artefacts |
+| `storage_data/models/telugu-ocr-ft` | Fine-tuned checkpoint (legacy) | No longer used — baked into the worker image from HF (`agamyasamuel/telugu-ocr-ft` v1.0.0) |
 | `backup_data` | Database dumps | No |
 | `redis_data` | Queue state (AOF) | Effectively yes; queued work is lost |
 | `ollama_data` | Model weights | Yes — pull again |
