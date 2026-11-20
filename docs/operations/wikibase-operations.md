@@ -191,6 +191,7 @@ Extensions deliberately **not** installed are the ones that require Wikimedia-wi
 | QuickStatements rejects the TSV | Property IDs do not exist | Verify property mapping on the instance |
 | Export contains Wikidata P-IDs | Mapping file missing or unreadable | Run `make wikibase-init`, then restart the backend |
 | OpenRefine link 404s | `NEXT_PUBLIC_OPENREFINE_URL` unset at build | Rebuild the frontend |
+| Logo / favicon 404 (`/branding/*.png` or `/images/indico/*.png`) | Container predates the branding bake, or the image was never rebuilt | Redeploy with a `wikibase` image rebuild; fallback `./docker/wikibase/seed-branding.sh <container>` (§11) |
 | Everything slow after starting the stack | ~2.5 GiB extra plus CPU | Stop the optional services |
 
 ---
@@ -198,16 +199,23 @@ Extensions deliberately **not** installed are the ones that require Wikimedia-wi
 ## 11. Branding (OKI logo)
 
 `$wgLogos` is overridden in `docker/wikibase/config/90-extensions.php` to use two files served from
-`/var/www/html/images/indico/`:
+`/var/www/html/branding/`:
 
 | File | Used as | Source |
 | --- | --- | --- |
 | `logo.png` | `1x`, `1.5x`, `2x` (full lockup) | `docker/wikibase/images/logo.png` |
 | `icon.png` | `icon` (square emblem, left of the title) | `docker/wikibase/images/icon.png` |
 
-The `wikibase` (web) container bind-mounts `./docker/wikibase/images` read-only at
-`/var/www/html/images/indico`, so the logo is always the version in the repository — it survives
-volume recreation and container rebuilds without a manual step.
+The files are **baked into the image** by `docker/wikibase/Dockerfile` (`COPY images/
+/var/www/html/branding/`, with a build-time check that both are non-empty), so they are always the
+repository version and survive volume recreation, container rebuilds, and redeploys with no manual
+step and no host-path dependency.
+
+They deliberately do **not** live under `/images`: that path is the `wikibase_data` volume mount,
+which masks anything the image places there. The previous arrangement nested a read-only bind mount
+at `/images/indico` inside that volume; it worked, but any container created before the compose
+line existed had no such directory, and MediaWiki then advertised `$wgLogos` URLs that 404'd with no
+visible cause (`Main_Page` icon and the wiki logo both broke silently).
 
 `icon.png` must be a **perfect square** (currently 180×180). Vector renders it in a square slot, so
 a non-square image is cropped ("zoomed in and cut off"). `logo.png` is the wide lockup.
@@ -220,11 +228,19 @@ MediaWiki 1.45 requires the `wordmark` entry, if present, to be an array with `s
 and `height`; a plain string raises a `TypeError` in `SkinModule::getRelativeSizedLogo()` and
 every page returns HTTP 500.
 
-If you are **not** using the bind mount (e.g. a bare `docker run`), copy the files into the volume
-and reload the web server:
+If you are running an image built before the branding was baked in (or a bare `docker run` of an
+upstream image), copy the files in and reload the web server:
 
 ```bash
 ./docker/wikibase/seed-branding.sh <wikibase-container>
+```
+
+Then verify both assets resolve (`200`, `image/png`):
+
+```bash
+for f in logo icon; do
+  curl -sI "https://<wikibase-host>/branding/$f.png" | head -1
+done
 ```
 
 The Main Page is wiki content stored in `docker/wikibase/Main_Page.wikitext`. Apply it after a

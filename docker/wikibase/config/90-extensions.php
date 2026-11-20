@@ -43,17 +43,20 @@ $wgWBRepoSettings['searchIndexTypes'] = [
 ];
 
 # --- Branding ---
-# Served from /var/www/html/images/indico, bind-mounted read-only from
-# docker/wikibase/images (so the logo is always the repo version).
+# Served from /var/www/html/branding, baked into the image (see Dockerfile).
+# Deliberately NOT under /images: that path is the wikibase_data volume mount,
+# which masks anything the image puts there, and a nested bind mount inside a
+# volume silently disappears when a container is created from an older compose
+# file. A top-level docroot directory has no such failure mode.
 # icon.png MUST be a perfect square (Vector renders it in a square slot; a
 # non-square image is cropped). There is no wordmark image: Vector 2022 falls
 # back to $wgSitename as the text beside the icon.
 $wgSitename = 'Open Book Map Wikibase';
 $wgLogos = [
-    '1x' => "$wgServer/images/indico/logo.png",
-    '1.5x' => "$wgServer/images/indico/logo.png",
-    '2x' => "$wgServer/images/indico/logo.png",
-    'icon' => "$wgServer/images/indico/icon.png",
+    '1x' => "$wgServer/branding/logo.png",
+    '1.5x' => "$wgServer/branding/logo.png",
+    '2x' => "$wgServer/branding/logo.png",
+    'icon' => "$wgServer/branding/icon.png",
 ];
 
 # --- Extension Configuration ---

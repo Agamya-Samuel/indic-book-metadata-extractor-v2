@@ -27,3 +27,10 @@ RUN chmod +x /fetch-gadgets.sh && /fetch-gadgets.sh || echo "WARN: gadget fetch 
 # Copy gadget installer
 COPY install-gadgets.sh /install-gadgets.sh
 RUN chmod +x /install-gadgets.sh
+
+# Branding. Baked into the image at a top-level docroot directory rather than
+# under /images: that path is the wikibase_data volume mount, which masks image
+# content, and the previous nested bind mount silently vanished for containers
+# created before the compose line existed (404 on /images/indico/*.png).
+COPY images/ /var/www/html/branding/
+RUN test -s /var/www/html/branding/logo.png && test -s /var/www/html/branding/icon.png

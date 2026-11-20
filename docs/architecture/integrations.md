@@ -69,8 +69,8 @@ stop. Doing it *by configuration* is not implemented yet.
 
 To gate in production you would add `profiles: [wikibase]` / `[openrefine]` / `[monitoring]` to the
 relevant services and set `COMPOSE_PROFILES` in the environment tab. **Do not run `docker compose
-down -v`** — the export services hold named volumes (including the
-branding files in `wikibase_data`), and `wikibase-init` re-creates properties on next start, so the
+down -v`** — the export services hold named volumes (uploaded files in `wikibase_data`, plus the
+Wikibase MySQL data), and `wikibase-init` re-creates properties on next start, so the
 correct rollback is to leave volumes alone.
 
 ---

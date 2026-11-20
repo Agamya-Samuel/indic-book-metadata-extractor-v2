@@ -367,7 +367,6 @@ services:
       - wikibase_config:/config
       - ./docker/wikibase/config/90-extensions.php:/var/www/html/LocalSettings.d/90-extensions.php
       - wikibase_data:/var/www/html/images
-      - ./docker/wikibase/images:/var/www/html/images/indico:ro
       - quickstatements_data:/quickstatements/data
     healthcheck:
       test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost/w/api.php | grep -q '200'"]
